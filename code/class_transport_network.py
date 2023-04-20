@@ -1,5 +1,6 @@
 import math
 
+import geopandas
 import networkx as nx
 import pandas as pd
 import logging
@@ -29,7 +30,8 @@ class TransportNetwork(nx.Graph):
             logging.info(mode + ": {:.0f} km".format(km))
         logging.info('Nb of nodes: ' + str(len(self.nodes)) + ', Nb of edges: ' + str(len(self.edges)))
 
-    def add_transport_edge_with_nodes(self, edge_id, all_edges_data, all_nodes_data):
+    def add_transport_edge_with_nodes(self, edge_id: int,
+                                      all_edges_data: geopandas.GeoDataFrame, all_nodes_data: geopandas.GeoDataFrame):
         # Selecting data
         edge_attributes = ['id', "type", 'surface', "geometry", "class", "km", 'special', "name",
                            "multimodes", "capacity", "disruption",
@@ -50,6 +52,7 @@ class TransportNetwork(nx.Graph):
         self[end_ids[0]][end_ids[1]]['shipments'] = {}
         self[end_ids[0]][end_ids[1]]['disruption_duration'] = 0
         self[end_ids[0]][end_ids[1]]['current_load'] = 0
+
 
     def giveRouteCaracteristics(self, route, debug=False):
         distance = 0  # km
