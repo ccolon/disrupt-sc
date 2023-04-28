@@ -1,12 +1,8 @@
 # Core function of the simulation loop
 
-import logging
-
 import networkx
-import networkx as nx
 
-from code.class_observer import Observer
-from code.disruption.disruption import DisruptionList
+from old_code.class_observer import Observer
 from functions import *
 from export_functions import *
 from check_functions import *

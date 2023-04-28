@@ -1,5 +1,4 @@
-from . import parameters_default
-from . import parameters
+from old_code.parameter import parameters_default, parameters
 import os
 from pathlib import Path
 

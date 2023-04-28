@@ -1,6 +1,5 @@
-from parameter.parameters_default import *
+from old_code.parameter.parameters_default import *
 import logging
-import os
 
 # TODO make it a dictionary
 # TODO create a function to merge the default param dic and the param dic

@@ -392,8 +392,8 @@ def exportParameters(exp_folder):
         'nt': 'copy',
         'posix': "cp"
     }
-    os.system(copy_command[os.name]+" "+
-        os.path.join('parameter', "parameters.py")+" "+
-        os.path.join(exp_folder, "parameters.txt")
-    )
+    os.system(copy_command[os.name] +" " +
+              os.path.join('parameter', "../code/parameters.py") + " " +
+              os.path.join(exp_folder, "parameters.txt")
+              )
     logging.info("Parameters exported in "+os.path.join(exp_folder, "parameters.txt"))

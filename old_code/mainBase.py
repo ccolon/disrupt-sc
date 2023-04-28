@@ -20,9 +20,9 @@ from export_functions import *
 from class_observer import Observer
 
 
-from parameter.parameters import *
-from parameter.filepaths import *
-from code.disruption.disruption import Disruption, DisruptionList
+from old_code.parameter.parameters import *
+from old_code.parameter.filepaths import *
+from code.disruption.disruption import DisruptionList
 
 # Check that the script is called correctly
 accepted_script_arguments = [
