@@ -1,5 +1,5 @@
 #!/bin/bash
-durations=(1 3 7 14)
+durations=(1 2 3 4 5 6 7 14)
 simulation_names=(
     "single_basin_saigon"
     "single_basin_mekong"

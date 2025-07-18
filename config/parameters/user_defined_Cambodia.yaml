@@ -55,7 +55,7 @@ logistics:
     pipelines: 5
 countries_to_include: ['AFR', 'AME', 'ASI', 'EUR', 'OCE', 'THA', 'VNM']
 simulation_type: disruption
-mc_repetitions: 20
+mc_repetitions: 50
 mc_caching:
   transport_network: True
   agents: True
@@ -74,7 +74,7 @@ transport_capacity_overrides:  # tons per day
   pp_main_port: 15000
   bavet_border_crossing: 9000
 export_files: True
-t_final: 30
+t_final: 60
 # Filter out sectors firms output is below that cutoff value
 cutoff_firm_output:
   'type': 'absolute'
