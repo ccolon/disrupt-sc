@@ -17,8 +17,6 @@ class MonteCarloExecutor(SimulationExecutor):
     
     def execute(self) -> List["Simulation"]:
         """Execute Monte Carlo iterations and return list of simulations."""
-        results = []
-        
         logging.info(f"{self.parameters.mc_repetitions} Monte Carlo simulations")
         
         for i in range(self.parameters.mc_repetitions):
@@ -47,8 +45,8 @@ class MonteCarloExecutor(SimulationExecutor):
             # Don't accumulate simulation objects to prevent memory leaks
             # results.append(simulation)
         
-        return results
-    
+        return []
+
     def _reset_model_state(self, full_reset: bool = False):
         """Reset model state for each Monte Carlo iteration using configured caching."""
         # Use the mc_caching configuration from parameters
