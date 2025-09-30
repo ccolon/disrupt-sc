@@ -14,6 +14,12 @@ filepaths:
   # Economic data
   "sector_table": "Economic/sector_table.csv"
   "mrio": "Economic/mrio.csv"
+  # Transaction-based data (alternative to MRIO)
+  "firm_table": "Economic/firms.geojson"
+  "transaction_table": "Economic/transaction_table.csv"
+  "final_demand": "Economic/final_demand.csv"
+  "exports": "Economic/exports.csv"
+  "imports": "Economic/imports.csv"
   # Spatial data
   "households_spatial": "Spatial/households.geojson"
   "countries_spatial": "Spatial/countries.geojson"
@@ -157,6 +163,7 @@ monetary_units_in_data: "mUSD"
 # Define the type of input data to calibrate the model
 # - 'mrio' use mrio matrix directly
 # - 'supplier-buyer network' uses supplier buyer network data
+# - 'transaction_based' uses direct firm definitions and transaction tables
 firm_data_type: "mrio"
 
 

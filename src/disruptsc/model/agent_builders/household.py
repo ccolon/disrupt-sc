@@ -46,7 +46,7 @@ def create_households(
                   long=float(household_table.loc[i, 'long']),
                   lat=float(household_table.loc[i, 'lat']),
                   population=household_table.loc[i, "population"],
-                  sector_consumption=household_sector_consumption[i],
+                  sector_consumption=household_sector_consumption.get(i, {}),
                   subregion=household_table.loc[i, "subregion"] if "subregion" in household_table.columns else None,
                   **{col: household_table.loc[i, col] for col in subregion_cols if col in household_table.columns}
                   )
@@ -58,21 +58,21 @@ def create_households(
 
 
 def _load_and_assign_household_spatial_data(
-    filepath_households_spatial: Path, 
-    mrio: Mrio, 
+    filepath_households_spatial: Path,
+    regions: list[str],
     transport_nodes: gpd.GeoDataFrame
 ) -> gpd.GeoDataFrame:
     """Load household spatial data and assign to transport nodes.
-    
+
     Parameters
     ----------
     filepath_households_spatial : Path
         Path to spatial household distribution file
-    mrio : Mrio
-        Multi-regional input-output table for region filtering
+    regions : list[str]
+        List of regions to include in the model
     transport_nodes : gpd.GeoDataFrame
         Transport network nodes
-        
+
     Returns
     -------
     gpd.GeoDataFrame
@@ -80,7 +80,7 @@ def _load_and_assign_household_spatial_data(
     """
     # Load and filter spatial data
     household_table = gpd.read_file(filepath_households_spatial)
-    household_table = household_table[household_table["region"].isin([tup[0] for tup in mrio.region_households])]
+    household_table = household_table[household_table["region"].isin(regions)]
     
     # Handle optional subregion attributes
     if 'subregion' in household_table.columns:
@@ -153,7 +153,7 @@ def _prepare_final_demand_data(
     input_units: str
 ) -> pd.DataFrame:
     """Prepare and rescale final demand data from MRIO.
-    
+
     Parameters
     ----------
     mrio : Mrio
@@ -166,16 +166,16 @@ def _prepare_final_demand_data(
         Target monetary units
     input_units : str
         Input monetary units in MRIO data
-        
+
     Returns
     -------
     pd.DataFrame
         Rescaled final demand data
     """
-    present_import_countries = [(country + '_' + mrio.import_label) 
+    present_import_countries = [(country + '_' + mrio.import_label)
                                for country in mrio.external_selling_countries]
     final_demand = mrio.get_final_demand(present_region_sectors + present_import_countries)
-    
+
     final_demand = rescale_monetary_values(
         final_demand,
         input_time_resolution="year",
@@ -183,8 +183,67 @@ def _prepare_final_demand_data(
         target_units=target_units,
         input_units=input_units
     )
-    
     return final_demand
+
+
+def _prepare_final_demand_data_from_csv(
+    final_demand_filepath: str,
+    present_region_sectors: list[str],
+    time_resolution: str,
+    target_units: str,
+    input_units: str = "mUSD"
+) -> pd.DataFrame:
+    """Prepare and rescale final demand data from CSV file for transaction-based mode.
+
+    Parameters
+    ----------
+    final_demand_filepath : str
+        Path to final_demand.csv file
+    present_region_sectors : list[str]
+        List of region_sector combinations to include
+    time_resolution : str
+        Target time resolution
+    target_units : str
+        Target monetary units
+    input_units : str
+        Input monetary units in CSV data (default: mUSD)
+
+    Returns
+    -------
+    pd.DataFrame
+        Rescaled final demand data with region_sector index
+    """
+    import pandas as pd
+    from disruptsc.model.utils.functions import rescale_monetary_values
+
+    # Load final demand data from CSV
+    final_demand_df = pd.read_csv(final_demand_filepath, header=[0, 1], index_col=[0, 1])
+
+    # Validate required columns
+    required_columns = ['final_demand']
+    missing_columns = [col for col in required_columns if col not in final_demand_df.columns.get_level_values(1)]
+    if missing_columns:
+        raise ValueError(f"Final demand CSV missing required columns: {missing_columns}")
+
+    # Create region_sector column and set as index
+    region_sector = final_demand_df.index.get_level_values(0) + '_' + final_demand_df.index.get_level_values(1)
+
+    # Filter to only include present region_sectors
+    final_demand_df = final_demand_df[region_sector.isin(present_region_sectors)]
+
+    if final_demand_df.empty:
+        raise ValueError(f"No final demand data found for region_sectors: {present_region_sectors}")
+
+    # Rescale monetary values
+    final_demand_df = rescale_monetary_values(
+        final_demand_df,
+        input_time_resolution="year",
+        target_time_resolution=time_resolution,
+        target_units=target_units,
+        input_units=input_units
+    )
+
+    return final_demand_df
 
 
 def _calculate_household_consumption_patterns(
@@ -231,10 +290,16 @@ def _calculate_household_consumption_patterns(
     
     # Calculate consumption for each household
     household_sector_consumption = {}
-    
+
+    logging.info(f"Starting household consumption calculation for {len(household_table)} households")
+    logging.info(f"Total population per region: {total_population_per_region}")
+    logging.info(f"Final demand columns: {final_demand.columns}")
+    logging.info(f"Cutoff value: {cutoff}")
+
     for _, household in household_table.iterrows():
         # Population proportion within region
         pop_proportion = household['population'] / total_population_per_region[household['region']]
+        logging.debug(f"Processing household {household['id']} in region {household['region']}, pop_proportion: {pop_proportion}")
         
         # Get demand for this region
         if household['region'] in final_demand.columns.get_level_values(0):
@@ -249,7 +314,6 @@ def _calculate_household_consumption_patterns(
                 for tup, demand in household_demand.items()
                 if demand > cutoff
             }
-    
     return household_sector_consumption
 
 
@@ -295,8 +359,9 @@ def define_households_from_mrio(
         - household_sector_consumption: Dict mapping household_id to sector consumption
     """
     # 1. Load spatial data and assign to transport nodes
+    regions = [tup[0] for tup in mrio.region_households]
     household_table = _load_and_assign_household_spatial_data(
-        filepath_households_spatial, mrio, transport_nodes
+        filepath_households_spatial, regions, transport_nodes
     )
     
     # 2. Add coordinates, IDs, and names
@@ -306,14 +371,80 @@ def define_households_from_mrio(
     final_demand = _prepare_final_demand_data(
         mrio, present_region_sectors, time_resolution, target_units, input_units
     )
-    
+
     # 4. Calculate household consumption patterns
     household_sector_consumption = _calculate_household_consumption_patterns(
         household_table, final_demand, final_demand_cutoff, time_resolution, target_units
     )
-    
     logging.info(f"Created {household_table.shape[0]} households in {household_table['od_point'].nunique()} od points")
     
+    return household_table, household_sector_consumption
+
+
+def define_households_from_transaction_data(
+        final_demand_filepath: str,
+        filepath_households_spatial: Path,
+        transport_nodes: gpd.GeoDataFrame,
+        time_resolution: str,
+        target_units: str,
+        input_units: str,
+        final_demand_cutoff: dict,
+        present_region_sectors: list[str]
+) -> tuple[pd.DataFrame, dict[int, dict[str, float]]]:
+    """Define households from transaction-based data using CSV final demand.
+
+    Main orchestrator function that coordinates household creation for transaction-based mode
+    by delegating to specialized helper functions for each phase.
+
+    Parameters
+    ----------
+    final_demand_filepath : str
+        Path to final_demand.csv file
+    filepath_households_spatial : Path
+        Path to spatial household distribution file (GeoJSON/Shapefile)
+    transport_nodes : gpd.GeoDataFrame
+        Transport network nodes for household assignment
+    time_resolution : str
+        Target time resolution for consumption data (e.g., 'day', 'week', 'month')
+    target_units : str
+        Target monetary units for consumption (e.g., 'USD', 'kUSD')
+    input_units : str
+        Input monetary units in CSV data
+    final_demand_cutoff : dict
+        Cutoff configuration for minimum consumption thresholds
+    present_region_sectors : list[str]
+        List of region_sector combinations to include
+
+    Returns
+    -------
+    tuple[pd.DataFrame, dict[int, dict[str, float]]]
+        Tuple of (household_table, household_sector_consumption)
+        - household_table: DataFrame with household spatial and demographic data
+        - household_sector_consumption: Dict mapping household_id to sector consumption
+    """
+    # 1. Load spatial data and assign to transport nodes
+    # Extract regions from present_region_sectors
+    regions = list(set(rs.split('_')[0] for rs in present_region_sectors))
+
+    household_table = _load_and_assign_household_spatial_data(
+        filepath_households_spatial, regions, transport_nodes
+    )
+
+    # 2. Add coordinates, IDs, and names
+    household_table = _add_household_coordinates_and_identifiers(household_table, transport_nodes)
+
+    # 3. Prepare final demand data from CSV
+    final_demand = _prepare_final_demand_data_from_csv(
+        final_demand_filepath, present_region_sectors, time_resolution, target_units, input_units
+    )
+    print(final_demand)
+    # 4. Calculate household consumption patterns
+    household_sector_consumption = _calculate_household_consumption_patterns(
+        household_table, final_demand, final_demand_cutoff, time_resolution, target_units
+    )
+
+    logging.info(f"Created {household_table.shape[0]} households in {household_table['od_point'].nunique()} od points")
+
     return household_table, household_sector_consumption
 
 

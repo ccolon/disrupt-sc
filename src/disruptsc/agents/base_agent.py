@@ -369,7 +369,9 @@ class BaseAgents(dict):
         """Send purchase orders for all agents."""
         for agent in self.values():
             if hasattr(agent, 'send_purchase_orders'):
-                agent.send_purchase_orders(sc_network)
+                # Only send purchase orders if agent is actually connected to the network
+                if agent in sc_network:
+                    agent.send_purchase_orders(sc_network)
 
     def receive_products(self, sc_network: "ScNetwork", transport_network: "TransportNetwork",
                          sectors_no_transport_network: list, transport_to_households: bool,

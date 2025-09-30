@@ -16,7 +16,8 @@ if TYPE_CHECKING:
 
 class Household(BaseAgent):
 
-    def __init__(self, pid, od_point, region, name, long, lat, population, sector_consumption, subregion=None, **kwargs):
+    def __init__(self, pid, od_point, region, name, long, lat, population, sector_consumption, subregion=None,
+                 **kwargs):
         super().__init__(
             agent_type="household",
             name=name,
@@ -30,7 +31,7 @@ class Household(BaseAgent):
         self.sector_consumption = sector_consumption
         self.population = population
         self.subregion = subregion
-        
+
         # Dynamic subregion system
         self.subregions = {}
         for key, value in kwargs.items():
@@ -86,7 +87,7 @@ class Household(BaseAgent):
                                * commercial_link.eq_price
         self.consumption_loss += new_consumption_loss
         add_or_increment_dict_key(self.consumption_loss_per_sector, commercial_link.product, new_consumption_loss)
-    
+
     def get_subregion(self, level):
         """Get subregion for specific level (e.g., 'province', 'district')"""
         return self.subregions.get(level)
@@ -113,23 +114,23 @@ class Household(BaseAgent):
     def select_suppliers(self, sc_network: "ScNetwork", firms: "Firms", countries: "Countries",
                          weight_localization: float, nb_suppliers_per_input: int,
                          sector_types_to_shipment_methods: dict, import_label: str, transport_network=None):
-        
+
         # Batch data collection phase - collect all supplier data before network operations
         all_edges_to_add = []  # For batched NetworkX operations
         all_purchase_plan_updates = {}  # For vectorized dictionary updates
         all_retailer_updates = {}  # For vectorized dictionary updates
         all_client_updates = {}  # For vectorized dictionary updates (supplier.clients)
-        
+
         for region_sector, amount in self.sector_consumption.items():
             supplier_type, retailers, retailer_weights, distances = self.identify_suppliers(region_sector, firms,
-                                                                                 nb_suppliers_per_input,
-                                                                                 weight_localization,
-                                                                                 import_label,
-                                                                                 transport_network)
-            
+                                                                                            nb_suppliers_per_input,
+                                                                                            weight_localization,
+                                                                                            import_label,
+                                                                                            transport_network)
+
             # Prepare data for batch operations
             distance_iter = iter(distances) if distances is not None else iter([None] * len(retailers))
-            
+
             for retailer_id, weight in zip(retailers, retailer_weights):
                 # Retrieve the appropriate supplier object from the id
                 if supplier_type == "country":
@@ -156,32 +157,32 @@ class Household(BaseAgent):
                     supplier_id=retailer_id,
                     buyer_id=self.pid
                 )
-                
+
                 # Configure commercial link
                 commercial_link.determine_transportation_mode(sector_types_to_shipment_methods)
-                
+
                 # Collect data for batch operations
                 all_edges_to_add.append((supplier_object, self, commercial_link, weight))
                 all_purchase_plan_updates[retailer_id] = weight * amount
                 all_retailer_updates[retailer_id] = {'sector': region_sector, 'weight': weight}
-                
+
                 # Prepare supplier client updates (keyed by supplier object for batch update)
                 if supplier_object not in all_client_updates:
                     all_client_updates[supplier_object] = {}
                 all_client_updates[supplier_object][self.pid] = {
                     'sector': "households", 'share': 0, 'transport_share': 0, "distance": distance
                 }
-        
+
         # Batch NetworkX operations - minimize graph operations
         for supplier_object, buyer, commercial_link, weight in all_edges_to_add:
             sc_network.add_edge(supplier_object, buyer, object=commercial_link)
             # Set edge weight immediately after adding edge
             sc_network[supplier_object][buyer]['weight'] = weight
-        
+
         # Vectorized dictionary updates - batch update all dictionaries at once
         self.purchase_plan.update(all_purchase_plan_updates)
         self.retailers.update(all_retailer_updates)
-        
+
         # Batch update supplier client dictionaries
         for supplier_object, client_updates in all_client_updates.items():
             supplier_object.clients.update(client_updates)

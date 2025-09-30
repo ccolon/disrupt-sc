@@ -10,6 +10,49 @@ from disruptsc.agents.base_agent import BaseAgent, BaseAgents
 from disruptsc.agents.transport_mixin import TransportCapable
 from disruptsc.network.commercial_link import CommercialLink
 
+
+def calculate_suppliers_per_sector_mrio(firms, sector_table: pd.DataFrame) -> dict:
+    """Calculate number of suppliers per sector using MRIO sector table.
+
+    Args:
+        firms: Collection of firms
+        sector_table: MRIO sector table with share_exporting_firms column
+
+    Returns:
+        Dict mapping region_sector -> number of suppliers to select
+    """
+    dic_sector_to_firm_id = firms.group_agent_ids_by_property("region_sector")
+    share_exporting_firms = sector_table.set_index('sector')['share_exporting_firms'].to_dict()
+
+    suppliers_per_sector = {}
+    for region_sectors, potential_supplier_pid in dic_sector_to_firm_id.items():
+        if region_sectors not in share_exporting_firms:  # case of mrio fallback
+            suppliers_per_sector[region_sectors] = 1
+        else:  # use % from sector table
+            suppliers_per_sector[region_sectors] = max(1,
+                round(len(potential_supplier_pid) * share_exporting_firms[region_sectors]))
+
+    return suppliers_per_sector
+
+
+def calculate_suppliers_per_sector_transaction(firms, export_share: float = 0.1) -> dict:
+    """Calculate number of suppliers per sector for transaction mode.
+
+    Args:
+        firms: Collection of firms
+        export_share: Fraction of firms per sector to select as exporters (default 10%)
+
+    Returns:
+        Dict mapping region_sector -> number of suppliers to select
+    """
+    dic_sector_to_firm_id = firms.group_agent_ids_by_property("region_sector")
+
+    suppliers_per_sector = {}
+    for region_sectors, potential_supplier_pid in dic_sector_to_firm_id.items():
+        suppliers_per_sector[region_sectors] = max(1, round(len(potential_supplier_pid) * export_share))
+
+    return suppliers_per_sector
+
 if TYPE_CHECKING:
     from disruptsc.network.transport_network import TransportNetwork
     from disruptsc.network.sc_network import ScNetwork
@@ -88,14 +131,22 @@ class Country(BaseAgent, TransportCapable):
             self.purchase_plan[selling_country_pid] = quantity
             selling_country_object.clients[self.pid] = {'sector': self.pid, 'share': 0, 'transport_share': 0}
 
-    def select_suppliers(self, graph, firms, country_list, sector_table: pd.DataFrame,
+    def select_suppliers(self, graph, firms, country_list, suppliers_per_sector: dict,
                          sector_types_to_shipment_methods: dict):
+        """Select suppliers for this country.
+
+        Args:
+            graph: Supply chain network
+            firms: Available firms
+            country_list: Other countries
+            suppliers_per_sector: Dict mapping region_sector -> number of suppliers to select
+            sector_types_to_shipment_methods: Shipping method configuration
+        """
         # Select other country as supplier: transit flows
         self.create_transit_links(graph, country_list)
 
         # Identify firms from each sector
         dic_sector_to_firm_id = firms.group_agent_ids_by_property("region_sector")
-        share_exporting_firms = sector_table.set_index('sector')['share_exporting_firms'].to_dict()
         # # Identify od_points which exports (optional)
         # if "special" in transport_nodes.columns:  # clean data, make it a transport network method
         #     export_od_points = transport_nodes.dropna(subset=['special'])
@@ -117,16 +168,12 @@ class Country(BaseAgent, TransportCapable):
         for region_sectors in present_region_sectors_to_buy_from:  # only select suppliers from sectors that are present
             # Identify potential suppliers
             potential_supplier_pid = dic_sector_to_firm_id[region_sectors]
-            # Evaluate how much to select
-            if region_sectors not in share_exporting_firms:  # case of mrio
-                nb_suppliers_to_select = 1
-            else:  # otherwise we use the % of the sector table to cal
-                nb_suppliers_to_select = max(1,
-                                             round(len(potential_supplier_pid) * share_exporting_firms[region_sectors]))
+            # Determine the number of suppliers to be selected from input
+            nb_suppliers_to_select = suppliers_per_sector.get(region_sectors, 1)
             if nb_suppliers_to_select > len(potential_supplier_pid):
                 logging.warning(f"The number of supplier to select {nb_suppliers_to_select} "
-                                f"is larger than the number of potential supplier {len(potential_supplier_pid)} "
-                                f"(share_exporting_firms: {share_exporting_firms[region_sectors]})")
+                                f"is larger than the number of potential supplier {len(potential_supplier_pid)}")
+                nb_suppliers_to_select = len(potential_supplier_pid)
                 # Select supplier and weights
             selected_supplier_ids, supplier_weights = determine_suppliers_and_weights(
                 potential_supplier_pid,
