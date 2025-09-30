@@ -6,25 +6,24 @@ import numpy as np
 import logging
 
 import pandas as pd
-from tqdm import tqdm
 
 from .utils.functions import load_sector_table, filter_sector
 from .utils.profiling import profile_method
 from .utils.caching import \
     load_cached_transport_network, \
     load_cached_agent_data, \
-    load_cached_transaction_table, \
     cache_transport_network, \
     cache_agent_data, load_cached_sc_network, cache_sc_network, load_cached_logistic_routes, cache_logistic_routes, \
     cache_model
 from .validation.runtime import compare_production_purchase_plans
-from .agent_builders.country import create_countries_from_mrio
+from .agent_builders.country import create_countries_from_mrio, create_countries_transaction_mode
 from .agent_builders.firm import \
-    define_firms_from_network_data, \
-    define_firms_from_mrio, create_firms, calibrate_input_mix, load_mrio_tech_coefs, \
+    define_firms_transaction_mode, \
+    define_firms_from_mrio, create_firms, load_mrio_tech_coefs, \
     load_inventories
-from .agent_builders.household import define_households_from_mrio, create_households
+from .agent_builders.household import define_households_from_mrio, define_households_from_transaction_data, create_households
 from .network_builders.transport import create_transport_network
+from .network_builders.supply_chain import build_network_from_transactions, build_network_from_mrio
 from disruptsc.parameters import Parameters
 from disruptsc.disruption.disruption import DisruptionList, TransportDisruption, CapitalDestruction, Recovery
 from disruptsc.simulation.simulation import Simulation
@@ -107,6 +106,106 @@ class Model(object):
         self.transport_network.log_km_per_transport_modes()  # Print data on km per mode
         self.transport_network_initialized = True
 
+    def setup_minimal_spatial_nodes(self):
+        """Setup minimal spatial nodes for agent placement without full transport network.
+
+        Creates basic spatial nodes from firm and household spatial data to enable
+        agent spatial assignment when with_transport = False. This allows the model
+        to run without transport network infrastructure while maintaining spatial
+        referencing capabilities.
+        """
+        import geopandas as gpd
+        import pandas as pd
+        from shapely.geometry import Point
+
+        logging.info('Creating minimal spatial nodes for agent placement')
+
+        # Collect all spatial points from firms and households
+        all_points = []
+
+        # Load firm spatial data
+        if self.parameters.firm_data_type == "transaction_based":
+            # Firms data is in Economic folder for transaction mode
+            firms_spatial_path = self.parameters.filepaths['firm_table']
+        else:
+            # Standard MRIO mode uses separate spatial files
+            firms_spatial_path = self.parameters.filepaths['firms_spatial']
+
+        if firms_spatial_path.exists():
+            firms_spatial = gpd.read_file(firms_spatial_path)
+            for _, firm in firms_spatial.iterrows():
+                geom = firm['geometry']
+                all_points.append({
+                    'geometry': Point(geom.x, geom.y),
+                    'long': geom.x,
+                    'lat': geom.y,
+                    'type': 'roads',  # Default type for compatibility
+                    'source': 'firm'
+                })
+
+        # Load household spatial data
+        households_spatial_path = self.parameters.filepaths['households_spatial']
+        if households_spatial_path.exists():
+            households_spatial = gpd.read_file(households_spatial_path)
+            for _, household in households_spatial.iterrows():
+                geom = household['geometry']
+                all_points.append({
+                    'geometry': Point(geom.x, geom.y),
+                    'long': geom.x,
+                    'lat': geom.y,
+                    'type': 'roads',
+                    'source': 'household'
+                })
+
+        # Create unique nodes from all points (remove duplicates by coordinates)
+        points_df = pd.DataFrame(all_points)
+        if len(points_df) > 0:
+            # Remove duplicate coordinates with small tolerance
+            points_df['coord_key'] = points_df.apply(
+                lambda row: f"{row['long']:.6f},{row['lat']:.6f}", axis=1
+            )
+            unique_points = points_df.drop_duplicates('coord_key').copy()
+
+            # Create nodes GeoDataFrame with required attributes
+            self.transport_nodes = gpd.GeoDataFrame({
+                'id': range(len(unique_points)),
+                'long': unique_points['long'].values,
+                'lat': unique_points['lat'].values,
+                'type': unique_points['type'].values,
+                'geometry': unique_points['geometry'].values,
+                # Minimal attributes for compatibility
+                'disruption_duration': 0,
+                'shipments': [{} for _ in range(len(unique_points))],
+                'firms_there': [[] for _ in range(len(unique_points))],
+                'households_there': None
+            })
+            self.transport_nodes.index = self.transport_nodes['id']
+
+        else:
+            # Fallback: create single default node
+            logging.warning("No spatial data found, creating single default node")
+            self.transport_nodes = gpd.GeoDataFrame({
+                'id': [0],
+                'long': [0.0],
+                'lat': [0.0],
+                'type': ['roads'],
+                'geometry': [Point(0.0, 0.0)],
+                'disruption_duration': [0],
+                'shipments': [{}],
+                'firms_there': [[]],
+                'households_there': [None]
+            })
+            self.transport_nodes.index = [0]
+
+        # No transport edges needed for minimal setup
+        self.transport_edges = gpd.GeoDataFrame()
+
+        # Create minimal transport network placeholder (or None)
+        self.transport_network = None
+
+        logging.info(f'Created {len(self.transport_nodes)} minimal spatial nodes')
+        self.transport_network_initialized = True
+
     def shuffle_logistic_costs(self):
         self.parameters.add_variability_to_basic_cost()
         self.transport_network.ingest_logistic_data(self.parameters.logistics, self.parameters.time_resolution)
@@ -127,13 +226,11 @@ class Model(object):
         """
         logging.info('Generating the firms')
 
-        if self.parameters.firm_data_type == "supplier-buyer network":
-            self.firm_table = define_firms_from_network_data(
-                filepath_firm_table=self.parameters.filepaths['firm_table'],
-                filepath_location_table=self.parameters.filepaths['location_table'],
-                sectors_to_include=filtered_industries,
-                transport_nodes=self.transport_nodes,
-                sector_table=self.sector_table
+        if self.parameters.firm_data_type == "transaction_based":
+            from disruptsc.model.agent_builders.firm import define_firms_transaction_mode
+            self.firm_table = define_firms_transaction_mode(
+                firm_data_filepath=self.parameters.filepaths['firm_table'],
+                transport_nodes=self.transport_nodes
             )
         else:
             self.firm_table = define_firms_from_mrio(
@@ -162,14 +259,18 @@ class Model(object):
         )
 
         # Load technical coefficients based on firm data type
-        if self.parameters.firm_data_type == "supplier-buyer network":
-            self.firms, self.transaction_table = calibrate_input_mix(
+        if self.parameters.firm_data_type == "transaction_based":
+            from disruptsc.model.agent_builders.firm import calculate_input_mix_from_transactions
+            self.firms = calculate_input_mix_from_transactions(
                 firms=self.firms,
                 firm_table=self.firm_table,
-                sector_table=self.sector_table,
-                filepath_transaction_table=self.parameters.filepaths['transaction_table']
+                transaction_table_filepath=self.parameters.filepaths['transaction_table'],
+                imports_filepath=self.parameters.filepaths['imports']
             )
-        else:
+            # Create minimal sector table from firms data for compatibility
+            self._create_sector_table_from_firms()
+
+        elif self.parameters.firm_data_type == "mrio":
             load_mrio_tech_coefs(
                 firms=self.firms,
                 mrio=self.mrio,
@@ -195,8 +296,8 @@ class Model(object):
 
     @profile_method
     def setup_households(self, present_region_sectors: list) -> None:
-        """Setup households from MRIO data.
-        
+        """Setup households from MRIO or transaction data.
+
         Parameters
         ----------
         present_region_sectors : list
@@ -204,16 +305,28 @@ class Model(object):
         """
         logging.info('Defining the number of households to generate and their purchase plan')
 
-        self.household_table, household_sector_consumption = define_households_from_mrio(
-            mrio=self.mrio,
-            filepath_households_spatial=self.parameters.filepaths['households_spatial'],
-            transport_nodes=self.transport_nodes,
-            time_resolution=self.parameters.time_resolution,
-            target_units=self.parameters.monetary_units_in_model,
-            input_units=self.parameters.monetary_units_in_data,
-            final_demand_cutoff=self.parameters.cutoff_household_demand,
-            present_region_sectors=present_region_sectors
-        )
+        if self.parameters.firm_data_type == "transaction_based":
+            self.household_table, household_sector_consumption = define_households_from_transaction_data(
+                final_demand_filepath=self.parameters.filepaths['final_demand'],
+                filepath_households_spatial=self.parameters.filepaths['households_spatial'],
+                transport_nodes=self.transport_nodes,
+                time_resolution=self.parameters.time_resolution,
+                target_units=self.parameters.monetary_units_in_model,
+                input_units=self.parameters.monetary_units_in_data,
+                final_demand_cutoff=self.parameters.cutoff_household_demand,
+                present_region_sectors=present_region_sectors
+            )
+        else:
+            self.household_table, household_sector_consumption = define_households_from_mrio(
+                mrio=self.mrio,
+                filepath_households_spatial=self.parameters.filepaths['households_spatial'],
+                transport_nodes=self.transport_nodes,
+                time_resolution=self.parameters.time_resolution,
+                target_units=self.parameters.monetary_units_in_model,
+                input_units=self.parameters.monetary_units_in_data,
+                final_demand_cutoff=self.parameters.cutoff_household_demand,
+                present_region_sectors=present_region_sectors
+            )
 
         self.households = create_households(
             household_table=self.household_table,
@@ -222,18 +335,29 @@ class Model(object):
 
     @profile_method
     def setup_countries(self) -> None:
-        """Setup countries from MRIO data."""
-        logging.info('Creating countries from MRIO data')
+        """Setup countries from MRIO or transaction data."""
 
-        self.countries, self.country_table = create_countries_from_mrio(
-            mrio=self.mrio,
-            transport_nodes=self.transport_nodes,
-            filepath_countries_spatial=self.parameters.filepaths['countries_spatial'],
-            filepath_sectors=self.parameters.filepaths['sector_table'],
-            time_resolution=self.parameters.time_resolution,
-            target_units=self.parameters.monetary_units_in_model,
-            input_units=self.parameters.monetary_units_in_data
-        )
+        if self.parameters.firm_data_type == "transaction_based":
+            self.countries, self.country_table = create_countries_transaction_mode(
+                exports_filepath=self.parameters.filepaths['exports'],
+                imports_filepath=self.parameters.filepaths['imports'],
+                transport_nodes=self.transport_nodes,
+                filepath_countries_spatial=self.parameters.filepaths['countries_spatial'],
+                time_resolution=self.parameters.time_resolution,
+                target_units=self.parameters.monetary_units_in_model,
+                input_units=self.parameters.monetary_units_in_data
+            )
+        else:
+            logging.info('Creating countries from MRIO data')
+            self.countries, self.country_table = create_countries_from_mrio(
+                mrio=self.mrio,
+                transport_nodes=self.transport_nodes,
+                filepath_countries_spatial=self.parameters.filepaths['countries_spatial'],
+                filepath_sectors=self.parameters.filepaths['sector_table'],
+                time_resolution=self.parameters.time_resolution,
+                target_units=self.parameters.monetary_units_in_model,
+                input_units=self.parameters.monetary_units_in_data
+            )
 
     @profile_method
     def setup_agents(self, cached: bool = False):
@@ -251,34 +375,42 @@ class Model(object):
             # Load all agent data from cache
             self.mrio, self.sector_table, self.firms, self.firm_table, self.households, self.household_table, \
                 self.countries = load_cached_agent_data()
-            if self.parameters.firm_data_type == "supplier-buyer network":
-                self.transaction_table = load_cached_transaction_table()
             self.mrio = Mrio(self.mrio, monetary_units=self.parameters.monetary_units_in_data)
 
         else:
             # Create agents from scratch
 
-            # 1. Load and prepare MRIO data
-            self._prepare_mrio_and_sectors()
+            if self.parameters.firm_data_type == "transaction_based":
+                # Transaction-based mode: Skip MRIO, just setup firms
+                self.mrio = None  # No MRIO needed for transaction mode
+                self.sector_table = None  # Will be created during firm setup
+                present_sectors, present_region_sectors, flow_types_to_export = self.setup_firms([])
 
-            # 2. Filter sectors based on economic significance
-            filtered_industries = self._filter_sectors()
+            else:
+                # MRIO-based mode: Load MRIO and filter sectors
+                # 1. Load and prepare MRIO data
+                self._prepare_mrio_and_sectors()
 
-            # 3. Setup firms (defines present_region_sectors needed for households)
-            present_sectors, present_region_sectors, flow_types_to_export = self.setup_firms(filtered_industries)
+                # 2. Filter sectors based on economic significance
+                filtered_industries = self._filter_sectors()
 
-            # 4. Setup households (depends on present_region_sectors from firms)
+                # 3. Setup firms (defines present_region_sectors needed for households)
+                present_sectors, present_region_sectors, flow_types_to_export = self.setup_firms(filtered_industries)
+
+            # Setup households and countries
             self.setup_households(present_region_sectors)
-
-            # 5. Setup countries 
             self.setup_countries()
 
-            # 6. Cache the created data
+            # Cache data
             self._cache_agent_data(present_sectors, present_region_sectors, flow_types_to_export)
 
-        # Locate agents on transport network
-        self.transport_network.locate_firms_on_nodes(self.firms)
-        self.transport_network.locate_households_on_nodes(self.households)
+        # Locate agents on transport network (if available)
+        if self.transport_network is not None:
+            self.transport_network.locate_firms_on_nodes(self.firms)
+            self.transport_network.locate_households_on_nodes(self.households)
+        else:
+            logging.info("Transport network not available - skipping agent location on transport network")
+
         self.agents_initialized = True
 
     def _prepare_mrio_and_sectors(self) -> None:
@@ -288,6 +420,34 @@ class Model(object):
             self.parameters.monetary_units_in_data
         )
         self.sector_table = load_sector_table(self.parameters.filepaths['sector_table'])
+
+    def _create_sector_table_from_firms(self) -> None:
+        """Create a minimal sector table from firms data for transaction-based mode."""
+        if not hasattr(self, 'firm_table') or self.firm_table is None:
+            logging.warning("No firm_table available to create sector table from")
+            self.sector_table = pd.DataFrame()
+            return
+
+        # Extract unique sectors from firms data
+        unique_sectors = self.firm_table[['sector', 'sector_type']].drop_duplicates()
+
+        # Create minimal sector table with required columns
+        sector_table = pd.DataFrame({
+            'id': unique_sectors['sector'],
+            'sector': unique_sectors['sector'],
+            'sector_type': unique_sectors['sector_type'],
+            'region_sector': unique_sectors['sector'],  # Use sector as region_sector for simplicity
+            'type': unique_sectors['sector_type']  # Use sector_type as type for inventory purposes
+        })
+
+        # Add default values for other expected columns
+        sector_table['usd_per_ton'] = 1000  # Default value
+        sector_table['margin'] = 0.2  # Default value
+        sector_table['transport_share'] = 0.1  # Default value
+
+        self.sector_table = sector_table
+        logging.info(f"Created sector table from firms data with {len(sector_table)} sectors")
+
 
     def _filter_sectors(self) -> list:
         """Filter sectors based on output and demand criteria."""
@@ -333,8 +493,6 @@ class Model(object):
             'households': self.households,
             'countries': self.countries
         }
-        if self.parameters.firm_data_type == "supplier-buyer network":
-            data_to_cache['transaction_table'] = self.transaction_table
         cache_agent_data(data_to_cache)
 
     @profile_method
@@ -353,97 +511,29 @@ class Model(object):
                 f'{self.parameters.nb_suppliers_per_input}')
             self.sc_network = ScNetwork()
 
-            logging.info('Households are selecting their retailers (domestic B2C flows and import B2C flows)')
-            for household in tqdm(self.households.values(), total=len(self.households)):
-                household.select_suppliers(self.sc_network, self.firms, self.countries,
-                                           self.parameters.weight_localization_household,
-                                           self.parameters.nb_suppliers_per_input,
-                                           self.parameters.logistics['sector_types_to_shipment_method'],
-                                           import_label=self.mrio.import_label,
-                                           transport_network=self.transport_network)
-
-            logging.info('Exporters are being selected by purchasing countries (export B2B flows)')
-            logging.info('and trading countries are being connected (transit flows)')
-
-            for country in tqdm(self.countries.values(), total=len(self.countries)):
-                country.select_suppliers(self.sc_network, self.firms, self.countries, self.sector_table,
-                                         self.parameters.logistics['sector_types_to_shipment_method'])
-
-            logging.info(
-                f'Firms are selecting their domestic and international suppliers (import B2B flows) '
-                f'(domestic B2B flows). Weight localisation is {self.parameters.weight_localization_firm}'
-            )
-
-            if self.parameters.firm_data_type == "supplier-buyer network":
-                for firm in self.firms.values():
-                    inputed_supplier_links = self.transaction_table[self.transaction_table['buyer_id'] == firm.pid]
-                    output = self.firm_table.set_index('id').loc[firm.pid, "output"]
-                    firm.select_suppliers_from_data(self.sc_network, self.firms, self.countries,
-                                                    inputed_supplier_links, output,
-                                                    import_code='IMP')
+            # Use different network building strategies based on firm data type
+            if self.parameters.firm_data_type == "transaction_based":
+                # Use new transaction-based network builder
+                build_network_from_transactions(
+                    self.sc_network,
+                    self.firms,
+                    self.households,
+                    self.countries,
+                    self.parameters.filepaths['transaction_table'],
+                    self.parameters
+                )
             else:
-                for firm in tqdm(self.firms.values(), total=len(self.firms)):
-                    firm.select_suppliers(self.sc_network, self.firms, self.countries,
-                                          self.parameters.nb_suppliers_per_input,
-                                          self.parameters.weight_localization_firm,
-                                          self.parameters.logistics['sector_types_to_shipment_method'],
-                                          import_label=self.mrio.import_label,
-                                          transport_network=self.transport_network)
-
-            unconnected_nodes = self.sc_network.identify_disconnected_nodes(self.firms, self.countries, self.households)
-            if len(unconnected_nodes) > 0:
-                for agent_type, unconnected_node_ids in unconnected_nodes.items():
-                    logging.warning(f"{len(unconnected_node_ids)} {agent_type} are not in the sc network: "
-                                    f"they have no suppliers, no clients. We remove them.")
-                    if agent_type == "firms":
-                        for unconnected_firm_id in unconnected_node_ids:
-                            # self.sc_network.add_node(self.firms[unconnected_firm_id])
-                            del self.firms[unconnected_firm_id]
-                    if agent_type == "countries":
-                        for unconnected_country_id in unconnected_node_ids:
-                            del self.countries[unconnected_country_id]
-                    if agent_type == "households":
-                        for unconnected_household_id in unconnected_node_ids:
-                            del self.households[unconnected_household_id]
-
-            # Iteratively remove firms without clients until convergence
-            total_removed = 0
-            max_iterations = 10
-            for iteration in range(max_iterations):
-                removed_count = self.sc_network.remove_useless_commercial_links()
-                if removed_count == 0:
-                    logging.info(f"Converged after {iteration + 1} iterations")
-                    break
-                total_removed += removed_count
-
-                # Remove firms from model collections that were removed from sc_network
-                current_firm_pids_in_network = {node.pid for node in self.sc_network.nodes()
-                                                if hasattr(node, 'agent_type') and node.agent_type == "firm"}
-                firms_to_remove = set(self.firms.keys()) - current_firm_pids_in_network
-                for firm_id in firms_to_remove:
-                    del self.firms[firm_id]
-            else:
-                logging.warning(f"Reached maximum iterations ({max_iterations}) without convergence")
-
-            logging.info(f"Total firms removed in cleanup: {total_removed}")
-
-            # Final validation: Check for any remaining firms without clients
-            remaining_firms_without_clients = self.sc_network.identify_firms_without_clients()
-            if remaining_firms_without_clients:
-                logging.warning(
-                    f"Warning: {len(remaining_firms_without_clients)} firms still without clients after cleanup")
-            else:
-                logging.info("Cleanup successful: All remaining firms have clients")
-
-            logging.info(f'Nb of commercial links: {self.sc_network.number_of_edges()}')
-
-            # connected_countries = [node.pid for node in self.sc_network.nodes if node.agent_type == "country"]
-            # unconnected_countries = set(self.countries) - set(connected_countries)
-            # for unconnected_country in unconnected_countries:
-            #     logging.info(f"Country {unconnected_country} is not connected, removing it")
-            #     del self.countries[unconnected_country]
-
-            logging.info('The nodes and edges of the supplier--buyer have been created')
+                # Use MRIO-based network building
+                build_network_from_mrio(
+                    self.sc_network,
+                    self.firms,
+                    self.households,
+                    self.countries,
+                    self.mrio,
+                    self.sector_table,
+                    self.parameters,
+                    self.transport_network
+                )
 
             # Build network topology cache for performance optimization
             logging.info('Building network topology cache for optimized agent operations...')
@@ -523,8 +613,9 @@ class Model(object):
             self.logistic_routes_initialized = True
 
     def reset_variables(self):
-        logging.info("Resetting variables on transport network")
-        self.transport_network.reinitialize_flows_and_disruptions()
+        if self.transport_network is not None:
+            logging.info("Resetting variables on transport network")
+            self.transport_network.reinitialize_flows_and_disruptions()
 
         logging.info("Resetting agents and commercial links variables")
         for commercial_link in nx.get_edge_attributes(self.sc_network, "object").values():
@@ -631,9 +722,13 @@ class Model(object):
             )
         # 3. Commercial links: agents set their order
         for household in self.households.values():
-            household.send_purchase_orders(self.sc_network)
+            # Only send purchase orders if household is actually connected to the network
+            if household in self.sc_network:
+                household.send_purchase_orders(self.sc_network)
         for country in self.countries.values():
-            country.send_purchase_orders(self.sc_network)
+            # Only send purchase orders if country is actually connected to the network
+            if country in self.sc_network:
+                country.send_purchase_orders(self.sc_network)
         # For firms, we need to evaluate input needs and decide purchase plans first
         for firm in self.firms.values():
             firm.evaluate_input_needs()
@@ -840,6 +935,8 @@ class Model(object):
         return simulation
 
     def debug_print(self):
+        if self.transport_network is None:
+            return
         disrupted_edges = [11992, 11993, 12029, 12033]
         for u, v in self.transport_network.edges:
             edge_data = self.transport_network[u][v]
@@ -919,7 +1016,7 @@ class Model(object):
         #     for country in countries:
         #         country.add_congestion_malus2(sc_network, transport_network)
         #
-        if (current_simulation.type not in ['criticality']) and (time_step in [0, 1]):
+        if (current_simulation.type not in ['criticality']) and (time_step in [0, 1]) and (self.transport_network is not None):
             current_simulation.transport_network_data += self.transport_network.compute_flow_per_segment(time_step)
 
         # if (time_step == 0) and (
@@ -935,11 +1032,13 @@ class Model(object):
         self.firms.receive_products(self.sc_network, self.transport_network,
                                     self.parameters.sectors_no_transport_network,
                                     self.parameters.transport_to_households)
-        self.transport_network.check_no_uncollected_shipment()
-        self.transport_network.reset_loads()
+        if self.transport_network is not None:
+            self.transport_network.check_no_uncollected_shipment()
+            self.transport_network.reset_loads()
         self.firms.evaluate_profit(self.sc_network)
 
-        self.transport_network.update_road_disruption_state()
+        if self.transport_network is not None:
+            self.transport_network.update_road_disruption_state()
         self.firms.update_disrupted_production_capacity()
 
         self.store_agent_data(time_step, current_simulation)
@@ -954,7 +1053,7 @@ class Model(object):
                 disruption.implement(self.transport_network)
             if isinstance(disruption, CapitalDestruction):
                 disruption.implement(self)
-        return self.transport_network.get_undisrupted_network()
+        return self.transport_network.get_undisrupted_network() if self.transport_network is not None else None
         # edge_disruptions_starting_now = disruptions_starting_now.filter_type('transport_edge')
         # if len(edge_disruptions_starting_now) > 0:
         #     self.transport_network.disrupt_edges(
@@ -1044,6 +1143,10 @@ class Model(object):
         ]
 
     def export_transport_nodes_edges(self):
+        if self.transport_network is None:
+            logging.info("Transport network not available - skipping transport nodes/edges export")
+            return
+
         self.transport_nodes[['geometry', 'geometry_wkt', 'id', 'long', 'lat']].to_file(
             self.parameters.export_folder / 'transport_nodes.geojson',
             driver="GeoJSON", index=False)

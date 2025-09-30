@@ -6,7 +6,8 @@ import geopandas as gpd
 import pandas as pd
 
 from disruptsc.agents.firm import Firm, Firms
-from disruptsc.model.utils.functions import find_nearest_node_id, get_index_closest_point, get_long_lat, get_absolute_cutoff_value
+from disruptsc.model.utils.functions import find_nearest_node_id, get_index_closest_point, get_long_lat, \
+    get_absolute_cutoff_value
 from disruptsc.network.mrio import Mrio
 
 
@@ -47,7 +48,7 @@ def create_firms(
 
     # Identify all subregion columns for dynamic passing
     subregion_cols = [col for col in firm_table.columns if col.startswith('subregion_')]
-    
+
     firms = Firms([
         Firm(pid=i,
              region_sector=firm_table.loc[i, "region_sector"],
@@ -76,6 +77,75 @@ def create_firms(
         firm.add_noise_to_geometry()
 
     return firms
+
+
+def define_firms_transaction_mode(firm_data_filepath: Path, transport_nodes: gpd.GeoDataFrame) -> pd.DataFrame:
+    """Create firms directly from firm data file (transaction-based mode).
+
+    This function creates firms from a GeoJSON file containing direct firm definitions,
+    rather than deriving them from MRIO disaggregation.
+
+    Parameters
+    ----------
+    firm_data_filepath : Path
+        Path to firms.geojson file containing firm definitions
+    transport_nodes : gpd.GeoDataFrame
+        Transport network nodes for spatial assignment
+
+    Returns
+    -------
+    pd.DataFrame
+        Firm table with same structure as define_firms_from_mrio output
+    """
+    logging.info("Creating firms from firm data file")
+
+    # Load firm data
+    try:
+        firm_gdf = gpd.read_file(firm_data_filepath)
+        logging.info(f"Loaded {len(firm_gdf)} firms from {firm_data_filepath}")
+    except Exception as e:
+        raise ValueError(f"Cannot read firm data file {firm_data_filepath}: {e}")
+
+    # Validate required columns
+    required_cols = ['id', 'sector', 'final_demand', 'imports', 'exports', 'total_output',
+                     'usd_per_ton', 'sector_type', 'margin', 'transport_share']
+    missing_cols = [col for col in required_cols if col not in firm_gdf.columns]
+    if missing_cols:
+        raise ValueError(f"Firm data file missing required columns: {missing_cols}")
+
+    # Create firm table structure compatible with MRIO output
+    firm_table = firm_gdf.copy()
+
+    # Add derived fields needed for compatibility
+    # Extract or preserve region information
+    if 'region' not in firm_table.columns:
+        # Only create region if it doesn't exist
+        if 'adminunit' in firm_table.columns:
+            # Convert adminunit to region (you may need to customize this mapping)
+            firm_table['region'] = firm_table['adminunit'].astype(str).str[:3]  # Simple extraction
+        else:
+            firm_table['region'] = 'DEFAULT'  # Fallback region
+
+    # Create region_sector combination if it doesn't exist
+    if 'region_sector' not in firm_table.columns:
+        firm_table['region_sector'] = firm_table['region'] + '_' + firm_table['sector']
+
+    # Create tuple for compatibility
+    firm_table['tuple'] = list(zip(firm_table['region'], firm_table['sector']))
+
+    # Add importance (using total_output as proxy for economic importance)
+    firm_table['importance'] = firm_table['total_output']
+
+    # Add firm name
+    firm_table['name'] = firm_table.groupby('region_sector').cumcount().astype(str)
+    firm_table['name'] = firm_table['region_sector'] + '_' + firm_table['name']
+
+    # Assign transport nodes using existing function
+    firm_table = _assign_transport_nodes(firm_table, transport_nodes)
+
+    logging.info(f"Created {len(firm_table)} firms in {firm_table['region'].nunique()} regions")
+
+    return firm_table
 
 
 def check_successful_extraction(firm_table: pd.DataFrame, attribute: str) -> None:
@@ -121,7 +191,7 @@ def load_firms_spatial_data(filepath_firms_spatial: Path, accepted_sectors: list
     else:
         gdf['subregion'] = None
         logging.debug(f"No legacy subregion attribute found in firms spatial data, using None")
-    
+
     # Detect and log all subregion_ columns
     subregion_cols = [col for col in gdf.columns if col.startswith('subregion_')]
     if subregion_cols:
@@ -139,7 +209,8 @@ def load_firms_spatial_data(filepath_firms_spatial: Path, accepted_sectors: list
 
     # Filter columns to keep only relevant sectors and subregion columns
     subregion_cols = [col for col in gdf.columns if col.startswith('subregion_')]
-    useless_cols = [col for col in gdf.columns if col not in ['region', 'subregion', "geometry"] + accepted_sectors + subregion_cols]
+    useless_cols = [col for col in gdf.columns if
+                    col not in ['region', 'subregion', "geometry"] + accepted_sectors + subregion_cols]
     if useless_cols:
         logging.info(f"The following columns will not be used: {useless_cols} because "
                      f"they are not part of the list of sectors defined in the MRIO table: {accepted_sectors}")
@@ -153,26 +224,26 @@ def create_disag_firm_table(disag_data: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     # Identify all subregion columns (legacy and new format)
     subregion_cols = [col for col in disag_data.columns if col.startswith('subregion_')]
     all_subregion_cols = ['subregion'] + subregion_cols
-    
+
     # Identify numeric columns (sectors) to stack, excluding metadata columns
     metadata_cols = ['region', 'geometry'] + all_subregion_cols
     numeric_cols = [col for col in disag_data.columns if col not in metadata_cols]
-    
+
     # Only stack the numeric sector columns
     disag_firm_table = disag_data.reset_index().drop("geometry", axis=1) \
         .set_index(['index', 'region'])[numeric_cols].stack().reset_index()
     disag_firm_table['geometry'] = disag_firm_table['index'].map(disag_data['geometry'])
-    
+
     # Preserve all subregion information if it exists
     preserved_cols = ['region', 'sector', 'importance', 'geometry']
     for col in all_subregion_cols:
         if col in disag_data.columns:
             disag_firm_table[col] = disag_firm_table['index'].map(disag_data[col])
             preserved_cols.append(col)
-    
+
     disag_firm_table = disag_firm_table.drop('index', axis=1)
     disag_firm_table.columns = preserved_cols
-    
+
     disag_firm_table = disag_firm_table[disag_firm_table['importance'].notnull()]
     disag_firm_table = disag_firm_table[disag_firm_table['importance'] > 0]
     disag_firm_table['tuple'] = list(zip(disag_firm_table['region'], disag_firm_table['sector']))
@@ -202,12 +273,12 @@ def _create_base_firm_table_from_mrio(mrio: Mrio, households_spatial: Path) -> g
         'sector': [tup[1] for tup in mrio.region_sectors],
         'region_sector': mrio.region_sector_names
     })
-    
+
     # Add importance
     tot_outputs_per_region_sector = mrio.sum(axis=1)
     firm_table['importance'] = firm_table['tuple'].map(tot_outputs_per_region_sector)
     check_successful_extraction(firm_table, "importance")
-    
+
     # Add point (largest populated node)
     households_points = gpd.read_file(households_spatial)
     mapping_region_to_point = (households_points[households_points['region'].isin(mrio.regions)]
@@ -215,7 +286,7 @@ def _create_base_firm_table_from_mrio(mrio: Mrio, households_spatial: Path) -> g
     firm_table['geometry'] = firm_table['region'].map(mapping_region_to_point)
     firm_table = gpd.GeoDataFrame(firm_table, crs=households_points.crs)
     logging.info(f'Number of firms from MRIO only: {firm_table.shape}')
-    
+
     return firm_table
 
 
@@ -237,21 +308,21 @@ def _integrate_disaggregated_data(firm_table: gpd.GeoDataFrame, firms_spatial: P
         Firm table with disaggregated data integrated
     """
     disag_data = load_firms_spatial_data(firms_spatial, mrio.sectors, mrio.regions)
-    
+
     if disag_data.empty:
         logging.info("No disaggregated data found")
         return firm_table
-    
+
     logging.info("Processing disaggregated data")
     disag_firm_table = create_disag_firm_table(disag_data)
-    
+
     # Remove the firms in the original table for which we have the disag info
     firm_table = firm_table[~firm_table['tuple'].isin(disag_firm_table['tuple'])].copy()
-    
+
     # Add the disaggregated firms
     firm_table = pd.concat([firm_table, disag_firm_table])
     logging.info(f'Number of firms added from disaggregated data: {disag_firm_table.shape}')
-    
+
     return firm_table
 
 
@@ -273,19 +344,19 @@ def _handle_internal_flows(firm_table: gpd.GeoDataFrame, mrio: Mrio, io_cutoff: 
         Firm table with duplicated firms for internal flows
     """
     logging.info("Duplicating firms where internal region_sector flows")
-    
+
     # Get total outputs for importance assignment
     tot_outputs_per_region_sector = mrio.sum(axis=1)
-    
+
     region_sectors_internal_flows = mrio.get_region_sectors_with_internal_flows(io_cutoff)
     region_sectors_one_firm = (firm_table['tuple'].value_counts()[firm_table['tuple'].value_counts() == 1]
                                .index.to_list())
     where_to_add_one_firm = list(set(region_sectors_internal_flows) & set(region_sectors_one_firm))
-    
+
     if not where_to_add_one_firm:
         logging.info('No firms to duplicate for internal flows')
         return firm_table
-    
+
     duplicated_firms = pd.DataFrame({
         'tuple': where_to_add_one_firm,
         'region': [tup[0] for tup in where_to_add_one_firm],
@@ -293,22 +364,22 @@ def _handle_internal_flows(firm_table: gpd.GeoDataFrame, mrio: Mrio, io_cutoff: 
         'region_sector': ['_'.join(tup) for tup in where_to_add_one_firm],
         'geometry': firm_table.set_index('tuple').loc[where_to_add_one_firm, 'geometry']
     })
-    
+
     # Add importance
     duplicated_firms['importance'] = duplicated_firms['tuple'].map(tot_outputs_per_region_sector)
     check_successful_extraction(duplicated_firms, "importance")
     logging.info(f'Number of firms added for internal flows: {duplicated_firms.shape[0]}')
-    
+
     # Merge with the firm table, and divide the importance by 2 where we added a firm
     firm_table = pd.concat([firm_table, duplicated_firms])
     firm_table.loc[firm_table['tuple'].isin(where_to_add_one_firm), 'importance'] = \
         firm_table.loc[firm_table['tuple'].isin(where_to_add_one_firm), 'importance'] / 2
-    
+
     return firm_table
 
 
-def _filter_small_firms(firm_table: gpd.GeoDataFrame, mrio: Mrio, cutoff_firm_output: dict, 
-                       monetary_units_in_data: str) -> gpd.GeoDataFrame:
+def _filter_small_firms(firm_table: gpd.GeoDataFrame, mrio: Mrio, cutoff_firm_output: dict,
+                        monetary_units_in_data: str) -> gpd.GeoDataFrame:
     """Filter out firms below output threshold while preserving top 2 per region_sector.
     
     Parameters
@@ -330,7 +401,7 @@ def _filter_small_firms(firm_table: gpd.GeoDataFrame, mrio: Mrio, cutoff_firm_ou
     # Add id
     firm_table['id'] = range(firm_table.shape[0])
     firm_table.index = firm_table['id']
-    
+
     # Identify the top 2 firms per region sector
     top2_idx = (
         firm_table.groupby("region_sector")["importance"]
@@ -339,31 +410,31 @@ def _filter_small_firms(firm_table: gpd.GeoDataFrame, mrio: Mrio, cutoff_firm_ou
         .index
     )
     top2_bool_index = firm_table.index.isin(top2_idx)
-    
+
     # Calculate the estimated output per firm
     output_per_region_sector = mrio.get_total_output_per_region_sectors().to_dict()
     estimated_region_sector_output = firm_table['tuple'].map(output_per_region_sector)
     estimated_output = firm_table.groupby('region_sector', as_index=False, group_keys=False)['importance'] \
         .apply(lambda s: s / s.sum()).sort_index(ascending=True)
     estimated_output = estimated_output * estimated_region_sector_output
-    
+
     cutoff = get_absolute_cutoff_value(cutoff_firm_output, monetary_units_in_data)
     logging.info(f'Filtering out firms with an estimated output '
                  f'of less than {cutoff} {monetary_units_in_data}')
     cond_low_output = estimated_output <= cutoff
-    
+
     # Cut out those that are not in the top 2 and have estimated output below threshold
     firm_table = firm_table[(~cond_low_output) | top2_bool_index].copy()
     logging.info(f'Number of firms removed by the firm cutoff condition: {cond_low_output.sum()}')
-    
+
     # Reset ids
     firm_table['id'] = range(firm_table.shape[0])
     firm_table.index = firm_table['id']
-    
+
     # Add name
     firm_table['name'] = firm_table.groupby('region_sector').cumcount().astype(str)
     firm_table['name'] = firm_table['region_sector'] + '_' + firm_table['name']
-    
+
     return firm_table
 
 
@@ -383,17 +454,17 @@ def _assign_transport_nodes(firm_table: gpd.GeoDataFrame, transport_nodes: gpd.G
         Firm table with transport nodes and coordinates
     """
     logging.info("Assign firms to nearest road node")
-    
+
     admissible_node_mode = ['roads', 'maritime']
     potential_nodes = transport_nodes[transport_nodes['type'].isin(admissible_node_mode)]
     firm_table['od_point'] = find_nearest_node_id(potential_nodes, firm_table)
     check_successful_extraction(firm_table, "od_point")
-    
+
     # Add long lat
     long_lat = get_long_lat(firm_table['od_point'], transport_nodes)
     firm_table['long'] = long_lat['long']
     firm_table['lat'] = long_lat['lat']
-    
+
     return firm_table
 
 
@@ -469,72 +540,23 @@ def define_firms_from_mrio(mrio: Mrio, sector_table: pd.DataFrame, households_sp
     """
     # 1. Create base firm table from MRIO
     firm_table = _create_base_firm_table_from_mrio(mrio, households_spatial)
-    
+
     # 2. Integrate disaggregated spatial data
     firm_table = _integrate_disaggregated_data(firm_table, firms_spatial, mrio)
-    
+
     # 3. Handle internal flows (duplicate firms where needed)
     firm_table = _handle_internal_flows(firm_table, mrio, io_cutoff)
-    
+
     # 4. Filter out small firms based on output thresholds
     firm_table = _filter_small_firms(firm_table, mrio, cutoff_firm_output, monetary_units_in_data)
-    
+
     # 5. Assign transport nodes and coordinates
     firm_table = _assign_transport_nodes(firm_table, transport_nodes)
-    
+
     # 6. Enrich with sector metadata
     firm_table = _enrich_sector_metadata(firm_table, sector_table, mrio)
-    
+
     logging.info(f"Created {firm_table.shape[0]} firms in {firm_table['region'].nunique()} regions")
-    return firm_table
-
-
-def define_firms_from_network_data(
-        filepath_firm_table: str,
-        filepath_location_table: str,
-        sectors_to_include: list[str],
-        transport_nodes: pd.DataFrame,
-        sector_table: pd.DataFrame
-) -> pd.DataFrame:
-    """Define firms based on the firm_table
-    The output is a dataframe, 1 row = 1 firm.
-    The instances Firms are created in the createFirm function.
-    """
-    # Load firm table
-    firm_table = pd.read_csv(filepath_firm_table, dtype={'region': str})
-
-    # Filter out some sectors
-    if sectors_to_include != "all":
-        firm_table = firm_table[firm_table['sector'].isin(sectors_to_include)]
-
-    # Assign firms to the closest road nodes
-    selected_regions = list(firm_table['region'].unique())
-    logging.info('Select ' + str(firm_table.shape[0]) +
-                 " firms in " + str(len(selected_regions)) + ' regions')
-    location_table = gpd.read_file(filepath_location_table)
-    cond_selected_regions = location_table['region'].isin(selected_regions)
-    dic_region_to_points = location_table[cond_selected_regions].set_index('region')['geometry'].to_dict()
-    road_nodes = transport_nodes[transport_nodes['type'] == "roads"]
-    dic_region_to_road_node_id = {
-        region: road_nodes.loc[get_index_closest_point(point, road_nodes), 'id']
-        for region, point in dic_region_to_points.items()
-    }
-    firm_table['od_point'] = firm_table['region'].map(dic_region_to_road_node_id)
-
-    # Information required by the createFirms function
-    # add sector type
-    sector_to_sector_type = sector_table.set_index('sector')['type']
-    firm_table['sector_type'] = firm_table['sector'].map(sector_to_sector_type)
-    # add long lat
-    od_point_table = road_nodes[road_nodes['id'].isin(firm_table['od_point'])].copy()
-    od_point_table['long'] = od_point_table.geometry.x
-    od_point_table['lat'] = od_point_table.geometry.y
-    road_node_id_to_long_lat = od_point_table.set_index('id')[['long', 'lat']]
-    firm_table['long'] = firm_table['od_point'].map(road_node_id_to_long_lat['long'])
-    firm_table['lat'] = firm_table['od_point'].map(road_node_id_to_long_lat['lat'])
-    # add importance
-    firm_table['importance'] = 10
-
     return firm_table
 
 
@@ -557,51 +579,202 @@ def load_mrio_tech_coefs(
     logging.info('Technical coefficient loaded.')
 
 
-def calibrate_input_mix(
+#
+# def calibrate_input_mix(
+#         firms: Firms,
+#         firm_table: pd.DataFrame,
+#         sector_table: pd.DataFrame,
+#         filepath_transaction_table: str
+# ) -> tuple[Firms, pd.DataFrame]:
+#     transaction_table = pd.read_csv(filepath_transaction_table)
+#
+#     domestic_b2b_sales_per_firm = transaction_table.groupby('supplier_id')['transaction'].sum()
+#     firm_table['domestic_B2B_sales'] = firm_table['id'].map(domestic_b2b_sales_per_firm).fillna(0)
+#     firm_table['output'] = firm_table['domestic_B2B_sales'] + firm_table['final_demand'] + firm_table['exports']
+#
+#     # Identify the sector of the products exchanged recorded in the transaction table and whether they are essential
+#     transaction_table['product_sector'] = transaction_table['supplier_id'].map(firm_table.set_index('id')['sector'])
+#     transaction_table['is_essential'] = transaction_table['product_sector'].map(
+#         sector_table.set_index('sector')['essential'])
+#
+#     # Get input mix from this data
+#     def get_input_mix(transaction_from_unique_buyer: pd.DataFrame, firm_tab: pd.DataFrame) -> dict:
+#         output = firm_tab.set_index('id').loc[transaction_from_unique_buyer.name, 'output']
+#         cond_essential = transaction_from_unique_buyer['is_essential']
+#         # for essential inputs, get total input per product type
+#         input_essential = transaction_from_unique_buyer[cond_essential].groupby('product_sector')[
+#                               'transaction'].sum() / output
+#         # for non essential inputs, get total input
+#         input_nonessential = transaction_from_unique_buyer.loc[~cond_essential, 'transaction'].sum() / output
+#         # get share how much is essential and evaluate how much can be produce with essential input only (beta)
+#         share_essential = input_essential.sum() / transaction_from_unique_buyer['transaction'].sum()
+#         max_output_with_essential_only = share_essential * output
+#         # shape results
+#         dic_res = input_essential.to_dict()
+#         dic_res['non_essential'] = input_nonessential
+#         dic_res['max_output_with_essential_only'] = max_output_with_essential_only
+#         return dic_res
+#
+#     input_mix = transaction_table.groupby('buyer_id').apply(get_input_mix, firm_table)
+#
+#     # Load input mix into Firms
+#     for firm in firms.values():
+#         firm.input_mix = input_mix[firm.pid]
+#
+#     return firms, transaction_table
+
+
+def calculate_input_mix_from_transactions(
         firms: Firms,
         firm_table: pd.DataFrame,
-        sector_table: pd.DataFrame,
-        filepath_transaction_table: str
-) -> tuple[Firms, pd.DataFrame]:
-    transaction_table = pd.read_csv(filepath_transaction_table)
+        transaction_table_filepath: str,
+        imports_filepath: str
+) -> Firms:
+    """Calculate input mix for firms from transaction data (transaction-based mode).
 
-    domestic_b2b_sales_per_firm = transaction_table.groupby('supplier_id')['transaction'].sum()
-    firm_table['domestic_B2B_sales'] = firm_table['id'].map(domestic_b2b_sales_per_firm).fillna(0)
-    firm_table['output'] = firm_table['domestic_B2B_sales'] + firm_table['final_demand'] + firm_table['exports']
+    This function calculates input mix ratios directly from transaction data,
+    validates output consistency, and balances final_demand/exports if needed.
 
-    # Identify the sector of the products exchanged recorded in the transaction table and whether they are essential
-    transaction_table['product_sector'] = transaction_table['supplier_id'].map(firm_table.set_index('id')['sector'])
-    transaction_table['is_essential'] = transaction_table['product_sector'].map(
-        sector_table.set_index('sector')['essential'])
+    Parameters
+    ----------
+    firms : Firms
+        Collection of firm objects
+    firm_table : pd.DataFrame
+        Firm table with firm definitions including total_output
+    transaction_table_filepath : str
+        Path to transaction table CSV
 
-    # Get input mix from this data
-    def get_input_mix(transaction_from_unique_buyer: pd.DataFrame, firm_tab: pd.DataFrame) -> dict:
-        output = firm_tab.set_index('id').loc[transaction_from_unique_buyer.name, 'output']
-        cond_essential = transaction_from_unique_buyer['is_essential']
-        # for essential inputs, get total input per product type
-        input_essential = transaction_from_unique_buyer[cond_essential].groupby('product_sector')[
-                              'transaction'].sum() / output
-        # for non essential inputs, get total input
-        input_nonessential = transaction_from_unique_buyer.loc[~cond_essential, 'transaction'].sum() / output
-        # get share how much is essential and evaluate how much can be produce with essential input only (beta)
-        share_essential = input_essential.sum() / transaction_from_unique_buyer['transaction'].sum()
-        max_output_with_essential_only = share_essential * output
-        # shape results
-        dic_res = input_essential.to_dict()
-        dic_res['non_essential'] = input_nonessential
-        dic_res['max_output_with_essential_only'] = max_output_with_essential_only
-        return dic_res
+    Returns
+    -------
+    Firms
+        Updated firms with input_mix calculated
+    """
+    logging.info("Calculating input mix from transaction data")
 
-    input_mix = transaction_table.groupby('buyer_id').apply(get_input_mix, firm_table)
+    # Load transaction data
+    try:
+        transaction_df = pd.read_csv(transaction_table_filepath)
+        logging.info(f"Loaded {len(transaction_df)} transactions from {transaction_table_filepath}")
+    except Exception as e:
+        raise ValueError(f"Cannot read transaction table {transaction_table_filepath}: {e}")
 
-    # Load input mix into Firms
-    for firm in firms.values():
-        firm.input_mix = input_mix[firm.pid]
+    # Create firm lookup for sectors and outputs
+    firm_id_to_sector = firm_table.set_index('id')['sector'].to_dict()
+    firm_total_output = firm_table.set_index('id')['total_output'].to_dict()
 
-    return firms, transaction_table
+    # Calculate domestic sales per firm from transactions
+    domestic_sales = transaction_df.groupby('seller_firm_id')['transaction_value'].sum()
+
+    # Create working copy of firm table for output balancing
+    firm_table_balanced = firm_table.copy()
+
+    # Validate and balance output for each firm
+    for firm_id in firm_table.index:
+        target_output = firm_total_output[firm_id]
+        calculated_sales = domestic_sales.get(firm_id, 0)
+        current_final_demand = firm_table.loc[firm_id, 'final_demand']
+        current_exports = firm_table.loc[firm_id, 'exports']
+
+        calculated_output = calculated_sales + current_final_demand + current_exports
+
+        if calculated_output > target_output:
+            # Need to reduce final_demand and exports to balance
+            excess = calculated_output - target_output
+            logging.warning(
+                f"Firm {firm_id}: calculated output ({calculated_output}) exceeds target ({target_output}). "
+                f"Reducing final_demand and exports by {excess}")
+
+            # Try to reduce final_demand first
+            reduction_from_final_demand = min(excess, current_final_demand)
+            new_final_demand = current_final_demand - reduction_from_final_demand
+            remaining_excess = excess - reduction_from_final_demand
+
+            # If still excess, reduce exports
+            if remaining_excess > 0:
+                reduction_from_exports = min(remaining_excess, current_exports)
+                new_exports = current_exports - reduction_from_exports
+                remaining_excess -= reduction_from_exports
+
+                # If still can't balance, throw error
+                if remaining_excess > 1e-6:  # Small tolerance for floating point
+                    raise ValueError(f"Firm {firm_id}: Cannot balance output. "
+                                     f"Domestic sales ({calculated_sales}) exceed target output ({target_output}) "
+                                     f"even after reducing final_demand and exports to zero. "
+                                     f"Remaining excess: {remaining_excess}")
+
+                firm_table_balanced.loc[firm_id, 'exports'] = new_exports
+
+            firm_table_balanced.loc[firm_id, 'final_demand'] = new_final_demand
+
+    # Calculate country importance for imports
+    imports_df = pd.read_csv(imports_filepath, header=[0,1], index_col=[0,1])
+    imports = imports_df.xs('imports', level=1, axis=1).fillna(0)
+    country_importance_per_importing_sector = imports.div(imports.sum(axis=1), axis=0).transpose().to_dict()
+
+    # Calculate input mix for each firm using target total_output
+    def calculate_firm_input_mix(firm_id: int) -> dict:
+        """Calculate input mix for a single firm."""
+        target_output = firm_total_output.get(firm_id, 0)
+
+        # Handle edge case: firm with no output
+        if target_output <= 0:
+            logging.warning(f"Firm {firm_id} has zero total_output.")
+            return {}
+
+        # Get transactions where this firm is the buyer
+        buyer_transactions = transaction_df[transaction_df['buyer_firm_id'] == firm_id]
+
+        # Handle edge case: firm with no inputs
+        if len(buyer_transactions) == 0:
+            logging.debug(f"Firm {firm_id} has no input transactions")
+            return {}
+
+        # Calculate input mix by sector
+        input_mix = {}
+
+        # Group transactions by seller region_sector (to match MRIO mode)
+        for _, transaction in buyer_transactions.iterrows():
+            seller_id = transaction['seller_firm_id']
+            transaction_value = transaction['transaction_value']
+
+            # Get seller region_sector (consistent with MRIO mode)
+            if seller_id in firm_id_to_sector:
+                seller_sector = firm_id_to_sector[seller_id]
+                # Create region_sector key (e.g., "ECU_A0116") to match MRIO format
+                seller_region_sector = f"ECU_{seller_sector}"  # Use ECU as default region
+                if seller_region_sector not in input_mix:
+                    input_mix[seller_region_sector] = 0
+                input_mix[seller_region_sector] += transaction_value / target_output
+
+        # Add imports if present (using consistent region_sector format)
+        firm_imports = firm_table_balanced.loc[firm_id, 'imports']
+        if firm_imports > 0:
+            country_importance = country_importance_per_importing_sector[(firms[firm_id].region, firms[firm_id].sector)]
+            for country, importance in country_importance.items():
+                if importance > 0:
+                    input_mix[country + '_imports'] = importance * firm_imports / target_output
+
+        return input_mix
+
+    # Apply input mix calculation to all firms
+    for firm_id, firm in firms.items():
+        if firm_id in firm_total_output:
+            firm.input_mix = calculate_firm_input_mix(firm_id)
+        else:
+            logging.warning(f"Firm {firm_id} not found in firm_table, skipping input mix calculation")
+            firm.input_mix = {}
+
+    logging.info(f"Calculated input mix for {len(firms)} firms")
+
+    # Log summary statistics
+    non_empty_input_mixes = sum(1 for firm in firms.values() if firm.input_mix)
+    logging.info(f"Firms with non-empty input mix: {non_empty_input_mixes}/{len(firms)}")
+
+    return firms
 
 
-def load_inventories(firms: Firms, inventory_duration_targets: dict, model_time_unit: str, sector_table: pd.DataFrame) -> None:
+def load_inventories(firms: Firms, inventory_duration_targets: dict, model_time_unit: str,
+                     sector_table: pd.DataFrame) -> None:
     """Load inventory duration target
 
     If inventory_duration_target is an integer, it is uniformly applied to all firms.
@@ -653,4 +826,3 @@ def load_inventories(firms: Firms, inventory_duration_targets: dict, model_time_
 
     else:
         raise ValueError("Unknown value entered for 'inventory_duration_targets.definition'")
- 

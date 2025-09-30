@@ -37,9 +37,13 @@ def setup_model(parameters, cache_parameters):
     model = Model(parameters)
 
     # Setup model components
-    model.setup_transport_network(cache_parameters['transport_network'], parameters.with_transport)
-    if parameters.with_output_folder and parameters.with_transport:
-        model.export_transport_nodes_edges()
+    if parameters.with_transport:
+        model.setup_transport_network(cache_parameters['transport_network'], parameters.with_transport)
+        if parameters.with_output_folder:
+            model.export_transport_nodes_edges()
+    else:
+        # Create minimal spatial nodes for agent placement without full transport network
+        model.setup_minimal_spatial_nodes()
     
     model.setup_agents(cache_parameters['agents'])
     if parameters.with_output_folder:
@@ -69,7 +73,8 @@ def export_results(simulation, model, parameters):
             return
     
     simulation.export_agent_data(parameters.export_folder)
-    simulation.export_transport_network_data(model.transport_edges, parameters.export_folder)
+    if parameters.with_transport:
+        simulation.export_transport_network_data(model.transport_edges, parameters.export_folder)
     simulation.calculate_and_export_summary_result(
         model.sc_network, 
         model.household_table,

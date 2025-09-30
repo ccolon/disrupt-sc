@@ -7,7 +7,7 @@ DisruptSC supports two data input modes for creating economic agents and supply 
 | Mode | Data Source | Use Case | Complexity |
 |------|-------------|----------|------------|
 | **MRIO** | Input-Output tables | Regional/national studies | Simple |
-| **Supplier-Buyer Network** | Transaction data | Supply chain studies | Advanced |
+| **Transaction Mode** | Transaction data + Import/Export CSVs | Supply chain studies | Advanced |
 
 ## MRIO Mode (Default)
 
@@ -135,104 +135,132 @@ graph TD
 - **Academic research** - Theoretical model applications
 - **Baseline studies** - Understanding economic structure
 
-## Supplier-Buyer Network Mode
+## Transaction Mode
 
-This mode uses detailed firm-level transaction data to create explicit supply chain networks.
+Transaction mode uses observed transaction data combined with import/export flows to create explicit supply chain networks based on real economic relationships.
 
 ### Configuration
 
 ```yaml
-firm_data_type: "supplier-buyer network"
+firm_data_type: "transaction_based"
 ```
 
-### Additional Data Requirements
+### Data Requirements
 
 ```
 data/<scope>/
 ├── Economic/
-│   ├── mrio.csv            # Still required for households/countries
-│   ├── sector_table.csv    # Still required for sectors
-│   ├── firm_table.csv      # Firm-level data
-│   ├── location_table.csv  # Firm locations
-│   └── transaction_table.csv  # Supplier-buyer transactions
+│   ├── transaction_table.csv  # Firm-to-firm transactions
+│   ├── imports.csv           # Import flows by country/sector
+│   ├── exports.csv           # Export flows by country/sector
+│   ├── final_demand.csv      # Household consumption patterns
+│   └── mrio.csv             # Still required for baseline data
 └── Spatial/
-    ├── households.geojson  # Still required
-    └── countries.geojson   # Still required
-```
-
-#### Firm Table Structure
-
-```csv
-id,sector,region,output,employees,importance
-1001,AGR_Region1,Region1,500000,50,0.15
-1002,AGR_Region1,Region1,750000,75,0.25
-1003,MAN_Region1,Region1,2000000,200,0.45
-```
-
-#### Location Table Structure
-
-```csv
-firm_id,long,lat,transport_node,admin_level1
-1001,-104.532,40.123,node_456,State1
-1002,-104.445,40.234,node_789,State1
-1003,-104.612,40.087,node_234,State2
+    ├── firms.geojson         # Firm spatial data
+    ├── households.geojson    # Household spatial data
+    └── countries.geojson     # Country entry points
 ```
 
 #### Transaction Table Structure
 
 ```csv
-supplier_id,buyer_id,product_sector,transaction,is_essential
-1001,1003,AGR_Region1,150000,true
-1002,1003,AGR_Region1,200000,false
-1004,1003,MAN_Region2,500000,true
+buyer_firm_id,seller_firm_id,transaction_value,import_value,export_value
+0,1,200.0,0,0
+0,2,100.0,0,0
+1,3,200.0,0,0
+2,4,150.0,0,0
 ```
 
-### How Network Mode Works
+#### Import/Export CSV Structure
+
+Multi-header format with countries and metrics:
+
+**imports.csv:**
+```csv
+,,USA,USA,COL,COL,PER,PER
+region,sector,imports,usd_per_ton,imports,usd_per_ton,imports,usd_per_ton
+ECU,A0116,80,1000,40,1000,0,0
+ECU,A0161,60,1200,0,0,60,1200
+```
+
+**exports.csv:**
+```csv
+,,USA,COL,PER
+region,sector,exports,imports,imports
+ECU,A0116,100,40,0
+ECU,A0161,120,0,60
+```
+
+### How Transaction Mode Works
 
 ```mermaid
 graph TD
-    A[Firm Table] --> B[Create Individual Firms]
-    C[Location Table] --> B
-    D[Transaction Table] --> E[Define Explicit Links]
-    F[MRIO Table] --> G[Create Households/Countries]
-    
-    B --> H[Firm Agents]
-    E --> I[Supply Chain Network]
-    G --> J[Household/Country Agents]
+    A[Transaction Table] --> B[Firm-to-Firm Links]
+    C[Imports CSV] --> D[Country-to-Firm Links]
+    E[Exports CSV] --> F[Firm-to-Country Links]
+    G[Final Demand] --> H[Firm-to-Household Links]
+
+    I[MRIO Data] --> J[Household/Country Creation]
+    K[Spatial Data] --> L[Agent Placement]
+
+    B --> M[Supply Chain Network]
+    D --> M
+    F --> M
+    H --> M
 ```
 
-#### 1. Firm Creation
-- **Individual firms** from firm table records
-- **Heterogeneous characteristics** - size, productivity, location
-- **Spatial placement** from location table
-- **Realistic firm distribution**
+#### Network Building Pipeline
 
-#### 2. Supply Chain Creation
-- **Explicit transactions** from transaction table
-- **Observed relationships** - actual supplier-buyer pairs
-- **Transaction volumes** - real economic flows
-- **Essential vs. substitutable** suppliers
+**1. Firm-to-Firm Relationships**
+- **Direct from transaction table** - No algorithmic selection
+- **Observed transaction values** - Real economic flows
+- **Predefined supplier-buyer pairs** - Based on actual data
 
-#### 3. Household/Country Creation  
-- **Still uses MRIO** for households and countries
-- **Ensures completeness** of economic system
-- **Maintains consistency** with national accounts
+**2. Country-to-Firm Relationships**
+- **Import relationships** derived from firm input mix analysis
+- **Countries supply imports** to firms based on input requirements
+- **Trade flows** from imports CSV with multi-header structure
+
+**3. Firm-to-Household Relationships**
+- **Household supplier selection** similar to MRIO mode
+- **Final demand patterns** from final_demand.csv
+- **Spatial distribution** from households.geojson
+
+**4. Firm-to-Country Relationships**
+- **Export relationships** with 10% firm selection per sector
+- **Countries select suppliers** from domestic firms
+- **Export volumes** from exports CSV
+
+### Calibration Approach
+
+**Direct Relationships:**
+- **Transaction values** directly from observed data
+- **No technical coefficients** - uses actual transaction amounts
+- **Firm input mix** calculated from transaction history
+
+**Country Selection Rules:**
+- **10% export selection rule** - Countries select ~10% of firms per sector as suppliers
+- **Import coefficients** derived from firm input requirements
+- **Trade volumes** explicitly specified in CSV files
+
+**Household Patterns:**
+- **Final demand** from MRIO data (consistent with MRIO mode)
+- **Spatial disaggregation** maintains MRIO compatibility
 
 ### Advantages
 
-✅ **Firm-level detail** - Individual heterogeneous firms
-✅ **Observed relationships** - Real supplier-buyer networks
-✅ **Realistic behavior** - Based on actual transactions
-✅ **Supply chain accuracy** - Explicit network structure
-✅ **Firm dynamics** - Can model firm entry/exit
+✅ **Observed relationships** - Based on real transaction data
+✅ **No algorithmic bias** - Direct supplier-buyer connections
+✅ **Flexible trade data** - Custom import/export specifications
+✅ **MRIO compatibility** - Households/countries use same spatial data
+✅ **Calibration control** - Direct control over trade relationships
 
 ### Limitations
 
-❌ **Data intensive** - Requires detailed firm databases
-❌ **Limited availability** - Few countries have this data
-❌ **Confidentiality** - Firm data often sensitive
-❌ **Complexity** - More difficult to set up and validate
-❌ **Partial coverage** - May miss informal sectors
+❌ **Data requirements** - Needs detailed transaction records
+❌ **Limited scope** - Typically covers only domestic B2B flows
+❌ **Static relationships** - Based on historical transaction patterns
+❌ **Coverage gaps** - May miss informal or new relationships
 
 ### Best Use Cases
 
@@ -245,30 +273,30 @@ graph TD
 
 ### Data Requirements
 
-| Aspect | MRIO Mode | Network Mode |
-|--------|-----------|--------------|
-| **Setup complexity** | Simple | Complex |
-| **Data availability** | High | Low |
-| **Data sensitivity** | Low | High |
-| **Preprocessing** | Minimal | Extensive |
+| Aspect | MRIO Mode | Transaction Mode |
+|--------|-----------|------------------|
+| **Setup complexity** | Simple | Moderate |
+| **Data availability** | High | Medium |
+| **Data sensitivity** | Low | Medium |
+| **Preprocessing** | Minimal | Moderate |
 
 ### Model Characteristics
 
-| Aspect | MRIO Mode | Network Mode |
-|--------|-----------|--------------|
+| Aspect | MRIO Mode | Transaction Mode |
+|--------|-----------|------------------|
 | **Firm representation** | Aggregate | Individual |
 | **Supply chains** | Generated | Observed |
-| **Heterogeneity** | Low | High |
-| **Validation** | Economic accounts | Firm surveys |
+| **Relationships** | Algorithmic | Direct |
+| **Trade flows** | Computed | Specified |
 
 ### Computational Performance
 
-| Aspect | MRIO Mode | Network Mode |
-|--------|-----------|--------------|
-| **Model size** | Smaller | Larger |
-| **Memory usage** | Lower | Higher |
-| **Runtime** | Faster | Slower |
-| **Scalability** | Better | Limited |
+| Aspect | MRIO Mode | Transaction Mode |
+|--------|-----------|------------------|
+| **Model size** | Smaller | Similar |
+| **Memory usage** | Lower | Similar |
+| **Runtime** | Faster | Similar |
+| **Scalability** | Better | Good |
 
 ## Choosing the Right Mode
 
@@ -276,14 +304,14 @@ graph TD
 
 ```mermaid
 graph TD
-    A[Start] --> B{Do you have firm-level transaction data?}
+    A[Start] --> B{Do you have transaction data?}
     B -->|No| C[Use MRIO Mode]
-    B -->|Yes| D{Is data quality high?}
+    B -->|Yes| D{Do you have import/export CSVs?}
     D -->|No| C
-    D -->|Yes| E{Is coverage complete?}
-    E -->|No| F{Can you supplement missing data?}
+    D -->|Yes| E{Is transaction coverage good?}
+    E -->|No| F{Can you supplement with MRIO?}
     F -->|No| C
-    F -->|Yes| G[Use Network Mode]
+    F -->|Yes| G[Use Transaction Mode]
     E -->|Yes| G
 ```
 
@@ -295,23 +323,32 @@ graph TD
 - **Policy analysis** - Broad economic impacts
 - **Initial exploration** - Understanding system structure
 
-### Use Network Mode When:
+### Use Transaction Mode When:
 
-- **Supply chain focus** - Detailed network analysis
-- **Firm-level questions** - Individual company impacts
-- **Available data** - Access to transaction databases
-- **Validation needs** - Match observed supply chains
-- **Advanced analysis** - Network topology studies
+- **Observed relationships** - Want to use actual transaction data
+- **Custom trade flows** - Need control over import/export specifications
+- **Supply chain validation** - Match known supplier-buyer relationships
+- **Transaction-based studies** - Focus on real economic flows
+- **Hybrid approach** - Combine observed and generated relationships
 
 ## Migration Between Modes
 
-### From MRIO to Network
+### From MRIO to Transaction Mode
 
-If you start with MRIO and later obtain firm data:
+If you start with MRIO and later obtain transaction data:
 
 1. **Keep MRIO files** - Still needed for households/countries
-2. **Add firm tables** - Supplement with detailed data
-3. **Update configuration** - Change `firm_data_type`
+2. **Prepare transaction files** - Create transaction_table.csv, imports.csv, exports.csv
+3. **Update configuration** - Change `firm_data_type` to `"transaction_based"`
+4. **Test network building** - Verify all relationships are created correctly
+
+### From Transaction Mode to MRIO
+
+If transaction data becomes unavailable:
+
+1. **Keep MRIO files** - Switch back to algorithmic generation
+2. **Update configuration** - Change `firm_data_type` to `"mrio"` or remove parameter
+3. **Expect differences** - Supply chains will be generated rather than observed
 4. **Validate consistency** - Check aggregate matches
 
 ### From Network to MRIO

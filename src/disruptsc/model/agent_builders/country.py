@@ -4,7 +4,6 @@ from typing import Dict, List, Union, Tuple
 
 import geopandas as gpd
 import pandas as pd
-import numpy as np
 
 from disruptsc.agents.country import Country, Countries
 from disruptsc.model.utils.functions import rescale_monetary_values, find_nearest_node_id
@@ -30,8 +29,8 @@ def _validate_country_data(country_list: List[str], country_table: gpd.GeoDataFr
         raise ValueError(f"Countries missing from spatial data: {missing_countries}")
 
 
-def _extract_trade_matrices(mrio: Mrio, time_resolution: str, target_units: str, 
-                           input_units: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def _extract_trade_matrices_from_mrio(mrio: Mrio, time_resolution: str, target_units: str,
+                                      input_units: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Extract and rescale import, export, and transit matrices from MRIO."""
     # Get country lists
     buying_countries = mrio.external_buying_countries
@@ -60,30 +59,39 @@ def _extract_trade_matrices(mrio: Mrio, time_resolution: str, target_units: str,
     )
     transit_matrix.columns = [tup[0] for tup in transit_matrix.columns]
     transit_matrix.index = [tup[0] for tup in transit_matrix.index]
-    
     return import_table, export_table, transit_matrix
 
 
-def _prepare_country_spatial_data(filepath_countries_spatial: Path, filepath_sectors: Path,
-                                  country_list: List[str], transport_nodes: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
-    """Load and prepare country spatial data."""
+def _prepare_country_spatial_data_base(
+    filepath_countries_spatial: Path,
+    country_list: List[str],
+    transport_nodes: gpd.GeoDataFrame
+) -> gpd.GeoDataFrame:
+    """Load and prepare base country spatial data without usd_per_ton."""
     # Load spatial data
     country_table = gpd.read_file(filepath_countries_spatial).set_index('region')
-    
+
     # Validate data
     _validate_country_data(country_list, country_table)
     country_table = country_table.loc[country_list]
-    
+
     # Find nearest transport nodes
     admissible_node_modes = ['roads', 'railways', 'maritime']
     potential_nodes = transport_nodes[transport_nodes['type'].isin(admissible_node_modes)]
     country_table['od_point'] = find_nearest_node_id(potential_nodes, country_table)
-    
+
     # Add coordinate columns
     country_table['long'] = country_table["geometry"].x
     country_table['lat'] = country_table["geometry"].y
-    
-    # Add USD per ton data
+
+    return country_table
+
+
+def _add_usd_per_ton_from_sector_table(
+    country_table: gpd.GeoDataFrame,
+    filepath_sectors: Path
+) -> gpd.GeoDataFrame:
+    """Add usd_per_ton data from sector table for MRIO mode."""
     sector_data = pd.read_csv(filepath_sectors).set_index("sector")
     import_index = sector_data.index[sector_data.index.str.contains('imp', case=False)]
     if len(import_index) == 0:
@@ -92,6 +100,31 @@ def _prepare_country_spatial_data(filepath_countries_spatial: Path, filepath_sec
         raise ValueError(f"Multiple imports row found in sector table: {import_index}")
     import_index = import_index[0]
     country_table['country_usd_per_ton'] = sector_data.loc[import_index, 'usd_per_ton']
+    return country_table
+
+
+def _add_usd_per_ton_from_country_data(
+    country_table: gpd.GeoDataFrame,
+    country_usd_per_ton: Dict[str, float]
+) -> gpd.GeoDataFrame:
+    """Add usd_per_ton data from country mapping for transaction mode."""
+    country_table['country_usd_per_ton'] = country_table.index.map(country_usd_per_ton)
+    # Fill any missing usd_per_ton with default value
+    country_table['country_usd_per_ton'] = country_table['country_usd_per_ton'].fillna(1000.0)
+    return country_table
+
+
+def _prepare_country_spatial_data(filepath_countries_spatial: Path, filepath_sectors: Path,
+                                  country_list: List[str], transport_nodes: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Load and prepare country spatial data for MRIO mode."""
+    # Use base function for common spatial preparation
+    country_table = _prepare_country_spatial_data_base(
+        filepath_countries_spatial, country_list, transport_nodes
+    )
+
+    # Add usd_per_ton from sector table
+    country_table = _add_usd_per_ton_from_sector_table(country_table, filepath_sectors)
+
     return country_table
 
 
@@ -166,7 +199,7 @@ def create_countries_from_mrio(mrio: Mrio,
     logging.info(f'Found {len(country_list)} countries: {country_list}')
     
     # Extract and process trade matrices
-    import_table, export_table, transit_matrix = _extract_trade_matrices(
+    import_table, export_table, transit_matrix = _extract_trade_matrices_from_mrio(
         mrio, time_resolution, target_units, input_units
     )
     
@@ -191,7 +224,6 @@ def create_countries_from_mrio(mrio: Mrio,
             country, import_table, export_table, transit_matrix,
             buying_countries, selling_countries, total_imports
         )
-        
         # Create country object
         countries[country] = Country(
             pid=country,
@@ -209,3 +241,155 @@ def create_countries_from_mrio(mrio: Mrio,
     
     logging.info(f'Created {len(countries)} countries: {countries.get_properties("pid")}')
     return countries, country_table
+
+
+def _extract_trade_data_from_csv(
+    exports_filepath: str,
+    imports_filepath: str,
+    time_resolution: str,
+    target_units: str,
+    input_units: str = "mUSD"
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, List[str], List[str], Dict[str, float]]:
+    """Extract and rescale import and export data from CSV files for transaction-based mode.
+
+    Parameters
+    ----------
+    exports_filepath : str
+        Path to exports.csv file
+    imports_filepath : str
+        Path to imports.csv file
+    time_resolution : str
+        Target time resolution
+    target_units : str
+        Target monetary units
+    input_units : str
+        Input monetary units in CSV data
+
+    Returns
+    -------
+    Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, List[str], List[str], Dict[str, float]]
+        (import_table, export_table, transit_matrix, buying_countries, selling_countries, country_usd_per_ton)
+    """
+    import pandas as pd
+
+    # Load CSV files
+    exports_df = pd.read_csv(exports_filepath, header=[0,1], index_col=[0,1])
+    imports_df = pd.read_csv(imports_filepath, header=[0,1], index_col=[0,1])
+
+    # Get unique countries
+    buying_countries = list(set(exports_df.columns.get_level_values(0)))  # Countries that buy exports
+    selling_countries = list(set(imports_df.columns.get_level_values(0)))  # Countries that sell imports
+
+    # Extract usd_per_ton data by country (average across sectors for each country)
+    imports = imports_df.xs('imports', level=1, axis=1).fillna(0)
+    prices = imports_df.xs('usd_per_ton', level=1, axis=1).fillna(0)
+    weighted_mean = (imports * prices).sum(axis=0) / imports.sum(axis=0)
+    country_usd_per_ton = weighted_mean.to_dict()
+
+    import_table = _rescale_trade_matrix(
+        imports_df.xs('imports', level=1, axis=1),
+        time_resolution, target_units, input_units
+    )
+    import_table.index = ['_'.join(tup) for tup in import_table.index]
+    # import_table.columns = ['_'.join(tup) for tup in import_table.columns]
+    import_table = import_table.transpose()
+
+    export_table = _rescale_trade_matrix(
+        exports_df,
+        time_resolution, target_units, input_units
+    )
+    export_table.columns = [tup[0] for tup in export_table.columns]
+    export_table.index = ['_'.join(tup) for tup in export_table.index]
+
+    # Create empty transit matrix for transaction mode (no transit flows)
+    transit_matrix = pd.DataFrame(index=selling_countries, columns=buying_countries, dtype=float).fillna(0.0)
+    return import_table, export_table, transit_matrix, buying_countries, selling_countries, country_usd_per_ton
+
+
+def create_countries_transaction_mode(
+    exports_filepath: str,
+    imports_filepath: str,
+    transport_nodes: gpd.GeoDataFrame,
+    filepath_countries_spatial: Path,
+    time_resolution: str,
+    target_units: str,
+    input_units: str
+) -> Tuple[Countries, gpd.GeoDataFrame]:
+    """Create countries from transaction-based CSV data with trade flows.
+
+    Args:
+        exports_filepath: Path to exports.csv file
+        imports_filepath: Path to imports.csv file
+        transport_nodes: Transport network nodes
+        filepath_countries_spatial: Path to country spatial data
+        time_resolution: Target time resolution
+        target_units: Target monetary units
+        input_units: Input monetary units
+
+    Returns:
+        Tuple of (Countries collection, country spatial table)
+    """
+    logging.info('Creating countries from imports and exports table')
+
+    # Extract trade data from CSV files
+    import_table, export_table, transit_matrix, buying_countries, selling_countries, country_usd_per_ton = _extract_trade_data_from_csv(
+        exports_filepath, imports_filepath, time_resolution, target_units, input_units
+    )
+
+    # Get all countries
+    country_list = list(set(buying_countries) | set(selling_countries))
+    logging.info(f'Found {len(country_list)} countries: {country_list}')
+
+    # Log trade totals
+    total_imports = import_table.sum().sum()
+    total_exports = export_table.sum().sum()
+
+    logging.info(f"Total imports per {time_resolution}: {total_imports:.1f} {target_units}")
+    logging.info(f"Total exports per {time_resolution}: {total_exports:.1f} {target_units}")
+
+    # Prepare spatial data (without sector table dependency)
+    country_table = _prepare_country_spatial_data_transaction_mode(
+        filepath_countries_spatial, country_list, country_usd_per_ton, transport_nodes
+    )
+    # Create countries
+    countries = Countries()
+    for country in country_list:
+        trade_data = _create_country_trade_data(
+            country, import_table, export_table, transit_matrix,
+            buying_countries, selling_countries, total_imports
+        )
+        # Create country object
+        countries[country] = Country(
+            pid=country,
+            qty_sold=trade_data['qty_sold'],
+            qty_purchased=trade_data['qty_purchased'],
+            od_point=country_table.loc[country, "od_point"],
+            long=country_table.loc[country, "long"],
+            lat=country_table.loc[country, "lat"],
+            transit_from=trade_data['transit_from'],
+            transit_to=trade_data['transit_to'],
+            usd_per_ton=country_table.loc[country, 'country_usd_per_ton'],
+            supply_importance=trade_data['supply_importance'],
+            import_label='imports'  # Default for transaction mode
+        )
+
+    logging.info(f'Created {len(countries)} countries: {countries.get_properties("pid")}')
+    return countries, country_table
+
+
+def _prepare_country_spatial_data_transaction_mode(
+    filepath_countries_spatial: Path,
+    country_list: List[str],
+    country_usd_per_ton: Dict[str, float],
+    transport_nodes: gpd.GeoDataFrame
+) -> gpd.GeoDataFrame:
+    """Prepare country spatial data for transaction mode."""
+    # Use base function for common spatial preparation
+    country_table = _prepare_country_spatial_data_base(
+        filepath_countries_spatial, country_list, transport_nodes
+    )
+
+    # Add usd_per_ton from country data
+    country_table = _add_usd_per_ton_from_country_data(country_table, country_usd_per_ton)
+
+    return country_table

@@ -40,17 +40,25 @@ class InputValidator:
         
         # Core validation checks
         self._validate_file_existence()
-        self._validate_sector_table()
-        self._validate_transport_files()
+
+        # Conditional validation based on model configuration
+        if hasattr(self.parameters, 'with_transport') and not self.parameters.with_transport:
+            logging.info("Skipping transport files validation (with_transport=False)")
+        else:
+            self._validate_transport_files()
+
+        # Sector table only needed for MRIO mode
+        if self.parameters.firm_data_type == "mrio":
+            self._validate_sector_table()
         
         # Mode-specific validation
         if self.parameters.firm_data_type == "mrio":
             self._validate_mrio_inputs()
-        elif self.parameters.firm_data_type == "supplier-buyer network":
-            self._validate_supplier_buyer_inputs()
+        elif self.parameters.firm_data_type == "transaction_based":
+            self._validate_transaction_based_inputs()
         else:
             self.errors.append(f"Unknown firm_data_type: {self.parameters.firm_data_type}. "
-                             f"Supported types: 'mrio', 'supplier-buyer network'")
+                             f"Supported types: 'mrio', 'transaction_based'")
             
         # Parameter consistency checks
         self._validate_parameter_consistency()
@@ -66,23 +74,28 @@ class InputValidator:
     
     def _validate_file_existence(self):
         """Check that all required files exist and are readable."""
-        required_files = [
-            'sector_table',
-            'transport_parameters'
-        ]
-        
+        required_files = []
+
+        # Only require sector_table and transport files for MRIO mode or when using transport
+        if self.parameters.firm_data_type == "mrio":
+            required_files.append('sector_table')
+
+        if hasattr(self.parameters, 'with_transport') and self.parameters.with_transport:
+            required_files.append('transport_parameters')
+
         for file_key in required_files:
             filepath = self.parameters.filepaths.get(file_key)
             if filepath and not Path(filepath).exists():
                 self.errors.append(f"Required file not found: {filepath}")
-        
-        # Check transport mode files
-        transport_folder = self.input_folder / "Transport"
-        if transport_folder.exists():
-            for mode in self.parameters.transport_modes:
-                edges_file = transport_folder / f"{mode}_edges.geojson"
-                if not edges_file.exists():
-                    self.errors.append(f"Transport file not found: {edges_file}")
+
+        # Check transport mode files only if using transport
+        if hasattr(self.parameters, 'with_transport') and self.parameters.with_transport:
+            transport_folder = self.input_folder / "Transport"
+            if transport_folder.exists():
+                for mode in self.parameters.transport_modes:
+                    edges_file = transport_folder / f"{mode}_edges.geojson"
+                    if not edges_file.exists():
+                        self.errors.append(f"Transport file not found: {edges_file}")
     
     def _validate_sector_table(self):
         """Validate the sector table structure and content."""
@@ -286,36 +299,7 @@ class InputValidator:
             if gdf['subregion'].isna().any():
                 missing_count = gdf['subregion'].isna().sum()
                 self.warnings.append(f"{filename} contains {missing_count} missing subregion values")
-    
-    def _validate_supplier_buyer_inputs(self):
-        """Validate inputs specific to supplier-buyer network mode."""
-        # Transaction table is required for supplier-buyer network mode
-        transaction_file = self.parameters.filepaths.get('transaction_table')
-        if not transaction_file:
-            self.errors.append("Supplier-buyer network mode requires 'transaction_table' filepath to be specified")
-        elif not Path(transaction_file).exists():
-            self.errors.append(f"Required transaction table not found: {transaction_file}")
-        else:
-            self._validate_transaction_table(transaction_file)
-    
-    def _validate_transaction_table(self, filepath):
-        """Validate transaction table structure."""
-        try:
-            df = pd.read_csv(filepath)
-        except Exception as e:
-            self.errors.append(f"Cannot read transaction_table.csv: {e}")
-            return
-            
-        # Check required columns for supplier-buyer relationships
-        required_cols = ['supplier_id', 'buyer_id', 'value', 'sector']
-        missing_cols = [col for col in required_cols if col not in df.columns]
-        if missing_cols:
-            self.errors.append(f"transaction_table.csv missing required columns: {missing_cols}")
-            
-        # Check for negative transaction values
-        if 'value' in df.columns and (df['value'] < 0).any():
-            self.errors.append("transaction_table.csv contains negative transaction values")
-    
+
     def _validate_parameter_consistency(self):
         """Validate parameter consistency and reasonable values."""
         # Monetary units consistency
@@ -339,6 +323,244 @@ class InputValidator:
         invalid_modes = [mode for mode in self.parameters.transport_modes if mode not in valid_transport_modes]
         if invalid_modes:
             self.warnings.append(f"Non-standard transport modes specified: {invalid_modes}")
+
+    def _validate_transaction_based_inputs(self):
+        """Validate inputs specific to transaction-based mode."""
+        # Firm table is required
+        firm_file = self.parameters.filepaths.get('firm_table')
+        if not firm_file:
+            self.errors.append("Transaction-based mode requires 'firm_table' filepath to be specified")
+        elif not Path(firm_file).exists():
+            self.errors.append(f"Required firm table not found: {firm_file}")
+        else:
+            self._validate_firm_table(firm_file)
+
+        # Transaction table is required
+        transaction_file = self.parameters.filepaths.get('transaction_table')
+        if not transaction_file:
+            self.errors.append("Transaction-based mode requires 'transaction_table' filepath to be specified")
+        elif not Path(transaction_file).exists():
+            self.errors.append(f"Required transaction table not found: {transaction_file}")
+        else:
+            self._validate_transaction_table(transaction_file)
+
+        # Final demand table is required for households
+        final_demand_file = self.parameters.filepaths.get('final_demand')
+        if not final_demand_file:
+            self.errors.append("Transaction-based mode requires 'final_demand' filepath to be specified")
+        elif not Path(final_demand_file).exists():
+            self.errors.append(f"Required final demand table not found: {final_demand_file}")
+        else:
+            self._validate_final_demand_table(final_demand_file)
+
+        # Cross-validation between firm and transaction tables
+        if firm_file and transaction_file and Path(firm_file).exists() and Path(transaction_file).exists():
+            self._validate_firm_transaction_consistency(firm_file, transaction_file)
+
+    def _validate_firm_table(self, filepath):
+        """Validate firm table (GeoJSON) structure and content."""
+        try:
+            gdf = gpd.read_file(filepath)
+        except Exception as e:
+            self.errors.append(f"Cannot read firm table GeoJSON: {e}")
+            return
+
+        # Check required columns
+        required_cols = ['id', 'sector', 'final_demand', 'imports', 'exports', 'total_output', 'usd_per_ton', 'sector_type', 'margin', 'transport_share']
+        missing_cols = [col for col in required_cols if col not in gdf.columns]
+        if missing_cols:
+            self.errors.append(f"firm_table.geojson missing required columns: {missing_cols}")
+
+        # Check data types and values
+        if 'id' in gdf.columns:
+            if gdf['id'].duplicated().any():
+                self.errors.append("firm_table.geojson contains duplicate firm IDs")
+            if not gdf['id'].dtype in ['int64', 'int32']:
+                self.warnings.append("firm_table.geojson: firm IDs should be integers")
+
+        # Check for negative economic values
+        economic_cols = ['final_demand', 'imports', 'exports', 'total_output', 'usd_per_ton']
+        for col in economic_cols:
+            if col in gdf.columns and (gdf[col] < 0).any():
+                self.errors.append(f"firm_table.geojson contains negative {col} values")
+
+        # Check proportion/ratio fields are in valid range [0, 1]
+        proportion_cols = ['margin', 'transport_share']
+        for col in proportion_cols:
+            if col in gdf.columns:
+                if (gdf[col] < 0).any() or (gdf[col] > 1).any():
+                    self.errors.append(f"firm_table.geojson contains {col} values outside range [0, 1]")
+
+        # Check usd_per_ton is positive (conversion factor should not be zero)
+        if 'usd_per_ton' in gdf.columns and (gdf['usd_per_ton'] <= 0).any():
+            self.errors.append("firm_table.geojson contains zero or negative usd_per_ton values")
+
+        # Validate geometry
+        if gdf.geometry.isna().any():
+            self.errors.append("firm_table.geojson contains firms with missing geometry")
+
+        # Check if points are within reasonable coordinate bounds
+        bounds = gdf.total_bounds
+        if abs(bounds[0]) > 180 or abs(bounds[2]) > 180:
+            self.warnings.append("firm_table.geojson longitude values seem outside normal range [-180, 180]")
+        if abs(bounds[1]) > 90 or abs(bounds[3]) > 90:
+            self.warnings.append("firm_table.geojson latitude values seem outside normal range [-90, 90]")
+
+    def _validate_transaction_table(self, filepath):
+        """Validate transaction table structure for transaction-based mode."""
+        try:
+            df = pd.read_csv(filepath)
+        except Exception as e:
+            self.errors.append(f"Cannot read transaction_table.csv: {e}")
+            return
+
+        # Check required columns for transaction-based relationships
+        required_cols = ['buyer_firm_id', 'seller_firm_id', 'transaction_value']
+        missing_cols = [col for col in required_cols if col not in df.columns]
+        if missing_cols:
+            self.errors.append(f"transaction_table.csv missing required columns: {missing_cols}")
+
+        # Check data types
+        id_cols = ['buyer_firm_id', 'seller_firm_id']
+        for col in id_cols:
+            if col in df.columns and not df[col].dtype in ['int64', 'int32']:
+                self.warnings.append(f"transaction_table.csv: {col} should be integer type")
+
+        # Check for negative transaction values
+        if 'transaction_value' in df.columns:
+            if (df['transaction_value'] < 0).any():
+                self.errors.append("transaction_table.csv contains negative transaction values")
+            if (df['transaction_value'] == 0).any():
+                self.warnings.append("transaction_table.csv contains zero transaction values")
+
+        # Check for self-transactions
+        if 'buyer_firm_id' in df.columns and 'seller_firm_id' in df.columns:
+            self_transactions = df['buyer_firm_id'] == df['seller_firm_id']
+            if self_transactions.any():
+                self.errors.append("transaction_table.csv contains self-transactions (buyer_firm_id == seller_firm_id)")
+
+        # Optional column validations
+        optional_cols = ['import_value', 'export_value']
+        for col in optional_cols:
+            if col in df.columns and (df[col] < 0).any():
+                self.errors.append(f"transaction_table.csv contains negative {col} values")
+
+    def _validate_final_demand_table(self, filepath):
+        """Validate final demand table structure for transaction-based mode."""
+        try:
+            # Try to read as multi-index CSV (new format)
+            df = pd.read_csv(filepath, header=[0, 1], index_col=[0, 1])
+        except Exception:
+            # Try to read as simple CSV (old format) and provide guidance
+            try:
+                simple_df = pd.read_csv(filepath)
+                self.errors.append(f"final_demand.csv should use multi-index format with headers [region, sector] and index [region, sector]. "
+                                  f"Current format appears to be simple CSV with columns: {list(simple_df.columns)}")
+                return
+            except Exception as e:
+                self.errors.append(f"Cannot read final_demand.csv: {e}")
+                return
+
+        # Check required column structure for multi-index format
+        if not hasattr(df.columns, 'get_level_values'):
+            self.errors.append("final_demand.csv must have multi-index column structure")
+            return
+
+        # Check for final_demand column in level 0
+        level_0_cols = df.columns.get_level_values(0)
+        if 'final_demand' not in level_0_cols:
+            self.errors.append("final_demand.csv missing required 'final_demand' column in level 0")
+
+        # Check for negative values
+        numeric_cols = df.select_dtypes(include=[np.number]).columns
+        for col in numeric_cols:
+            if (df[col] < 0).any():
+                self.errors.append(f"final_demand.csv contains negative values in column {col}")
+
+        # Check index structure (should be region, sector)
+        if not hasattr(df.index, 'get_level_values'):
+            self.errors.append("final_demand.csv must have multi-index row structure [region, sector]")
+            return
+
+        if df.index.nlevels != 2:
+            self.errors.append(f"final_demand.csv index should have exactly 2 levels [region, sector], found: {df.index.nlevels}")
+
+        # Check that index values are strings (region and sector names)
+        try:
+            regions = df.index.get_level_values(0)
+            sectors = df.index.get_level_values(1)
+
+            # Basic sanity checks
+            if len(regions) == 0 or len(sectors) == 0:
+                self.errors.append("final_demand.csv appears to be empty")
+
+            # Check for duplicated combinations
+            if df.index.duplicated().any():
+                self.errors.append("final_demand.csv contains duplicate region-sector combinations")
+
+        except Exception as e:
+            self.errors.append(f"Error validating final_demand.csv index structure: {e}")
+
+    def _validate_firm_transaction_consistency(self, firm_file, transaction_file):
+        """Validate consistency between firm table and transaction table."""
+        try:
+            firm_gdf = gpd.read_file(firm_file)
+            transaction_df = pd.read_csv(transaction_file)
+        except Exception as e:
+            self.errors.append(f"Error reading files for consistency check: {e}")
+            return
+
+        # Get firm IDs from both files
+        if 'id' not in firm_gdf.columns:
+            return  # Already flagged as error in firm table validation
+
+        firm_ids = set(firm_gdf['id'].astype(int))
+
+        # Check buyer/seller firm IDs exist in firm table
+        id_cols = ['buyer_firm_id', 'seller_firm_id']
+        for col in id_cols:
+            if col in transaction_df.columns:
+                transaction_ids = set(transaction_df[col].dropna().astype(int))
+                missing_ids = transaction_ids - firm_ids
+                if missing_ids:
+                    self.errors.append(f"transaction_table.csv contains {col} values not found in firm_table.geojson: {sorted(missing_ids)[:10]}")
+
+        # Check for firms without any transactions (might be intentional)
+        if 'buyer_firm_id' in transaction_df.columns and 'seller_firm_id' in transaction_df.columns:
+            transaction_firm_ids = set(transaction_df['buyer_firm_id']) | set(transaction_df['seller_firm_id'])
+            isolated_firms = firm_ids - transaction_firm_ids
+            if isolated_firms:
+                self.warnings.append(f"firm_table.geojson contains {len(isolated_firms)} firms with no transactions (may be intentional)")
+
+        # Basic transaction balance check
+        if all(col in transaction_df.columns for col in ['buyer_firm_id', 'seller_firm_id', 'transaction_value']):
+            self._validate_transaction_balance(transaction_df, firm_gdf)
+
+    def _validate_transaction_balance(self, transaction_df, firm_gdf):
+        """Validate that transaction flows are reasonably balanced."""
+        # Calculate total outflows and inflows per firm
+        outflows = transaction_df.groupby('seller_firm_id')['transaction_value'].sum()
+        inflows = transaction_df.groupby('buyer_firm_id')['transaction_value'].sum()
+
+        # Check for firms with only inflows or only outflows (might be problematic)
+        firm_ids = set(firm_gdf['id'])
+        only_inflows = set(inflows.index) - set(outflows.index)
+        only_outflows = set(outflows.index) - set(inflows.index)
+
+        if only_inflows:
+            self.warnings.append(f"Found {len(only_inflows)} firms with only inflows (no sales): {sorted(only_inflows)[:5]}")
+        if only_outflows:
+            self.warnings.append(f"Found {len(only_outflows)} firms with only outflows (no purchases): {sorted(only_outflows)[:5]}")
+
+        # Check for extremely imbalanced transactions
+        common_firms = set(inflows.index) & set(outflows.index)
+        for firm_id in common_firms:
+            inflow = inflows.get(firm_id, 0)
+            outflow = outflows.get(firm_id, 0)
+            if inflow > 0 and outflow > 0:
+                ratio = max(inflow, outflow) / min(inflow, outflow)
+                if ratio > 100:  # More than 100x difference
+                    self.warnings.append(f"Firm {firm_id} has highly imbalanced transactions: inflow={inflow:.0f}, outflow={outflow:.0f}")
 
 
 def validate_inputs(parameters) -> Tuple[bool, List[str], List[str]]:

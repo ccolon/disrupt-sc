@@ -34,7 +34,8 @@ class ScNetwork(nx.DiGraph):
             elif commercial_link.category == "transit":
                 pass
             else:
-                raise KeyError('Commercial link categories should be one of domestic_B2B, '
+                raise KeyError(f'Commercial link categories is {commercial_link.category}.'
+                               'It should be one of domestic_B2B, '
                                'domestic_B2C, export, import, import_B2C, transit')
 
         io_table = pd.Series(io).unstack().fillna(0)
