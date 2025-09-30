@@ -187,15 +187,23 @@ class SensitivityWriter(CSVResultsWriter):
         # Build headers dynamically based on sensitivity parameters
         if not parameters.sensitivity:
             raise ValueError("No sensitivity parameters defined")
-        
+
+        # Need to create a dummy model to get region info
+        from disruptsc.model.model import Model
+        temp_model = Model(parameters)
+        temp_model._prepare_mrio_and_sectors()
+
         param_headers = list(parameters.sensitivity.keys())
-        headers = ["combination_id"] + param_headers + ["household_loss", "country_loss"]
+        region_household_loss_labels = ['household_loss_' + region for region in temp_model.mrio.regions]
+        headers = ["combination_id"] + param_headers + ["household_loss", "country_loss"] + region_household_loss_labels
 
         super().__init__(output_file, headers)
         self.parameters = parameters
+        self.regions = temp_model.mrio.regions
 
-    def write_sensitivity_results(self, combination_id: int, combination: dict, 
-                                  household_loss: float, country_loss: float):
+    def write_sensitivity_results(self, combination_id: int, combination: dict,
+                                  household_loss: float, country_loss: float, household_loss_per_region: dict):
         """Write results for a single parameter combination."""
         param_values = [combination[param] for param in combination.keys()]
-        self.write_row([combination_id] + param_values + [household_loss, country_loss])
+        regional_values = [household_loss_per_region.get(region, 0.0) for region in self.regions]
+        self.write_row([combination_id] + param_values + [household_loss, country_loss] + regional_values)

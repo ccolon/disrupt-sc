@@ -45,7 +45,8 @@ class SensitivityExecutor(SimulationExecutor):
             simulation = model.run_disruption(t_final=model.parameters.t_final)
 
             # Calculate final losses only
-            household_loss = simulation.calculate_household_loss(model.household_table)
+            household_loss_per_region = simulation.calculate_household_loss(model.household_table, per_region=True)
+            household_loss = sum(household_loss_per_region.values())
             country_loss = simulation.calculate_country_loss()
 
             logging.info(f"Combination #{i} completed. "
@@ -54,7 +55,7 @@ class SensitivityExecutor(SimulationExecutor):
 
             # Write results if writer provided
             if self.results_writer:
-                self.results_writer.write_sensitivity_results(i, combination, household_loss, country_loss)
+                self.results_writer.write_sensitivity_results(i, combination, household_loss, country_loss, household_loss_per_region)
 
             # Clear from memory immediately
             del simulation
