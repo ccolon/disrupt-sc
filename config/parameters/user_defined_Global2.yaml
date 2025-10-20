@@ -2,7 +2,7 @@
 filepaths:
   "sector_table": "Network/sector_table.csv"
   "inventory_duration_targets": "Network/inventory_targets.csv"
-  "mrio": "Network/mrio.csv"
+  "mrio": "Network/figaro_2023_pruned.csv"
   "region_table": "Network/region_table.geojson"
 transport_modes: [roads, maritime] #, waterways, airways]
 monetary_units_in_model: mUSD
