@@ -7,7 +7,6 @@ from disruptsc.model.utils.functions import rescale_monetary_values
 
 if TYPE_CHECKING:
     from disruptsc.network.sc_network import ScNetwork
-    from disruptsc.network.commercial_link import CommercialLink
 
 EPSILON = 1e-6
 
