@@ -26,6 +26,20 @@ def load_transport_data(filepaths, transport_mode, time_resolution):
         edges['id'] = edges.index
     edges['type'] = transport_mode
 
+    # Calculate km from geometry if missing
+    if "km" not in edges.columns or edges['km'].isnull().any():
+        logging.debug(f"Calculating 'km' from geometry for {transport_mode}")
+        # Project to Equal Earth projection (EPSG:8857) for accurate distance calculation
+        edges_projected = edges.to_crs("EPSG:8857")
+        # Calculate length in meters and convert to km
+        calculated_km = edges_projected.geometry.length / 1000.0
+
+        if "km" not in edges.columns:
+            edges['km'] = calculated_km
+        else:
+            # Fill only null values
+            edges.loc[edges['km'].isnull(), 'km'] = calculated_km[edges['km'].isnull()]
+
     # Compute how much it costs to transport one USD worth of good on each edge_attr
     # (Cost computation is handled in logistics configuration)
 
