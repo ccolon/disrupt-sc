@@ -58,14 +58,12 @@ logistics:  # Sources: TRACECA Corridor Studies, ADB CAREC Logistics Costing, Wo
 
   cost_of_time: 0.45          # USD/hour per ton — approximated from regional time-value studies
 
-  name-specific:
-    turkmenbashi: 100.0
 
 use_route_cache: True
 simulation_type: criticality
 criticality:
-  attribute: top_flow
-  edges: [aktau, baku, turkmenbashi, railways-GEO, railways-AZE, railways-KAZ]
+  attribute: region
+  edges: ['ARM']
   duration: 1
-t_final: 3
+t_final: 4
 epsilon_stop_condition: 1e-3
