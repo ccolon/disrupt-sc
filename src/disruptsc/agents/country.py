@@ -95,7 +95,9 @@ class Country(BaseAgent, TransportCapable):
 
         # Identify firms from each sector
         dic_sector_to_firm_id = firms.group_agent_ids_by_property("region_sector")
-        share_exporting_firms = sector_table.set_index('sector')['share_exporting_firms'].to_dict()
+        share_exporting_firms = {}
+        if 'share_exporting_firms' in sector_table.columns:
+            share_exporting_firms = sector_table.set_index('sector')['share_exporting_firms'].to_dict()
         # # Identify od_points which exports (optional)
         # if "special" in transport_nodes.columns:  # clean data, make it a transport network method
         #     export_od_points = transport_nodes.dropna(subset=['special'])

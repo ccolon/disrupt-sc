@@ -14,6 +14,7 @@ filepaths:
   # Economic data
   "sector_table": "Economic/sector_table.csv"
   "mrio": "Economic/mrio.csv"
+  "usd_per_ton": "Economic/usd_per_ton.csv"
   # Spatial data
   "households_spatial": "Spatial/households.geojson"
   "countries_spatial": "Spatial/countries.geojson"

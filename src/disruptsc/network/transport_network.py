@@ -550,7 +550,7 @@ def _get_dwell_time_and_fee(edge_attr: dict, dwell_times: dict, loading_fees: di
 def _get_border_crossing_time_and_fee(edge_attr: dict, border_crossing_times: dict,
                                       border_crossing_fees: dict) -> (float, float):
     if isinstance(edge_attr['special'], str):
-        if "custom" in edge_attr['special']:
+        if "custom" in edge_attr['special'] or "border" in edge_attr['special']:
             return border_crossing_times[edge_attr['type']], border_crossing_fees[edge_attr['type']]
     return 0.0, 0.0
 

@@ -2,13 +2,14 @@
 filepaths:
   "sector_table": "Network/sector_table.csv"
   "inventory_duration_targets": "Network/inventory_targets.csv"
-  "mrio": "Network/mrio.csv"
+  "mrio": "Network/figaro_2023_agg.csv"
   "region_table": "Network/region_table.geojson"
+  "usd_per_ton": "Network/usd_per_ton.csv"
 transport_modes: [roads, maritime] #, waterways, airways]
 monetary_units_in_model: mUSD
-monetary_units_inputed: kUSD
+monetary_units_inputed: mUSD
 time_resolution: week
-io_cutoff: 0.00001
+io_cutoff: 0.01
 #simulation_type: disruption
 export_files: True
 export_details:

@@ -265,6 +265,12 @@ def find_min_in_nested_dict(d):
     return min_value
 
 
+def load_usd_per_ton(filepath: str) -> dict:
+    usd_per_ton = pd.read_csv(filepath, index_col=[0, 1])
+    usd_per_ton = usd_per_ton['usd_per_ton'].to_dict()
+    return usd_per_ton
+
+
 def load_sector_table(filepath: str) -> pd.DataFrame:
     """
     Load sector table from CSV file and ensure region_sector column exists.
@@ -281,8 +287,8 @@ def load_sector_table(filepath: str) -> pd.DataFrame:
     """
     sector_table = pd.read_csv(filepath)
     
-    if "region_sector" not in sector_table.columns:
-        sector_table['region_sector'] = sector_table['region'] + '_' + sector_table['sector']
+    # if "region_sector" not in sector_table.columns:
+    #     sector_table['region_sector'] = sector_table['region'] + '_' + sector_table['sector']
     
     return sector_table
 
