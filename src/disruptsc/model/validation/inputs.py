@@ -187,7 +187,29 @@ class InputValidator:
         if df.empty or df.isna().all().all():
             self.errors.append("MRIO table is empty or contains only NaN values")
             return
-            
+
+        # Check special rows have correct multi-index structure (first level should be None/empty/NaN)
+        # Note: "import" rows with region codes are OK (e.g., imports FROM external regions)
+        # but "value_added" and "tax" rows should have empty first level
+        special_row_keywords = ['value_added', 'value added', 'va', 'tax']
+        for idx in df.index:
+            # Check if this is a special row (second level contains keywords)
+            if any(keyword in str(idx[1]).lower() for keyword in special_row_keywords):
+                # First level should be None, NaN, or empty string - not a region code
+                # Use pd.isna() to properly detect NaN values
+                first_level_is_valid = (
+                    idx[0] is None or
+                    pd.isna(idx[0]) or
+                    (isinstance(idx[0], str) and idx[0].strip() == '')
+                )
+                if not first_level_is_valid:
+                    self.errors.append(
+                        f"MRIO table special row '{idx[1]}' has incorrect multi-index structure. "
+                        f"First index level should be empty (None/NaN), but found: '{idx[0]}'. "
+                        f"In the CSV file, special rows like 'value_added' and 'taxes_and_subsidies' "
+                        f"should start with ',' (empty first column), not with a region code like 'ARM'."
+                    )
+
         # Check for negative values in intermediate flows (error, not warning)
         intermediate_cols = [col for col in df.columns if not any(
             keyword in str(col).lower() for keyword in ['final', 'export', 'capital', 'government']
@@ -204,7 +226,7 @@ class InputValidator:
                                f"{intermediate_df.shape[0]} rows vs {intermediate_df.shape[1]} columns")
         if (intermediate_df < 0).any().any():
             self.errors.append("MRIO table contains negative intermediate flows")
-                
+
         # Check for extreme imbalance (critical error)
         try:
             row_sums = df.sum(axis=1)
