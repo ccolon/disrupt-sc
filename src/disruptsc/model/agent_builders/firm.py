@@ -397,7 +397,8 @@ def _assign_transport_nodes(firm_table: gpd.GeoDataFrame, transport_nodes: gpd.G
     return firm_table
 
 
-def _enrich_sector_metadata(firm_table: pd.DataFrame, sector_table: pd.DataFrame, mrio: Mrio) -> pd.DataFrame:
+def _enrich_sector_metadata(firm_table: pd.DataFrame, sector_table: pd.DataFrame, usd_per_ton: dict,
+                            mrio: Mrio) -> pd.DataFrame:
     """Add sector type, usd_per_ton, margin, and transport_share.
     
     Parameters
@@ -415,11 +416,11 @@ def _enrich_sector_metadata(firm_table: pd.DataFrame, sector_table: pd.DataFrame
         Enriched firm table with sector metadata
     """
     # Add sector type
-    firm_table['sector_type'] = firm_table['region_sector'].map(sector_table.set_index('region_sector')['type'])
+    firm_table['sector_type'] = firm_table['sector'].map(sector_table.set_index('sector')['type'])
     check_successful_extraction(firm_table, "sector_type")
 
     # Add usd per ton
-    firm_table['usd_per_ton'] = firm_table['region_sector'].map(sector_table.set_index('region_sector')['usd_per_ton'])
+    firm_table['usd_per_ton'] = firm_table['tuple'].map(usd_per_ton)
 
     # Add margin and transport input share
     present_industries = list(firm_table['tuple'].unique())
@@ -436,7 +437,7 @@ def _enrich_sector_metadata(firm_table: pd.DataFrame, sector_table: pd.DataFrame
 
 
 def define_firms_from_mrio(mrio: Mrio, sector_table: pd.DataFrame, households_spatial: Path, firms_spatial: Path,
-                           transport_nodes: gpd.GeoDataFrame, io_cutoff: float, cutoff_firm_output: dict,
+                           usd_per_ton: dict, transport_nodes: gpd.GeoDataFrame, io_cutoff: float, cutoff_firm_output: dict,
                            monetary_units_in_data: str) -> pd.DataFrame:
     """Main orchestrator function for creating firms from MRIO data.
     
@@ -445,6 +446,7 @@ def define_firms_from_mrio(mrio: Mrio, sector_table: pd.DataFrame, households_sp
     
     Parameters
     ----------
+    usd_per_ton
     mrio : Mrio
         Multi-regional input-output table
     sector_table : pd.DataFrame
@@ -471,7 +473,8 @@ def define_firms_from_mrio(mrio: Mrio, sector_table: pd.DataFrame, households_sp
     firm_table = _create_base_firm_table_from_mrio(mrio, households_spatial)
     
     # 2. Integrate disaggregated spatial data
-    firm_table = _integrate_disaggregated_data(firm_table, firms_spatial, mrio)
+    if firms_spatial.exists():
+        firm_table = _integrate_disaggregated_data(firm_table, firms_spatial, mrio)
     
     # 3. Handle internal flows (duplicate firms where needed)
     firm_table = _handle_internal_flows(firm_table, mrio, io_cutoff)
@@ -483,7 +486,7 @@ def define_firms_from_mrio(mrio: Mrio, sector_table: pd.DataFrame, households_sp
     firm_table = _assign_transport_nodes(firm_table, transport_nodes)
     
     # 6. Enrich with sector metadata
-    firm_table = _enrich_sector_metadata(firm_table, sector_table, mrio)
+    firm_table = _enrich_sector_metadata(firm_table, sector_table, usd_per_ton, mrio)
     
     logging.info(f"Created {firm_table.shape[0]} firms in {firm_table['region'].nunique()} regions")
     return firm_table
@@ -633,7 +636,7 @@ def load_inventories(firms: Firms, inventory_duration_targets: dict, model_time_
     time_adjustment = time_unit_in_days[inventory_duration_targets['unit']] / time_unit_in_days[model_time_unit]
 
     if inventory_duration_targets['definition'] == "per_input_type":
-        input_sector_to_type = sector_table.set_index('region_sector')['type']
+        input_sector_to_type = sector_table.set_index('sector')['type']
         values = inventory_duration_targets['values']
         default = values['default']
         for firm in firms.values():

@@ -26,6 +26,20 @@ def load_transport_data(filepaths, transport_mode, time_resolution):
         edges['id'] = edges.index
     edges['type'] = transport_mode
 
+    # Calculate km from geometry if missing
+    if "km" not in edges.columns or edges['km'].isnull().any():
+        logging.debug(f"Calculating 'km' from geometry for {transport_mode}")
+        # Project to Equal Earth projection (EPSG:8857) for accurate distance calculation
+        edges_projected = edges.to_crs("EPSG:8857")
+        # Calculate length in meters and convert to km
+        calculated_km = edges_projected.geometry.length / 1000.0
+
+        if "km" not in edges.columns:
+            edges['km'] = calculated_km
+        else:
+            # Fill only null values
+            edges.loc[edges['km'].isnull(), 'km'] = calculated_km[edges['km'].isnull()]
+
     # Compute how much it costs to transport one USD worth of good on each edge_attr
     # (Cost computation is handled in logistics configuration)
 
@@ -218,11 +232,12 @@ def create_nodes_and_update_edges(edges: geopandas.GeoDataFrame):
     ])
     all_endpoints = geopandas.GeoDataFrame(all_endpoints)
     all_endpoints = all_endpoints.set_geometry('geometry', crs=edges.crs)
-    all_endpoints['geometry_wkt'] = all_endpoints['geometry'].apply(lambda geom: wkt.dumps(geom, rounding_precision=5))
     all_endpoints.loc[all_endpoints['type'] == "multimodal", 'type'] = "ZZZmultimodal"  # put multimodal at the end
     all_endpoints = all_endpoints.sort_values("type", ascending=False)
+    all_endpoints['geometry_wkt'] = all_endpoints['geometry'].apply(lambda geom: wkt.dumps(geom, rounding_precision=5))
     nodes = all_endpoints.drop_duplicates('geometry_wkt', keep="first").copy()  # so that multimodal nodes are removed
     assert 'ZZZmultimodal' not in nodes['type'].to_list()
+    # If that is not the case, that means that some multimodal nodes are not on top of other nodes
     nodes['id'] = range(nodes.shape[0])
     nodes.index = nodes['id']
     nodes['long'] = nodes['geometry'].x

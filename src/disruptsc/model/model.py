@@ -8,7 +8,7 @@ import logging
 import pandas as pd
 from tqdm import tqdm
 
-from .utils.functions import load_sector_table, filter_sector
+from .utils.functions import load_sector_table, filter_sector, load_usd_per_ton
 from .utils.profiling import profile_method
 from .utils.caching import \
     load_cached_transport_network, \
@@ -141,6 +141,7 @@ class Model(object):
                 sector_table=self.sector_table,
                 households_spatial=self.parameters.filepaths['households_spatial'],
                 firms_spatial=self.parameters.filepaths['firms_spatial'],
+                usd_per_ton=self.usd_per_ton,
                 transport_nodes=self.transport_nodes,
                 io_cutoff=self.parameters.io_cutoff,
                 cutoff_firm_output=self.parameters.cutoff_firm_output,
@@ -229,7 +230,7 @@ class Model(object):
             mrio=self.mrio,
             transport_nodes=self.transport_nodes,
             filepath_countries_spatial=self.parameters.filepaths['countries_spatial'],
-            filepath_sectors=self.parameters.filepaths['sector_table'],
+            usd_per_ton=self.usd_per_ton,
             time_resolution=self.parameters.time_resolution,
             target_units=self.parameters.monetary_units_in_model,
             input_units=self.parameters.monetary_units_in_data
@@ -288,6 +289,7 @@ class Model(object):
             self.parameters.monetary_units_in_data
         )
         self.sector_table = load_sector_table(self.parameters.filepaths['sector_table'])
+        self.usd_per_ton = load_usd_per_ton(self.parameters.filepaths['usd_per_ton'])
 
     def _filter_sectors(self) -> list:
         """Filter sectors based on output and demand criteria."""

@@ -27,13 +27,13 @@ class CSVResultsWriter:
 
     def _write_headers(self):
         """Write CSV headers."""
-        with open(self.output_file, mode="w", newline="") as file:
+        with open(self.output_file, mode="w", newline="", encoding="utf-8") as file:
             writer = csv.writer(file)
             writer.writerow(self.headers)
 
     def write_row(self, data: list):
         """Write a single row of data."""
-        with open(self.output_file, mode="a", newline="") as file:
+        with open(self.output_file, mode="a", newline="", encoding="utf-8") as file:
             writer = csv.writer(file)
             writer.writerow(data)
 
