@@ -219,7 +219,7 @@ class Parameters:
         elif isinstance(self.capacity_constraint, str):
             return self.capacity_constraint.lower() not in ["off", "disabled", "false"]
         else:
-            return False
+            return True
 
     def get_capacity_constraint_mode(self) -> str:
         """

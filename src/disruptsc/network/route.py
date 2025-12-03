@@ -29,6 +29,26 @@ class Route(list):
                 return False
         return True
 
+    def has_over_capacity_edges(self, transport_network: "TransportNetwork") -> bool:
+        """
+        Check if route contains any edges that are currently over capacity.
+
+        Parameters
+        ----------
+        transport_network : TransportNetwork
+            The transport network to check edge capacity status
+
+        Returns
+        -------
+        bool
+            True if any edge in route is over capacity, False otherwise
+        """
+        for u, v in self.transport_edges:
+            edge = transport_network[u][v]
+            if edge.get('overused', False):
+                return True
+        return False
+
     def is_edge_in_route(self, searched_edge: tuple | str, transport_network: "TransportNetwork"):
         if isinstance(searched_edge, tuple):
             for u, v in self.transport_edges:

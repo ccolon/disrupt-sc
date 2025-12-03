@@ -490,26 +490,34 @@ class Model(object):
             self.countries.assign_cost_profile(self.parameters.logistics['nb_cost_profiles'])
             self.firms.assign_cost_profile(self.parameters.logistics['nb_cost_profiles'])
 
+            # Disable route caching if capacity constraints are enabled
+            # because cached routes become invalid as edges fill up
+            use_cache_for_initial_routes = self.parameters.use_route_cache and not self.parameters.get_capacity_constraint_enabled()
+            if self.parameters.get_capacity_constraint_enabled() and self.parameters.use_route_cache:
+                logging.info('Route caching disabled throughout simulation due to capacity constraints')
+
             logging.info('The supplier--buyer graph is being connected to the transport network')
             logging.info('Each B2B and transit edge_attr is being linked to a route of the transport network')
             logging.info('Routes for transit and import flows are being selected by trading countries')
             self.countries.choose_initial_routes(self.sc_network, self.transport_network,
                                                  self.parameters.get_capacity_constraint_enabled(),
+                                                 self.parameters.get_capacity_constraint_mode(),
                                                  self.parameters.explicit_service_firm,
                                                  self.parameters.transport_to_households,
                                                  self.parameters.sectors_no_transport_network,
                                                  self.parameters.monetary_units_in_model,
                                                  parallelized=False,
-                                                 use_route_cache=self.parameters.use_route_cache)
+                                                 use_route_cache=use_cache_for_initial_routes)
             logging.info('Routes for exports and B2B domestic flows are being selected by domestic firms')
             self.firms.choose_initial_routes(self.sc_network, self.transport_network,
                                              self.parameters.get_capacity_constraint_enabled(),
+                                             self.parameters.get_capacity_constraint_mode(),
                                              self.parameters.explicit_service_firm,
                                              self.parameters.transport_to_households,
                                              self.parameters.sectors_no_transport_network,
                                              self.parameters.monetary_units_in_model,
                                              parallelized=False,
-                                             use_route_cache=self.parameters.use_route_cache)
+                                             use_route_cache=use_cache_for_initial_routes)
             self.create_commercial_link_table()
             # Save to tmp folder
             data_to_cache = {
