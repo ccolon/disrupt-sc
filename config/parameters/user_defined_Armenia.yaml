@@ -10,8 +10,8 @@ filepaths:
 transport_modes: ["roads", "railways"] #, waterways, airways]
 monetary_units_in_model: mUSD
 monetary_units_in_data: mUSD
-time_resolution: day
-io_cutoff: 0.02
+time_resolution: week
+io_cutoff: 0.01
 cutoff_sector_demand:
   'type': 'absolute'
   'value': 100
@@ -28,21 +28,30 @@ nb_suppliers_per_input: 1  # 5
 export_files: True
 firm_data_type: mrio
 weight_localization_household: 10
-capacity_constraint: "off"
+capacity_constraint: "binary"
+transport_capacity_overrides:
+  old_line: 10000.0
+  new_line: 30000.0
+  bc_secondary: 5000.0
 logistics:  # Sources: TRACECA Corridor Studies, ADB CAREC Logistics Costing, World Bank Central Asia Road Transport Surveys, OECD reports on Eurasian pipeline networks
   nb_cost_profiles: 1
   basic_cost_random: True
 
   speeds: # km/hour
-    roads: 45                 # average for freight trucks across mountainous and steppe terrain
+    roads:
+      attribute: asset
+      default: 35
+      primary: 45
+      trunk: 75
+#    roads: 45                 # average for freight trucks across mountainous and steppe terrain
     railways: 35              # electrified main lines, non-high-speed (TRACECA average)
 
   basic_cost: # USD per ton*km
-    roads: 0.08               # relatively high due to long inland hauls and diesel costs
-    railways: 0.04            # lower cost on Kazakh and Azerbaijani mainlines
+    roads: 0.08
+    railways: 0.04
 
   dwell_times: # hours
-    roads-railways: 8         # intermodal terminals at Almaty, Baku, Tbilisi relatively efficient
+    roads-railways: 8
 
   loading_fees: # USD/ton
     roads-railways: 2.0
@@ -54,7 +63,7 @@ logistics:  # Sources: TRACECA Corridor Studies, ADB CAREC Logistics Costing, Wo
   border_crossing_times: # hours
     roads: 3                  # varies; can spike to 6+ on peak days
     multimodal: 6             # road/rail to maritime adds coordination overhead
-    railways: 2               # smoother border logistics due to intergovernmental rail treaties
+    railways: 1               # smoother border logistics due to intergovernmental rail treaties
 
   cost_of_time: 0.45          # USD/hour per ton — approximated from regional time-value studies
 
@@ -65,5 +74,5 @@ criticality:
   attribute: region
   edges: ['ARM']
   duration: 1
-t_final: 4
+t_final: 3
 epsilon_stop_condition: 1e-3
