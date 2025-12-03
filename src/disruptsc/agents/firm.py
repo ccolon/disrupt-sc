@@ -580,13 +580,13 @@ class Firm(BaseAgent, TransportCapable):
         for _, buyer in sc_network.out_edges(self):
             commercial_link = sc_network[self][buyer]['object']
             quantity_to_deliver = quantities_to_deliver[buyer.pid]
+            commercial_link.delivery = quantity_to_deliver
+            commercial_link.delivery_in_tons = self.transformUSD_to_tons(quantity_to_deliver, monetary_units_in_model,
+                                                                         self.usd_per_ton)
             if quantity_to_deliver == 0:
                 if commercial_link.order == 0:
                     logging.debug(f"{self.id_str()} - this client did not order: {buyer.id_str()}")
                 continue
-            commercial_link.delivery = quantity_to_deliver
-            commercial_link.delivery_in_tons = self.transformUSD_to_tons(quantity_to_deliver, monetary_units_in_model,
-                                                                         self.usd_per_ton)
 
             # If the client is B2C (applied only we had one single representative agent for all households)
             cases_no_transport = (buyer.pid == -1) or (self.sector_type in sectors_no_transport_network) \

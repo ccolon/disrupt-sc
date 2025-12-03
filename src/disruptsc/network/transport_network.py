@@ -371,10 +371,12 @@ class TransportNetwork(nx.Graph):
                     # Use traditional binary penalty system
                     if edge.get('overused', False):
                         logging.warning(f"Edge {(u, v)} ({edge['type']}, {edge.get('name', '')}) is over capacity and got selected")
+                        # for cost_per_ton_with_capacity_label in cost_per_ton_with_capacity_labels:
+                        #     logging.warning(str(cost_per_ton_with_capacity_label) + ": " + str(edge[cost_per_ton_with_capacity_label]))
                     else:
                         if edge['current_load'] > edge['capacity']:
-                            logging.info(f"Edge {(u, v)} ({edge['type']}) has reached its capacity: "
-                                       f"{edge['current_load']:.0f} / {edge['capacity']:.0f}")
+                            logging.warning(f"Edge {(u, v)} ({edge['type']}) has reached its capacity: "
+                                            f"{edge['current_load']:.0f} / {edge['capacity']:.0f}")
                             edge['overused'] = True
                             capacity_burden = 1e10
                             for cost_per_ton_with_capacity_label in cost_per_ton_with_capacity_labels:
@@ -383,10 +385,10 @@ class TransportNetwork(nx.Graph):
     def reset_loads(self):
         """
         Reset current_load to 0 and restore base costs (removes capacity scaling).
-        
+
         This method is called at the end of each time step to:
         - Reset all edge loads to zero
-        - Reset overused flags to False  
+        - Reset overused flags to False
         - Restore cost_per_ton_with_capacity_* attributes to base costs (multiplier = 1.0)
         """
         cost_per_ton_labels = self._get_cost_per_ton_attributes(with_capacity=False)
@@ -396,7 +398,7 @@ class TransportNetwork(nx.Graph):
             edge['current_load'] = 0
             edge['overused'] = False
             for i in range(len(cost_per_ton_labels)):
-                edge[cost_per_ton_labels[i]] = edge[cost_per_ton_with_capacity_labels[i]]
+                edge[cost_per_ton_with_capacity_labels[i]] = edge[cost_per_ton_labels[i]]
 
     def remove_all_shipments(self):
         for u, v in self.edges:
@@ -518,26 +520,14 @@ class TransportNetwork(nx.Graph):
                 raise ValueError(f"There are uncollected shipments: {list(edge_data['shipments'].keys())}")
 
 def _get_speed(edge_attr: dict, speed_dict: dict) -> float:
-    # if edge_attr['type'] == "roads":
-    #     # if edge_attr['class'] == 'primary':
-    #     #     return speed_dict['roads']['primary']
-    #     # elif edge_attr['class'] == 'secondary':
-    #     #     return speed_dict['roads']['primary']
-    #     # elif edge_attr['class'] == 'tertiary':
-    #     #     return speed_dict['roads']['primary']
-    #     # else:
-    #     if isinstance(speed_dict['roads'], float) or isinstance(speed_dict['roads'], int):
-    #         return speed_dict['roads']
-    #     elif isinstance(speed_dict['roads'], dict):
-    #         if ("paved" in speed_dict['roads'].keys()) and ("unpaved" in speed_dict['roads'].keys()):
-    #             if edge_attr['surface'] == 'unpaved':
-    #                 return speed_dict['roads']['unpaved']
-    #             else:
-    #                 return speed_dict['roads']['paved']
-    if edge_attr['type'] in ['railways', 'waterways', 'maritime', 'airways', "pipelines", "roads"]:
+    if edge_attr['type'] in ["roads", "multimodal"]:
+        if isinstance(speed_dict["roads"], dict):
+            attribute = edge_attr[speed_dict["roads"]['attribute']]
+            return speed_dict["roads"].get(attribute, speed_dict["roads"]["default"])
+        else:
+            return speed_dict["roads"]
+    elif edge_attr['type'] in ['railways', 'waterways', 'maritime', 'airways', "pipelines"]:
         return speed_dict[edge_attr['type']]
-    elif edge_attr['type'] == "multimodal":
-        return speed_dict['roads']  # these are very small links, so we assume paved roads
 
 
 def _get_dwell_time_and_fee(edge_attr: dict, dwell_times: dict, loading_fees: dict) -> (float, float):

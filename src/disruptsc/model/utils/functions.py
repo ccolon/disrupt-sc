@@ -259,8 +259,9 @@ def find_min_in_nested_dict(d):
     for key, value in d.items():
         if isinstance(value, dict):  # If value is a nested dictionary, recurse
             min_value = min(min_value, find_min_in_nested_dict(value))
-        else:  # Leaf value (assumed to be float)
-            min_value = min(min_value, value)
+        else:  # Leaf value
+            if isinstance(value, float) or isinstance(value, int):
+                min_value = min(min_value, value)
 
     return min_value
 

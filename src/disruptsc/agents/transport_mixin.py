@@ -46,7 +46,11 @@ class TransportCapable:
                    shipment_method, normal_or_disrupted, capacity_constraint,
                    use_route_cache: bool):
         """Internal method to get route with caching support."""
-        if use_route_cache:
+        # Disable caching when capacity constraints are enabled
+        # because cached routes become invalid as edges fill up
+        effective_cache = use_route_cache and not capacity_constraint
+
+        if effective_cache:
             route = transport_network.retrieve_cached_route(self.od_point, destination_node, self.cost_profile,
                                                             normal_or_disrupted, shipment_method)
             if route:
@@ -59,7 +63,7 @@ class TransportCapable:
             shipment_method=shipment_method,
             capacity_constraint=capacity_constraint
         )
-        if route and use_route_cache:
+        if route and effective_cache:
             transport_network.cache_route(route, self.od_point, destination_node, self.cost_profile,
                                           normal_or_disrupted, shipment_method)
         return route
@@ -97,6 +101,30 @@ class TransportCapable:
             raise ValueError(f"{self.id_str()} - commercial link {commercial_link.pid} "
                              f"(qty {commercial_link.order:.02f} is not associated to any route, "
                              f"I cannot send any shipment to the client")
+
+        # When capacity constraints are enabled, check if the main route uses over-capacity edges
+        # and recompute if necessary to find less congested alternative
+        if capacity_constraint and commercial_link.route.is_usable(transport_network):
+            if commercial_link.route.has_over_capacity_edges(transport_network):
+                # Try to find a better route that avoids congestion
+                new_route = self._get_route(
+                    transport_network, available_transport_network,
+                    commercial_link.destination_node,
+                    commercial_link.shipment_method,
+                    'normal',  # Still looking for normal route, just updated
+                    capacity_constraint,
+                    use_route_cache=False  # Always compute fresh when avoiding congestion
+                )
+
+                if new_route and new_route.transport_edges != commercial_link.route.transport_edges:
+                    # Found a different (hopefully better) route
+                    cost_per_ton_label = "cost_per_ton_" + str(self.cost_profile) + "_" + commercial_link.shipment_method
+                    new_cost_per_ton = new_route.sum_indicator(transport_network, cost_per_ton_label)
+
+                    # Update the main route with the new route
+                    commercial_link.store_route_information(new_route, "main", new_cost_per_ton)
+                    logging.debug(f"{self.id_str()}: recomputed route to {commercial_link.buyer_id} "
+                                 f"to avoid over-capacity edges")
 
         # Try to use main route
         if commercial_link.route.is_usable(transport_network):
@@ -166,7 +194,8 @@ class TransportCapable:
                           f"{commercial_link.price:.4f} instead of {commercial_link.eq_price:.4f}")
 
     def choose_initial_routes(self, sc_network: "ScNetwork", transport_network: "TransportNetwork",
-                              capacity_constraint: bool, explicit_service_firm: bool, transport_to_households: bool,
+                              capacity_constraint: bool, capacity_constraint_mode: str,
+                              explicit_service_firm: bool, transport_to_households: bool,
                               sectors_no_transport_network: list,
                               monetary_unit_flow: str, use_route_cache: bool):
         """
@@ -198,18 +227,18 @@ class TransportCapable:
             if capacity_constraint:
                 # logging.info(f"{self.id_str()}, {client.pid}, {route.is_edge_in_route('turkmenbashi', transport_network)}")
                 self.update_transport_load(client, monetary_unit_flow, route, sc_network, transport_network,
-                                           capacity_constraint)
+                                           capacity_constraint, capacity_constraint_mode)
 
     def update_transport_load(self, client, monetary_unit_flow, route, sc_network, transport_network,
-                              capacity_constraint):
+                              capacity_constraint, capacity_constraint_mode):
         """
         Update the current load on the transport network.
         """
         from disruptsc.agents.base_agent import BaseAgent  # Import here to avoid circular imports
-        
+
         new_load_in_usd = sc_network[self][client]['object'].order
         new_load_in_tons = BaseAgent.transformUSD_to_tons(new_load_in_usd, monetary_unit_flow, self.usd_per_ton)
-        transport_network.update_load_on_route(route, new_load_in_tons, capacity_constraint, "gradual")
+        transport_network.update_load_on_route(route, new_load_in_tons, capacity_constraint, capacity_constraint_mode)
 
     def assign_cost_profile(self, nb_cost_profiles: int):
         """

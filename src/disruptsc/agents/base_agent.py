@@ -401,7 +401,7 @@ class BaseAgents(dict):
             agent.assign_cost_profile(nb_cost_profiles)
 
     def choose_initial_routes(self, sc_network: "ScNetwork", transport_network: "TransportNetwork",
-                              capacity_constraint: bool,
+                              capacity_constraint: bool, capacity_constraint_mode: str,
                               explicit_service_firm: bool, transport_to_households: bool,
                               sectors_no_transport_network: list,
                               monetary_units_in_model: str,
@@ -409,7 +409,7 @@ class BaseAgents(dict):
                               use_route_cache: bool):
         """
         Choose initial routes for all agents that have transport capabilities.
-        
+
         This method delegates to each agent's choose_initial_routes method if it exists.
         """
         if parallelized and (not capacity_constraint):
@@ -419,8 +419,8 @@ class BaseAgents(dict):
                 futures = [
                     executor.submit(
                         agent.choose_initial_routes, sc_network, transport_network, capacity_constraint,
-                        explicit_service_firm, transport_to_households, sectors_no_transport_network,
-                        monetary_units_in_model, use_route_cache
+                        capacity_constraint_mode, explicit_service_firm, transport_to_households,
+                        sectors_no_transport_network, monetary_units_in_model, use_route_cache
                     )
                     for agent in self.values()
                     if hasattr(agent, 'choose_initial_routes')
@@ -432,8 +432,8 @@ class BaseAgents(dict):
             for agent in tqdm(self.values(), total=len(self)):
                 if hasattr(agent, 'choose_initial_routes'):
                     agent.choose_initial_routes(
-                        sc_network, transport_network, capacity_constraint, explicit_service_firm,
-                        transport_to_households, sectors_no_transport_network,
+                        sc_network, transport_network, capacity_constraint, capacity_constraint_mode,
+                        explicit_service_firm, transport_to_households, sectors_no_transport_network,
                         monetary_units_in_model, use_route_cache
                     )
 
