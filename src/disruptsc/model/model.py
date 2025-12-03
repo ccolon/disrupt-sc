@@ -530,7 +530,13 @@ class Model(object):
             }
             cache_logistic_routes(data_to_cache)
 
-            self.logistic_routes_initialized = True
+        # Reset loads and capacity flags after route setup
+        # Routes are selected and cached, but we want a clean slate for the simulation
+        if self.parameters.get_capacity_constraint_enabled():
+            logging.info('Resetting transport network loads after initial route setup')
+            self.transport_network.reset_loads()
+
+        self.logistic_routes_initialized = True
 
     def reset_variables(self):
         logging.info("Resetting variables on transport network")
