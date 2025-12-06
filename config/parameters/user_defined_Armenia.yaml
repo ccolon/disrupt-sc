@@ -76,10 +76,10 @@ logistics:  # Sources: TRACECA Corridor Studies, ADB CAREC Logistics Costing, Wo
 
   cost_of_time: 0.45          # USD/hour per ton — approximated from regional time-value studies
 
-
+transport_to_households: True
 
 use_route_cache: True
-simulation_type: initial_state
+simulation_type: criticality
 criticality:
   attribute: region
   edges: ['ARM']
