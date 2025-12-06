@@ -262,6 +262,7 @@ inventory_duration_targets:
     agriculture: 15
     manufacturing: 30
     service: 90
+    services: 90
     trade: 30
     transport: 5
   unit: day
