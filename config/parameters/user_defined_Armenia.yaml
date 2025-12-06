@@ -28,11 +28,20 @@ nb_suppliers_per_input: 1  # 5
 export_files: True
 firm_data_type: mrio
 weight_localization_household: 10
-capacity_constraint: "binary"
+capacity_constraint: "gradual"
 transport_capacity_overrides:
-  old_line: 10000.0
-  new_line: 30000.0
-  bc_secondary: 5000.0
+  old_line: 3000.0
+  new_line: 20000.0
+  bc_secondary: 1000.0
+  Bagratashen: 15000.0
+  Kayan roads: 1000.0
+  Kars: 5000.0
+  Akhurik: 1000.0
+  Anipemza: 1000.0
+  Margara: 1000.0
+  TurkWest: 10000.0
+  Yeraskh roads: 500.0
+  Yeraskh railways: 5000.0
 logistics:  # Sources: TRACECA Corridor Studies, ADB CAREC Logistics Costing, World Bank Central Asia Road Transport Surveys, OECD reports on Eurasian pipeline networks
   nb_cost_profiles: 1
   basic_cost_random: True
@@ -68,11 +77,19 @@ logistics:  # Sources: TRACECA Corridor Studies, ADB CAREC Logistics Costing, Wo
   cost_of_time: 0.45          # USD/hour per ton — approximated from regional time-value studies
 
 
+
 use_route_cache: True
-simulation_type: criticality
+simulation_type: initial_state
 criticality:
   attribute: region
   edges: ['ARM']
   duration: 1
+disruptions:
+  - type: transport_disruption
+    description_type: edge_attributes
+    attribute: special
+    values: [south_crit]  # Disrupt Main Road North
+    start_time: 1
+    duration: 1
 t_final: 3
 epsilon_stop_condition: 1e-3
