@@ -222,7 +222,7 @@ def create_transport_network(transport_modes: list, filepaths: dict, logistics_p
 
 
 def create_nodes_and_update_edges(edges: geopandas.GeoDataFrame):
-    COORDINATE_ROUNDING_PRECISION = 10
+    COORDINATE_ROUNDING_PRECISION = 6
     # create nodes from endpoints
     endpoints = geopandas.GeoDataFrame({"end1": edges.geometry.apply(lambda line: Point(line.coords[0])),
                                         "type": edges['type'],
