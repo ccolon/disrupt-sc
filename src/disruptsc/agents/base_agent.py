@@ -214,12 +214,28 @@ class BaseAgent:
         return selected_supplier_ids, selected_weights.tolist()
 
     @staticmethod
-    def transformUSD_to_tons(monetary_flow, monetary_unit, usd_per_ton):
+    def transformUSD_to_tons(monetary_flow, monetary_unit, usd_per_ton) -> float:
         """
         Convert monetary flow to tons using USD per ton conversion factor.
         """
+        import numpy as np
+
+        # Validate monetary_flow is a valid number
+        if not isinstance(monetary_flow, (int, float, np.number)):
+            raise TypeError(f"monetary_flow must be numeric, got {type(monetary_flow).__name__}: {monetary_flow}")
+
+        if isinstance(monetary_flow, (float, np.floating)) and np.isnan(monetary_flow):
+            raise ValueError(f"monetary_flow is nan. Cannot convert to tons.")
+
+        # Validate usd_per_ton
+        if not isinstance(usd_per_ton, (int, float, np.number)):
+            raise TypeError(f"usd_per_ton must be numeric, got {type(usd_per_ton).__name__}: {usd_per_ton}")
+
+        if isinstance(usd_per_ton, (float, np.floating)) and np.isnan(usd_per_ton):
+            raise ValueError(f"usd_per_ton is nan. Cannot convert to tons.")
+
         if usd_per_ton == 0:
-            return 0
+            return 0.0
         else:
             # Load monetary units
             monetary_unit_factor = {
@@ -228,7 +244,7 @@ class BaseAgent:
                 "USD": 1
             }
             factor = monetary_unit_factor[monetary_unit]
-            return monetary_flow / (usd_per_ton / factor)
+            return float(monetary_flow / (usd_per_ton / factor))
 
 
 class BaseAgents(dict):

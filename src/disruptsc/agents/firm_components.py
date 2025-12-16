@@ -353,9 +353,37 @@ class FinanceManager:
 
     def calculate_relative_price_change_transport(self, relative_transport_cost_change):
         """Calculate price change due to transport cost changes."""
-        return self.eq_finance['costs']['transport'] \
-            * relative_transport_cost_change \
-            / ((1 - self.target_margin) * self.eq_finance['sales'])
+        import numpy as np
+
+        # Validate input parameter
+        if isinstance(relative_transport_cost_change, float) and (np.isnan(relative_transport_cost_change) or np.isinf(relative_transport_cost_change)):
+            raise ValueError(f"{self.firm.id_str()}: relative_transport_cost_change is {relative_transport_cost_change}. "
+                           f"Cannot calculate price change with invalid transport cost change.")
+
+        # Validate transport cost
+        transport_cost = self.eq_finance['costs']['transport']
+        if isinstance(transport_cost, float) and np.isnan(transport_cost):
+            raise ValueError(f"{self.firm.id_str()}: eq_finance['costs']['transport'] is nan. "
+                           f"Cannot calculate price change from transport cost changes.")
+
+        # Validate target margin
+        if self.target_margin == 1:
+            raise ValueError(f"{self.firm.id_str()}: target_margin is 1 (100% margin). "
+                           f"This leads to division by zero in price change calculation.")
+
+        # Validate sales (denominator check)
+        sales = self.eq_finance['sales']
+        if isinstance(sales, float) and np.isnan(sales):
+            raise ValueError(f"{self.firm.id_str()}: eq_finance['sales'] is nan. "
+                           f"Cannot calculate price change from transport cost changes.")
+
+        denominator = (1 - self.target_margin) * sales
+        if denominator == 0:
+            raise ValueError(f"{self.firm.id_str()}: Denominator is zero in price change calculation. "
+                           f"eq_finance['sales']={sales}, target_margin={self.target_margin}. "
+                           f"Cannot calculate price change from transport cost changes.")
+
+        return transport_cost * relative_transport_cost_change / denominator
 
     def reset(self):
         """Reset financial variables."""

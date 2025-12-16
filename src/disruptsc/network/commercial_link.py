@@ -106,11 +106,48 @@ class CommercialLink(object):
             self.fulfilment_rate = self.delivery / self.order
 
     def calculate_relative_increase_in_transport_cost(self):
+        import numpy as np
+
+        link_identifier = f"Commercial link from {self.supplier_id} to {self.buyer_id}"
+
         if self.delivery_in_tons == 0:
-            raise ValueError('Delivery in tons is null')
+            raise ValueError(f'{link_identifier}: Delivery in tons is null')
+
+        # Validate route costs
+        if isinstance(self.route_cost_per_ton, float) and np.isnan(self.route_cost_per_ton):
+            raise ValueError(f"{link_identifier}: route_cost_per_ton is nan. Cannot calculate transport cost increase.")
+
+        if isinstance(self.alternative_route_cost_per_ton, float) and np.isnan(self.alternative_route_cost_per_ton):
+            raise ValueError(f"{link_identifier}: alternative_route_cost_per_ton is nan. Cannot calculate transport cost increase.")
+
+        # Calculate transport bills
         normal_transport_bill = self.delivery_in_tons * self.route_cost_per_ton
         new_transport_bill = self.delivery_in_tons * self.alternative_route_cost_per_ton
-        return max(new_transport_bill - normal_transport_bill, 0) / normal_transport_bill
+
+        # Validate transport bills
+        if isinstance(normal_transport_bill, float) and np.isnan(normal_transport_bill):
+            raise ValueError(f"{link_identifier}: normal_transport_bill is nan "
+                           f"(delivery_in_tons={self.delivery_in_tons}, route_cost_per_ton={self.route_cost_per_ton})")
+
+        if isinstance(new_transport_bill, float) and np.isnan(new_transport_bill):
+            raise ValueError(f"{link_identifier}: new_transport_bill is nan "
+                           f"(delivery_in_tons={self.delivery_in_tons}, alternative_route_cost_per_ton={self.alternative_route_cost_per_ton})")
+
+        # Check for division by zero
+        if normal_transport_bill == 0:
+            raise ValueError(f"{link_identifier}: normal_transport_bill is zero. "
+                           f"route_cost_per_ton={self.route_cost_per_ton}, delivery_in_tons={self.delivery_in_tons}. "
+                           f"Cannot calculate relative transport cost increase.")
+
+        result = max(new_transport_bill - normal_transport_bill, 0) / normal_transport_bill
+
+        # Validate result
+        if isinstance(result, float) and (np.isnan(result) or np.isinf(result)):
+            raise ValueError(f"{link_identifier}: Result is {result} "
+                           f"(normal_bill={normal_transport_bill}, new_bill={new_transport_bill}). "
+                           f"This indicates a calculation error in transport cost increase.")
+
+        return result
 
     def has_modal_switch(self):
         """Check if alternative route uses different transportation modes than main route."""
