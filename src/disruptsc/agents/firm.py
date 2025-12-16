@@ -581,8 +581,6 @@ class Firm(BaseAgent, TransportCapable):
             commercial_link = sc_network[self][buyer]['object']
             quantity_to_deliver = quantities_to_deliver[buyer.pid]
             commercial_link.delivery = quantity_to_deliver
-            commercial_link.delivery_in_tons = self.transformUSD_to_tons(quantity_to_deliver, monetary_units_in_model,
-                                                                         self.usd_per_ton)
             if quantity_to_deliver == 0:
                 if commercial_link.order == 0:
                     logging.debug(f"{self.id_str()} - this client did not order: {buyer.id_str()}")
@@ -593,8 +591,18 @@ class Firm(BaseAgent, TransportCapable):
                                  or ((not transport_to_households) and (buyer.agent_type == "household"))
             # If the client is a service firm, we deliver without using transportation infrastructure
             if cases_no_transport or not with_transport:
+                commercial_link.delivery_in_tons = 0.0
                 self.deliver_without_infrastructure(commercial_link)
             else:
+                commercial_link.delivery_in_tons = self.transformUSD_to_tons(quantity_to_deliver,
+                                                                             monetary_units_in_model,
+                                                                             self.usd_per_ton)
+                if isinstance(commercial_link.delivery_in_tons, float):
+                    if commercial_link.delivery_in_tons == 0.0:
+                        raise ValueError(f"{self.id_str()} - 'commercial_link.delivery_in_tons' is null")
+                else:
+                    raise ValueError(f"{self.id_str()} - 'commercial_link.delivery_in_tons' is not "
+                                     f"a float: {commercial_link.delivery_in_tons}")
                 self.send_shipment(commercial_link, transport_network, available_transport_network,
                                    price_increase_threshold, capacity_constraint, capacity_constraint_mode,
                                    use_route_cache, switching_costs)

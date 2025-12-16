@@ -546,6 +546,31 @@ def _get_border_crossing_time_and_fee(edge_attr: dict, border_crossing_times: di
 
 
 def _calculate_cost_per_ton(edge_attr, logistic_parameters: dict, time_resolution: str):
+    # Validate edge attributes early
+    import numpy as np
+
+    edge_identifier = f"Edge {edge_attr.get('id', 'unknown')} ({edge_attr.get('type', 'unknown')})"
+    if 'name' in edge_attr and edge_attr['name']:
+        edge_identifier += f" - '{edge_attr['name']}'"
+
+    # Check for nan km
+    if 'km' not in edge_attr or (isinstance(edge_attr['km'], float) and np.isnan(edge_attr['km'])):
+        raise ValueError(f"{edge_identifier}: 'km' attribute is missing or nan. Cannot calculate transport costs.")
+
+    # Check for zero or invalid speed
+    speed = _get_speed(edge_attr, logistic_parameters['speeds'])
+    if speed == 0 or (isinstance(speed, float) and np.isnan(speed)):
+        raise ValueError(f"{edge_identifier}: Speed is zero or nan (speed={speed}). Cannot calculate transport time.")
+
+    # Check for nan basic cost
+    edge_type = edge_attr['type']
+    for i, basic_cost_random in logistic_parameters['basic_cost_profiles'].items():
+        if edge_type not in basic_cost_random:
+            raise ValueError(f"{edge_identifier}: Transport type '{edge_type}' not found in basic_cost_profiles[{i}].")
+        basic_cost_value = basic_cost_random[edge_type]
+        if isinstance(basic_cost_value, float) and np.isnan(basic_cost_value):
+            raise ValueError(f"{edge_identifier}: basic_cost_profiles[{i}]['{edge_type}'] is nan. Cannot calculate transport costs.")
+
     # adjust cost of time: we suppose that there is one shipment per week
     # so if the model has a daily time steps, it is as if a shipment is "chuncked" in 7 small pieces
     # so what is "paid" in terms of time should be divided by 7
@@ -555,7 +580,7 @@ def _calculate_cost_per_ton(edge_attr, logistic_parameters: dict, time_resolutio
     # calculate cost per ton
     basic_costs = {i: edge_attr['km'] * basic_cost_random[edge_attr['type']]
                    for i, basic_cost_random in logistic_parameters['basic_cost_profiles'].items()}
-    transport_time = edge_attr['km'] / _get_speed(edge_attr, logistic_parameters['speeds'])
+    transport_time = edge_attr['km'] / speed
     loading_time, loading_fee = _get_dwell_time_and_fee(
         edge_attr, logistic_parameters['dwell_times'], logistic_parameters['loading_fees'])
     border_crossing_time, border_crossing_fee = _get_border_crossing_time_and_fee(

@@ -91,7 +91,10 @@ def _prepare_country_spatial_data(filepath_countries_spatial: Path, usd_per_ton:
     # elif len(import_index) > 1:
     #     raise ValueError(f"Multiple imports row found in sector table: {import_index}")
     # import_index = import_index[0]
-    import_keys = [key for key in usd_per_ton.keys() if ('imp' in key[0] + key[1]) or ('RoW' in key[0] + key[1])]
+    import_keywords = ("imp", "row")
+    print(usd_per_ton.keys())
+    import_keys = [key for key in usd_per_ton.keys()
+                   if any(keyword in s.lower() for s in key for keyword in import_keywords)]
     if len(import_keys) > 0:
         country_table['country_usd_per_ton'] = sum([usd_per_ton[key] for key in import_keys]) / len(import_keys)
     else:
