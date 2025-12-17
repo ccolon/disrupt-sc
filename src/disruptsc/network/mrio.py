@@ -71,7 +71,8 @@ class Mrio(pd.DataFrame):
     def get_total_input_per_region_sectors(self, selected_industries=None):
         if not isinstance(selected_industries, list):
             selected_industries = self.region_sectors
-        return self[selected_industries].sum()
+        input_part = pd.concat([self.get_intermediary_part(), self.get_import_rows()])
+        return input_part[selected_industries].sum()
 
     def get_margin_per_industry(self, selected_industries=None):
         if not isinstance(selected_industries, list):
@@ -83,20 +84,23 @@ class Mrio(pd.DataFrame):
             va = self.loc[(None, self.value_added_label), selected_industries]
             output = self.loc[selected_industries].sum(axis=1)
             va_to_output_ratios = va / output
+            logging.info(f'Average VA to output ratio: {va_to_output_ratios.mean():.2%}')
             return va_to_output_ratios.to_dict()
 
     def get_transport_input_share_per_industry(self, sector_types: pd.Series | dict, selected_industries=None):
+        transport_industries = [industry for industry in self.region_sectors
+                                if sector_types[industry[1]].casefold() == "transport"]
         if not isinstance(selected_industries, list):
             selected_industries = self.region_sectors
-        transport_industries = [industry for industry in selected_industries
-                                if sector_types[industry[1]].casefold() == "transport"]
         if len(transport_industries) == 0:
             logging.warning("No transport industry detected in the MRIO, defaulting to 0.2 transport input share")
             return {industry: 0.2 for industry in selected_industries}
         else:
             transport_input = self.loc[transport_industries, selected_industries].sum(axis=0)
-            total_input = self[selected_industries].sum(axis=0)
+            total_input = self.get_total_input_per_region_sectors(selected_industries)
             transport_to_input_ratios = transport_input / total_input
+            transport_to_input_ratios = transport_to_input_ratios.fillna(transport_to_input_ratios.mean())
+            logging.info(f'Average transport share: {transport_to_input_ratios.mean():.2%}')
             return transport_to_input_ratios.to_dict()
 
     def get_region_sectors_with_internal_flows(self, threshold: float = 0):
@@ -132,6 +136,12 @@ class Mrio(pd.DataFrame):
         region_sectors_in_rows = [tup for tup in self.index
                                   if tup[1] not in [self.import_label, self.value_added_label, self.tax_label]]
         return self.loc[region_sectors_in_rows, region_sectors_in_columns]
+
+    def get_import_rows(self):
+        region_sectors_in_columns = [tup for tup in self.columns
+                                     if tup[1] not in [self.final_demand_label, self.export_label, self.capital_label]]
+        import_row_index = [tup for tup in self.index if tup[1] == self.import_label]
+        return self.loc[import_row_index, region_sectors_in_columns]
 
     def adjust_output(self):
         total_output = self.get_total_output_per_region_sectors()
