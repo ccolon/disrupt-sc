@@ -108,11 +108,11 @@ class TransportNetwork(nx.Graph):
             "type": nx.get_edge_attributes(self, "type")
         })
         km_per_mode = km_per_mode.groupby('type')['km'].sum().to_dict()
-        logging.info("Total length of transport network is: " +
-                     "{:.0f} km".format(sum(km_per_mode.values())))
-        for mode, km in km_per_mode.items():
-            logging.info(mode + ": {:.0f} km".format(km))
-        logging.info(f'Nb of nodes: {len(self.nodes)}, nb of edges: {len(self.edges)}')
+        logging.info(
+            f"Total length of transport network is: {sum(km_per_mode.values()):.0f} km. "
+            f"{', '.join(f'{mode}: {km:.0f} km' for mode, km in km_per_mode.items())}"
+        )
+        # logging.info(f'Nb of nodes: {len(self.nodes)}, nb of edges: {len(self.edges)}')
 
     # def add_transport_edge_with_nodes(self, edge_id: int,
     #                                   all_edges_data: geopandas.GeoDataFrame,
@@ -180,11 +180,11 @@ class TransportNetwork(nx.Graph):
         [(1,), (1,5), (5,), (5,8), (8,)]
         """
         if origin_node not in self.nodes:
-            logging.info(f"Origin node {origin_node} not in the available transport network")
+            logging.debug(f"Origin node {origin_node} not in the available transport network")
             return None
 
         elif destination_node not in self.nodes:
-            logging.info(f"Destination node {destination_node} not in the available transport network")
+            logging.debug(f"Destination node {destination_node} not in the available transport network")
             return None
 
         else:
@@ -199,7 +199,7 @@ class TransportNetwork(nx.Graph):
                 #     logging.info(self[8030][8038][weight])
                 return route
             except nx.NetworkXNoPath:
-                logging.info(f"There is no path between {origin_node} and {destination_node}")
+                logging.debug(f"There is no path between {origin_node} and {destination_node}")
                 return None
 
     def cost_heuristic(self, u, v):
@@ -219,24 +219,41 @@ class TransportNetwork(nx.Graph):
         return available_transport_network
 
     def disrupt_roads(self, disruption):
+        from collections import defaultdict
+
         # Disrupting nodes
+        disrupted_nodes = []
         for node_id in disruption['node']:
-            logging.info('Road node ' + str(node_id) +
-                         ' gets disrupted for ' + str(disruption['duration']) + ' time steps')
+            disrupted_nodes.append(node_id)
             self._node[node_id]['disruption_duration'] = disruption['duration']
-        # Disrupting edges
+
+        if disrupted_nodes:
+            logging.info(f"{len(disrupted_nodes)} node(s) disrupted for {disruption['duration']} time steps, "
+                       f"IDs: {disrupted_nodes}")
+
+        # Disrupting edges - collect by type first
+        edges_by_type = defaultdict(list)
         for edge in self.edges:
             if self[edge[0]][edge[1]]['type'] == 'virtual':
                 continue
             else:
                 if self[edge[0]][edge[1]]['id'] in disruption['edge_attr']:
-                    logging.info('Road edge_attr ' + str(self[edge[0]][edge[1]]['id']) +
-                                 ' gets disrupted for ' + str(disruption['duration']) + ' time steps')
+                    edge_type = self[edge[0]][edge[1]]['type']
+                    edge_id = self[edge[0]][edge[1]]['id']
+                    edges_by_type[edge_type].append(edge_id)
                     self[edge[0]][edge[1]]['disruption_duration'] = disruption['duration']
 
-    def disrupt_one_edge(self, edge, capacity_reduction: float, duration: int):
-        logging.info(f"Road edge_attr {self[edge[0]][edge[1]]['id']} gets disrupted for {duration} time steps, "
-                     f"capacity reduction is {capacity_reduction}")
+        # Log summary by transport mode
+        if edges_by_type:
+            logging.info(f"Transport disruption summary:")
+            for edge_type, edge_ids in sorted(edges_by_type.items()):
+                logging.info(f"  - {len(edge_ids)} {edge_type} edge(s) disrupted for {disruption['duration']} time steps, "
+                           f"IDs: {edge_ids}")
+
+    def disrupt_one_edge(self, edge, capacity_reduction: float, duration: int, log_individual: bool = True):
+        if log_individual:
+            logging.info(f"Road edge_attr {self[edge[0]][edge[1]]['id']} gets disrupted for {duration} time steps, "
+                         f"capacity reduction is {capacity_reduction}")
         self[edge[0]][edge[1]]['disruption_duration'] = duration
 
     def update_road_disruption_state(self):

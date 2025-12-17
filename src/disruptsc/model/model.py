@@ -28,6 +28,7 @@ from .network_builders.transport import create_transport_network
 from disruptsc.parameters import Parameters
 from disruptsc.disruption.disruption import DisruptionList, TransportDisruption, CapitalDestruction, Recovery
 from disruptsc.simulation.simulation import Simulation
+from disruptsc.simulation.routing_event_collector import RoutingEventCollector
 from disruptsc.network.sc_network import ScNetwork
 from disruptsc.network.mrio import Mrio
 from disruptsc.network.topology_cache import NetworkTopologyCache, set_topology_cache
@@ -68,6 +69,8 @@ class Model(object):
         # Disruption variable
         self.disruption_list = None
         self.reconstruction_market = None
+        # Routing event collector for detailed logging
+        self.routing_event_collector = RoutingEventCollector()
 
     @property
     def is_initialized(self):
@@ -865,7 +868,10 @@ class Model(object):
 
     def run_one_time_step(self, time_step: int, current_simulation: Simulation):
         logging.info(f"Running time step {time_step}")
-        
+
+        # Set current timestep for routing event collection
+        self.routing_event_collector.set_timestep(time_step)
+
         # # Reset commercial link variables for new time step
         # for (supplier, buyer) in self.sc_network.edges():
         #     self.sc_network[supplier][buyer]['object'].reset_variables()
@@ -906,7 +912,8 @@ class Model(object):
                                self.parameters.monetary_units_in_model,
                                self.parameters.price_increase_threshold,
                                self.parameters.use_route_cache,
-                               self.parameters.logistics['switching_costs'])
+                               self.parameters.logistics['switching_costs'],
+                               self.routing_event_collector)
         self.firms.deliver(self.sc_network, self.transport_network, available_transport_network,
                            self.parameters.sectors_no_transport_network,
                            self.parameters.rationing_mode, self.parameters.with_transport,
@@ -915,7 +922,8 @@ class Model(object):
                            self.parameters.monetary_units_in_model,
                            self.parameters.price_increase_threshold,
                            self.parameters.use_route_cache,
-                           self.parameters.logistics['switching_costs'])
+                           self.parameters.logistics['switching_costs'],
+                           self.routing_event_collector)
         # print(self.firms[0].rationing)
         # print(com.delivery)
         # if time_step == 1:
@@ -953,6 +961,10 @@ class Model(object):
                                     self.parameters.transport_to_households)
         self.transport_network.check_no_uncollected_shipment()
         self.transport_network.reset_loads()
+
+        # Log routing event summary for this timestep
+        self.routing_event_collector.log_timestep_summary()
+
         self.firms.evaluate_profit(self.sc_network)
 
         self.transport_network.update_road_disruption_state()

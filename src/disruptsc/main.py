@@ -71,11 +71,16 @@ def export_results(simulation, model, parameters):
     simulation.export_agent_data(parameters.export_folder)
     simulation.export_transport_network_data(model.transport_edges, parameters.export_folder)
     simulation.calculate_and_export_summary_result(
-        model.sc_network, 
+        model.sc_network,
         model.household_table,
-        parameters.monetary_units_in_model, 
+        parameters.monetary_units_in_model,
         parameters.export_folder
     )
+
+    # Export routing events collected during simulation
+    import os
+    routing_events_path = os.path.join(parameters.export_folder, 'routing_events.csv')
+    model.routing_event_collector.export_to_csv(routing_events_path)
 
 
 def main():

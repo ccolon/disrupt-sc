@@ -564,7 +564,8 @@ class Firm(BaseAgent, TransportCapable):
                          transport_to_households: bool,
                          monetary_units_in_model: str,
                          price_increase_threshold: float, capacity_constraint: bool,
-                         capacity_constraint_mode: str, use_route_cache: bool, switching_costs: dict):
+                         capacity_constraint_mode: str, use_route_cache: bool, switching_costs: dict,
+                         routing_event_collector=None):
 
         quantities_to_deliver = self.evaluate_quantities_to_deliver(rationing_mode)
 
@@ -605,7 +606,7 @@ class Firm(BaseAgent, TransportCapable):
                                      f"a float: {commercial_link.delivery_in_tons}")
                 self.send_shipment(commercial_link, transport_network, available_transport_network,
                                    price_increase_threshold, capacity_constraint, capacity_constraint_mode,
-                                   use_route_cache, switching_costs)
+                                   use_route_cache, switching_costs, routing_event_collector)
 
         # For reconstruction orders, we register it
         if isinstance(quantities_to_deliver, int):

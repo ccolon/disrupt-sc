@@ -109,10 +109,12 @@ def load_cached_agent_data():
     loaded_firms = tmp_data['firms']
     loaded_households = tmp_data['households']
     loaded_countries = tmp_data['countries']
-    logging.info('Firms, households, and countries generated from temp file.')
-    logging.info("Nb firms: " + str(len(loaded_firms)))
-    logging.info("Nb households: " + str(len(loaded_households)))
-    logging.info("Nb countries: " + str(len(loaded_countries)))
+    logging.info(
+        f"Firms, households, and countries generated from temp file. "
+        f"Nb firms: {len(loaded_firms)}, "
+        f"Nb households: {len(loaded_households)}, "
+        f"Nb countries: {len(loaded_countries)}"
+    )
     return loaded_mrio, loaded_sector_table, loaded_firms, loaded_firm_table, \
         loaded_households, loaded_household_table, loaded_countries
 
