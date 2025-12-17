@@ -388,11 +388,48 @@ class TransportDisruption(BaseDisruption):
 
     def implement(self, transport_network: "TransportNetwork"):
         """Implement transport disruption."""
+        from collections import defaultdict
+        import logging
+
+        # First pass: collect disrupted edges by transport mode
+        edges_by_mode = defaultdict(list)
+        duration = self.recovery.duration if self.recovery else float('inf')
+
         for edge in transport_network.edges:
             edge_id = transport_network[edge[0]][edge[1]]['id']
             if edge_id in self.keys():
-                duration = self.recovery.duration if self.recovery else float('inf')
-                transport_network.disrupt_one_edge(edge, self[edge_id], duration)
+                edge_type = transport_network[edge[0]][edge[1]]['type']
+                capacity_reduction = self[edge_id]
+                edges_by_mode[edge_type].append({
+                    'id': edge_id,
+                    'edge': edge,
+                    'capacity_reduction': capacity_reduction
+                })
+
+        # Log summary by transport mode
+        if edges_by_mode:
+            logging.info(f"Transport disruption summary:")
+            for mode, edges in sorted(edges_by_mode.items()):
+                edge_ids = [e['id'] for e in edges]
+                capacity_reductions = set([e['capacity_reduction'] for e in edges])
+
+                if len(capacity_reductions) == 1:
+                    cap_str = f"capacity reduction: {list(capacity_reductions)[0]}"
+                else:
+                    cap_str = f"capacity reductions: {capacity_reductions}"
+
+                logging.info(f"  - {len(edges)} {mode} edge(s) disrupted for {duration} time steps, "
+                           f"{cap_str}, IDs: {edge_ids}")
+
+        # Second pass: actually disrupt the edges
+        for mode, edges in edges_by_mode.items():
+            for edge_info in edges:
+                transport_network.disrupt_one_edge(
+                    edge_info['edge'],
+                    edge_info['capacity_reduction'],
+                    duration,
+                    log_individual=False  # Don't log each edge
+                )
 
 
 class CapitalDestruction(BaseDisruption):

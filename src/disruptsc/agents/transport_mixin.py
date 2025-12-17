@@ -90,7 +90,7 @@ class TransportCapable:
     def send_shipment(self, commercial_link: "CommercialLink", transport_network: "TransportNetwork",
                       available_transport_network: "TransportNetwork", price_increase_threshold: float,
                       capacity_constraint: bool, capacity_constraint_mode: str, use_route_cache: bool,
-                      switching_costs: dict):
+                      switching_costs: dict, routing_event_collector=None):
         """
         Send shipment using transport network, with fallback to alternative routes.
         
@@ -130,14 +130,21 @@ class TransportCapable:
         if commercial_link.route.is_usable(transport_network):
             commercial_link.current_route = 'main'
             commercial_link.price = commercial_link.eq_price
-            
+
             # Apply input price changes for firms
             if self.agent_type == "firm" and hasattr(self, 'delta_price_input'):
                 commercial_link.price = commercial_link.price * (1 + self.delta_price_input)
-            
+
             transport_network.transport_shipment(commercial_link, capacity_constraint, capacity_constraint_mode)
             self._update_after_shipment(commercial_link)
             self._record_transport_cost(commercial_link.buyer_id, 0)
+
+            # Record event
+            if routing_event_collector:
+                routing_event_collector.record_main_route_used(
+                    str(self.pid), str(commercial_link.buyer_id), self.agent_type
+                )
+
             return 0
 
         # Main route not available - try alternative route
@@ -163,11 +170,27 @@ class TransportCapable:
                 logging.debug(f"{self.id_str()}: found an alternative route to {commercial_link.buyer_id} "
                               f"but it is costlier by {100 * relative_price_change_transport:.2f}%, "
                               f"which exceeds the threshold, so I decide not to send it now.")
+
+                # Record event
+                if routing_event_collector:
+                    routing_event_collector.record_price_threshold_exceeded(
+                        str(self.pid), str(commercial_link.buyer_id), self.agent_type,
+                        100 * relative_price_change_transport
+                    )
+
                 usable_alternative = False
 
         if not usable_alternative:
             logging.debug(f"{self.id_str()}: because of disruption, there is no usable route between me "
                           f"and agent {commercial_link.buyer_id}")
+
+            # Record event
+            if routing_event_collector:
+                routing_event_collector.record_no_route_available(
+                    str(self.pid), str(commercial_link.buyer_id), self.agent_type,
+                    'no_usable_route_found'
+                )
+
             commercial_link.price = commercial_link.eq_price
             commercial_link.current_route = 'none'
             commercial_link.delivery = 0
@@ -188,7 +211,15 @@ class TransportCapable:
             commercial_link.price = commercial_link.eq_price * (1 + total_relative_price_change)
             transport_network.transport_shipment(commercial_link, capacity_constraint, capacity_constraint_mode)
             self._update_after_shipment(commercial_link)
-            
+
+            # Record event
+            if routing_event_collector:
+                routing_event_collector.record_alternative_route_found(
+                    str(self.pid), str(commercial_link.buyer_id), self.agent_type,
+                    100 * relative_price_change_transport,
+                    'main_route_disrupted'
+                )
+
             logging.debug(f"{self.id_str().capitalize()}: found an alternative route to {commercial_link.buyer_id}, "
                           f"it is costlier by {100 * relative_price_change_transport:.0f}%, price is "
                           f"{commercial_link.price:.4f} instead of {commercial_link.eq_price:.4f}")
