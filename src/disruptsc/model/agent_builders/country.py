@@ -168,8 +168,6 @@ def create_countries_from_mrio(mrio: Mrio,
     ----------
     usd_per_ton
     """
-    logging.info('Creating countries from MRIO data')
-    
     # Extract countries from MRIO
     buying_countries = mrio.external_buying_countries
     selling_countries = mrio.external_selling_countries
