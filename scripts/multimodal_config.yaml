@@ -1,0 +1,20 @@
+networks:
+  - mode: roads
+    edges_file: C:/Users/Celian/OneDrive/DisruptSC/disrupt-sc/.claude/worktrees/distracted-gould/data/Gulf/Transport/roads_edges.geojson
+    anchor_strategy: all_nodes
+  - mode: maritime
+    edges_file: C:/Users/Celian/OneDrive/DisruptSC/disrupt-sc/.claude/worktrees/distracted-gould/data/Gulf/Transport/maritime_edges.geojson
+    anchor_strategy: endpoints
+  - mode: airways
+    edges_file: C:/Users/Celian/OneDrive/DisruptSC/disrupt-sc/.claude/worktrees/distracted-gould/data/Gulf/Transport/airways_edges.geojson
+    anchor_strategy: endpoints
+
+connections:
+  - from_mode: roads
+    to_mode: maritime
+    max_distance_km: 50.0
+  - from_mode: roads
+    to_mode: airways
+    max_distance_km: 50.0
+
+output_dir: C:/Users/Celian/OneDrive/DisruptSC/disrupt-sc/.claude/worktrees/distracted-gould/data/Gulf/Transport/
