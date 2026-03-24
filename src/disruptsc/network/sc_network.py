@@ -1,86 +1,82 @@
+"""ScNetwork — supply chain network as a directed graph."""
+
+from __future__ import annotations
+
 import logging
 from typing import TYPE_CHECKING
 
 import networkx as nx
 import pandas as pd
 
-from disruptsc.model.utils.functions import add_or_append_to_dict
-
 if TYPE_CHECKING:
-    from disruptsc.agents.firm import Firms
-    from disruptsc.agents.country import Countries
-    from disruptsc.agents.household import Households
+    from disruptsc.network.commercial_link import CommercialLink
+
+
+def _add_or_append(d: dict, key, value):
+    d[key] = d.get(key, 0) + value
 
 
 class ScNetwork(nx.DiGraph):
 
-    def access_commercial_link(self, edge):
-        return self[edge[0]][edge[1]]['object']
+    def access_commercial_link(self, edge) -> CommercialLink:
+        return self[edge[0]][edge[1]]["object"]
 
-    def calculate_io_matrix(self):
+    def calculate_io_matrix(self) -> pd.DataFrame:
         io = {}
         for supplier, buyer, data in self.edges(data=True):
-            commercial_link = data['object']
-            if commercial_link.category == "domestic_B2C":
-                add_or_append_to_dict(io, (supplier.sector, 'final_demand'), commercial_link.order)
-            elif commercial_link.category == "export":
-                add_or_append_to_dict(io, (supplier.sector, 'export'), commercial_link.order)
-            elif commercial_link.category == "domestic_B2B":
-                add_or_append_to_dict(io, (supplier.sector, buyer.sector), commercial_link.order)
-            elif commercial_link.category == "import_B2C":
-                add_or_append_to_dict(io, ("IMP", 'final_demand'), commercial_link.order)
-            elif commercial_link.category == "import":
-                add_or_append_to_dict(io, ("IMP", buyer.sector), commercial_link.order)
-            elif commercial_link.category == "transit":
+            link: CommercialLink = data["object"]
+            if link.category == "domestic_B2C":
+                _add_or_append(io, (supplier.sector, "final_demand"), link.order)
+            elif link.category == "export":
+                _add_or_append(io, (supplier.sector, "export"), link.order)
+            elif link.category == "domestic_B2B":
+                _add_or_append(io, (supplier.sector, buyer.sector), link.order)
+            elif link.category == "import_B2C":
+                _add_or_append(io, ("IMP", "final_demand"), link.order)
+            elif link.category == "import":
+                _add_or_append(io, ("IMP", buyer.sector), link.order)
+            elif link.category == "transit":
                 pass
             else:
-                raise KeyError('Commercial link categories should be one of domestic_B2B, '
-                               'domestic_B2C, export, import, import_B2C, transit')
+                raise KeyError(f"Unknown link category: {link.category}")
+        return pd.Series(io).unstack().fillna(0)
 
-        io_table = pd.Series(io).unstack().fillna(0)
-        return io_table
+    def generate_edge_list(self) -> pd.DataFrame:
+        rows = [
+            (s.pid, s.id_str(), s.agent_type if hasattr(s, 'agent_type') else type(s).__name__.lower(), s.od_point,
+             t.pid, t.id_str(), t.agent_type if hasattr(t, 'agent_type') else type(t).__name__.lower(), t.od_point)
+            for s, t in self.edges()
+        ]
+        df = pd.DataFrame(rows, columns=[
+            "source_id", "source_str_id", "source_type", "source_od_point",
+            "target_id", "target_str_id", "target_type", "target_od_point",
+        ])
+        return df
 
-    def generate_edge_list(self):
-        edge_list = [(source.pid, source.id_str(), source.agent_type, source.od_point,
-                      target.pid, target.id_str(), target.agent_type, target.od_point)
-                     for source, target in self.edges()]
-        edge_list = pd.DataFrame(edge_list)
-        edge_list.columns = ['source_id', 'source_str_id', 'source_type', 'source_od_point',
-                             'target_id', 'target_str_id', 'target_type', 'target_od_point']
-        return edge_list
+    def identify_firms_without_clients(self) -> list:
+        return [n for n in self.nodes() if self.out_degree(n) == 0 and type(n).__name__ == "Firm"]
 
-    def identify_firms_without_clients(self):
-        return [node for node in self.nodes() if (self.out_degree(node) == 0) and node.agent_type == "firm"]
+    def identify_disconnected_nodes(self, firms: dict, countries: dict, households: dict) -> dict:
+        node_pids = {n.pid for n in self}
+        result = {}
+        for label, agents in [("firms", firms), ("countries", countries), ("households", households)]:
+            missing = set(agents.keys()) - node_pids
+            if missing:
+                result[label] = list(missing)
+        return result
 
-    def identify_disconnected_nodes(self, firms: "Firms", countries: "Countries", households: "Households"):
-        firm_ids = list(firms.keys())
-        country_ids = list(countries.keys())
-        household_ids = list(households.keys())
-        node_id_in_sc_network = [node.pid for node in self]
-        disconnected_nodes = {}
-        if len(set(firm_ids) - set(node_id_in_sc_network)) > 0:
-            disconnected_nodes['firms'] = list(set(firm_ids) - set(node_id_in_sc_network))
-        if len(set(country_ids) - set(node_id_in_sc_network)) > 0:
-            disconnected_nodes['countries'] = list(set(country_ids) - set(node_id_in_sc_network))
-        if len(set(household_ids) - set(node_id_in_sc_network)) > 0:
-            disconnected_nodes['households'] = list(set(household_ids) - set(node_id_in_sc_network))
-        return disconnected_nodes
-
-    def remove_useless_commercial_links(self):
+    def remove_useless_commercial_links(self) -> int:
         firms_without_clients = self.identify_firms_without_clients()
-        logging.info(f"Removing {len(firms_without_clients)} firms without clients and their associated links")
-        
-        for firm_without_clients in firms_without_clients:
-            # Remove all incoming edges and update supplier records
-            suppliers = [edge[0] for edge in self.in_edges(firm_without_clients)]
+        logging.info(f"Removing {len(firms_without_clients)} firms without clients")
+
+        for firm in firms_without_clients:
+            suppliers = [edge[0] for edge in self.in_edges(firm)]
             for supplier in suppliers:
-                self.remove_edge(supplier, firm_without_clients)
-                if firm_without_clients.pid in supplier.clients:
-                    del supplier.clients[firm_without_clients.pid]
-                if supplier.pid in firm_without_clients.suppliers:
-                    del firm_without_clients.suppliers[supplier.pid]
-            
-            # Remove the firm node from the supply chain network
-            self.remove_node(firm_without_clients)
-        
-        return len(firms_without_clients)  # Return count for validation
+                self.remove_edge(supplier, firm)
+                if hasattr(supplier, "clients") and firm.pid in supplier.clients:
+                    del supplier.clients[firm.pid]
+                if hasattr(firm, "suppliers") and supplier.pid in firm.suppliers:
+                    del firm.suppliers[supplier.pid]
+            self.remove_node(firm)
+
+        return len(firms_without_clients)

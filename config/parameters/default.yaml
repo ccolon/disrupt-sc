@@ -274,7 +274,27 @@ inventory_duration_targets:
 # A too large value leads to dynamic instabilities, called Bullwhip effect
 inventory_restoration_time: 4
 
-# In case firms have more than one supplier for an input, determines whether to adapt the order to each supplier 
+# ----- Household Inventory Parameters -----
+# Enable household inventory buffers to smooth consumption during disruptions
+# When enabled, households maintain inventories (pantries, reserves) that can be drawn upon
+# when deliveries are insufficient, reducing immediate consumption losses
+enable_household_inventories: False  # Disabled by default for backward compatibility
+
+# Duration target for household inventories
+# Represents how many days of normal consumption households buffer at home
+# Can be specified globally or per sector type (food spoils faster than durables)
+household_inventory_duration_target:
+  definition: global  # Options: global, per_sector_type
+  values:
+    default: 30  # Days of consumption buffered (global default)
+  unit: day
+
+# Determines the speed at which households restore depleted inventories
+# Lower values = faster restoration but more volatile purchases
+# Higher values = gradual restoration but slower recovery
+household_inventory_restoration_time: 14  # Days
+
+# In case firms have more than one supplier for an input, determines whether to adapt the order to each supplier
 # based on how well they covered the previous order
 adaptive_supplier_weight: False
 

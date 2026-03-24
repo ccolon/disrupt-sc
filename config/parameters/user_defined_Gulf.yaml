@@ -19,13 +19,13 @@ transport_modes: ["roads", "maritime", "airways"]
 capacity_constraint: "off"
 
 # ── Economic settings ──
-monetary_units_in_model: "USD"
-monetary_units_in_data: "USD"  # Eora26 is in USD
+monetary_units_in_model: "mUSD"
+monetary_units_in_data: "mUSD"
 firm_data_type: "mrio"
 
 # ── Time ──
 time_resolution: "day"
-t_final: 90  # 3 months of blockade
+t_final: 10  # 3 months of blockade
 
 # ── Filtering ──
 # Eora26 values are in USD (not millions), so cutoffs need to be appropriate
@@ -92,6 +92,12 @@ logistics:
     maritime: 4
     airways: 2
     multimodal: 3
+  dwell_times: # hours
+    roads-maritime: 18
+    roads-airways: 18
+  loading_fees: # USD/ton
+    roads-maritime: 2.5
+    roads-airways: 5.0
 
 # ── Simulation ──
 simulation_type: "disruption"
@@ -114,7 +120,7 @@ disruptions:
       - "Hormuz south - Muscat approach S"
       - "Hormuz south - Gwadar approach"
     start_time: 1
-    duration: 60  # 60-day blockade
+    duration: 7  # 60-day blockade
 
 # ── Stop condition ──
 epsilon_stop_condition: 1e-3
