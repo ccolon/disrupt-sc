@@ -1,0 +1,197 @@
+"""Export simulation results: incremental CSV writer + summary exports."""
+
+from __future__ import annotations
+
+import csv
+import json
+import logging
+from pathlib import Path
+
+import pandas as pd
+import geopandas as gpd
+
+
+# ------------------------------------------------------------------
+# Incremental CSV writer (Option C from design decisions)
+# ------------------------------------------------------------------
+
+class CsvWriter:
+    """Append rows to a CSV file incrementally (no in-memory accumulation)."""
+
+    def __init__(self, path: Path, columns: list[str]):
+        self.path = path
+        self.columns = columns
+        self._fp = open(path, "w", newline="")
+        self._writer = csv.DictWriter(self._fp, fieldnames=columns, extrasaction="ignore")
+        self._writer.writeheader()
+
+    def write_row(self, row: dict):
+        self._writer.writerow(row)
+
+    def write_rows(self, rows: list[dict]):
+        self._writer.writerows(rows)
+
+    def close(self):
+        self._fp.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+
+
+# ------------------------------------------------------------------
+# Data collection helpers (called each time step)
+# ------------------------------------------------------------------
+
+def collect_firm_data(firms: dict, time_step: int) -> list[dict]:
+    return [firm.collect_data(time_step) for firm in firms.values()]
+
+
+def collect_household_data(households: dict, time_step: int) -> list[dict]:
+    return [hh.collect_data(time_step) for hh in households.values()]
+
+
+def collect_country_data(countries: dict, time_step: int) -> list[dict]:
+    return [c.collect_data(time_step) for c in countries.values()]
+
+
+# ------------------------------------------------------------------
+# Summary / post-simulation exports
+# ------------------------------------------------------------------
+
+def export_agent_data(firm_data: list, country_data: list, household_data: list,
+                      export_folder: Path):
+    """Write agent JSON files."""
+    logging.info(f"Exporting agent data to {export_folder}")
+    for name, data in [("firm_data", firm_data),
+                       ("country_data", country_data),
+                       ("household_data", household_data)]:
+        with open(export_folder / f"{name}.json", "w") as f:
+            json.dump(data, f)
+
+
+def export_transport_flows(transport_flow_data: list,
+                           transport_edges: gpd.GeoDataFrame,
+                           export_folder: Path):
+    """Write per-timestep GeoJSON of edge flows."""
+    if not transport_flow_data:
+        return
+    flow_df = pd.DataFrame(transport_flow_data)
+    flow_df = flow_df[flow_df["flow_total"] > 0]
+    for ts in flow_df["time_step"].unique():
+        subset = flow_df[flow_df["time_step"] == ts]
+        cols_to_drop = [c for c in ["node_tuple"] if c in transport_edges.columns]
+        merged = pd.merge(
+            transport_edges.drop(columns=cols_to_drop), subset,
+            how="left", on="id",
+        )
+        merged.to_file(
+            export_folder / f"transport_edges_with_flows_{ts}.geojson",
+            driver="GeoJSON", index=False,
+        )
+
+
+def export_summary(household_data: list, country_data: list,
+                   household_table: pd.DataFrame | None = None,
+                   monetary_units: str = "mUSD", export_folder: Path | None = None):
+    """Compute and export loss summary CSVs."""
+    # Household losses per region-sector-time
+    hh_df = pd.DataFrame(household_data)
+    if hh_df.empty:
+        return {"household_loss": 0.0, "country_loss": 0.0}
+
+    loss_rows = []
+    for _, grp in hh_df.groupby("household"):
+        for _, row in grp.iterrows():
+            es = row.get("extra_spending_per_sector", {})
+            cl = row.get("consumption_loss_per_sector", {})
+            for sector in set(list(es.keys()) + list(cl.keys())):
+                loss_rows.append({
+                    "household": row["household"],
+                    "time_step": row["time_step"],
+                    "sector": sector,
+                    "loss": es.get(sector, 0) + cl.get(sector, 0),
+                })
+
+    loss_df = pd.DataFrame(loss_rows)
+    if household_table is not None and "id" in household_table.columns:
+        ht = household_table.copy()
+        ht["id"] = "hh_" + ht["id"].astype(str)
+        loss_df["region"] = loss_df["household"].map(ht.set_index("id")["region"])
+    groupby_cols = [c for c in ["region", "sector", "time_step"] if c in loss_df.columns]
+    if groupby_cols:
+        loss_df = loss_df.groupby(groupby_cols, as_index=False)["loss"].sum()
+
+    household_loss = loss_df["loss"].sum()
+
+    # Country losses
+    c_df = pd.DataFrame(country_data)
+    c_df["loss"] = c_df["extra_spending"] + c_df["consumption_loss"]
+    country_loss = c_df["loss"].sum()
+
+    logging.info(f"Cumulated household loss: {household_loss:,.2f} {monetary_units}")
+    logging.info(f"Cumulated country loss: {country_loss:,.2f} {monetary_units}")
+
+    if export_folder:
+        loss_df.to_csv(export_folder / "loss_per_region_sector_time.csv", index=False)
+        c_df[["time_step", "country", "loss"]].to_csv(
+            export_folder / "loss_per_country.csv", index=False,
+        )
+        pd.DataFrame({"households": [household_loss], "countries": [country_loss]}).to_csv(
+            export_folder / "loss_summary.csv", index=False,
+        )
+
+    return {"household_loss": household_loss, "country_loss": country_loss}
+
+
+def export_initial_state(sc_network, export_folder: Path):
+    """Export IO matrix and edge list for equilibrium runs."""
+    sc_network.calculate_io_matrix().to_csv(export_folder / "io_table.csv")
+    sc_network.generate_edge_list().to_csv(export_folder / "sc_network_edgelist.csv")
+    logging.info(f"Exported IO table and edge list to {export_folder}")
+
+
+def export_static_tables(firm_table, household_table, transport_edges,
+                         transport_nodes, export_folder: Path):
+    """Export GeoJSON tables for visualization."""
+    if firm_table is not None and hasattr(firm_table, "to_file"):
+        firm_table.to_file(export_folder / "firm_table.geojson", driver="GeoJSON")
+    if household_table is not None and hasattr(household_table, "to_file"):
+        household_table.to_file(export_folder / "household_table.geojson", driver="GeoJSON")
+    if transport_edges is not None:
+        cols = [c for c in transport_edges.columns if c != "node_tuple"]
+        transport_edges[cols].to_file(
+            export_folder / "transport_edges.geojson", driver="GeoJSON",
+        )
+    if transport_nodes is not None:
+        transport_nodes.to_file(
+            export_folder / "transport_nodes.geojson", driver="GeoJSON",
+        )
+
+
+# ------------------------------------------------------------------
+# Monte Carlo CSV writer
+# ------------------------------------------------------------------
+
+class MCWriter:
+    """Write one row per MC iteration with household + country loss."""
+
+    def __init__(self, path: Path):
+        self.path = path
+        self._rows = []
+
+    def add_iteration(self, iteration: int, household_loss: float,
+                      country_loss: float, extra: dict | None = None):
+        row = {"mc_repetition": iteration,
+               "household_loss": household_loss,
+               "country_loss": country_loss}
+        if extra:
+            row.update(extra)
+        self._rows.append(row)
+
+    def save(self):
+        df = pd.DataFrame(self._rows)
+        df.to_csv(self.path, index=False)
+        logging.info(f"MC results saved to {self.path}")

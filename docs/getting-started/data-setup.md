@@ -71,7 +71,7 @@ DisruptSC automatically detects data location in this order:
 
 ## Required Data Structure
 
-Input data must be organized by scope (region):
+Input data must be organized by scope:
 
 ```
 data/{scope}/               # e.g., data/Cambodia/
@@ -91,6 +91,8 @@ data/{scope}/               # e.g., data/Cambodia/
     ├── countries.geojson            # Country entry points (Point)
     └── firms.geojson                # Firm spatial distribution (Point)
 ```
+
+Note that the exact filename can always be changed in the user_defined.yml (see below)
 
 ## Scope Configuration
 

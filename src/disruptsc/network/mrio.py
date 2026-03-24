@@ -1,225 +1,211 @@
-from typing import TYPE_CHECKING
+"""Mrio — Multi-Regional Input-Output table as a pandas DataFrame."""
+
+from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 import pandas as pd
-
-from disruptsc.model.utils.functions import rescale_monetary_values
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 
 EPSILON = 1e-6
 
+# Unit conversion helpers
+_PERIODS = {"day": 365, "week": 52, "month": 12, "year": 1}
+_UNITS = {"USD": 1, "kUSD": 1e3, "mUSD": 1e6}
+
+
+def rescale_monetary_values(values, input_units="USD", input_time_resolution="year",
+                            target_units="USD", target_time_resolution="year"):
+    values = values * _PERIODS[input_time_resolution] / _PERIODS[target_time_resolution]
+    values = values * _UNITS[input_units] / _UNITS[target_units]
+    return values
+
 
 class Mrio(pd.DataFrame):
-    _metadata = ['region_sectors', "region_sector_names", "regions", "sectors", "external_buying_countries",
-                 "external_selling_countries", "region_households"]
+    _metadata = [
+        "region_sectors", "region_sector_names", "regions", "sectors",
+        "external_buying_countries", "external_selling_countries",
+        "region_households", "monetary_units",
+        "export_label", "final_demand_label", "capital_label",
+        "import_label", "value_added_label", "tax_label",
+    ]
 
-    def __init__(self, *args, monetary_units, **kwargs):
+    def __init__(self, *args, monetary_units: str = "mUSD", **kwargs):
         super().__init__(*args, **kwargs)
-        self.export_label = self.detect_level1_label('export', axis=1)
-        self.final_demand_label = self.detect_level1_label('final.?demand', axis=1)
-        self.capital_label = self.detect_level1_label('capital', axis=1)
-        self.import_label = self.detect_level1_label('import', axis=0)
-        self.value_added_label = self.detect_level1_label('value.?added|va', axis=0)
-        self.tax_label = self.detect_level1_label('tax', axis=0)
-        self.check_square_structure()
-        self.region_sectors = [tup for tup in self.columns
-                               if tup[1] not in [self.final_demand_label, self.export_label, self.capital_label]]
-        self.region_sector_names = ['_'.join(tup) for tup in self.region_sectors]
-        self.regions = list(set([tup[0] for tup in self.region_sectors]))
-        self.sectors = list(set([tup[1] for tup in self.region_sectors]))
-        self.external_buying_countries = [tup[0] for tup in self.columns if tup[1] == self.export_label]
-        self.external_selling_countries = [tup[0] for tup in self.index if tup[1] == self.import_label]
-        self.region_households = [tup for tup in self.columns.to_list() if tup[1] == self.final_demand_label]
+        self.export_label = self._detect_label("export", axis=1)
+        self.final_demand_label = self._detect_label("final.?demand", axis=1)
+        self.capital_label = self._detect_label("capital", axis=1)
+        self.import_label = self._detect_label("import", axis=0)
+        self.value_added_label = self._detect_label("value.?added|va", axis=0)
+        self.tax_label = self._detect_label("tax", axis=0)
+        self._check_square()
+        self.region_sectors = [
+            t for t in self.columns
+            if t[1] not in (self.final_demand_label, self.export_label, self.capital_label)
+        ]
+        self.region_sector_names = ["_".join(t) for t in self.region_sectors]
+        self.regions = list({t[0] for t in self.region_sectors})
+        self.sectors = list({t[1] for t in self.region_sectors})
+        self.external_buying_countries = [t[0] for t in self.columns if t[1] == self.export_label]
+        self.external_selling_countries = [t[0] for t in self.index if t[1] == self.import_label]
+        self.region_households = [t for t in self.columns if t[1] == self.final_demand_label]
         self.monetary_units = monetary_units
-        self.adjust_output()
+        self._adjust_output()
 
-    def detect_level1_label(self, pattern: str, axis: int):
-        sectors = pd.Series([], dtype=str)
-        if axis == 0:
-            sectors = self.index.get_level_values(1)
-        elif axis == 1:
-            sectors = self.columns.get_level_values(1)
-        else:
-            ValueError("Wrong axis selected")
-        labels = sectors[sectors.str.contains(pattern, case=False)]
-        if len(labels) == 0:
-            logging.warning(f"Failed to detect the label used for {pattern} in the MRIO")
-            return ""
-        else:
-            return labels[0]
+    # ------------------------------------------------------------------
+    # Loading
+    # ------------------------------------------------------------------
 
     @classmethod
-    def load_mrio_from_filepath(cls, filepath_mrio: "Path", monetary_units: str):
-        table = pd.read_csv(filepath_mrio, header=[0, 1], index_col=[0, 1])
-        # remove region_sectors with no flows
-        zero_output = table.index[table.sum(axis=1) == 0].to_list()
-        zero_input = table.columns[table.sum(axis=0) == 0].to_list()
-        no_flow_region_sectors = list(set(zero_output) & set(zero_input))
-        table.drop(index=no_flow_region_sectors, inplace=True)
-        table.drop(columns=no_flow_region_sectors, inplace=True)
+    def load(cls, filepath: Path, monetary_units: str = "mUSD") -> Mrio:
+        table = pd.read_csv(filepath, header=[0, 1], index_col=[0, 1])
+        zero_output = table.index[table.sum(axis=1) == 0].tolist()
+        zero_input = table.columns[table.sum(axis=0) == 0].tolist()
+        no_flow = list(set(zero_output) & set(zero_input))
+        table.drop(index=no_flow, inplace=True)
+        table.drop(columns=no_flow, inplace=True)
         return cls(table, monetary_units=monetary_units)
 
-    def get_total_output_per_region_sectors(self, selected_industries=None):
-        if not isinstance(selected_industries, list):
-            selected_industries = self.region_sectors
-        return self.loc[selected_industries].sum(axis=1)
+    # ------------------------------------------------------------------
+    # Queries
+    # ------------------------------------------------------------------
 
-    def get_total_input_per_region_sectors(self, selected_industries=None):
-        if not isinstance(selected_industries, list):
-            selected_industries = self.region_sectors
-        input_part = pd.concat([self.get_intermediary_part(), self.get_import_rows()])
-        return input_part[selected_industries].sum()
+    def get_total_output(self, selected=None) -> pd.Series:
+        selected = selected or self.region_sectors
+        return self.loc[selected].sum(axis=1)
 
-    def get_margin_per_industry(self, selected_industries=None):
-        if not isinstance(selected_industries, list):
-            selected_industries = self.region_sectors
-        if self.value_added_label == "":
-            logging.warning("No value added in MRIO, defaulting to uniform 20% value added per industry")
-            return {industry: 0.2 for industry in selected_industries}
-        else:
-            va = self.loc[(None, self.value_added_label), selected_industries]
-            output = self.loc[selected_industries].sum(axis=1)
-            va_to_output_ratios = va / output
-            logging.info(f'Average VA to output ratio: {va_to_output_ratios.mean():.2%}')
-            return va_to_output_ratios.to_dict()
+    def get_total_input(self, selected=None) -> pd.Series:
+        selected = selected or self.region_sectors
+        parts = pd.concat([self.get_intermediary(), self.get_import_rows()])
+        return parts[selected].sum()
 
-    def get_transport_input_share_per_industry(self, sector_types: pd.Series | dict, selected_industries=None):
-        transport_industries = [industry for industry in self.region_sectors
-                                if sector_types[industry[1]].casefold() == "transport"]
-        if not isinstance(selected_industries, list):
-            selected_industries = self.region_sectors
-        if len(transport_industries) == 0:
-            logging.warning("No transport industry detected in the MRIO, defaulting to 0.2 transport input share")
-            return {industry: 0.2 for industry in selected_industries}
-        else:
-            transport_input = self.loc[transport_industries, selected_industries].sum(axis=0)
-            total_input = self.get_total_input_per_region_sectors(selected_industries)
-            transport_to_input_ratios = transport_input / total_input
-            transport_to_input_ratios = transport_to_input_ratios.fillna(transport_to_input_ratios.mean())
-            logging.info(f'Average transport share: {transport_to_input_ratios.mean():.2%}')
-            return transport_to_input_ratios.to_dict()
+    def get_margin_per_industry(self, selected=None) -> dict:
+        selected = selected or self.region_sectors
+        if not self.value_added_label:
+            logging.warning("No VA in MRIO, defaulting to 20%")
+            return {ind: 0.2 for ind in selected}
+        va = self.loc[(None, self.value_added_label), selected]
+        output = self.loc[selected].sum(axis=1)
+        ratios = va / output
+        logging.info(f"Average VA/output ratio: {ratios.mean():.2%}")
+        return ratios.to_dict()
 
-    def get_region_sectors_with_internal_flows(self, threshold: float = 0):
-        tot_outputs = self.get_total_output_per_region_sectors()
-        matrix_output = pd.concat([tot_outputs] * len(self.index), axis=1).transpose()
-        matrix_output.index = self.index
-        tech_coef_matrix = self[self.region_sectors] / matrix_output
-        return [tup for tup in self.region_sectors if tech_coef_matrix.loc[tup, tup] > threshold]
+    def get_transport_input_share(self, sector_types, selected=None) -> dict:
+        if isinstance(sector_types, pd.Series):
+            sector_types = sector_types.to_dict()
+        transport_industries = [
+            rs for rs in self.region_sectors
+            if sector_types.get(rs[1], "").casefold() == "transport"
+        ]
+        selected = selected or self.region_sectors
+        if not transport_industries:
+            logging.warning("No transport industry in MRIO, defaulting to 0.2")
+            return {ind: 0.2 for ind in selected}
+        transport_input = self.loc[transport_industries, selected].sum(axis=0)
+        total_input = self.get_total_input(selected)
+        ratios = (transport_input / total_input).fillna(0.2)
+        logging.info(f"Average transport share: {ratios.mean():.2%}")
+        return ratios.to_dict()
 
-    def get_final_demand(self, selected_region_sectors=None):
-        if selected_region_sectors:
-            if isinstance(selected_region_sectors[0], str):
-                selected_region_sectors = [tuple(region_sector.split('_', 1))
-                                           for region_sector in selected_region_sectors]
-            elif isinstance(selected_region_sectors[0], tuple):
-                pass
-            else:
-                raise ValueError('selected_region_sectors should be a list of tuples or strings')
-            return self.loc[selected_region_sectors, self.columns.get_level_values(1) == self.final_demand_label]
-        else:
-            return self.loc[:, self.columns.get_level_values(1) == self.final_demand_label]
+    def get_final_demand(self, selected=None) -> pd.DataFrame:
+        fd_cols = self.columns.get_level_values(1) == self.final_demand_label
+        if selected:
+            if isinstance(selected[0], str):
+                selected = [tuple(s.split("_", 1)) for s in selected]
+            return self.loc[selected, fd_cols]
+        return self.loc[:, fd_cols]
 
-    def check_square_structure(self):
-        intermediary_matrix = self.get_intermediary_part()
-        if intermediary_matrix.shape[0] != intermediary_matrix.shape[1]:
-            logging.info(f"Column label not in row: {set(intermediary_matrix.columns) - set(intermediary_matrix.index)}")
-            logging.info(f"Row label not in column: {set(intermediary_matrix.index) - set(intermediary_matrix.columns)}")
-            raise ValueError('Intermediary matrix not square')
+    def get_intermediary(self) -> pd.DataFrame:
+        cols = [t for t in self.columns if t[1] not in (self.final_demand_label, self.export_label, self.capital_label)]
+        rows = [t for t in self.index if t[1] not in (self.import_label, self.value_added_label, self.tax_label)]
+        return self.loc[rows, cols]
 
-    def get_intermediary_part(self):
-        region_sectors_in_columns = [tup for tup in self.columns
-                                     if tup[1] not in [self.final_demand_label, self.export_label, self.capital_label]]
-        region_sectors_in_rows = [tup for tup in self.index
-                                  if tup[1] not in [self.import_label, self.value_added_label, self.tax_label]]
-        return self.loc[region_sectors_in_rows, region_sectors_in_columns]
+    def get_import_rows(self) -> pd.DataFrame:
+        cols = [t for t in self.columns if t[1] not in (self.final_demand_label, self.export_label, self.capital_label)]
+        rows = [t for t in self.index if t[1] == self.import_label]
+        return self.loc[rows, cols]
 
-    def get_import_rows(self):
-        region_sectors_in_columns = [tup for tup in self.columns
-                                     if tup[1] not in [self.final_demand_label, self.export_label, self.capital_label]]
-        import_row_index = [tup for tup in self.index if tup[1] == self.import_label]
-        return self.loc[import_row_index, region_sectors_in_columns]
+    def get_tech_coef_dict(self, threshold=0, selected=None) -> dict:
+        output = self.get_total_output()
+        intermediate = self.get_intermediary()
+        mat = pd.concat([output] * len(intermediate.index), axis=1).T
+        mat.index = intermediate.index
+        tech = intermediate / mat
 
-    def adjust_output(self):
-        total_output = self.get_total_output_per_region_sectors()
-        total_input = self.get_total_input_per_region_sectors()
-        unbalanced_region_sectors = total_input[total_input > total_output].index.to_list()
-        if len(unbalanced_region_sectors) > 0:
-            logging.warning(f"There are {len(unbalanced_region_sectors)} region_sectors with more inputs "
-                            f"than outputs: {unbalanced_region_sectors}. Correcting it.")
-            # TODO very ad-hoc and dirty to accommodate with bad input file
-            for region_sector in unbalanced_region_sectors:
-                # print(self.get_total_output_per_region_sectors()[region_sector])
-                where_to_add = pd.MultiIndex.from_product([self.external_buying_countries,
-                                                           [self.export_label]], names=['region', 'sector'])
-                how_much_to_add = (total_input[region_sector] - total_output[region_sector] + EPSILON) / len(where_to_add)
-                self.loc[region_sector, where_to_add] += how_much_to_add
-                # print(self.get_total_output_per_region_sectors()[region_sector])
-
-    def get_tech_coef_dict(self, threshold=0, selected_region_sectors=None):
-        """
-        returns a dict region_sector = {input_region_sector_1: tech_coef, ...}
-        """
-        tot_outputs = self.get_total_output_per_region_sectors()
-        matrix_output = pd.concat([tot_outputs] * len(self.index), axis=1).transpose()
-        matrix_output.index = self.index
-        tech_coef_matrix = self[self.region_sectors] / matrix_output
-
-        if selected_region_sectors:
-            if isinstance(selected_region_sectors[0], str):
-                selected_region_sectors = [tuple(region_sector.split('_', 1))
-                                           for region_sector in selected_region_sectors]
-            elif isinstance(selected_region_sectors[0], tuple):
-                pass
-            else:
-                raise ValueError('selected_region_sectors should be a list of tuples or strings')
+        if selected:
+            if isinstance(selected[0], str):
+                selected = [tuple(s.split("_", 1)) for s in selected]
             return {
-                '_'.join(buying_region_sector_tuple): {
-                    '_'.join(supplying_region_sector_tuple): val
-                    for supplying_region_sector_tuple, val in sublist.items()
-                    if (val > threshold) and (
-                            (supplying_region_sector_tuple in selected_region_sectors)  # domestic supplier
-                            or (supplying_region_sector_tuple[0] in self.external_selling_countries)  # country supplier
-                    )
+                "_".join(str(x) for x in buyer): {
+                    "_".join(str(x) for x in supplier): val
+                    for supplier, val in col.items()
+                    if val > threshold and (supplier in selected or supplier[0] in self.external_selling_countries)
                 }
-                for buying_region_sector_tuple, sublist in tech_coef_matrix.to_dict().items()
-                if buying_region_sector_tuple in selected_region_sectors
+                for buyer, col in tech.to_dict().items()
+                if buyer in selected
             }
-        else:
-            return {
-                '_'.join(region_sector_tuple): {
-                    '_'.join(key): val
-                    for key, val in sublist.items()
-                    if val > threshold
-                }
-                for region_sector_tuple, sublist in tech_coef_matrix.to_dict().items()
+        return {
+            "_".join(str(x) for x in rs): {
+                "_".join(str(x) for x in k): v for k, v in col.items() if v > threshold
             }
+            for rs, col in tech.to_dict().items()
+        }
+
+    # ------------------------------------------------------------------
+    # Filtering
+    # ------------------------------------------------------------------
+
+    def filter_by_output(self, cutoff_value, cutoff_type, cutoff_units, data_units) -> list:
+        output = self.get_total_output().loc[self.region_sectors]
+        return self._filter(output, cutoff_value, cutoff_type, cutoff_units, data_units)
+
+    def filter_by_final_demand(self, cutoff_value, cutoff_type, cutoff_units, data_units) -> list:
+        fd = self.get_final_demand().sum(axis=1).loc[self.region_sectors]
+        return self._filter(fd, cutoff_value, cutoff_type, cutoff_units, data_units)
+
+    # ------------------------------------------------------------------
+    # Private
+    # ------------------------------------------------------------------
+
+    def _detect_label(self, pattern: str, axis: int) -> str:
+        levels = self.index.get_level_values(1) if axis == 0 else self.columns.get_level_values(1)
+        matches = levels[levels.str.contains(pattern, case=False)]
+        if len(matches) == 0:
+            logging.warning(f"No label matching '{pattern}' in MRIO")
+            return ""
+        return matches[0]
+
+    def _check_square(self):
+        inter = self.get_intermediary()
+        if inter.shape[0] != inter.shape[1]:
+            raise ValueError(f"Intermediary matrix not square: {inter.shape}")
+
+    def _adjust_output(self):
+        output = self.get_total_output()
+        inp = self.get_total_input()
+        unbalanced = inp[inp > output].index.tolist()
+        if unbalanced:
+            logging.warning(f"{len(unbalanced)} region_sectors with input > output, adjusting export")
+            for rs in unbalanced:
+                export_cols = pd.MultiIndex.from_product(
+                    [self.external_buying_countries, [self.export_label]]
+                )
+                delta = (inp[rs] - output[rs] + EPSILON) / len(export_cols)
+                self.loc[rs, export_cols] += delta
 
     @staticmethod
-    def _filter_industries(series, cut_off_value, cut_off_type, cut_off_monetary_units, units_in_data):
-        if cut_off_type == "percentage":
-            rel_series = series / series.sum()
-            return rel_series.index[rel_series > cut_off_value].to_list()
-        elif cut_off_type == "absolute":
-            unit_adjusted_cutoff = rescale_monetary_values(cut_off_value,
-                                                           input_time_resolution="year",
-                                                           target_time_resolution="year",
-                                                           target_units=units_in_data,
-                                                           input_units=cut_off_monetary_units)
-            return series.index[series > unit_adjusted_cutoff].to_list()
-        elif cut_off_type == "relative_to_average":
-            cutoff = cut_off_value * series.sum() / series.shape[0]
-            return series.index[series > cutoff].to_list()
-        else:
-            raise ValueError("cutoff type should be 'percentage', 'absolute', or 'relative_to_average'")
-
-    def filter_industries_by_output(self, cut_off_value, cut_off_type, cut_off_monetary_units, units_in_data):
-        tot_outputs = self.get_total_output_per_region_sectors().loc[self.region_sectors]
-        return self._filter_industries(tot_outputs, cut_off_value, cut_off_type, cut_off_monetary_units, units_in_data)
-
-    def filter_industries_by_final_demand(self, cut_off_value, cut_off_type, cut_off_monetary_units, units_in_data):
-        final_demand = self.get_final_demand().sum(axis=1).loc[self.region_sectors]
-        return self._filter_industries(final_demand, cut_off_value, cut_off_type, cut_off_monetary_units, units_in_data)
+    def _filter(series, cutoff_value, cutoff_type, cutoff_units, data_units) -> list:
+        if cutoff_type == "percentage":
+            rel = series / series.sum()
+            return rel.index[rel > cutoff_value].tolist()
+        elif cutoff_type == "absolute":
+            adjusted = rescale_monetary_values(
+                cutoff_value, input_units=cutoff_units, target_units=data_units,
+                input_time_resolution="year", target_time_resolution="year",
+            )
+            return series.index[series > adjusted].tolist()
+        elif cutoff_type == "relative_to_average":
+            cutoff = cutoff_value * series.sum() / series.shape[0]
+            return series.index[series > cutoff].tolist()
+        raise ValueError(f"Unknown cutoff type: {cutoff_type}")
