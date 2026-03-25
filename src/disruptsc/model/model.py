@@ -292,7 +292,7 @@ class Model(object):
             self.parameters.monetary_units_in_data
         )
         self.sector_table = load_sector_table(self.parameters.filepaths['sector_table'])
-        self.usd_per_ton = load_usd_per_ton(self.parameters.filepaths['usd_per_ton'])
+        self.usd_per_ton = load_usd_per_ton(self.parameters.filepaths['sector_table'])
 
     def _filter_sectors(self) -> list:
         """Filter sectors based on output and demand criteria."""
