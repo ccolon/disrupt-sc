@@ -5,6 +5,9 @@ tmp/*
 !tmp/.gitkeep
 research/dataprep/
 
+# Local parameter overrides (not tracked)
+*.local.yaml
+
 # Exclude input folder - data is now in separate repository
 input/*
 
