@@ -120,6 +120,19 @@ class Parameters:
         else:
             logging.info(f'No user defined parameter file found named user_defined_{scope}.yaml, '
                          f'using default parameters')
+        # Apply local overrides (not tracked in git)
+        local_parameter_filepath = parameter_folder / f"user_defined_{scope}.local.yaml"
+        if os.path.exists(local_parameter_filepath):
+            logging.info(f'Local parameter overrides found for {scope}')
+            with open(local_parameter_filepath, 'r') as f:
+                local_overrides = yaml.safe_load(f)
+            if local_overrides:
+                for key, val in parameters.items():
+                    if key in local_overrides:
+                        if isinstance(val, dict):
+                            cls.merge_dict_with_priority(parameters[key], local_overrides[key])
+                        else:
+                            parameters[key] = local_overrides[key]
         # Load scope
         parameters['scope'] = scope
         # Create parameters
