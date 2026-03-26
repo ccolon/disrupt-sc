@@ -369,6 +369,7 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
             sector=mrio.import_label or "IMP",
             region_sector=f"{country_code}_{mrio.import_label or 'IMP'}",
             usd_per_ton=country_upt,
+            transport_share=params.country_transport_share,
             supply_importance=supply_importance,
             qty_purchased=qty_purchased,
         )

@@ -8,6 +8,10 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from disruptsc.config import EPSILON
+from disruptsc.agents.transport_utils import (
+    send_shipment, deliver_without_transport, discover_route,
+    collect_shipment_from_node,
+)
 
 if TYPE_CHECKING:
     from disruptsc.network.commercial_link import CommercialLink
@@ -28,6 +32,7 @@ class Country:
     sector: str = "IMP"
     region_sector: str = ""
     usd_per_ton: float = 2864.0
+    transport_share: float = 0.2
 
     # --- Trade structure (set during init_pipeline) ---
     supply_importance: float | None = None
@@ -86,6 +91,16 @@ class Country:
                 tp: TransportParams,
                 routing_event_collector=None):
         """Export/deliver products to firms and households."""
+        def _after_delivery(link):
+            self.qty_sold += link.delivery
+
+        def _after_shipment(link, route):
+            self.qty_sold += link.delivery
+            self.usd_transported += link.delivery
+            self.tons_transported += link.delivery_in_tons
+            if hasattr(route, 'length'):
+                self.tonkm_transported += link.delivery_in_tons * route.length
+
         for _, client, data in sc_network.out_edges(self, data=True):
             link: CommercialLink = data["object"]
             # Country delivers whatever was ordered (unlimited supply from outside)
@@ -96,15 +111,16 @@ class Country:
                 continue
 
             if link.product_type in tp.sectors_no_transport:
-                self._deliver_without_transport(link)
+                deliver_without_transport(link, _after_delivery)
             elif not tp.with_transport:
-                self._deliver_without_transport(link)
+                deliver_without_transport(link, _after_delivery)
             elif client.__class__.__name__ == "Household" and not tp.transport_to_households:
-                self._deliver_without_transport(link)
+                deliver_without_transport(link, _after_delivery)
             else:
-                self._send_shipment(
+                send_shipment(
+                    self.pid, self.od_point, self.cost_profile, self.transport_share,
                     link, transport_network, available_transport_network, tp,
-                    routing_event_collector,
+                    routing_event_collector, _after_shipment,
                 )
 
     def receive_products(self, sc_network: ScNetwork,
@@ -114,11 +130,7 @@ class Country:
         """Receive import shipments (transit goods from other countries/firms)."""
         for supplier, _, data in sc_network.in_edges(self, data=True):
             link: CommercialLink = data["object"]
-            # Collect shipment from transport node (if placed there by supplier)
-            if link.product_type not in sectors_no_transport:
-                available = transport_network._node[self.od_point].get("shipments", {})
-                if link.pid in available:
-                    available.pop(link.pid)
+            collect_shipment_from_node(self.od_point, link, transport_network, sectors_no_transport)
             quantity_received = link.realized_delivery
             # Track losses
             expected = self.purchase_plan.get(supplier.pid, 0.0)
@@ -145,121 +157,3 @@ class Country:
             "tonkm_transported": self.tonkm_transported,
         }
 
-    # ------------------------------------------------------------------
-    # Private helpers
-    # ------------------------------------------------------------------
-
-    def _deliver_without_transport(self, link: CommercialLink):
-        link.realized_delivery = link.delivery
-        link.payment = link.delivery * link.price
-        self.qty_sold += link.delivery
-
-    def _send_shipment(self, link: CommercialLink,
-                       transport_network: TransportNetwork,
-                       available_transport_network: TransportNetwork,
-                       tp: TransportParams,
-                       routing_event_collector=None):
-        """Send shipment along transport route, handling disrupted routes."""
-        route = link.get_current_route()
-
-        if route is None or not route:
-            route = self._discover_route(
-                link, transport_network, available_transport_network,
-                tp.capacity_constraint_enabled, tp.use_route_cache,
-            )
-            if route is None:
-                link.realized_delivery = 0.0
-                link.delivery = 0.0
-                link.payment = 0.0
-                return
-
-        # Check if main route is disrupted
-        if link.current_route == "main" and not available_transport_network.is_route_available(route):
-            alt_route = self._discover_route(
-                link, transport_network, available_transport_network,
-                tp.capacity_constraint_enabled, tp.use_route_cache,
-            )
-            if alt_route is not None:
-                link.alternative_route = alt_route
-                link.alternative_found = True
-                alt_cost = transport_network.compute_route_cost(alt_route, link.shipment_method, self.cost_profile)
-                link.alternative_route_cost_per_ton = alt_cost
-                relative_increase = link.calculate_relative_increase_in_transport_cost()
-                switching_penalty = link.calculate_switching_cost(tp.switching_costs, transport_network)
-                relative_increase += switching_penalty
-
-                if relative_increase > tp.price_increase_threshold:
-                    link.realized_delivery = 0.0
-                    link.delivery = 0.0
-                    link.payment = 0.0
-                    if routing_event_collector:
-                        routing_event_collector.record_event(
-                            self.pid, link.buyer_id, "too_expensive", relative_increase
-                        )
-                    return
-
-                link.current_route = "alternative"
-                route = alt_route
-                # Country uses fixed 20% transport cost passthrough
-                price_change = 0.2 * relative_increase
-                link.price = link.eq_price * (1 + price_change)
-                if routing_event_collector:
-                    routing_event_collector.record_event(
-                        self.pid, link.buyer_id, "rerouted", relative_increase
-                    )
-            else:
-                link.realized_delivery = 0.0
-                link.delivery = 0.0
-                link.payment = 0.0
-                if routing_event_collector:
-                    routing_event_collector.record_event(
-                        self.pid, link.buyer_id, "no_route", 0.0
-                    )
-                return
-
-        # Place shipment on transport network
-        if link.delivery_in_tons > EPSILON:
-            transport_network.place_shipment(
-                route, link.pid, link.delivery_in_tons, link.destination_node,
-                monetary_quantity=link.delivery, product_type=link.product_type,
-                flow_category=link.category,
-            )
-
-        link.realized_delivery = link.delivery
-        link.payment = link.delivery * link.price
-        self.qty_sold += link.delivery
-
-        # Track transport metrics
-        self.usd_transported += link.delivery
-        self.tons_transported += link.delivery_in_tons
-        if hasattr(route, 'length'):
-            self.tonkm_transported += link.delivery_in_tons * route.length
-
-    def _discover_route(self, link: CommercialLink,
-                        transport_network: TransportNetwork,
-                        available_transport_network: TransportNetwork,
-                        capacity_constraint: bool,
-                        use_route_cache: bool):
-        weight = "cost_per_ton_" + str(self.cost_profile)
-        if capacity_constraint:
-            weight = "cost_per_ton_with_capacity_" + str(self.cost_profile)
-
-        effective_cache = use_route_cache and not capacity_constraint
-
-        if effective_cache:
-            cached = transport_network.retrieve_cached_route(
-                self.od_point, link.destination_node, self.cost_profile, "alternative", link.shipment_method
-            )
-            if cached:
-                return cached
-
-        route = available_transport_network.provide_shortest_route(
-            self.od_point, link.destination_node, link.shipment_method, route_weight=weight
-        )
-
-        if route and effective_cache:
-            transport_network.cache_route(
-                self.od_point, link.destination_node, self.cost_profile, "alternative", link.shipment_method, route
-            )
-
-        return route

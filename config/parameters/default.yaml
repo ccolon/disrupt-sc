@@ -394,5 +394,8 @@ capacity_constraint: "off"
 
 
 
+# Share of transport cost in country import/export prices (for rerouting cost passthrough)
+country_transport_share: 0.2
+
 # Define how much built capital firms have given their level of output
 capital_to_value_added_ratio: 3

@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from disruptsc.config import EPSILON
+from disruptsc.agents.transport_utils import collect_shipment_from_node
 
 if TYPE_CHECKING:
     from disruptsc.network.commercial_link import CommercialLink
@@ -101,11 +102,8 @@ class Household:
         """Receive products from all suppliers."""
         for supplier, _, data in sc_network.in_edges(self, data=True):
             link: CommercialLink = data["object"]
-            # Collect shipment from transport node (if placed there by supplier)
-            if link.product_type not in sectors_no_transport and transport_to_households:
-                available = transport_network._node[self.od_point].get("shipments", {})
-                if link.pid in available:
-                    available.pop(link.pid)
+            if transport_to_households:
+                collect_shipment_from_node(self.od_point, link, transport_network, sectors_no_transport)
             quantity_received = link.realized_delivery
             price = link.price
 
