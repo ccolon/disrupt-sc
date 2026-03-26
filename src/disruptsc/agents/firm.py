@@ -10,6 +10,9 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from disruptsc.config import EPSILON
+from disruptsc.agents.transport_utils import (
+    send_shipment, deliver_without_transport, discover_route,
+)
 
 if TYPE_CHECKING:
     from disruptsc.network.commercial_link import CommercialLink
@@ -218,6 +221,12 @@ class Firm:
                 tp: TransportParams,
                 routing_event_collector=None):
         """Ration and deliver to all clients."""
+        def _after_delivery(link):
+            self.product_stock = max(0.0, self.product_stock - link.delivery)
+
+        def _after_shipment(link, route):
+            self.product_stock = max(0.0, self.product_stock - link.delivery)
+
         self._evaluate_quantities_to_deliver(sc_network, tp.rationing_mode)
         for _, client, data in sc_network.out_edges(self, data=True):
             link: CommercialLink = data["object"]
@@ -226,15 +235,16 @@ class Firm:
 
             # Check if this link needs the transport network
             if link.product_type in tp.sectors_no_transport:
-                self._deliver_without_transport(link)
+                deliver_without_transport(link, _after_delivery)
             elif not tp.with_transport:
-                self._deliver_without_transport(link)
+                deliver_without_transport(link, _after_delivery)
             elif client.__class__.__name__ == "Household" and not tp.transport_to_households:
-                self._deliver_without_transport(link)
+                deliver_without_transport(link, _after_delivery)
             else:
-                self._send_shipment(
+                send_shipment(
+                    self.pid, self.od_point, self.cost_profile, self.transport_share,
                     link, transport_network, available_transport_network, tp,
-                    routing_event_collector,
+                    routing_event_collector, _after_shipment,
                 )
 
     # ------------------------------------------------------------------
@@ -402,126 +412,6 @@ class Firm:
                     link.delivery = link.order * self.rationing
                     link.delivery_in_tons = link.delivery / self.usd_per_ton if self.usd_per_ton > 0 else 0.0
             # household_first could be added here
-
-    def _deliver_without_transport(self, link: CommercialLink):
-        """Deliver directly (services, or when transport is off)."""
-        link.realized_delivery = link.delivery
-        link.payment = link.delivery * link.price
-        self.product_stock = max(0.0, self.product_stock - link.delivery)
-
-    def _send_shipment(self, link: CommercialLink,
-                       transport_network: TransportNetwork,
-                       available_transport_network: TransportNetwork,
-                       tp: TransportParams,
-                       routing_event_collector=None):
-        """Send shipment along transport route, handling disrupted routes."""
-        route = link.get_current_route()
-
-        if route is None or not route:
-            # No route — try to find one
-            route = self._discover_route(
-                link, transport_network, available_transport_network,
-                tp.capacity_constraint_enabled, tp.use_route_cache,
-            )
-            if route is None:
-                # No route available — cannot deliver
-                link.realized_delivery = 0.0
-                link.delivery = 0.0
-                link.payment = 0.0
-                return
-
-        # Check if main route is disrupted
-        if link.current_route == "main" and not available_transport_network.is_route_available(route):
-            # Try alternative
-            alt_route = self._discover_route(
-                link, transport_network, available_transport_network,
-                tp.capacity_constraint_enabled, tp.use_route_cache,
-            )
-            if alt_route is not None:
-                link.alternative_route = alt_route
-                link.alternative_found = True
-                # Calculate cost increase
-                alt_cost = transport_network.compute_route_cost(alt_route, link.shipment_method, self.cost_profile)
-                link.alternative_route_cost_per_ton = alt_cost
-                relative_increase = link.calculate_relative_increase_in_transport_cost()
-
-                # Add switching costs
-                switching_penalty = link.calculate_switching_cost(tp.switching_costs, transport_network)
-                relative_increase += switching_penalty
-
-                if relative_increase > tp.price_increase_threshold:
-                    link.realized_delivery = 0.0
-                    link.delivery = 0.0
-                    link.payment = 0.0
-                    if routing_event_collector:
-                        routing_event_collector.record_event(
-                            self.pid, link.buyer_id, "too_expensive", relative_increase
-                        )
-                    return
-
-                # Use alternative route
-                link.current_route = "alternative"
-                route = alt_route
-                # Price adjustment
-                price_change = self.transport_share * relative_increase
-                link.price = link.eq_price * (1 + price_change)
-                self.delta_price_input = price_change
-                if routing_event_collector:
-                    routing_event_collector.record_event(
-                        self.pid, link.buyer_id, "rerouted", relative_increase
-                    )
-            else:
-                # No alternative route
-                link.realized_delivery = 0.0
-                link.delivery = 0.0
-                link.payment = 0.0
-                if routing_event_collector:
-                    routing_event_collector.record_event(
-                        self.pid, link.buyer_id, "no_route", 0.0
-                    )
-                return
-
-        # Place shipment on transport network
-        if link.delivery_in_tons > EPSILON:
-            transport_network.place_shipment(
-                route, link.pid, link.delivery_in_tons, link.destination_node,
-                monetary_quantity=link.delivery, product_type=link.product_type,
-                flow_category=link.category,
-            )
-
-        link.realized_delivery = link.delivery
-        link.payment = link.delivery * link.price
-        self.product_stock = max(0.0, self.product_stock - link.delivery)
-
-    def _discover_route(self, link: CommercialLink,
-                        transport_network: TransportNetwork,
-                        available_transport_network: TransportNetwork,
-                        capacity_constraint: bool,
-                        use_route_cache: bool):
-        """Find a route from this firm to the link's destination."""
-        weight = "cost_per_ton_" + str(self.cost_profile)
-        if capacity_constraint:
-            weight = "cost_per_ton_with_capacity_" + str(self.cost_profile)
-
-        effective_cache = use_route_cache and not capacity_constraint
-
-        if effective_cache:
-            cached = transport_network.retrieve_cached_route(
-                self.od_point, link.destination_node, self.cost_profile, "alternative", link.shipment_method
-            )
-            if cached:
-                return cached
-
-        route = available_transport_network.provide_shortest_route(
-            self.od_point, link.destination_node, link.shipment_method, route_weight=weight
-        )
-
-        if route and effective_cache:
-            transport_network.cache_route(
-                self.od_point, link.destination_node, self.cost_profile, "alternative", link.shipment_method, route
-            )
-
-        return route
 
     def _receive_shipment(self, link: CommercialLink, transport_network: TransportNetwork):
         """Receive a shipment from the transport network."""

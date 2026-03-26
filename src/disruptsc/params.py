@@ -74,6 +74,7 @@ class AgentParams:
     monetary_units_in_model: str = "mUSD"
     monetary_units_in_data: str = "mUSD"
     capital_to_value_added_ratio: float = 3.0
+    country_transport_share: float = 0.2
 
 
 @dataclass(frozen=True)

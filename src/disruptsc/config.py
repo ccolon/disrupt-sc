@@ -134,6 +134,7 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
         monetary_units_in_model=config.get("monetary_units_in_model", "mUSD"),
         monetary_units_in_data=config.get("monetary_units_in_data", "mUSD"),
         capital_to_value_added_ratio=config.get("capital_to_value_added_ratio", 3.0),
+        country_transport_share=config.get("country_transport_share", 0.2),
     )
 
     logistics_params = LogisticsParams(
