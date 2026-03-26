@@ -228,9 +228,15 @@ class TransportNetwork(nx.Graph):
     # Shipment placement & load tracking
     # ------------------------------------------------------------------
 
-    def place_shipment(self, route: Route, link_pid: str, tons: float, destination_node: int):
+    def place_shipment(self, route: Route, link_pid: str, tons: float, destination_node: int,
+                        monetary_quantity: float = 0.0, product_type: str = "", flow_category: str = ""):
         """Place a shipment on all edges of a route and at the destination node."""
-        shipment = {"quantity": tons}
+        shipment = {
+            "quantity": monetary_quantity,
+            "tons": tons,
+            "product_type": product_type,
+            "flow_category": flow_category,
+        }
         for u, v in route.transport_edges:
             self[u][v]["shipments"][link_pid] = shipment
         self._node[destination_node]["shipments"][link_pid] = shipment

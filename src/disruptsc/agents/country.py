@@ -78,7 +78,7 @@ class Country:
         """Set order quantities for imports."""
         for supplier, _, data in sc_network.in_edges(self, data=True):
             link: CommercialLink = data["object"]
-            link.order = self.purchase_plan.get(supplier, 0.0)
+            link.order = self.purchase_plan.get(supplier.pid, 0.0)
 
     def deliver(self, sc_network: ScNetwork,
                 transport_network: TransportNetwork,
@@ -114,9 +114,14 @@ class Country:
         """Receive import shipments (transit goods from other countries/firms)."""
         for supplier, _, data in sc_network.in_edges(self, data=True):
             link: CommercialLink = data["object"]
+            # Collect shipment from transport node (if placed there by supplier)
+            if link.product_type not in sectors_no_transport:
+                available = transport_network._node[self.od_point].get("shipments", {})
+                if link.pid in available:
+                    available.pop(link.pid)
             quantity_received = link.realized_delivery
             # Track losses
-            expected = self.purchase_plan.get(supplier, 0.0)
+            expected = self.purchase_plan.get(supplier.pid, 0.0)
             if expected > EPSILON and quantity_received < expected - EPSILON:
                 self.consumption_loss += expected - quantity_received
             # Track extra spending
@@ -215,7 +220,9 @@ class Country:
         # Place shipment on transport network
         if link.delivery_in_tons > EPSILON:
             transport_network.place_shipment(
-                route, link.pid, link.delivery_in_tons, link.destination_node
+                route, link.pid, link.delivery_in_tons, link.destination_node,
+                monetary_quantity=link.delivery, product_type=link.product_type,
+                flow_category=link.category,
             )
 
         link.realized_delivery = link.delivery
@@ -241,7 +248,7 @@ class Country:
 
         if effective_cache:
             cached = transport_network.retrieve_cached_route(
-                self.od_point, link.destination_node, self.cost_profile, "disrupted", link.shipment_method
+                self.od_point, link.destination_node, self.cost_profile, "alternative", link.shipment_method
             )
             if cached:
                 return cached
@@ -252,7 +259,7 @@ class Country:
 
         if route and effective_cache:
             transport_network.cache_route(
-                self.od_point, link.destination_node, self.cost_profile, "disrupted", link.shipment_method, route
+                self.od_point, link.destination_node, self.cost_profile, "alternative", link.shipment_method, route
             )
 
         return route

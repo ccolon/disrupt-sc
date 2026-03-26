@@ -180,7 +180,7 @@ class Firm:
         """Write purchase plan onto incoming commercial links."""
         for supplier, _, data in sc_network.in_edges(self, data=True):
             link: CommercialLink = data["object"]
-            link.order = self.purchase_plan.get(supplier, 0.0)
+            link.order = self.purchase_plan.get(supplier.pid, 0.0)
 
     # ------------------------------------------------------------------
     # Simulation loop — Phase 2: Produce
@@ -484,7 +484,9 @@ class Firm:
         # Place shipment on transport network
         if link.delivery_in_tons > EPSILON:
             transport_network.place_shipment(
-                route, link.pid, link.delivery_in_tons, link.destination_node
+                route, link.pid, link.delivery_in_tons, link.destination_node,
+                monetary_quantity=link.delivery, product_type=link.product_type,
+                flow_category=link.category,
             )
 
         link.realized_delivery = link.delivery
@@ -505,7 +507,7 @@ class Firm:
 
         if effective_cache:
             cached = transport_network.retrieve_cached_route(
-                self.od_point, link.destination_node, self.cost_profile, "disrupted", link.shipment_method
+                self.od_point, link.destination_node, self.cost_profile, "alternative", link.shipment_method
             )
             if cached:
                 return cached
@@ -516,7 +518,7 @@ class Firm:
 
         if route and effective_cache:
             transport_network.cache_route(
-                self.od_point, link.destination_node, self.cost_profile, "disrupted", link.shipment_method, route
+                self.od_point, link.destination_node, self.cost_profile, "alternative", link.shipment_method, route
             )
 
         return route
@@ -526,7 +528,7 @@ class Firm:
         available_shipments = transport_network._node[self.od_point].get("shipments", {})
         if link.pid in available_shipments:
             shipment = available_shipments.pop(link.pid)
-            quantity_received = shipment["quantity"] * self.usd_per_ton
+            quantity_received = shipment["quantity"]
             self.inventory[link.product] = self.inventory.get(link.product, 0.0) + quantity_received
             link.payment = quantity_received * link.price
         else:
