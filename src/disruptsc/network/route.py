@@ -38,7 +38,9 @@ class Route(list):
 
     def is_usable(self, transport_network: TransportNetwork) -> bool:
         for u, v in self.transport_edges:
-            if transport_network[u][v]["disruption_duration"] > 0:
+            if not transport_network.has_edge(u, v):
+                return False
+            if transport_network[u][v].get("disruption_duration", 0) > 0:
                 return False
         return True
 

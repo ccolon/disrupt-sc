@@ -11,6 +11,13 @@ import pandas as pd
 import geopandas as gpd
 
 
+def _ensure_crs(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Ensure GeoDataFrame has CRS set to EPSG:4326."""
+    if gdf.crs is None:
+        gdf = gdf.set_crs(epsg=4326)
+    return gdf
+
+
 # ------------------------------------------------------------------
 # Incremental CSV writer (Option C from design decisions)
 # ------------------------------------------------------------------
@@ -87,7 +94,7 @@ def export_transport_flows(transport_flow_data: list,
             transport_edges.drop(columns=cols_to_drop), subset,
             how="left", on="id",
         )
-        merged.to_file(
+        _ensure_crs(merged).to_file(
             export_folder / f"transport_edges_with_flows_{ts}.geojson",
             driver="GeoJSON", index=False,
         )
@@ -157,16 +164,16 @@ def export_static_tables(firm_table, household_table, transport_edges,
                          transport_nodes, export_folder: Path):
     """Export GeoJSON tables for visualization."""
     if firm_table is not None and hasattr(firm_table, "to_file"):
-        firm_table.to_file(export_folder / "firm_table.geojson", driver="GeoJSON")
+        _ensure_crs(firm_table).to_file(export_folder / "firm_table.geojson", driver="GeoJSON")
     if household_table is not None and hasattr(household_table, "to_file"):
-        household_table.to_file(export_folder / "household_table.geojson", driver="GeoJSON")
+        _ensure_crs(household_table).to_file(export_folder / "household_table.geojson", driver="GeoJSON")
     if transport_edges is not None:
         cols = [c for c in transport_edges.columns if c != "node_tuple"]
-        transport_edges[cols].to_file(
+        _ensure_crs(transport_edges[cols]).to_file(
             export_folder / "transport_edges.geojson", driver="GeoJSON",
         )
     if transport_nodes is not None:
-        transport_nodes.to_file(
+        _ensure_crs(transport_nodes).to_file(
             export_folder / "transport_nodes.geojson", driver="GeoJSON",
         )
 

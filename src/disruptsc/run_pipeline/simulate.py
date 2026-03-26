@@ -49,7 +49,7 @@ def run_disruption(sc_network, transport_network, firms, households, countries,
         0, sc_network, transport_network, transport_network,
         firms, households, countries, tp, sp, disruptions=[],
     )
-    _accumulate(all_data, data, time_step=0, transport_network=transport_network)
+    _accumulate(all_data, data)
 
     # Parse disruptions
     disruptions = parse_disruptions(
@@ -61,7 +61,7 @@ def run_disruption(sc_network, transport_network, firms, households, countries,
             1, sc_network, transport_network, transport_network,
             firms, households, countries, tp, sp, disruptions=[],
         )
-        _accumulate(all_data, data, time_step=1, transport_network=transport_network)
+        _accumulate(all_data, data)
         return all_data
 
     logging.info(f"{len(disruptions)} disruption(s) parsed")
@@ -74,8 +74,7 @@ def run_disruption(sc_network, transport_network, firms, households, countries,
             t, sc_network, transport_network, transport_network,
             firms, households, countries, tp, sp, disruptions=disruptions,
         )
-        _accumulate(all_data, data, time_step=t, transport_network=transport_network,
-                     collect_flows=(t <= 1))
+        _accumulate(all_data, data, collect_flows=(t <= 1))
 
         # Early stop
         if sp.epsilon_stop and t > max(d.start_time for d in disruptions):
@@ -105,7 +104,7 @@ def run_criticality(sc_network, transport_network, firms, households, countries,
             t, sc_network, transport_network, transport_network,
             firms, households, countries, tp, sp, disruptions=disruptions,
         )
-        _accumulate(all_data, data, time_step=t, transport_network=transport_network)
+        _accumulate(all_data, data)
 
         if t > duration + 1 and sp.epsilon_stop:
             if _is_back_to_equilibrium(households, countries, sp.epsilon_stop):
@@ -260,7 +259,10 @@ def _run_one_time_step(time_step, sc_network, transport_network,
     for firm in firms.values():
         firm.deliver(sc_network, transport_network, available_transport_network, tp)
 
-    # 8. All agents receive products
+    # 8. Collect flow data while shipments are still on edges
+    flow_data = transport_network.compute_flow_per_segment(time_step)
+
+    # 9. All agents receive products (clears shipments from nodes)
     for hh in households.values():
         hh.receive_products(sc_network, transport_network, tp.sectors_no_transport,
                             tp.transport_to_households)
@@ -271,11 +273,10 @@ def _run_one_time_step(time_step, sc_network, transport_network,
         firm.receive_products(sc_network, transport_network, tp.sectors_no_transport,
                               tp.transport_to_households)
 
-    # 9. Check uncollected shipments and reset loads
-    transport_network.check_no_uncollected_shipment()
+    # 10. Reset loads (clears remaining shipments from edges)
     transport_network.reset_loads()
 
-    # 10. Firms evaluate profit
+    # 11. Firms evaluate profit
     for firm in firms.values():
         firm.evaluate_profit(sc_network)
 
@@ -289,6 +290,7 @@ def _run_one_time_step(time_step, sc_network, transport_network,
         "firm": collect_firm_data(firms, time_step),
         "household": collect_household_data(households, time_step),
         "country": collect_country_data(countries, time_step),
+        "flow": flow_data,
     }
 
 
@@ -296,15 +298,12 @@ def _run_one_time_step(time_step, sc_network, transport_network,
 # Helpers
 # ------------------------------------------------------------------
 
-def _accumulate(all_data, step_data, time_step, transport_network=None,
-                collect_flows=True):
+def _accumulate(all_data, step_data, collect_flows=True):
     all_data["firm"].extend(step_data["firm"])
     all_data["household"].extend(step_data["household"])
     all_data["country"].extend(step_data["country"])
-    if collect_flows and transport_network is not None:
-        all_data["transport_flow"].extend(
-            transport_network.compute_flow_per_segment(time_step)
-        )
+    if collect_flows and step_data.get("flow"):
+        all_data["transport_flow"].extend(step_data["flow"])
 
 
 def _is_back_to_equilibrium(households, countries, epsilon):

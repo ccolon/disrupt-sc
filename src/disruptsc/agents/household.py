@@ -92,7 +92,7 @@ class Household:
         """Set order quantities on all incoming commercial links."""
         for supplier, _, data in sc_network.in_edges(self, data=True):
             link: CommercialLink = data["object"]
-            link.order = self.purchase_plan.get(supplier, 0.0)
+            link.order = self.purchase_plan.get(supplier.pid, 0.0)
 
     def receive_products(self, sc_network: ScNetwork,
                          transport_network: TransportNetwork,
@@ -101,7 +101,11 @@ class Household:
         """Receive products from all suppliers."""
         for supplier, _, data in sc_network.in_edges(self, data=True):
             link: CommercialLink = data["object"]
-            # Households receive via direct delivery (placed by supplier's deliver)
+            # Collect shipment from transport node (if placed there by supplier)
+            if link.product_type not in sectors_no_transport and transport_to_households:
+                available = transport_network._node[self.od_point].get("shipments", {})
+                if link.pid in available:
+                    available.pop(link.pid)
             quantity_received = link.realized_delivery
             price = link.price
 
@@ -115,7 +119,7 @@ class Household:
             self.tot_spending += quantity_received * price
 
             # Track losses
-            expected = self.purchase_plan.get(supplier, 0.0)
+            expected = self.purchase_plan.get(supplier.pid, 0.0)
             loss = max(0.0, expected - quantity_received)
             self.consumption_loss_per_sector[sector] = self.consumption_loss_per_sector.get(sector, 0.0) + loss
             self.consumption_loss += loss
