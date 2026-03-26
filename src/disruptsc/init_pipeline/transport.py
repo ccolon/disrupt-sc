@@ -152,7 +152,7 @@ def _load_transport_edges(filepath: Path, mode: str, time_resolution: str) -> gp
     # Adapt capacity to time resolution
     if "capacity" in gdf.columns:
         time_factor = {"day": 1, "week": 7, "month": 30, "year": 365}.get(time_resolution, 7)
-        gdf["capacity"] = gdf["capacity"].fillna(1e9) * time_factor
+        gdf["capacity"] = pd.to_numeric(gdf["capacity"], errors="coerce").fillna(1e9) * time_factor
         gdf.loc[gdf["capacity"] == 0, "capacity"] = 1e9
 
     return gdf
