@@ -94,5 +94,4 @@ class LogisticsParams:
     variability_coef: float = 0.44
     variability: dict = field(default_factory=dict)
     name_specific: dict = field(default_factory=dict)
-    shipment_methods_to_transport_modes: dict = field(default_factory=dict)
-    sector_types_to_shipment_method: dict = field(default_factory=dict)
+    sector_to_cargo_type: dict = field(default_factory=dict)

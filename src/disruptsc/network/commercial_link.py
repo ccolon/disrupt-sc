@@ -37,7 +37,7 @@ class CommercialLink:
     current_route: str = "main"
     alternative_found: bool = False
     use_transport_network: bool = False
-    shipment_method: str = "solid_bulk"
+    cargo_type: str = "dry_bulk"
     essential: bool = True
 
     # --- Flow state ---
@@ -72,9 +72,9 @@ class CommercialLink:
         self.alternative_found = False
         self.status = "ok"
 
-    def determine_shipment_method(self, sector_types_to_shipment_method: dict):
-        self.shipment_method = sector_types_to_shipment_method.get(
-            self.product_type, sector_types_to_shipment_method.get("default", "solid_bulk")
+    def determine_cargo_type(self, sector_to_cargo_type: dict):
+        self.cargo_type = sector_to_cargo_type.get(
+            self.product_type, sector_to_cargo_type.get("default", "container")
         )
 
     def store_route_information(self, route: Route, main_or_alternative: str, cost_per_ton: float):

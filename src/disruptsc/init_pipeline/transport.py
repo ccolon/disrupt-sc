@@ -15,7 +15,8 @@ from disruptsc.network.transport_network import TransportNetwork
 
 def build_transport_network(transport_modes: list, filepaths: dict,
                             logistics_params: dict, time_resolution: str,
-                            capacity_overrides: dict = None) -> tuple[TransportNetwork, gpd.GeoDataFrame, gpd.GeoDataFrame]:
+                            capacity_overrides: dict = None,
+                            default_transport_capacity: dict = None) -> tuple[TransportNetwork, gpd.GeoDataFrame, gpd.GeoDataFrame]:
     """Build transport network from GeoJSON edge files.
 
     Returns (transport_network, transport_edges, transport_nodes).
@@ -90,20 +91,28 @@ def build_transport_network(transport_modes: list, filepaths: dict,
             **({"name": row["name"]} if "name" in nodes_gdf.columns else {}),
         })
 
+    # Determine cargo types from logistics config
+    cargo_types = list(logistics_params.get("sector_to_cargo_type", {}).values())
+    cargo_types = sorted(set(ct for ct in cargo_types if ct != "default"))
+    if not cargo_types:
+        cargo_types = ["container", "dry_bulk", "liquid_bulk"]
+
     for _, row in edges_gdf.iterrows():
         u, v = int(row["end1"]), int(row["end2"])
         edge_data = row.to_dict()
         edge_data["node_tuple"] = (u, v)
         edge_data["shipments"] = {}
         edge_data["disruption_duration"] = 0
-        edge_data["current_load"] = 0
         edge_data["overused"] = False
-        edge_data["current_capacity"] = edge_data.get("capacity", 1e9)
+        # Per-cargo-type load tracking
+        for ct in cargo_types:
+            edge_data[f"current_load_{ct}"] = 0
         tn.add_edge(u, v, **edge_data)
 
-    # Apply capacity overrides
+    # Apply default transport capacities per mode, then overrides
+    _apply_default_capacities(tn, default_transport_capacity or {}, cargo_types, time_resolution)
     if capacity_overrides:
-        _apply_capacity_overrides(tn, capacity_overrides, time_resolution)
+        _apply_capacity_overrides(tn, capacity_overrides, cargo_types, time_resolution)
 
     # Prepare cost profiles and ingest logistics
     _prepare_cost_profiles(logistics_params)
@@ -144,16 +153,16 @@ def _load_transport_edges(filepath: Path, mode: str, time_resolution: str) -> gp
 
     # Fill missing optional columns
     for col, default in [("special", None), ("name", ""), ("surface", ""),
-                         ("class", ""), ("capacity", 1e9), ("disruption", 0),
+                         ("class", ""), ("disruption", 0),
                          ("multimodes", None)]:
         if col not in gdf.columns:
             gdf[col] = default
 
-    # Adapt capacity to time resolution
-    if "capacity" in gdf.columns:
-        time_factor = {"day": 1, "week": 7, "month": 30, "year": 365}.get(time_resolution, 7)
-        gdf["capacity"] = pd.to_numeric(gdf["capacity"], errors="coerce").fillna(1e9) * time_factor
-        gdf.loc[gdf["capacity"] == 0, "capacity"] = 1e9
+    # Adapt capacity columns to time resolution (if present in GeoJSON)
+    time_factor = {"day": 1, "week": 7, "month": 30, "year": 365}.get(time_resolution, 7)
+    for col in gdf.columns:
+        if col == "capacity" or col.startswith("capacity_"):
+            gdf[col] = pd.to_numeric(gdf[col], errors="coerce").fillna(0) * time_factor
 
     return gdf
 
@@ -217,15 +226,71 @@ def _multimodal_relevant(multimodes_str: str, transport_modes: list) -> bool:
     return any(p in transport_modes or p == "roads" for p in parts)
 
 
-def _apply_capacity_overrides(tn: TransportNetwork, overrides: dict, time_resolution: str):
-    """Override edge capacities by edge name."""
+def _apply_default_capacities(tn: TransportNetwork, defaults: dict,
+                              cargo_types: list, time_resolution: str):
+    """Set capacity on every edge from per-mode defaults.
+
+    *defaults* maps transport mode to either:
+      - a number  → shared capacity (tons/day) for all cargo types
+      - a dict    → per-cargo-type capacity (tons/day)
+    """
+    time_factor = {"day": 1, "week": 7, "month": 30, "year": 365}.get(time_resolution, 7)
+    for u, v in tn.edges:
+        edge = tn[u][v]
+        mode = edge["type"]
+        mode_cap = defaults.get(mode)
+        if mode_cap is None:
+            # No default specified → unlimited shared capacity
+            edge["capacity"] = 1e9 * time_factor
+            for ct in cargo_types:
+                edge.pop(f"capacity_{ct}", None)  # ensure no stale per-ct caps
+        elif isinstance(mode_cap, dict):
+            # Per-cargo-type defaults
+            edge["capacity"] = 1e9 * time_factor  # shared fallback (unused if all ct specified)
+            for ct in cargo_types:
+                edge[f"capacity_{ct}"] = mode_cap.get(ct, 0) * time_factor
+        else:
+            # Shared default
+            edge["capacity"] = float(mode_cap) * time_factor
+            for ct in cargo_types:
+                edge.pop(f"capacity_{ct}", None)
+
+    # Also pick up per-cargo-type capacity from GeoJSON columns if present
+    for u, v in tn.edges:
+        edge = tn[u][v]
+        for ct in cargo_types:
+            geojson_key = f"capacity_{ct}"
+            if geojson_key in edge and not isinstance(edge[geojson_key], (int, float)):
+                # Came from GeoJSON as string
+                try:
+                    edge[geojson_key] = float(edge[geojson_key]) * time_factor
+                except (ValueError, TypeError):
+                    pass
+
+
+def _apply_capacity_overrides(tn: TransportNetwork, overrides: dict,
+                              cargo_types: list, time_resolution: str):
+    """Override edge capacities by edge name.
+
+    *overrides* maps edge name to either:
+      - a number  → shared capacity (tons/day)
+      - a dict    → per-cargo-type capacity (tons/day)
+    """
     time_factor = {"day": 1, "week": 7, "month": 30, "year": 365}.get(time_resolution, 7)
     for u, v in tn.edges:
         edge = tn[u][v]
         name = edge.get("name", "")
-        if name in overrides:
-            edge["capacity"] = overrides[name] * time_factor
-            edge["current_capacity"] = edge["capacity"]
+        if name not in overrides:
+            continue
+        override = overrides[name]
+        if isinstance(override, dict):
+            for ct in cargo_types:
+                edge[f"capacity_{ct}"] = override.get(ct, 0) * time_factor
+        else:
+            edge["capacity"] = float(override) * time_factor
+            # Remove per-ct caps so this becomes shared
+            for ct in cargo_types:
+                edge.pop(f"capacity_{ct}", None)
 
 
 def _prepare_cost_profiles(logistics_params: dict):

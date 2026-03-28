@@ -307,12 +307,33 @@ def create_households(household_table: pd.DataFrame,
 
 def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
                      countries_spatial_path: Path, usd_per_ton: dict,
-                     time_resolution: str, params: AgentParams) -> dict[str, Country]:
-    """Create Country objects from MRIO trade data."""
+                     time_resolution: str, params: AgentParams,
+                     transport_edges: gpd.GeoDataFrame | None = None) -> dict[str, Country]:
+    """Create Country objects from MRIO trade data.
+
+    Countries are assigned to the nearest **road** node so that they connect
+    to the road network and reach other modes via multimodal edges.
+    If *transport_edges* is provided, only nodes that are endpoints of road
+    edges are considered; otherwise all transport nodes are used.
+    """
     # Identify countries
     buying = set(mrio.external_buying_countries)
     selling = set(mrio.external_selling_countries)
     all_countries = sorted(buying | selling)
+
+    # Filter transport nodes to road-only for country placement
+    if transport_edges is not None and "type" in transport_edges.columns:
+        road_edges = transport_edges[transport_edges["type"] == "roads"]
+        road_node_ids = set(road_edges["end1"].tolist() + road_edges["end2"].tolist())
+        country_nodes = transport_nodes[transport_nodes.index.isin(road_node_ids)]
+        if country_nodes.empty:
+            logging.warning("No road nodes found — falling back to all transport nodes for country placement")
+            country_nodes = transport_nodes
+        else:
+            logging.info(f"Country placement restricted to {len(country_nodes)} road nodes "
+                         f"(out of {len(transport_nodes)} total)")
+    else:
+        country_nodes = transport_nodes
 
     # Load spatial data
     countries_gdf = gpd.read_file(countries_spatial_path)
@@ -340,7 +361,7 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
         geom = match.iloc[0].geometry
         centroid = geom.centroid if geom.geom_type != "Point" else geom
         gdf_point = gpd.GeoDataFrame([{"geometry": centroid}], geometry="geometry")
-        od_point = int(find_nearest_node_id(transport_nodes, gdf_point)[0])
+        od_point = int(find_nearest_node_id(country_nodes, gdf_point)[0])
 
         # Trade data
         qty_purchased = {}
