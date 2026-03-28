@@ -2,15 +2,8 @@
 logging_level: "info"
 
 filepaths:
-  # Transport related data
-  "transport_modes": "Transport/transport_modes.csv"
-  "roads_edges": "Transport/roads_edges.geojson"
-  "multimodal_edges": "Transport/multimodal_edges.geojson"
-  "maritime_edges": "Transport/maritime_edges.geojson"
-  "airways_edges": "Transport/airways_edges.geojson"
-  "railways_edges": "Transport/railways_edges.geojson"
-  "waterways_edges": "Transport/waterways_edges.geojson"
-  "pipelines_edges": "Transport/pipelines_edges.geojson"
+  # Transport network — GeoPackage with one layer per mode (roads, maritime, etc.)
+  "transport": "Transport/transport.gpkg"
   # Economic data
   "sector_table": "Economic/sector_table.csv"
   "mrio": "Economic/mrio.csv"

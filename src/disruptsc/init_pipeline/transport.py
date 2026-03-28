@@ -1,4 +1,4 @@
-"""Build the multimodal transport network from GeoJSON files."""
+"""Build the multimodal transport network from a GeoPackage file."""
 
 from __future__ import annotations
 
@@ -17,46 +17,45 @@ def build_transport_network(transport_modes: list, filepaths: dict,
                             logistics_params: dict, time_resolution: str,
                             capacity_overrides: dict = None,
                             default_transport_capacity: dict = None) -> tuple[TransportNetwork, gpd.GeoDataFrame, gpd.GeoDataFrame]:
-    """Build transport network from GeoJSON edge files.
+    """Build transport network from a GeoPackage file.
+
+    Expects *filepaths["transport"]* to point to a ``.gpkg`` file with one
+    layer per transport mode (layer names must match the mode names in
+    *transport_modes*, e.g. ``roads``, ``maritime``, ``multimodal``).
 
     Returns (transport_network, transport_edges, transport_nodes).
     """
-    # Load and merge all edge files
     all_edges = []
     id_offset = 0
 
-    mode_file_map = {
-        "roads": "roads_edges",
-        "railways": "railways_edges",
-        "waterways": "waterways_edges",
-        "airways": "airways_edges",
-        "maritime": "maritime_edges",
-        "pipelines": "pipelines_edges",
-    }
+    gpkg_path = filepaths.get("transport")
+    if gpkg_path is None or not Path(gpkg_path).exists():
+        raise FileNotFoundError(
+            f"Transport GeoPackage not found: {gpkg_path}. "
+            f"Expected a .gpkg file at filepaths['transport']."
+        )
+
+    available_layers = set(gpd.list_layers(gpkg_path)["name"])
+    logging.info(f"Loading transport from {gpkg_path} "
+                 f"(layers: {sorted(available_layers)})")
 
     for mode in transport_modes:
         if mode == "multimodal":
-            continue  # loaded separately
-        file_key = mode_file_map.get(mode)
-        if not file_key or filepaths.get(file_key) is None:
-            logging.warning(f"No file for transport mode: {mode}")
-            continue
-        filepath = filepaths[file_key]
-        if not Path(filepath).exists():
-            logging.warning(f"Transport file not found: {filepath}")
+            continue  # loaded after other modes
+        if mode not in available_layers:
+            logging.warning(f"Layer '{mode}' not found in {gpkg_path}")
             continue
 
-        edges = _load_transport_edges(filepath, mode, time_resolution)
+        edges = _load_transport_edges(gpkg_path, mode, time_resolution, layer=mode)
         edges["id"] = edges["id"] + id_offset
         id_offset = edges["id"].max() + 1
         all_edges.append(edges)
         logging.info(f"Loaded {len(edges)} {mode} edges")
 
-    # Load multimodal edges (always present if multiple modes)
-    mm_key = "multimodal_edges"
-    if filepaths.get(mm_key) and Path(filepaths[mm_key]).exists():
-        mm_edges = _load_transport_edges(filepaths[mm_key], "multimodal", time_resolution)
-        # Filter multimodal by available modes
+    # Multimodal layer
+    if "multimodal" in available_layers:
+        mm_edges = _load_transport_edges(gpkg_path, "multimodal", time_resolution,
+                                         layer="multimodal")
         if "multimodes" in mm_edges.columns:
             mm_edges = mm_edges[mm_edges["multimodes"].apply(
                 lambda m: _multimodal_relevant(m, transport_modes) if isinstance(m, str) else True
@@ -132,9 +131,10 @@ def build_transport_network(transport_modes: list, filepaths: dict,
 # Helpers
 # ------------------------------------------------------------------
 
-def _load_transport_edges(filepath: Path, mode: str, time_resolution: str) -> gpd.GeoDataFrame:
-    """Load a GeoJSON transport edge file and standardize columns."""
-    gdf = gpd.read_file(filepath)
+def _load_transport_edges(filepath: Path, mode: str, time_resolution: str,
+                          layer: str | None = None) -> gpd.GeoDataFrame:
+    """Load transport edges from a GeoPackage layer and standardize columns."""
+    gdf = gpd.read_file(filepath, layer=layer)
 
     # Ensure required columns
     if "id" not in gdf.columns:
