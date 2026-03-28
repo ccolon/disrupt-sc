@@ -38,13 +38,9 @@ export_files: False
 
 # Logistic parameters
 logistics:
-  shipment_methods_to_transport_modes:  # shipment methods that can be used for each transport mode
-    solid_bulk: ["multimodal", 'roads', 'railways', 'maritime', 'waterways', 'airways']  # no solid bulk on pipeline
-    liquid_bulk: ["multimodal", 'pipelines', 'roads', 'railways', 'maritime', 'waterways', 'airways']
-    container: ["multimodal", 'roads', 'railways', 'maritime', 'waterways', 'airways']  # no container on pipelines
-  sector_types_to_shipment_method:  # shipment method to use for each sector type
-    agriculture: "solid_bulk"
-    mining: "solid_bulk"
+  sector_to_cargo_type:  # cargo type for each sector type
+    agriculture: "dry_bulk"
+    mining: "dry_bulk"
     oil_and_gas: "liquid_bulk"
     default: "container"
   speeds:  # km/hour
@@ -137,13 +133,33 @@ logistics:
 # Dictionary of edges, identified by their name, for which we have data on their flow, in monetary terms
 flow_data: {}
 
+# Default capacity per transport mode (tons/day).
+# A number sets shared capacity for all cargo types.
+# A dict sets per-cargo-type capacity (0 = blocked).
+# Modes not listed default to unlimited.
+default_transport_capacity:
+  roads: 100000        # ~5,000 trucks/day x 20t — shared across cargo types
+  railways: 200000     # shared
+  maritime: 5000000    # sea lanes effectively unconstrained
+  airways:
+    container: 5000    # air freight is containerized
+    dry_bulk: 0        # no bulk by air
+    liquid_bulk: 0     # no liquid by air
+  multimodal: 500000   # generous for generic connectors
+  pipeline:
+    container: 0
+    dry_bulk: 0
+    liquid_bulk: 500000
+
 # Transport capacity overrides: edge_name -> capacity in tons per day
-# These values will replace any capacity values from the GeoJSON files
+# A number sets shared capacity; a dict sets per-cargo-type capacity
 transport_capacity_overrides: {}
   # Example entries:
-  # "Highway 1 Segment A": 80000  # tons per day
-  # "Port of Sihanoukville": 120000
-  # "Main Railway Line": 45000
+  # strait_of_hormuz: 3000000     # shared, tons/day
+  # port_jebel_ali:
+  #   container: 450000
+  #   dry_bulk: 80000
+  #   liquid_bulk: 200000
 
 # Whether to cache route in a dictionary
 use_route_cache: True
@@ -391,7 +407,9 @@ adaptive_inventories: False
 #   "binary": Traditional on/off penalty when capacity exceeded (1e10x cost penalty)
 capacity_constraint: "off"
 
-
+# Maximum iterations for capacity-aware route pre-computation
+# Each iteration re-routes flows from congested edges. 3-5 is usually sufficient.
+capacity_routing_max_iterations: 3
 
 
 # Share of transport cost in country import/export prices (for rerouting cost passthrough)
