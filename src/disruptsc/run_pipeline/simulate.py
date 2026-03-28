@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 import networkx as nx
 import numpy as np
@@ -15,6 +16,7 @@ from disruptsc.run_pipeline.disruption import (
 )
 from disruptsc.run_pipeline.export import (
     collect_firm_data, collect_household_data, collect_country_data,
+    AgentWriters,
 )
 
 
@@ -24,63 +26,87 @@ from disruptsc.run_pipeline.export import (
 
 def run_initial_state(sc_network, transport_network, firms, households, countries,
                       tp: TransportParams, sp: SimParams,
-                      export_folder=None):
+                      export_folder: Path | None = None):
     """Single-timestep equilibrium run.  Returns collected data dicts."""
     set_initial_conditions(sc_network, firms, households, countries, tp, sp)
-    data = _run_one_time_step(
+
+    # Run t=0
+    flow_data = _run_one_time_step(
         0, sc_network, transport_network, transport_network,
         firms, households, countries, tp, sp, disruptions=[],
     )
-    return data
+
+    # Write CSVs if exporting
+    if export_folder:
+        with AgentWriters(export_folder) as writers:
+            writers.write_step(firms, households, countries, 0)
+
+    # Still return in-memory data for callers that need it
+    return {
+        "firm": collect_firm_data(firms, 0),
+        "household": collect_household_data(households, 0),
+        "country": collect_country_data(countries, 0),
+        "flow": flow_data,
+    }
 
 
 def run_disruption(sc_network, transport_network, firms, households, countries,
                    tp: TransportParams, sp: SimParams,
                    disruption_config: list | None,
                    transport_edges, firm_table,
-                   t_final: int):
+                   t_final: int,
+                   export_folder: Path | None = None):
     """Full disruption simulation.  Returns lists of per-timestep data."""
     set_initial_conditions(sc_network, firms, households, countries, tp, sp)
 
     all_data = {"firm": [], "household": [], "country": [], "transport_flow": []}
+    writers = AgentWriters(export_folder) if export_folder else None
 
-    # Time step 0: equilibrium snapshot
-    data = _run_one_time_step(
-        0, sc_network, transport_network, transport_network,
-        firms, households, countries, tp, sp, disruptions=[],
-    )
-    _accumulate(all_data, data)
-
-    # Parse disruptions
-    disruptions = parse_disruptions(
-        disruption_config, transport_edges, firm_table, firms, tp.monetary_units,
-    )
-    if not disruptions:
-        logging.info("No disruptions — running one baseline step and returning")
-        data = _run_one_time_step(
-            1, sc_network, transport_network, transport_network,
+    try:
+        # Time step 0: equilibrium snapshot
+        flow_data = _run_one_time_step(
+            0, sc_network, transport_network, transport_network,
             firms, households, countries, tp, sp, disruptions=[],
         )
-        _accumulate(all_data, data)
-        return all_data
+        _accumulate_and_write(all_data, firms, households, countries, 0,
+                              flow_data, writers, collect_flows=True)
 
-    logging.info(f"{len(disruptions)} disruption(s) parsed")
-    for d in disruptions:
-        d.log_info()
-
-    # Time loop
-    for t in range(1, t_final + 1):
-        data = _run_one_time_step(
-            t, sc_network, transport_network, transport_network,
-            firms, households, countries, tp, sp, disruptions=disruptions,
+        # Parse disruptions
+        disruptions = parse_disruptions(
+            disruption_config, transport_edges, firm_table, firms, tp.monetary_units,
         )
-        _accumulate(all_data, data, collect_flows=(t <= 1))
+        if not disruptions:
+            logging.info("No disruptions — running one baseline step and returning")
+            flow_data = _run_one_time_step(
+                1, sc_network, transport_network, transport_network,
+                firms, households, countries, tp, sp, disruptions=[],
+            )
+            _accumulate_and_write(all_data, firms, households, countries, 1,
+                                  flow_data, writers, collect_flows=True)
+            return all_data
 
-        # Early stop
-        if sp.epsilon_stop and t > max(d.start_time for d in disruptions):
-            if _is_back_to_equilibrium(households, countries, sp.epsilon_stop):
-                logging.info(f"Back to equilibrium at t={t}, stopping")
-                break
+        logging.info(f"{len(disruptions)} disruption(s) parsed")
+        for d in disruptions:
+            d.log_info()
+
+        # Time loop
+        for t in range(1, t_final + 1):
+            flow_data = _run_one_time_step(
+                t, sc_network, transport_network, transport_network,
+                firms, households, countries, tp, sp, disruptions=disruptions,
+            )
+            _accumulate_and_write(all_data, firms, households, countries, t,
+                                  flow_data, writers, collect_flows=(t <= 1))
+
+            # Early stop
+            if sp.epsilon_stop and t > max(d.start_time for d in disruptions):
+                if _is_back_to_equilibrium(households, countries, sp.epsilon_stop):
+                    logging.info(f"Back to equilibrium at t={t}, stopping")
+                    break
+
+    finally:
+        if writers:
+            writers.close()
 
     return all_data
 
@@ -100,11 +126,12 @@ def run_criticality(sc_network, transport_network, firms, households, countries,
     all_data = {"firm": [], "household": [], "country": [], "transport_flow": []}
 
     for t in range(0, t_final + 1):
-        data = _run_one_time_step(
+        flow_data = _run_one_time_step(
             t, sc_network, transport_network, transport_network,
             firms, households, countries, tp, sp, disruptions=disruptions,
         )
-        _accumulate(all_data, data)
+        _accumulate_and_write(all_data, firms, households, countries, t,
+                              flow_data, writers=None, collect_flows=True)
 
         if t > duration + 1 and sp.epsilon_stop:
             if _is_back_to_equilibrium(households, countries, sp.epsilon_stop):
@@ -218,7 +245,7 @@ def _run_one_time_step(time_step, sc_network, transport_network,
                        available_transport_network,
                        firms, households, countries,
                        tp, sp, disruptions):
-    """Execute one simulation time step.  Returns data dict for this step."""
+    """Execute one simulation time step.  Returns flow data for this step."""
     logging.info(f"--- Time step {time_step} ---")
 
     # Apply disruptions starting this step
@@ -280,30 +307,30 @@ def _run_one_time_step(time_step, sc_network, transport_network,
     for firm in firms.values():
         firm.evaluate_profit(sc_network)
 
-    # 11. Update disruption state
+    # 12. Update disruption state
     transport_network.update_road_disruption_state()
     for firm in firms.values():
         firm.update_disrupted_production_capacity()
 
-    # Collect data
-    return {
-        "firm": collect_firm_data(firms, time_step),
-        "household": collect_household_data(households, time_step),
-        "country": collect_country_data(countries, time_step),
-        "flow": flow_data,
-    }
+    return flow_data
 
 
 # ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------
 
-def _accumulate(all_data, step_data, collect_flows=True):
-    all_data["firm"].extend(step_data["firm"])
-    all_data["household"].extend(step_data["household"])
-    all_data["country"].extend(step_data["country"])
-    if collect_flows and step_data.get("flow"):
-        all_data["transport_flow"].extend(step_data["flow"])
+def _accumulate_and_write(all_data, firms, households, countries, time_step,
+                          flow_data, writers: AgentWriters | None,
+                          collect_flows=True):
+    """Accumulate in-memory data AND write CSV rows if writers are open."""
+    all_data["firm"].extend(collect_firm_data(firms, time_step))
+    all_data["household"].extend(collect_household_data(households, time_step))
+    all_data["country"].extend(collect_country_data(countries, time_step))
+    if collect_flows and flow_data:
+        all_data["transport_flow"].extend(flow_data)
+
+    if writers:
+        writers.write_step(firms, households, countries, time_step)
 
 
 def _is_back_to_equilibrium(households, countries, epsilon):

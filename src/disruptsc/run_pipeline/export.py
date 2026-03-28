@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import csv
-import json
 import logging
 from pathlib import Path
 
@@ -19,7 +18,7 @@ def _ensure_crs(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
 
 
 # ------------------------------------------------------------------
-# Incremental CSV writer (Option C from design decisions)
+# Incremental CSV writer
 # ------------------------------------------------------------------
 
 class CsvWriter:
@@ -49,7 +48,87 @@ class CsvWriter:
 
 
 # ------------------------------------------------------------------
-# Data collection helpers (called each time step)
+# Agent CSV writers (opened once, written to each time step)
+# ------------------------------------------------------------------
+
+FIRM_COLUMNS = [
+    "time_step", "firm", "region", "sector",
+    "production", "production_target", "production_capacity",
+    "product_stock", "total_order", "rationing",
+    "profit", "price", "delta_price_input",
+]
+
+HOUSEHOLD_COLUMNS = [
+    "time_step", "household", "region",
+    "consumption_loss", "extra_spending",
+]
+
+HOUSEHOLD_BY_SECTOR_COLUMNS = [
+    "time_step", "household", "sector",
+    "consumption_loss", "extra_spending",
+]
+
+COUNTRY_COLUMNS = [
+    "time_step", "country",
+    "extra_spending", "consumption_loss",
+    "generalized_transport_cost",
+    "usd_transported", "tons_transported", "tonkm_transported",
+]
+
+
+class AgentWriters:
+    """Manage the set of CSV writers for agent time-series data."""
+
+    def __init__(self, export_folder: Path):
+        self.firm = CsvWriter(export_folder / "firm_data.csv", FIRM_COLUMNS)
+        self.household = CsvWriter(export_folder / "household_data.csv", HOUSEHOLD_COLUMNS)
+        self.household_by_sector = CsvWriter(
+            export_folder / "household_data_by_sector.csv", HOUSEHOLD_BY_SECTOR_COLUMNS,
+        )
+        self.country = CsvWriter(export_folder / "country_data.csv", COUNTRY_COLUMNS)
+
+    def write_step(self, firms: dict, households: dict, countries: dict, time_step: int):
+        """Collect and write one time step of agent data."""
+        # Firms — flat rows
+        for firm in firms.values():
+            self.firm.write_row(firm.collect_data(time_step))
+
+        # Households — scalar row + per-sector rows
+        for hh in households.values():
+            data = hh.collect_data(time_step)
+            self.household.write_row(data)
+
+            cl_per_sector = data.get("consumption_loss_per_sector", {})
+            es_per_sector = data.get("extra_spending_per_sector", {})
+            sectors = set(list(cl_per_sector.keys()) + list(es_per_sector.keys()))
+            for sector in sectors:
+                self.household_by_sector.write_row({
+                    "time_step": time_step,
+                    "household": data["household"],
+                    "sector": sector,
+                    "consumption_loss": cl_per_sector.get(sector, 0),
+                    "extra_spending": es_per_sector.get(sector, 0),
+                })
+
+        # Countries — flat rows
+        for c in countries.values():
+            self.country.write_row(c.collect_data(time_step))
+
+    def close(self):
+        self.firm.close()
+        self.household.close()
+        self.household_by_sector.close()
+        self.country.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+
+
+# ------------------------------------------------------------------
+# Data collection helpers (for in-memory accumulation path)
 # ------------------------------------------------------------------
 
 def collect_firm_data(firms: dict, time_step: int) -> list[dict]:
@@ -65,19 +144,8 @@ def collect_country_data(countries: dict, time_step: int) -> list[dict]:
 
 
 # ------------------------------------------------------------------
-# Summary / post-simulation exports
+# Transport flow export (per-timestep GeoJSON — unchanged)
 # ------------------------------------------------------------------
-
-def export_agent_data(firm_data: list, country_data: list, household_data: list,
-                      export_folder: Path):
-    """Write agent JSON files."""
-    logging.info(f"Exporting agent data to {export_folder}")
-    for name, data in [("firm_data", firm_data),
-                       ("country_data", country_data),
-                       ("household_data", household_data)]:
-        with open(export_folder / f"{name}.json", "w") as f:
-            json.dump(data, f)
-
 
 def export_transport_flows(transport_flow_data: list,
                            transport_edges: gpd.GeoDataFrame,
@@ -100,11 +168,14 @@ def export_transport_flows(transport_flow_data: list,
         )
 
 
+# ------------------------------------------------------------------
+# Summary exports
+# ------------------------------------------------------------------
+
 def export_summary(household_data: list, country_data: list,
                    household_table: pd.DataFrame | None = None,
                    monetary_units: str = "mUSD", export_folder: Path | None = None):
     """Compute and export loss summary CSVs."""
-    # Household losses per region-sector-time
     hh_df = pd.DataFrame(household_data)
     if hh_df.empty:
         return {"household_loss": 0.0, "country_loss": 0.0}
