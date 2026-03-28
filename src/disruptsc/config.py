@@ -152,8 +152,7 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
         variability_coef=logistics.get("variability_coef", 0.44),
         variability=logistics.get("variability", {}),
         name_specific=logistics.get("name-specific", {}),
-        shipment_methods_to_transport_modes=logistics.get("shipment_methods_to_transport_modes", {}),
-        sector_types_to_shipment_method=logistics.get("sector_types_to_shipment_method", {}),
+        sector_to_cargo_type=logistics.get("sector_to_cargo_type", {}),
     )
 
     return transport_params, sim_params, agent_params, logistics_params

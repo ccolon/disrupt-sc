@@ -26,7 +26,7 @@ def build_supply_chain_network(
     nb_suppliers_per_input: float,
     weight_localization_firm: float,
     weight_localization_household: float,
-    sector_types_to_shipment_method: dict,
+    sector_to_cargo_type: dict,
     transport_network=None,
 ) -> ScNetwork:
     """Build full supply-chain graph.  Returns populated ScNetwork."""
@@ -44,7 +44,7 @@ def build_supply_chain_network(
         _household_select_suppliers(
             hh, sc, firms, countries, rs_to_firms,
             nb_suppliers_per_input, weight_localization_household,
-            sector_types_to_shipment_method, import_label, transport_network,
+            sector_to_cargo_type, import_label, transport_network,
         )
 
     # 2. Countries select exporters and create transit links
@@ -56,7 +56,7 @@ def build_supply_chain_network(
     for country in countries.values():
         _country_select_suppliers(
             country, sc, firms, countries, rs_to_firms,
-            share_exporting, sector_types_to_shipment_method,
+            share_exporting, sector_to_cargo_type,
         )
 
     # 3. Firms select B2B + import suppliers
@@ -65,7 +65,7 @@ def build_supply_chain_network(
         _firm_select_suppliers(
             firm, sc, firms, countries, rs_to_firms,
             nb_suppliers_per_input, weight_localization_firm,
-            sector_types_to_shipment_method, import_label, transport_network,
+            sector_to_cargo_type, import_label, transport_network,
         )
 
     # 4. Cleanup: remove disconnected agents
@@ -100,7 +100,7 @@ def build_supply_chain_network(
 
 def _household_select_suppliers(hh, sc, firms, countries, rs_to_firms,
                                 nb_suppliers_per_input, weight_loc,
-                                sector_types_to_shipment_method, import_label,
+                                sector_to_cargo_type, import_label,
                                 transport_network):
     hh.purchase_plan = {}
     hh.retailers = {}
@@ -126,7 +126,7 @@ def _household_select_suppliers(hh, sc, firms, countries, rs_to_firms,
                 category=category, origin_node=supplier.od_point,
                 destination_node=hh.od_point, supplier_id=sid, buyer_id=hh.pid,
             )
-            link.determine_shipment_method(sector_types_to_shipment_method)
+            link.determine_cargo_type(sector_to_cargo_type)
             sc.add_edge(supplier, hh, object=link)
             sc[supplier][hh]["weight"] = w
 
@@ -141,7 +141,7 @@ def _household_select_suppliers(hh, sc, firms, countries, rs_to_firms,
 # ------------------------------------------------------------------
 
 def _country_select_suppliers(country, sc, firms, countries, rs_to_firms,
-                              share_exporting, sector_types_to_shipment_method):
+                              share_exporting, sector_to_cargo_type):
     # Transit links
     for selling_pid, quantity in country.transit_from.items():
         seller = countries[selling_pid]
@@ -181,7 +181,7 @@ def _country_select_suppliers(country, sc, firms, countries, rs_to_firms,
                 origin_node=supplier.od_point, destination_node=country.od_point,
                 supplier_id=sid, buyer_id=country.pid,
             )
-            link.determine_shipment_method(sector_types_to_shipment_method)
+            link.determine_cargo_type(sector_to_cargo_type)
             sc.add_edge(supplier, country, object=link)
             sc[supplier][country]["weight"] = w
 
@@ -201,7 +201,7 @@ def _country_select_suppliers(country, sc, firms, countries, rs_to_firms,
 
 def _firm_select_suppliers(firm, sc, firms, countries, rs_to_firms,
                            nb_suppliers_per_input, weight_loc,
-                           sector_types_to_shipment_method, import_label,
+                           sector_to_cargo_type, import_label,
                            transport_network):
     for sector_id, sector_weight in firm.input_mix.items():
         supplier_type, ids, weights, distances = _identify_suppliers(
@@ -223,7 +223,7 @@ def _firm_select_suppliers(firm, sc, firms, countries, rs_to_firms,
                 category=category, origin_node=supplier.od_point,
                 destination_node=firm.od_point, supplier_id=sid, buyer_id=firm.pid,
             )
-            link.determine_shipment_method(sector_types_to_shipment_method)
+            link.determine_cargo_type(sector_to_cargo_type)
             sc.add_edge(supplier, firm, object=link)
             sc[supplier][firm]["weight"] = sector_weight * w
 

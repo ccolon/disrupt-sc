@@ -32,7 +32,7 @@ class TransportNetwork(nx.Graph):
 
     def __init__(self, graph=None, **attr):
         super().__init__(graph, **attr)
-        self.shipment_methods: list[str] | None = None
+        self.cargo_types: list[str] | None = None
         self.min_cost_per_tonkm: float | None = None
         self.shortest_path_library: dict = {"normal": {}, "alternative": {}}
         self._distance_cache: dict[tuple, float] = {}
@@ -106,40 +106,44 @@ class TransportNetwork(nx.Graph):
     # ------------------------------------------------------------------
 
     def ingest_logistic_data(self, logistic_parameters: dict, time_resolution: str):
-        self.shipment_methods = list(logistic_parameters["shipment_methods_to_transport_modes"].keys())
+        # Derive cargo types from sector_to_cargo_type mapping
+        cargo_type_values = list(logistic_parameters.get("sector_to_cargo_type", {}).values())
+        self.cargo_types = sorted(set(ct for ct in cargo_type_values if ct != "default"))
+        if not self.cargo_types:
+            self.cargo_types = ["container", "dry_bulk", "liquid_bulk"]
         nb_profiles = logistic_parameters["nb_cost_profiles"]
         self.shortest_path_library = {
-            i: {"normal": {m: {} for m in self.shipment_methods},
-                "alternative": {m: {} for m in self.shipment_methods}}
+            i: {"normal": {m: {} for m in self.cargo_types},
+                "alternative": {m: {} for m in self.cargo_types}}
             for i in range(nb_profiles)
         }
         for _, attr in self.edges.items():
-            _calculate_cost_per_ton(attr, logistic_parameters, time_resolution)
+            _calculate_cost_per_ton(attr, logistic_parameters, self.cargo_types, time_resolution)
 
     # ------------------------------------------------------------------
     # Routing
     # ------------------------------------------------------------------
 
     def provide_shortest_route(self, origin: int, destination: int,
-                               shipment_method: str, route_weight: str) -> Route | None:
+                               cargo_type: str, route_weight: str) -> Route | None:
         if origin not in self.nodes:
             logging.debug(f"Origin {origin} not in available network")
             return None
         if destination not in self.nodes:
             logging.debug(f"Destination {destination} not in available network")
             return None
-        weight = route_weight + "_" + shipment_method
+        weight = route_weight + "_" + cargo_type
         try:
             sp = nx.shortest_path(self, origin, destination, weight=weight)
-            return Route(sp, self, shipment_method)
+            return Route(sp, self, cargo_type)
         except nx.NetworkXNoPath:
             logging.debug(f"No path {origin} → {destination}")
             return None
 
     def retrieve_cached_route(self, from_node: int, to_node: int, cost_profile: int,
-                              normal_or_disrupted: str, shipment_method: str) -> Route | None:
+                              normal_or_disrupted: str, cargo_type: str) -> Route | None:
         key = tuple(sorted((from_node, to_node)))
-        cached = self.shortest_path_library[cost_profile][normal_or_disrupted][shipment_method].get(key)
+        cached = self.shortest_path_library[cost_profile][normal_or_disrupted][cargo_type].get(key)
         if cached is None:
             return None
         if from_node == key[0]:
@@ -149,22 +153,22 @@ class TransportNetwork(nx.Graph):
         return route
 
     def cache_route(self, from_node: int, to_node: int, cost_profile: int,
-                    normal_or_disrupted: str, shipment_method: str, route: Route):
+                    normal_or_disrupted: str, cargo_type: str, route: Route):
         key = tuple(sorted((from_node, to_node)))
         if from_node == key[0]:
-            self.shortest_path_library[cost_profile][normal_or_disrupted][shipment_method][key] = route
+            self.shortest_path_library[cost_profile][normal_or_disrupted][cargo_type][key] = route
         else:
             canonical = copy.deepcopy(route)
             canonical.revert()
-            self.shortest_path_library[cost_profile][normal_or_disrupted][shipment_method][key] = canonical
+            self.shortest_path_library[cost_profile][normal_or_disrupted][cargo_type][key] = canonical
 
     def is_route_available(self, route: Route) -> bool:
         """Check if a route's edges are all undisrupted."""
         return route.is_usable(self)
 
-    def compute_route_cost(self, route: Route, shipment_method: str, cost_profile: int) -> float:
+    def compute_route_cost(self, route: Route, cargo_type: str, cost_profile: int) -> float:
         """Sum cost_per_ton along a route."""
-        weight = f"cost_per_ton_{cost_profile}_{shipment_method}"
+        weight = f"cost_per_ton_{cost_profile}_{cargo_type}"
         return route.sum_indicator(self, weight)
 
     # ------------------------------------------------------------------
@@ -221,7 +225,8 @@ class TransportNetwork(nx.Graph):
             d = self[u][v]
             d["disruption_duration"] = 0
             d["shipments"] = {}
-            d["current_load"] = 0
+            for ct in (self.cargo_types or []):
+                d[f"current_load_{ct}"] = 0
             d["overused"] = False
 
     # ------------------------------------------------------------------
@@ -259,33 +264,58 @@ class TransportNetwork(nx.Graph):
         for u, v in route.transport_edges:
             self[u][v]["shipments"][link.pid] = shipment
         self._node[link.destination_node]["shipments"][link.pid] = shipment
-        self.update_load_on_route(route, link.delivery_in_tons, capacity_constraint, capacity_constraint_mode)
+        self.update_load_on_route(route, link.delivery_in_tons, link.cargo_type,
+                                 capacity_constraint, capacity_constraint_mode)
 
     def update_load_on_route(self, route: Route, load: float,
-                             capacity_constraint: bool, capacity_constraint_mode: str = "gradual"):
-        cost_labels = self._get_cost_labels(with_capacity=False)
-        cap_labels = self._get_cost_labels(with_capacity=True)
+                             cargo_type: str,
+                             capacity_constraint: bool,
+                             capacity_constraint_mode: str = "gradual"):
+        """Update per-cargo-type loads on route edges and adjust capacity costs."""
         for u, v in route.transport_edges:
             edge = self[u][v]
-            edge["current_load"] += load
+            load_key = f"current_load_{cargo_type}"
+            edge[load_key] = edge.get(load_key, 0) + load
+
             if capacity_constraint:
+                cap = _get_cargo_capacity(edge, cargo_type)
+                current = edge[load_key]
+                # Also check shared capacity (total load across all cargo types)
+                total_load = sum(edge.get(f"current_load_{ct}", 0) for ct in self.cargo_types)
+                shared_cap = edge.get("capacity", 1e9)
+
                 if capacity_constraint_mode == "gradual":
-                    mult = _capacity_multiplier(edge["current_load"], edge["capacity"])
-                    for i, cl in enumerate(cost_labels):
-                        edge[cap_labels[i]] = edge[cl] * mult
-                    edge["overused"] = edge["current_load"] > edge["capacity"]
+                    # Congestion from cargo-specific capacity
+                    ct_mult = _capacity_multiplier(current, cap) if cap < 1e8 else 1.0
+                    # Congestion from shared capacity
+                    shared_mult = _capacity_multiplier(total_load, shared_cap) if f"capacity_{cargo_type}" not in edge else 1.0
+                    mult = max(ct_mult, shared_mult)
+
+                    # Update cost_per_ton_with_capacity for this cargo type only
+                    for i in range(len(self.cargo_types)):
+                        base_key = f"cost_per_ton_{i}_{cargo_type}"
+                        cap_key = f"cost_per_ton_with_capacity_{i}_{cargo_type}"
+                        if base_key in edge and edge[base_key] < TRANSPORT_MALUS:
+                            edge[cap_key] = edge[base_key] * mult
+
+                    edge["overused"] = total_load > shared_cap or current > cap
                 else:  # binary
-                    if not edge.get("overused", False) and edge["current_load"] > edge["capacity"]:
+                    over = current > cap or total_load > shared_cap
+                    if over and not edge.get("overused", False):
                         edge["overused"] = True
-                        for cl in cap_labels:
-                            edge[cl] += 1e10
+                        for i in range(len(self.cargo_types)):
+                            cap_key = f"cost_per_ton_with_capacity_{i}_{cargo_type}"
+                            if cap_key in edge:
+                                edge[cap_key] += 1e10
 
     def reset_loads(self):
+        """Reset all load tracking and capacity costs to base values."""
         cost_labels = self._get_cost_labels(with_capacity=False)
         cap_labels = self._get_cost_labels(with_capacity=True)
         for u, v in self.edges:
             edge = self[u][v]
-            edge["current_load"] = 0
+            for ct in (self.cargo_types or []):
+                edge[f"current_load_{ct}"] = 0
             edge["overused"] = False
             edge["shipments"] = {}
             for i, cl in enumerate(cost_labels):
@@ -371,7 +401,12 @@ def _get_border_crossing_time_and_fee(edge_attr: dict, border_times: dict, borde
     return 0.0, 0.0
 
 
-def _calculate_cost_per_ton(edge_attr: dict, params: dict, time_resolution: str):
+def _calculate_cost_per_ton(edge_attr: dict, params: dict, cargo_types: list, time_resolution: str):
+    """Calculate cost_per_ton for each (profile, cargo_type) combination.
+
+    Cargo types with zero capacity on this edge get TRANSPORT_MALUS,
+    replacing the old cargo_types_to_transport_modes mapping.
+    """
     edge_id = f"Edge {edge_attr.get('id', '?')} ({edge_attr.get('type', '?')})"
 
     km = edge_attr.get("km", 0.0)
@@ -399,11 +434,26 @@ def _calculate_cost_per_ton(edge_attr: dict, params: dict, time_resolution: str)
     costs = {i: bc + special_cost + total_fee + total_time * adjusted_delay_cost
              for i, bc in basic_costs.items()}
 
-    for method, modes in params["shipment_methods_to_transport_modes"].items():
+    for ct in cargo_types:
+        # Check if this cargo type is blocked on this edge (zero capacity)
+        ct_capacity = _get_cargo_capacity(edge_attr, ct)
+        blocked = ct_capacity == 0
         for i, cost in costs.items():
-            if edge_attr["type"] in modes:
-                edge_attr[f"cost_per_ton_{i}_{method}"] = cost
-                edge_attr[f"cost_per_ton_with_capacity_{i}_{method}"] = cost
+            if blocked:
+                edge_attr[f"cost_per_ton_{i}_{ct}"] = TRANSPORT_MALUS
+                edge_attr[f"cost_per_ton_with_capacity_{i}_{ct}"] = TRANSPORT_MALUS
             else:
-                edge_attr[f"cost_per_ton_{i}_{method}"] = TRANSPORT_MALUS
-                edge_attr[f"cost_per_ton_with_capacity_{i}_{method}"] = TRANSPORT_MALUS
+                edge_attr[f"cost_per_ton_{i}_{ct}"] = cost
+                edge_attr[f"cost_per_ton_with_capacity_{i}_{ct}"] = cost
+
+
+def _get_cargo_capacity(edge_attr: dict, cargo_type: str) -> float:
+    """Get the effective capacity for a cargo type on an edge.
+
+    Returns the per-cargo-type capacity if defined, otherwise the shared capacity.
+    A return value of 0 means this cargo type is blocked on this edge.
+    """
+    ct_cap = edge_attr.get(f"capacity_{cargo_type}")
+    if ct_cap is not None:
+        return float(ct_cap)
+    return float(edge_attr.get("capacity", 1e9))

@@ -70,7 +70,8 @@ def main():
         logging.info("Building transport network")
         transport_network, transport_edges, transport_nodes = build_transport_network(
             transport_modes, filepaths, logistics_raw, sp.time_resolution,
-            capacity_overrides=config.get("capacity_overrides"),
+            capacity_overrides=config.get("transport_capacity_overrides"),
+            default_transport_capacity=config.get("default_transport_capacity"),
         )
         cache_transport_network(transport_network, transport_edges, transport_nodes)
 
@@ -116,6 +117,7 @@ def main():
         countries = create_countries(
             mrio, transport_nodes, filepaths.get("countries_spatial"),
             usd_per_ton, sp.time_resolution, ap,
+            transport_edges=transport_edges,
         )
 
         cache_agents(firms, households, countries, mrio, sector_table, firm_table, household_table)
@@ -132,7 +134,7 @@ def main():
             firms, households, countries, mrio, sector_table,
             ap.nb_suppliers_per_input, ap.weight_localization_firm,
             ap.weight_localization_household,
-            lp.sector_types_to_shipment_method, transport_network,
+            lp.sector_to_cargo_type, transport_network,
         )
         cache_sc_network(sc_network, firms, households, countries)
 
@@ -148,6 +150,7 @@ def main():
             cl_table = setup_logistic_routes(
                 sc_network, transport_network, firms, countries,
                 tp, lp.nb_cost_profiles,
+                max_capacity_iterations=config.get("capacity_routing_max_iterations", 3),
             )
         else:
             cl_table = None

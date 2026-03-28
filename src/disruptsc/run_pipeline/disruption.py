@@ -50,12 +50,20 @@ class TransportDisruption:
 
     def implement(self, transport_network):
         duration = self.recovery.duration if self.recovery else float("inf")
+        cargo_types = transport_network.cargo_types or []
         for edge in transport_network.edges:
-            eid = transport_network[edge[0]][edge[1]]["id"]
+            edata = transport_network[edge[0]][edge[1]]
+            eid = edata["id"]
             if eid in self.description:
                 reduction = self.description[eid]
-                transport_network[edge[0]][edge[1]]["disruption_duration"] = duration
-                transport_network[edge[0]][edge[1]]["current_capacity"] *= (1 - reduction)
+                edata["disruption_duration"] = duration
+                # Reduce shared capacity
+                edata["capacity"] = edata.get("capacity", 1e9) * (1 - reduction)
+                # Reduce per-cargo-type capacities
+                for ct in cargo_types:
+                    ct_key = f"capacity_{ct}"
+                    if ct_key in edata:
+                        edata[ct_key] *= (1 - reduction)
                 logging.debug(f"Disrupted edge {eid}: {reduction:.0%} capacity loss for {duration} steps")
 
     def log_info(self):

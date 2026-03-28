@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 class Route(list):
     """A route is an alternating sequence of nodes and edges: [(n1,), (n1,n2), (n2,), ...]."""
 
-    def __init__(self, node_list: list, transport_network: TransportNetwork, shipment_method: str):
+    def __init__(self, node_list: list, transport_network: TransportNetwork, cargo_type: str):
         node_edge_tuple = [[(node_list[0],)]] + [
             [(node_list[i], node_list[i + 1]), (node_list[i + 1],)]
             for i in range(len(node_list) - 1)
