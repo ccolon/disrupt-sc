@@ -129,7 +129,7 @@ def send_shipment(agent_pid, od_point: int, cost_profile: int,
         transport_network.place_shipment(
             route, link.pid, link.delivery_in_tons, link.destination_node,
             monetary_quantity=link.delivery, product_type=link.product_type,
-            flow_category=link.category,
+            flow_category=link.category, cargo_type=link.cargo_type,
         )
 
     link.realized_delivery = link.delivery
