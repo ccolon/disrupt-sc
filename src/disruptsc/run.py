@@ -168,6 +168,7 @@ def main():
             export_folder=export_folder,
         )
         if export_folder:
+            export_transport_flows(data["flow"], transport_edges, export_folder)
             export_initial_state(sc_network, export_folder)
 
     elif sim_type == "disruption":
