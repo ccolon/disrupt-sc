@@ -52,10 +52,19 @@ def build_transport_network(transport_modes: list, filepaths: dict,
         all_edges.append(edges)
         logging.info(f"Loaded {len(edges)} {mode} edges")
 
-    # Multimodal layer
-    if "multimodal" in available_layers:
+    # Multimodal layer — from separate file if provided, else from main gpkg
+    mm_gpkg = filepaths.get("multimodal")
+    if mm_gpkg is not None and Path(mm_gpkg).exists():
+        mm_edges = _load_transport_edges(mm_gpkg, "multimodal", time_resolution,
+                                         layer="multimodal")
+        logging.info(f"Loading multimodal edges from {mm_gpkg}")
+    elif "multimodal" in available_layers:
         mm_edges = _load_transport_edges(gpkg_path, "multimodal", time_resolution,
                                          layer="multimodal")
+    else:
+        mm_edges = None
+
+    if mm_edges is not None:
         if "multimodes" in mm_edges.columns:
             mm_edges = mm_edges[mm_edges["multimodes"].apply(
                 lambda m: _multimodal_relevant(m, transport_modes) if isinstance(m, str) else True
@@ -69,6 +78,14 @@ def build_transport_network(transport_modes: list, filepaths: dict,
 
     edges_gdf = pd.concat(all_edges, ignore_index=True)
     edges_gdf = gpd.GeoDataFrame(edges_gdf, geometry="geometry")
+
+    # Guard: edge IDs must be unique (duplicate IDs break the flow export merge)
+    dup_ids = edges_gdf[edges_gdf.duplicated(subset="id", keep=False)]
+    if not dup_ids.empty:
+        n_dups = dup_ids["id"].nunique()
+        logging.warning(f"{n_dups} duplicate edge IDs found — reassigning all IDs sequentially. "
+                        f"Fix the source data (e.g. re-run build_transport.py) to silence this warning.")
+        edges_gdf["id"] = range(len(edges_gdf))
 
     # Create nodes from edge endpoints
     nodes_gdf, edges_gdf = _create_nodes_and_update_edges(edges_gdf)

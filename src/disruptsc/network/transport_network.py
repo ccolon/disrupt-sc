@@ -17,8 +17,6 @@ from disruptsc.network.route import Route
 if TYPE_CHECKING:
     from disruptsc.network.commercial_link import CommercialLink
 
-# Cost used to penalize unsupported shipment-mode combinations
-TRANSPORT_MALUS = 1e9
 
 
 def degrees_to_km(lon1, lat1, lon2, lat2) -> float:
@@ -234,13 +232,15 @@ class TransportNetwork(nx.Graph):
     # ------------------------------------------------------------------
 
     def place_shipment(self, route: Route, link_pid: str, tons: float, destination_node: int,
-                        monetary_quantity: float = 0.0, product_type: str = "", flow_category: str = ""):
+                        monetary_quantity: float = 0.0, product_type: str = "",
+                        flow_category: str = "", cargo_type: str = ""):
         """Place a shipment on all edges of a route and at the destination node."""
         shipment = {
             "quantity": monetary_quantity,
             "tons": tons,
             "product_type": product_type,
             "flow_category": flow_category,
+            "cargo_type": cargo_type,
         }
         for u, v in route.transport_edges:
             self[u][v]["shipments"][link_pid] = shipment
@@ -295,7 +295,7 @@ class TransportNetwork(nx.Graph):
                     for i in range(len(self.cargo_types)):
                         base_key = f"cost_per_ton_{i}_{cargo_type}"
                         cap_key = f"cost_per_ton_with_capacity_{i}_{cargo_type}"
-                        if base_key in edge and edge[base_key] < TRANSPORT_MALUS:
+                        if base_key in edge:
                             edge[cap_key] = edge[base_key] * mult
 
                     edge["overused"] = total_load > shared_cap or current > cap
@@ -319,7 +319,8 @@ class TransportNetwork(nx.Graph):
             edge["overused"] = False
             edge["shipments"] = {}
             for i, cl in enumerate(cost_labels):
-                edge[cap_labels[i]] = edge[cl]
+                if cl in edge:  # blocked cargo types have no cost labels
+                    edge[cap_labels[i]] = edge[cl]
         for node_id in self.nodes:
             self._node[node_id]["shipments"] = {}
 
@@ -339,14 +340,119 @@ class TransportNetwork(nx.Graph):
             data = {"time_step": time_step, "id": self[u][v]["id"], "flow_total": 0, "flow_total_tons": 0}
             for s in shipments:
                 fc, pt = s["flow_category"], s["product_type"]
+                ct = s.get("cargo_type", "")
                 qty, tons = s["quantity"], s["tons"]
                 data[f"flow_{fc}_{pt}"] = data.get(f"flow_{fc}_{pt}", 0) + qty
                 data[f"flow_{fc}"] = data.get(f"flow_{fc}", 0) + qty
                 data[f"flow_{pt}"] = data.get(f"flow_{pt}", 0) + qty
                 data["flow_total"] += qty
                 data["flow_total_tons"] += tons
+                if ct:
+                    data[f"tons_{ct}"] = data.get(f"tons_{ct}", 0) + tons
+                    data[f"usd_{ct}"] = data.get(f"usd_{ct}", 0) + qty
             flows.append(data)
         return flows
+
+    def compute_logistics_report(self, time_step: int,
+                                 monitored_names: list[str] | None = None) -> dict:
+        """Compute logistics report while shipments are on edges.
+
+        Returns a dict with:
+          - "monitored": list of dicts for edges matching *monitored_names*
+          - "by_mode": dict of {mode: {tons, usd}} aggregates
+          - "top_utilized": list of top 10 edges by max cargo utilization %
+          - "network": dict of {total_tons, total_usd, n_edges_with_flow, n_edges_no_flow}
+        """
+        cargo_types = self.cargo_types or []
+        monitored_set = set(monitored_names or [])
+
+        monitored_rows = []
+        mode_agg = defaultdict(lambda: {"tons": 0.0, "usd": 0.0})
+        utilization_rows = []
+        total_tons = 0.0
+        total_usd = 0.0
+        n_with_flow = 0
+        n_no_flow = 0
+
+        for u, v in self.edges():
+            edge = self[u][v]
+            shipments = edge["shipments"].values()
+
+            # Accumulate per-cargo-type tons and USD from shipments
+            ct_tons = defaultdict(float)
+            ct_usd = defaultdict(float)
+            edge_tons = 0.0
+            edge_usd = 0.0
+            for s in shipments:
+                ct = s.get("cargo_type", "")
+                tons = s["tons"]
+                qty = s["quantity"]
+                edge_tons += tons
+                edge_usd += qty
+                if ct:
+                    ct_tons[ct] += tons
+                    ct_usd[ct] += qty
+
+            # Network-level aggregation
+            mode = edge.get("type", "unknown")
+            mode_agg[mode]["tons"] += edge_tons
+            mode_agg[mode]["usd"] += edge_usd
+            total_tons += edge_tons
+            total_usd += edge_usd
+            if edge_tons > 0:
+                n_with_flow += 1
+            else:
+                n_no_flow += 1
+
+            # Capacity utilization per cargo type
+            max_util = 0.0
+            ct_detail = {}
+            for ct in cargo_types:
+                cap = _get_cargo_capacity(edge, ct)
+                load = ct_tons.get(ct, 0.0)
+                util = (load / cap * 100) if cap > 0 and cap < 1e8 else 0.0
+                ct_detail[ct] = {"tons": load, "usd": ct_usd.get(ct, 0.0),
+                                 "capacity": cap if cap < 1e8 else None,
+                                 "utilization_pct": round(util, 1)}
+                max_util = max(max_util, util)
+
+            row = {
+                "time_step": time_step,
+                "edge_id": edge.get("id", "?"),
+                "name": edge.get("name", ""),
+                "type": mode,
+                "km": edge.get("km", 0),
+                "flow_tons": round(edge_tons, 1),
+                "flow_usd": round(edge_usd, 1),
+                "max_utilization_pct": round(max_util, 1),
+                **{f"tons_{ct}": round(ct_detail[ct]["tons"], 1) for ct in cargo_types},
+                **{f"usd_{ct}": round(ct_detail[ct]["usd"], 1) for ct in cargo_types},
+                **{f"capacity_{ct}": ct_detail[ct]["capacity"] for ct in cargo_types},
+                **{f"utilization_{ct}_pct": ct_detail[ct]["utilization_pct"] for ct in cargo_types},
+            }
+
+            if edge.get("name", "") in monitored_set:
+                monitored_rows.append(row)
+
+            if max_util > 0:
+                utilization_rows.append(row)
+
+        # Sort by max utilization descending, keep top 10
+        utilization_rows.sort(key=lambda r: r["max_utilization_pct"], reverse=True)
+        top_utilized = utilization_rows[:10]
+
+        return {
+            "monitored": monitored_rows,
+            "by_mode": dict(mode_agg),
+            "top_utilized": top_utilized,
+            "network": {
+                "time_step": time_step,
+                "total_tons": round(total_tons, 1),
+                "total_usd": round(total_usd, 1),
+                "n_edges_with_flow": n_with_flow,
+                "n_edges_no_flow": n_no_flow,
+            },
+        }
 
     # ------------------------------------------------------------------
     # Private helpers
@@ -404,8 +510,8 @@ def _get_border_crossing_time_and_fee(edge_attr: dict, border_times: dict, borde
 def _calculate_cost_per_ton(edge_attr: dict, params: dict, cargo_types: list, time_resolution: str):
     """Calculate cost_per_ton for each (profile, cargo_type) combination.
 
-    Cargo types with zero capacity on this edge get TRANSPORT_MALUS,
-    replacing the old cargo_types_to_transport_modes mapping.
+    Cargo types with zero capacity on this edge are skipped — no cost label
+    is written, so the edge is invisible to Dijkstra for that cargo type.
     """
     edge_id = f"Edge {edge_attr.get('id', '?')} ({edge_attr.get('type', '?')})"
 
@@ -435,16 +541,14 @@ def _calculate_cost_per_ton(edge_attr: dict, params: dict, cargo_types: list, ti
              for i, bc in basic_costs.items()}
 
     for ct in cargo_types:
-        # Check if this cargo type is blocked on this edge (zero capacity)
+        # Skip blocked cargo types — no cost label means the edge is
+        # excluded from Dijkstra for this cargo type
         ct_capacity = _get_cargo_capacity(edge_attr, ct)
-        blocked = ct_capacity == 0
+        if ct_capacity == 0:
+            continue
         for i, cost in costs.items():
-            if blocked:
-                edge_attr[f"cost_per_ton_{i}_{ct}"] = TRANSPORT_MALUS
-                edge_attr[f"cost_per_ton_with_capacity_{i}_{ct}"] = TRANSPORT_MALUS
-            else:
-                edge_attr[f"cost_per_ton_{i}_{ct}"] = cost
-                edge_attr[f"cost_per_ton_with_capacity_{i}_{ct}"] = cost
+            edge_attr[f"cost_per_ton_{i}_{ct}"] = cost
+            edge_attr[f"cost_per_ton_with_capacity_{i}_{ct}"] = cost
 
 
 def _get_cargo_capacity(edge_attr: dict, cargo_type: str) -> float:

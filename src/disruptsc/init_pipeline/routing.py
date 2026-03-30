@@ -123,16 +123,18 @@ def _precompute_and_assign(link_specs: list[dict],
     path_lookup = {}  # (profile, cargo_type, source, dest) -> node_list
     for profile, cargo_type in combos:
         weight = f"cost_per_ton_{profile}_{cargo_type}"
+        # Subgraph with only edges that carry this cargo type
+        subgraph = _cargo_subgraph(transport_network, weight)
         sources = {s["origin"] for s in link_specs
                    if s["cost_profile"] == profile and s["cargo_type"] == cargo_type}
 
         logging.info(f"Pre-computing routes: profile={profile}, cargo={cargo_type}, "
-                     f"{len(sources)} sources")
+                     f"{len(sources)} sources, {subgraph.number_of_edges()} edges")
 
         for source in sources:
             try:
                 paths = nx.single_source_dijkstra_path(
-                    transport_network, source, weight=weight,
+                    subgraph, source, weight=weight,
                 )
             except nx.NetworkXError:
                 paths = {}
@@ -171,13 +173,14 @@ def _precompute_and_assign_with_capacity(
     path_lookup = {}
     for profile, cargo_type in combos:
         weight = f"cost_per_ton_{profile}_{cargo_type}"
+        subgraph = _cargo_subgraph(transport_network, weight)
         sources = {s["origin"] for s in link_specs
                    if s["cost_profile"] == profile and s["cargo_type"] == cargo_type}
 
         for source in sources:
             try:
                 paths = nx.single_source_dijkstra_path(
-                    transport_network, source, weight=weight,
+                    subgraph, source, weight=weight,
                 )
             except nx.NetworkXError:
                 paths = {}
@@ -214,6 +217,7 @@ def _precompute_and_assign_with_capacity(
         # Re-compute paths from affected sources using capacity-adjusted costs
         for profile, cargo_type in combos:
             weight = f"cost_per_ton_with_capacity_{profile}_{cargo_type}"
+            subgraph = _cargo_subgraph(transport_network, weight)
             combo_sources = affected_sources & {
                 s["origin"] for s in link_specs
                 if s["cost_profile"] == profile and s["cargo_type"] == cargo_type
@@ -221,15 +225,16 @@ def _precompute_and_assign_with_capacity(
             for source in combo_sources:
                 try:
                     paths = nx.single_source_dijkstra_path(
-                        transport_network, source, weight=weight,
+                        subgraph, source, weight=weight,
                     )
                 except nx.NetworkXError:
                     paths = {}
                 for dest, path in paths.items():
                     path_lookup[(profile, cargo_type, source, dest)] = path
 
-        # Re-assign and re-accumulate
-        _assign_routes_from_lookup(link_specs, path_lookup, transport_network)
+        # Re-assign and re-accumulate (don't fail — capacity re-routing may leave some unreachable)
+        _assign_routes_from_lookup(link_specs, path_lookup, transport_network,
+                                   fail_on_unreachable=False)
         transport_network.reset_loads()
         _accumulate_loads(link_specs, transport_network)
     else:
@@ -251,11 +256,26 @@ def _get_profile_cargo_combos(link_specs: list[dict]) -> set[tuple[int, str]]:
     return {(s["cost_profile"], s["cargo_type"]) for s in link_specs}
 
 
+def _cargo_subgraph(transport_network: TransportNetwork,
+                    weight_attr: str) -> nx.Graph:
+    """Return a subgraph view containing only edges that have *weight_attr*.
+
+    Edges where a cargo type has zero capacity have no cost label for that
+    cargo type, so they are automatically excluded from routing.
+    This is a lightweight view — no data is copied.
+    """
+    def edge_filter(u, v):
+        return weight_attr in transport_network[u][v]
+
+    return nx.subgraph_view(transport_network, filter_edge=edge_filter)
+
+
 def _assign_routes_from_lookup(link_specs: list[dict], path_lookup: dict,
-                               transport_network: TransportNetwork):
+                               transport_network: TransportNetwork,
+                               *, fail_on_unreachable: bool = True):
     """Assign Route objects to links from the pre-computed path lookup."""
     assigned = 0
-    no_route = 0
+    unreachable = []
     for spec in link_specs:
         key = (spec["cost_profile"], spec["cargo_type"], spec["origin"], spec["destination"])
         path = path_lookup.get(key)
@@ -263,7 +283,7 @@ def _assign_routes_from_lookup(link_specs: list[dict], path_lookup: dict,
 
         if path is None or len(path) < 2:
             if spec["origin"] != spec["destination"]:
-                no_route += 1
+                unreachable.append(spec)
             continue
 
         route = Route(path, transport_network, spec["cargo_type"])
@@ -273,7 +293,65 @@ def _assign_routes_from_lookup(link_specs: list[dict], path_lookup: dict,
         spec["route"] = route  # store for capacity tracking
         assigned += 1
 
-    logging.info(f"  Assigned {assigned} routes ({no_route} unreachable)")
+    logging.info(f"  Assigned {assigned} routes ({len(unreachable)} unreachable)")
+    if unreachable and fail_on_unreachable:
+        _report_unreachable(unreachable, transport_network)
+
+
+def _report_unreachable(unreachable: list[dict], transport_network: TransportNetwork):
+    """Log diagnostic information about unreachable routes and raise at init."""
+    # Collect unique unreachable OD points with coordinates
+    problem_nodes = {}  # node_id -> {"lat", "lon", "agents"}
+    for spec in unreachable:
+        for node_id, role in [(spec["origin"], "origin"), (spec["destination"], "destination")]:
+            if node_id not in problem_nodes:
+                node_data = transport_network._node.get(node_id, {})
+                problem_nodes[node_id] = {
+                    "lat": node_data.get("lat", "?"),
+                    "lon": node_data.get("long", "?"),
+                    "as_origin": 0,
+                    "as_destination": 0,
+                    "agents": set(),
+                }
+            problem_nodes[node_id][f"as_{role}"] += 1
+            link = spec["link"]
+            agent_id = link.supplier_id if role == "origin" else link.buyer_id
+            problem_nodes[node_id]["agents"].add(agent_id)
+
+    # Find which nodes are actually disconnected
+    # (a node that fails as both origin AND destination is isolated;
+    #  a node that fails only as destination may just lack incoming edges)
+    isolated_origins = {n for n, info in problem_nodes.items() if info["as_origin"] > 0}
+    isolated_dests = {n for n, info in problem_nodes.items() if info["as_destination"] > 0}
+
+    # Check graph connectivity to identify the issue
+    components = list(nx.connected_components(nx.Graph(transport_network)))
+    if len(components) > 1:
+        comp_sizes = sorted([len(c) for c in components], reverse=True)
+        logging.error(f"Transport network has {len(components)} disconnected components "
+                      f"(sizes: {comp_sizes[:5]}{'...' if len(comp_sizes) > 5 else ''})")
+
+    # Log each problem node
+    logging.error(f"Unreachable routes: {len(unreachable)} links cannot be routed. "
+                  f"Problem OD nodes ({len(problem_nodes)}):")
+    for node_id, info in sorted(problem_nodes.items(),
+                                 key=lambda x: x[1]["as_origin"] + x[1]["as_destination"],
+                                 reverse=True):
+        agents_str = ", ".join(sorted(str(a) for a in info["agents"])[:3])
+        if len(info["agents"]) > 3:
+            agents_str += f" (+{len(info['agents']) - 3} more)"
+        logging.error(
+            f"  Node {node_id} ({info['lat']:.4f}, {info['lon']:.4f}): "
+            f"{info['as_origin']} as origin, {info['as_destination']} as dest — "
+            f"agents: {agents_str}"
+        )
+
+    raise RuntimeError(
+        f"Cannot initialize: {len(unreachable)} commercial links have no route. "
+        f"{len(problem_nodes)} transport nodes are unreachable. "
+        f"Check the transport network connectivity around the logged nodes. "
+        f"The network has {len(components)} connected component(s)."
+    )
 
 
 def _accumulate_loads(link_specs: list[dict], transport_network: TransportNetwork):
@@ -302,7 +380,7 @@ def _update_capacity_costs(transport_network: TransportNetwork,
             ct_load = edge.get(f"current_load_{ct}", 0)
 
             if ct_cap == 0:
-                continue  # blocked — already TRANSPORT_MALUS
+                continue  # blocked — no cost labels exist for this cargo type
 
             # Multiplier from per-cargo-type capacity
             ct_mult = _capacity_multiplier(ct_load, ct_cap) if ct_cap < 1e8 else 1.0
@@ -315,8 +393,7 @@ def _update_capacity_costs(transport_network: TransportNetwork,
             for key in list(edge.keys()):
                 if key.startswith("cost_per_ton_") and key.endswith(f"_{ct}") and "with_capacity" not in key:
                     cap_key = key.replace("cost_per_ton_", "cost_per_ton_with_capacity_")
-                    if edge[key] < 1e8:  # not TRANSPORT_MALUS
-                        edge[cap_key] = edge[key] * mult
+                    edge[cap_key] = edge[key] * mult
 
 
 def _find_congested_edges(transport_network: TransportNetwork,
