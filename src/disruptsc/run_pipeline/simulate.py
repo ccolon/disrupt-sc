@@ -26,14 +26,16 @@ from disruptsc.run_pipeline.export import (
 
 def run_initial_state(sc_network, transport_network, firms, households, countries,
                       tp: TransportParams, sp: SimParams,
-                      export_folder: Path | None = None):
+                      export_folder: Path | None = None,
+                      monitored_edges: list[str] | None = None):
     """Single-timestep equilibrium run.  Returns collected data dicts."""
     set_initial_conditions(sc_network, firms, households, countries, tp, sp)
 
     # Run t=0
-    flow_data = _run_one_time_step(
+    flow_data, logistics_report = _run_one_time_step(
         0, sc_network, transport_network, transport_network,
         firms, households, countries, tp, sp, disruptions=[],
+        monitored_edges=monitored_edges,
     )
 
     # Write CSVs if exporting
@@ -42,12 +44,15 @@ def run_initial_state(sc_network, transport_network, firms, households, countrie
             writers.write_step(firms, households, countries, 0)
 
     # Still return in-memory data for callers that need it
-    return {
+    result = {
         "firm": collect_firm_data(firms, 0),
         "household": collect_household_data(households, 0),
         "country": collect_country_data(countries, 0),
         "flow": flow_data,
     }
+    if logistics_report is not None:
+        result["logistics_reports"] = [logistics_report]
+    return result
 
 
 def run_disruption(sc_network, transport_network, firms, households, countries,
@@ -55,21 +60,31 @@ def run_disruption(sc_network, transport_network, firms, households, countries,
                    disruption_config: list | None,
                    transport_edges, firm_table,
                    t_final: int,
-                   export_folder: Path | None = None):
+                   export_folder: Path | None = None,
+                   monitored_edges: list[str] | None = None):
     """Full disruption simulation.  Returns lists of per-timestep data."""
     set_initial_conditions(sc_network, firms, households, countries, tp, sp)
 
     all_data = {"firm": [], "household": [], "country": [], "transport_flow": []}
+    logistics_reports = []
     writers = AgentWriters(export_folder) if export_folder else None
+
+    # Collect logistics report at t=0 and t=1
+    def _report_timesteps():
+        return {0, 1}
 
     try:
         # Time step 0: equilibrium snapshot
-        flow_data = _run_one_time_step(
+        mon = monitored_edges if 0 in _report_timesteps() else None
+        flow_data, lr = _run_one_time_step(
             0, sc_network, transport_network, transport_network,
             firms, households, countries, tp, sp, disruptions=[],
+            monitored_edges=mon,
         )
         _accumulate_and_write(all_data, firms, households, countries, 0,
                               flow_data, writers, collect_flows=True)
+        if lr is not None:
+            logistics_reports.append(lr)
 
         # Parse disruptions
         disruptions = parse_disruptions(
@@ -77,12 +92,17 @@ def run_disruption(sc_network, transport_network, firms, households, countries,
         )
         if not disruptions:
             logging.info("No disruptions — running one baseline step and returning")
-            flow_data = _run_one_time_step(
+            mon = monitored_edges if 1 in _report_timesteps() else None
+            flow_data, lr = _run_one_time_step(
                 1, sc_network, transport_network, transport_network,
                 firms, households, countries, tp, sp, disruptions=[],
+                monitored_edges=mon,
             )
             _accumulate_and_write(all_data, firms, households, countries, 1,
                                   flow_data, writers, collect_flows=True)
+            if lr is not None:
+                logistics_reports.append(lr)
+            all_data["logistics_reports"] = logistics_reports
             return all_data
 
         logging.info(f"{len(disruptions)} disruption(s) parsed")
@@ -91,12 +111,16 @@ def run_disruption(sc_network, transport_network, firms, households, countries,
 
         # Time loop
         for t in range(1, t_final + 1):
-            flow_data = _run_one_time_step(
+            mon = monitored_edges if t in _report_timesteps() else None
+            flow_data, lr = _run_one_time_step(
                 t, sc_network, transport_network, transport_network,
                 firms, households, countries, tp, sp, disruptions=disruptions,
+                monitored_edges=mon,
             )
             _accumulate_and_write(all_data, firms, households, countries, t,
                                   flow_data, writers, collect_flows=(t <= 1))
+            if lr is not None:
+                logistics_reports.append(lr)
 
             # Early stop
             if sp.epsilon_stop and t > max(d.start_time for d in disruptions):
@@ -108,6 +132,7 @@ def run_disruption(sc_network, transport_network, firms, households, countries,
         if writers:
             writers.close()
 
+    all_data["logistics_reports"] = logistics_reports
     return all_data
 
 
@@ -126,7 +151,7 @@ def run_criticality(sc_network, transport_network, firms, households, countries,
     all_data = {"firm": [], "household": [], "country": [], "transport_flow": []}
 
     for t in range(0, t_final + 1):
-        flow_data = _run_one_time_step(
+        flow_data, _ = _run_one_time_step(
             t, sc_network, transport_network, transport_network,
             firms, households, countries, tp, sp, disruptions=disruptions,
         )
@@ -244,8 +269,13 @@ def set_initial_conditions(sc_network, firms, households, countries,
 def _run_one_time_step(time_step, sc_network, transport_network,
                        available_transport_network,
                        firms, households, countries,
-                       tp, sp, disruptions):
-    """Execute one simulation time step.  Returns flow data for this step."""
+                       tp, sp, disruptions,
+                       monitored_edges: list[str] | None = None):
+    """Execute one simulation time step.
+
+    Returns (flow_data, logistics_report).  *logistics_report* is ``None``
+    unless *monitored_edges* is provided.
+    """
     logging.info(f"--- Time step {time_step} ---")
 
     # Apply disruptions starting this step
@@ -289,6 +319,13 @@ def _run_one_time_step(time_step, sc_network, transport_network,
     # 8. Collect flow data while shipments are still on edges
     flow_data = transport_network.compute_flow_per_segment(time_step)
 
+    # 8b. Logistics report (while shipments are still on edges)
+    logistics_report = None
+    if monitored_edges is not None:
+        logistics_report = transport_network.compute_logistics_report(
+            time_step, monitored_edges,
+        )
+
     # 9. All agents receive products (clears shipments from nodes)
     for hh in households.values():
         hh.receive_products(sc_network, transport_network, tp.sectors_no_transport,
@@ -312,7 +349,7 @@ def _run_one_time_step(time_step, sc_network, transport_network,
     for firm in firms.values():
         firm.update_disrupted_production_capacity()
 
-    return flow_data
+    return flow_data, logistics_report
 
 
 # ------------------------------------------------------------------

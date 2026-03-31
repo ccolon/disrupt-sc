@@ -144,6 +144,68 @@ def collect_country_data(countries: dict, time_step: int) -> list[dict]:
 
 
 # ------------------------------------------------------------------
+# Logistics report
+# ------------------------------------------------------------------
+
+def export_logistics_report(reports: list[dict], export_folder: Path,
+                            monetary_units: str = "mUSD"):
+    """Write logistics_report.csv from one or more timestep reports.
+
+    Each *report* is the dict returned by
+    ``TransportNetwork.compute_logistics_report()``.
+
+    Outputs:
+      - logistics_report.csv        — monitored edges (capacity overrides)
+      - logistics_summary.csv       — network-level + modal-split summary
+      - logistics_top_utilized.csv  — top 10 most utilized edges per timestep
+    """
+    # --- Monitored edges ---
+    monitored_rows = []
+    for r in reports:
+        monitored_rows.extend(r["monitored"])
+    if monitored_rows:
+        df = pd.DataFrame(monitored_rows)
+        df.to_csv(export_folder / "logistics_report.csv", index=False)
+        logging.info(f"Logistics report: {len(monitored_rows)} monitored-edge rows "
+                     f"→ logistics_report.csv")
+
+        # Log a concise summary to console
+        for _, row in df.iterrows():
+            caps = [c for c in df.columns if c.startswith("utilization_") and c.endswith("_pct")]
+            utils = ", ".join(f"{c.split('_')[1]}={row[c]:.0f}%" for c in caps
+                              if row.get(c, 0) > 0)
+            logging.info(f"  t={row['time_step']} {row['name']}: "
+                         f"{row['flow_tons']:,.0f} tons, {row['flow_usd']:,.0f} {monetary_units} "
+                         f"[{utils}]")
+    else:
+        logging.info("Logistics report: no monitored edges found")
+
+    # --- Network summary + modal split ---
+    summary_rows = []
+    for r in reports:
+        net = r["network"]
+        summary_rows.append(net)
+        for mode, agg in r["by_mode"].items():
+            summary_rows.append({
+                "time_step": net["time_step"],
+                "metric": f"mode_{mode}",
+                "tons": round(agg["tons"], 1),
+                "usd": round(agg["usd"], 1),
+            })
+    if summary_rows:
+        pd.DataFrame(summary_rows).to_csv(
+            export_folder / "logistics_summary.csv", index=False)
+
+    # --- Top utilized ---
+    top_rows = []
+    for r in reports:
+        top_rows.extend(r["top_utilized"])
+    if top_rows:
+        pd.DataFrame(top_rows).to_csv(
+            export_folder / "logistics_top_utilized.csv", index=False)
+
+
+# ------------------------------------------------------------------
 # Transport flow export (per-timestep GeoJSON — unchanged)
 # ------------------------------------------------------------------
 
