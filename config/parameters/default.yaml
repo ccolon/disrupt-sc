@@ -50,19 +50,9 @@ logistics:
     pipelines: 0.0001
     multimodal: 0.01
   chunk_size: 1000000000  # tons/day; shipment chunk granularity for route splitting (very large = no splitting)
-  nb_cost_profiles: 1
-  basic_cost_random: False  # deactivate all randomness
   switching_costs:
     modal_switch: 0.15  # Additional cost percentage when switching transport modes (e.g., rail to road)
     port_switch: 0.05
-  basic_cost_variability: # coefficient of variation
-    roads: 0.1
-    maritime: 0.05
-    airways: 0.01
-    railways: 0.2
-    waterways: 0.2
-    pipelines: 0.01
-    multimodal: 0.01
   dwell_times:  # hours
     roads-maritime: 12
     roads-railways: 12

@@ -14,22 +14,22 @@ if TYPE_CHECKING:
     from disruptsc.params import TransportParams
 
 
-def discover_route(od_point: int, cost_profile: int,
+def discover_route(od_point: int,
                    link: CommercialLink,
                    transport_network: TransportNetwork,
                    available_transport_network: TransportNetwork,
                    capacity_constraint: bool,
                    use_route_cache: bool) -> Route | None:
     """Find a shortest-path route from *od_point* to the link's destination."""
-    weight = "cost_per_ton_" + str(cost_profile)
+    weight = "cost_per_ton"
     if capacity_constraint:
-        weight = "cost_per_ton_with_capacity_" + str(cost_profile)
+        weight = "cost_per_ton_with_capacity"
 
     effective_cache = use_route_cache and not capacity_constraint
 
     if effective_cache:
         cached = transport_network.retrieve_cached_route(
-            od_point, link.destination_node, cost_profile,
+            od_point, link.destination_node,
             "alternative", link.cargo_type,
         )
         if cached:
@@ -41,14 +41,14 @@ def discover_route(od_point: int, cost_profile: int,
 
     if route and effective_cache:
         transport_network.cache_route(
-            od_point, link.destination_node, cost_profile,
+            od_point, link.destination_node,
             "alternative", link.cargo_type, route,
         )
 
     return route
 
 
-def send_shipment(agent_pid, od_point: int, cost_profile: int,
+def send_shipment(agent_pid, od_point: int,
                   transport_share: float,
                   link: CommercialLink,
                   transport_network: TransportNetwork,
@@ -68,7 +68,7 @@ def send_shipment(agent_pid, od_point: int, cost_profile: int,
     # --- Multi-route path (chunked delivery) ---
     if len(link.route_plan) > 1:
         _send_chunked_shipment(
-            agent_pid, od_point, cost_profile, transport_share,
+            agent_pid, od_point, transport_share,
             link, transport_network, available_transport_network,
             tp, routing_event_collector, after_shipment,
         )
@@ -79,7 +79,7 @@ def send_shipment(agent_pid, od_point: int, cost_profile: int,
 
     if route is None or not route:
         route = discover_route(
-            od_point, cost_profile, link,
+            od_point, link,
             transport_network, available_transport_network,
             tp.capacity_constraint_enabled, tp.use_route_cache,
         )
@@ -92,7 +92,7 @@ def send_shipment(agent_pid, od_point: int, cost_profile: int,
     # Check if main route is disrupted
     if link.current_route == "main" and not available_transport_network.is_route_available(route):
         alt_route = discover_route(
-            od_point, cost_profile, link,
+            od_point, link,
             transport_network, available_transport_network,
             tp.capacity_constraint_enabled, tp.use_route_cache,
         )
@@ -100,7 +100,7 @@ def send_shipment(agent_pid, od_point: int, cost_profile: int,
             link.alternative_route = alt_route
             link.alternative_found = True
             alt_cost = transport_network.compute_route_cost(
-                alt_route, link.cargo_type, cost_profile,
+                alt_route, link.cargo_type,
             )
             link.alternative_route_cost_per_ton = alt_cost
             relative_increase = link.calculate_relative_increase_in_transport_cost()
@@ -154,7 +154,7 @@ def send_shipment(agent_pid, od_point: int, cost_profile: int,
 
 
 def _send_chunked_shipment(
-    agent_pid, od_point: int, cost_profile: int,
+    agent_pid, od_point: int,
     transport_share: float,
     link: CommercialLink,
     transport_network: TransportNetwork,
@@ -186,7 +186,7 @@ def _send_chunked_shipment(
         # Check route availability (disruption)
         if not available_transport_network.is_route_available(route):
             alt_route = discover_route(
-                od_point, cost_profile, link,
+                od_point, link,
                 transport_network, available_transport_network,
                 tp.capacity_constraint_enabled, tp.use_route_cache,
             )

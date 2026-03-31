@@ -44,9 +44,6 @@ class Household:
     consumption_loss: float = 0.0
     extra_spending: float = 0.0
 
-    # --- Routing ---
-    cost_profile: int = 0
-
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------

@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 
 import geopandas as gpd
-import numpy as np
+
 import pandas as pd
 
 from disruptsc.network.mrio import rescale_monetary_values
@@ -130,8 +130,7 @@ def build_transport_network(transport_modes: list, filepaths: dict,
     if capacity_overrides:
         _apply_capacity_overrides(tn, capacity_overrides, cargo_types, time_resolution)
 
-    # Prepare cost profiles and ingest logistics
-    _prepare_cost_profiles(logistics_params)
+    # Ingest logistics cost parameters
     tn.ingest_logistic_data(logistics_params, time_resolution)
 
     # Set min cost for heuristic
@@ -310,25 +309,3 @@ def _apply_capacity_overrides(tn: TransportNetwork, overrides: dict,
                 edge.pop(f"capacity_{ct}", None)
 
 
-def _prepare_cost_profiles(logistics_params: dict):
-    """Generate basic_cost_profiles from basic_cost and variability."""
-    nb_profiles = logistics_params.get("nb_cost_profiles", 1)
-    if logistics_params.get("basic_cost_random", False) and nb_profiles > 1:
-        variability = logistics_params.get("basic_cost_variability", {})
-        profiles = {}
-        for i in range(nb_profiles):
-            profile = {}
-            for mode, base_cost in logistics_params["basic_cost"].items():
-                cv = variability.get(mode, 0)
-                if cv > 0:
-                    sigma2 = np.log(1 + cv ** 2)
-                    mu = np.log(base_cost) - sigma2 / 2
-                    profile[mode] = float(np.random.lognormal(mu, np.sqrt(sigma2)))
-                else:
-                    profile[mode] = base_cost
-            profiles[i] = profile
-    else:
-        profiles = {0: dict(logistics_params["basic_cost"])}
-        logistics_params["nb_cost_profiles"] = 1
-
-    logistics_params["basic_cost_profiles"] = profiles

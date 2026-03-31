@@ -2,16 +2,11 @@
 
 from __future__ import annotations
 
-import copy
 import logging
 import math
-import random
-from collections import defaultdict
-from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import networkx as nx
 import pandas as pd
-from tqdm import tqdm
 
 from disruptsc.network.route import Route
 from disruptsc.network.transport_network import TransportNetwork, _get_cargo_capacity, _capacity_multiplier
@@ -28,7 +23,6 @@ def setup_logistic_routes(
     firms: dict,
     countries: dict,
     tp: TransportParams,
-    nb_cost_profiles: int,
     max_capacity_iterations: int = 3,
 ) -> pd.DataFrame:
     """Assign routes to every commercial link and return a summary table.
@@ -37,36 +31,26 @@ def setup_logistic_routes(
     When capacity constraints are enabled, runs iterative chunk-based
     re-routing to distribute flows away from congested edges.
     """
-    # 1. Assign cost profiles
-    for c in countries.values():
-        c.assign_cost_profile(nb_cost_profiles)
-    for f in firms.values():
-        if hasattr(f, "assign_cost_profile"):
-            f.assign_cost_profile(nb_cost_profiles)
-        else:
-            if nb_cost_profiles > 0:
-                f.cost_profile = random.randint(0, nb_cost_profiles - 1)
-
-    # 2. Collect all routable links with their metadata
+    # 1. Collect all routable links with their metadata
     link_specs = _collect_link_specs(sc_network, tp)
     if not link_specs:
         logging.info("No routable links found")
         return _build_commercial_link_table(sc_network)
 
-    # 3. Pre-compute routes and assign (with capacity iterations if needed)
+    # 2. Pre-compute routes and assign (with capacity iterations if needed)
     if tp.capacity_constraint_enabled:
         _precompute_and_assign_with_capacity(
-            link_specs, transport_network, nb_cost_profiles,
+            link_specs, transport_network,
             tp.capacity_constraint_mode, max_capacity_iterations,
             tp.chunk_size,
         )
     else:
-        _precompute_and_assign(link_specs, transport_network, nb_cost_profiles)
+        _precompute_and_assign(link_specs, transport_network)
 
-    # 4. Build summary table
+    # 3. Build summary table
     cl_table = _build_commercial_link_table(sc_network)
 
-    # 5. Reset loads so simulation starts fresh
+    # 4. Reset loads so simulation starts fresh
     transport_network.reset_loads()
 
     return cl_table
@@ -108,7 +92,6 @@ def _collect_link_specs(sc_network, tp: TransportParams) -> list[dict]:
             "link": link,
             "origin": supplier.od_point,
             "destination": client.od_point,
-            "cost_profile": getattr(supplier, "cost_profile", 0),
             "cargo_type": link.cargo_type,
             "tons": tons,
         })
@@ -122,23 +105,22 @@ def _collect_link_specs(sc_network, tp: TransportParams) -> list[dict]:
 # ------------------------------------------------------------------
 
 def _precompute_and_assign(link_specs: list[dict],
-                           transport_network: TransportNetwork,
-                           nb_cost_profiles: int):
+                           transport_network: TransportNetwork):
     """Pre-compute shortest paths and assign routes to links."""
 
-    # Group links by (cost_profile, cargo_type) to batch Dijkstra runs
-    combos = _get_profile_cargo_combos(link_specs)
+    # Group links by cargo_type to batch Dijkstra runs
+    cargo_types = _get_cargo_types(link_specs)
 
-    # Pre-compute all paths for each combo
-    path_lookup = {}  # (profile, cargo_type, source, dest) -> node_list
-    for profile, cargo_type in combos:
-        weight = f"cost_per_ton_{profile}_{cargo_type}"
+    # Pre-compute all paths for each cargo type
+    path_lookup = {}  # (cargo_type, source, dest) -> node_list
+    for cargo_type in cargo_types:
+        weight = f"cost_per_ton_{cargo_type}"
         # Subgraph with only edges that carry this cargo type
         subgraph = _cargo_subgraph(transport_network, weight)
         sources = {s["origin"] for s in link_specs
-                   if s["cost_profile"] == profile and s["cargo_type"] == cargo_type}
+                   if s["cargo_type"] == cargo_type}
 
-        logging.info(f"Pre-computing routes: profile={profile}, cargo={cargo_type}, "
+        logging.info(f"Pre-computing routes: cargo={cargo_type}, "
                      f"{len(sources)} sources, {subgraph.number_of_edges()} edges")
 
         for source in sources:
@@ -149,7 +131,7 @@ def _precompute_and_assign(link_specs: list[dict],
             except nx.NetworkXError:
                 paths = {}
             for dest, path in paths.items():
-                path_lookup[(profile, cargo_type, source, dest)] = path
+                path_lookup[(cargo_type, source, dest)] = path
 
     # Assign routes to links (single route per link → route_plan with 1 entry)
     _assign_routes_from_lookup(link_specs, path_lookup, transport_network)
@@ -171,7 +153,6 @@ def _precompute_and_assign(link_specs: list[dict],
 def _precompute_and_assign_with_capacity(
     link_specs: list[dict],
     transport_network: TransportNetwork,
-    nb_cost_profiles: int,
     capacity_constraint_mode: str,
     max_iterations: int,
     chunk_size: float,
@@ -184,8 +165,8 @@ def _precompute_and_assign_with_capacity(
     sources with remaining chunks, assign next batch of chunks.
     This naturally distributes large flows across multiple ports.
     """
-    combos = _get_profile_cargo_combos(link_specs)
-    cargo_types = transport_network.cargo_types or []
+    all_cargo_types = _get_cargo_types(link_specs)
+    network_cargo_types = transport_network.cargo_types or []
 
     # --- Prepare chunk tracking per link spec ---
     for spec in link_specs:
@@ -202,11 +183,11 @@ def _precompute_and_assign_with_capacity(
 
     # --- Round 0: compute shortest paths (unconstrained) ---
     path_lookup = {}
-    for profile, cargo_type in combos:
-        weight = f"cost_per_ton_{profile}_{cargo_type}"
+    for cargo_type in all_cargo_types:
+        weight = f"cost_per_ton_{cargo_type}"
         subgraph = _cargo_subgraph(transport_network, weight)
         sources = {s["origin"] for s in link_specs
-                   if s["cost_profile"] == profile and s["cargo_type"] == cargo_type}
+                   if s["cargo_type"] == cargo_type}
 
         for source in sources:
             try:
@@ -216,7 +197,7 @@ def _precompute_and_assign_with_capacity(
             except nx.NetworkXError:
                 paths = {}
             for dest, path in paths.items():
-                path_lookup[(profile, cargo_type, source, dest)] = path
+                path_lookup[(cargo_type, source, dest)] = path
 
     # Assign initial routes (one route per link for primary route / cache)
     _assign_routes_from_lookup(link_specs, path_lookup, transport_network)
@@ -244,16 +225,16 @@ def _precompute_and_assign_with_capacity(
             break
 
         # Update capacity costs
-        _update_capacity_costs(transport_network, cargo_types, capacity_constraint_mode)
+        _update_capacity_costs(transport_network, network_cargo_types, capacity_constraint_mode)
 
         # Recompute routes from sources with remaining chunks
         remaining_sources = {s["origin"] for s in remaining_specs}
-        for profile, cargo_type in combos:
-            weight = f"cost_per_ton_with_capacity_{profile}_{cargo_type}"
+        for cargo_type in all_cargo_types:
+            weight = f"cost_per_ton_with_capacity_{cargo_type}"
             subgraph = _cargo_subgraph(transport_network, weight)
             combo_sources = remaining_sources & {
                 s["origin"] for s in remaining_specs
-                if s["cost_profile"] == profile and s["cargo_type"] == cargo_type
+                if s["cargo_type"] == cargo_type
             }
             for source in combo_sources:
                 try:
@@ -263,7 +244,7 @@ def _precompute_and_assign_with_capacity(
                 except nx.NetworkXError:
                     paths = {}
                 for dest, path in paths.items():
-                    path_lookup[(profile, cargo_type, source, dest)] = path
+                    path_lookup[(cargo_type, source, dest)] = path
 
         # Assign next chunk batch
         newly_assigned = _assign_chunk_batch(remaining_specs, path_lookup, transport_network)
@@ -284,7 +265,7 @@ def _precompute_and_assign_with_capacity(
         logging.info(f"Capacity routing: {n_multi} links split across multiple routes")
 
     # Check remaining congestion
-    n_congested = len(_find_congested_edges(transport_network, cargo_types, threshold=1.0))
+    n_congested = len(_find_congested_edges(transport_network, network_cargo_types, threshold=1.0))
     if n_congested:
         logging.warning(f"Capacity routing: {n_congested} edges still over-capacity")
 
@@ -299,8 +280,7 @@ def _assign_chunk_batch(link_specs: list[dict], path_lookup: dict,
     for spec in link_specs:
         if spec["chunks_assigned"] >= spec["n_chunks"]:
             continue
-        key = (spec["cost_profile"], spec["cargo_type"],
-               spec["origin"], spec["destination"])
+        key = (spec["cargo_type"], spec["origin"], spec["destination"])
         path = path_lookup.get(key)
         if path is None or len(path) < 2:
             continue
@@ -364,9 +344,9 @@ def _build_route_plans(link_specs: list[dict]):
 # Shared helpers
 # ------------------------------------------------------------------
 
-def _get_profile_cargo_combos(link_specs: list[dict]) -> set[tuple[int, str]]:
-    """Get unique (cost_profile, cargo_type) combinations from link specs."""
-    return {(s["cost_profile"], s["cargo_type"]) for s in link_specs}
+def _get_cargo_types(link_specs: list[dict]) -> set[str]:
+    """Get unique cargo types from link specs."""
+    return {s["cargo_type"] for s in link_specs}
 
 
 def _cargo_subgraph(transport_network: TransportNetwork,
@@ -390,7 +370,7 @@ def _assign_routes_from_lookup(link_specs: list[dict], path_lookup: dict,
     assigned = 0
     unreachable = []
     for spec in link_specs:
-        key = (spec["cost_profile"], spec["cargo_type"], spec["origin"], spec["destination"])
+        key = (spec["cargo_type"], spec["origin"], spec["destination"])
         path = path_lookup.get(key)
         link = spec["link"]
 
@@ -400,7 +380,7 @@ def _assign_routes_from_lookup(link_specs: list[dict], path_lookup: dict,
             continue
 
         route = Route(path, transport_network, spec["cargo_type"])
-        cost_label = f"cost_per_ton_{spec['cost_profile']}_{spec['cargo_type']}"
+        cost_label = f"cost_per_ton_{spec['cargo_type']}"
         cost_per_ton = route.sum_indicator(transport_network, cost_label)
         link.store_route_information(route, "main", cost_per_ton)
         spec["route"] = route  # store for capacity tracking
@@ -559,7 +539,7 @@ def _populate_route_cache(link_specs: list[dict],
             continue
         transport_network.cache_route(
             spec["origin"], spec["destination"],
-            spec["cost_profile"], "normal", spec["cargo_type"],
+            "normal", spec["cargo_type"],
             link.route,
         )
         cached += 1

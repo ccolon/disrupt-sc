@@ -156,7 +156,7 @@ def main():
             logging.info("Setting up logistic routes")
             cl_table = setup_logistic_routes(
                 sc_network, transport_network, firms, countries,
-                tp, lp.nb_cost_profiles,
+                tp,
                 max_capacity_iterations=config.get("capacity_routing_max_iterations", 3),
             )
         else:

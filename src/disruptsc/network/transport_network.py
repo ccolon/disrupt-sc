@@ -109,11 +109,9 @@ class TransportNetwork(nx.Graph):
         self.cargo_types = sorted(set(ct for ct in cargo_type_values if ct != "default"))
         if not self.cargo_types:
             self.cargo_types = ["container", "dry_bulk", "liquid_bulk"]
-        nb_profiles = logistic_parameters["nb_cost_profiles"]
         self.shortest_path_library = {
-            i: {"normal": {m: {} for m in self.cargo_types},
-                "alternative": {m: {} for m in self.cargo_types}}
-            for i in range(nb_profiles)
+            "normal": {m: {} for m in self.cargo_types},
+            "alternative": {m: {} for m in self.cargo_types},
         }
         for _, attr in self.edges.items():
             _calculate_cost_per_ton(attr, logistic_parameters, self.cargo_types, time_resolution)
@@ -131,17 +129,25 @@ class TransportNetwork(nx.Graph):
             logging.debug(f"Destination {destination} not in available network")
             return None
         weight = route_weight + "_" + cargo_type
+
+        # Use a subgraph view that only includes edges carrying this weight.
+        # Edges without the label (blocked cargo type) would otherwise get
+        # NetworkX's default weight of 1, making them appear cheapest.
+        def edge_ok(u, v):
+            return weight in self[u][v]
+
+        subgraph = nx.subgraph_view(self, filter_edge=edge_ok)
         try:
-            sp = nx.shortest_path(self, origin, destination, weight=weight)
+            sp = nx.shortest_path(subgraph, origin, destination, weight=weight)
             return Route(sp, self, cargo_type)
-        except nx.NetworkXNoPath:
-            logging.debug(f"No path {origin} → {destination}")
+        except (nx.NetworkXNoPath, nx.NodeNotFound):
+            logging.debug(f"No path {origin} → {destination} for {weight}")
             return None
 
-    def retrieve_cached_route(self, from_node: int, to_node: int, cost_profile: int,
+    def retrieve_cached_route(self, from_node: int, to_node: int,
                               normal_or_disrupted: str, cargo_type: str) -> Route | None:
         key = tuple(sorted((from_node, to_node)))
-        cached = self.shortest_path_library[cost_profile][normal_or_disrupted][cargo_type].get(key)
+        cached = self.shortest_path_library[normal_or_disrupted][cargo_type].get(key)
         if cached is None:
             return None
         if from_node == key[0]:
@@ -150,23 +156,23 @@ class TransportNetwork(nx.Graph):
         route.revert()
         return route
 
-    def cache_route(self, from_node: int, to_node: int, cost_profile: int,
+    def cache_route(self, from_node: int, to_node: int,
                     normal_or_disrupted: str, cargo_type: str, route: Route):
         key = tuple(sorted((from_node, to_node)))
         if from_node == key[0]:
-            self.shortest_path_library[cost_profile][normal_or_disrupted][cargo_type][key] = route
+            self.shortest_path_library[normal_or_disrupted][cargo_type][key] = route
         else:
             canonical = copy.deepcopy(route)
             canonical.revert()
-            self.shortest_path_library[cost_profile][normal_or_disrupted][cargo_type][key] = canonical
+            self.shortest_path_library[normal_or_disrupted][cargo_type][key] = canonical
 
     def is_route_available(self, route: Route) -> bool:
         """Check if a route's edges are all undisrupted."""
         return route.is_usable(self)
 
-    def compute_route_cost(self, route: Route, cargo_type: str, cost_profile: int) -> float:
+    def compute_route_cost(self, route: Route, cargo_type: str) -> float:
         """Sum cost_per_ton along a route."""
-        weight = f"cost_per_ton_{cost_profile}_{cargo_type}"
+        weight = f"cost_per_ton_{cargo_type}"
         return route.sum_indicator(self, weight)
 
     # ------------------------------------------------------------------
@@ -307,21 +313,19 @@ class TransportNetwork(nx.Graph):
                     mult = max(ct_mult, shared_mult)
 
                     # Update cost_per_ton_with_capacity for this cargo type only
-                    for i in range(len(self.cargo_types)):
-                        base_key = f"cost_per_ton_{i}_{cargo_type}"
-                        cap_key = f"cost_per_ton_with_capacity_{i}_{cargo_type}"
-                        if base_key in edge:
-                            edge[cap_key] = edge[base_key] * mult
+                    base_key = f"cost_per_ton_{cargo_type}"
+                    cap_key = f"cost_per_ton_with_capacity_{cargo_type}"
+                    if base_key in edge:
+                        edge[cap_key] = edge[base_key] * mult
 
                     edge["overused"] = total_load > shared_cap or current > cap
                 else:  # binary
                     over = current > cap or total_load > shared_cap
                     if over and not edge.get("overused", False):
                         edge["overused"] = True
-                        for i in range(len(self.cargo_types)):
-                            cap_key = f"cost_per_ton_with_capacity_{i}_{cargo_type}"
-                            if cap_key in edge:
-                                edge[cap_key] += 1e10
+                        cap_key = f"cost_per_ton_with_capacity_{cargo_type}"
+                        if cap_key in edge:
+                            edge[cap_key] += 1e10
 
     def reset_loads(self):
         """Reset all load tracking and capacity costs to base values."""
@@ -523,7 +527,7 @@ def _get_border_crossing_time_and_fee(edge_attr: dict, border_times: dict, borde
 
 
 def _calculate_cost_per_ton(edge_attr: dict, params: dict, cargo_types: list, time_resolution: str):
-    """Calculate cost_per_ton for each (profile, cargo_type) combination.
+    """Calculate cost_per_ton for each cargo_type.
 
     Cargo types with zero capacity on this edge are skipped — no cost label
     is written, so the edge is invisible to Dijkstra for that cargo type.
@@ -541,10 +545,7 @@ def _calculate_cost_per_ton(edge_attr: dict, params: dict, cargo_types: list, ti
     time_factor = {"day": 1, "week": 7, "month": 365.25 / 12, "year": 365.25}
     adjusted_delay_cost = params["cost_of_time"] * (time_factor[time_resolution] / 7)
 
-    basic_costs = {
-        i: km * profile[edge_attr["type"]]
-        for i, profile in params["basic_cost_profiles"].items()
-    }
+    basic_cost = km * params["basic_cost"].get(edge_attr["type"], 0.01)
     transport_time = km / speed
     dwell_time, loading_fee = _get_dwell_time_and_fee(edge_attr, params.get("dwell_times", {}), params.get("loading_fees", {}))
     border_time, border_fee = _get_border_crossing_time_and_fee(edge_attr, params.get("border_crossing_times", {}), params.get("border_crossing_fees", {}))
@@ -552,8 +553,7 @@ def _calculate_cost_per_ton(edge_attr: dict, params: dict, cargo_types: list, ti
     total_fee = loading_fee + border_fee
     special_cost = params.get("name-specific", {}).get(edge_attr.get("name", ""), 0)
 
-    costs = {i: bc + special_cost + total_fee + total_time * adjusted_delay_cost
-             for i, bc in basic_costs.items()}
+    cost = basic_cost + special_cost + total_fee + total_time * adjusted_delay_cost
 
     for ct in cargo_types:
         # Skip blocked cargo types — no cost label means the edge is
@@ -561,9 +561,8 @@ def _calculate_cost_per_ton(edge_attr: dict, params: dict, cargo_types: list, ti
         ct_capacity = _get_cargo_capacity(edge_attr, ct)
         if ct_capacity == 0:
             continue
-        for i, cost in costs.items():
-            edge_attr[f"cost_per_ton_{i}_{ct}"] = cost
-            edge_attr[f"cost_per_ton_with_capacity_{i}_{ct}"] = cost
+        edge_attr[f"cost_per_ton_{ct}"] = cost
+        edge_attr[f"cost_per_ton_with_capacity_{ct}"] = cost
 
 
 def _get_cargo_capacity(edge_attr: dict, cargo_type: str) -> float:
