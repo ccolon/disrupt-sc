@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import logging
+import math
 import random
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -33,8 +34,8 @@ def setup_logistic_routes(
     """Assign routes to every commercial link and return a summary table.
 
     Uses pre-computed single-source Dijkstra for efficiency.
-    When capacity constraints are enabled, runs iterative re-routing
-    to distribute flows away from congested edges.
+    When capacity constraints are enabled, runs iterative chunk-based
+    re-routing to distribute flows away from congested edges.
     """
     # 1. Assign cost profiles
     for c in countries.values():
@@ -57,6 +58,7 @@ def setup_logistic_routes(
         _precompute_and_assign_with_capacity(
             link_specs, transport_network, nb_cost_profiles,
             tp.capacity_constraint_mode, max_capacity_iterations,
+            tp.chunk_size,
         )
     else:
         _precompute_and_assign(link_specs, transport_network, nb_cost_profiles)
@@ -149,15 +151,21 @@ def _precompute_and_assign(link_specs: list[dict],
             for dest, path in paths.items():
                 path_lookup[(profile, cargo_type, source, dest)] = path
 
-    # Assign routes to links
+    # Assign routes to links (single route per link → route_plan with 1 entry)
     _assign_routes_from_lookup(link_specs, path_lookup, transport_network)
+
+    # Set route_plan = [(route, 1.0)] for each link
+    for spec in link_specs:
+        link = spec["link"]
+        if link.route is not None:
+            link.route_plan = [(link.route, 1.0)]
 
     # Populate the route cache for simulation-time use
     _populate_route_cache(link_specs, transport_network)
 
 
 # ------------------------------------------------------------------
-# Pre-computation with iterative capacity feedback
+# Pre-computation with iterative capacity feedback (chunked)
 # ------------------------------------------------------------------
 
 def _precompute_and_assign_with_capacity(
@@ -166,18 +174,33 @@ def _precompute_and_assign_with_capacity(
     nb_cost_profiles: int,
     capacity_constraint_mode: str,
     max_iterations: int,
+    chunk_size: float,
 ):
-    """Pre-compute routes with iterative congestion feedback.
+    """Pre-compute routes with chunk-based iterative congestion feedback.
 
-    Round 0: Compute shortest paths on base costs, assign all flows.
-    Round 1..N: Update capacity costs on congested edges, re-compute
-    paths from affected sources, re-assign affected links.
+    Each link's tonnage is split into chunks of *chunk_size* tons.
+    Round 0: assign one chunk per link using unconstrained costs.
+    Subsequent rounds: update capacity costs, recompute routes from
+    sources with remaining chunks, assign next batch of chunks.
+    This naturally distributes large flows across multiple ports.
     """
     combos = _get_profile_cargo_combos(link_specs)
     cargo_types = transport_network.cargo_types or []
 
-    # --- Round 0: unconstrained ---
-    logging.info("Capacity routing: Round 0 (unconstrained)")
+    # --- Prepare chunk tracking per link spec ---
+    for spec in link_specs:
+        tons = spec["tons"]
+        n_chunks = max(1, math.ceil(tons / chunk_size)) if tons > 0 else 1
+        spec["chunk_tons"] = tons / n_chunks if n_chunks > 0 else 0
+        spec["n_chunks"] = n_chunks
+        spec["chunks_assigned"] = 0
+        spec["route_plan_entries"] = []  # [(Route, tons), ...]
+
+    total_chunks = sum(s["n_chunks"] for s in link_specs)
+    logging.info(f"Capacity routing: {len(link_specs)} links, "
+                 f"{total_chunks} chunks (chunk_size={chunk_size:.0f} t)")
+
+    # --- Round 0: compute shortest paths (unconstrained) ---
     path_lookup = {}
     for profile, cargo_type in combos:
         weight = f"cost_per_ton_{profile}_{cargo_type}"
@@ -195,39 +218,41 @@ def _precompute_and_assign_with_capacity(
             for dest, path in paths.items():
                 path_lookup[(profile, cargo_type, source, dest)] = path
 
+    # Assign initial routes (one route per link for primary route / cache)
     _assign_routes_from_lookup(link_specs, path_lookup, transport_network)
 
-    # Accumulate loads from round 0
+    # --- Assign first chunk for each link ---
     transport_network.reset_loads()
-    _accumulate_loads(link_specs, transport_network)
+    _assign_chunk_batch(link_specs, path_lookup, transport_network)
 
-    # --- Rounds 1..N: congestion correction ---
-    for iteration in range(1, max_iterations + 1):
-        # Update capacity costs based on current loads
+    chunks_done = sum(s["chunks_assigned"] for s in link_specs)
+    logging.info(f"Capacity routing: Round 0 assigned {chunks_done}/{total_chunks} chunks")
+
+    # --- Subsequent rounds: capacity-aware chunk assignment ---
+    round_num = 0
+    max_chunk_rounds = max(s["n_chunks"] for s in link_specs) + max_iterations
+    while True:
+        round_num += 1
+        if round_num > max_chunk_rounds:
+            logging.warning(f"Capacity routing: reached max rounds ({max_chunk_rounds})")
+            break
+
+        # Any remaining chunks?
+        remaining_specs = [s for s in link_specs if s["chunks_assigned"] < s["n_chunks"]]
+        if not remaining_specs:
+            logging.info(f"Capacity routing: all chunks assigned after {round_num} rounds")
+            break
+
+        # Update capacity costs
         _update_capacity_costs(transport_network, cargo_types, capacity_constraint_mode)
 
-        # Find congested edges
-        congested_edges = _find_congested_edges(transport_network, cargo_types, threshold=0.8)
-        if not congested_edges:
-            logging.info(f"Capacity routing: converged after {iteration} iterations (no congestion)")
-            break
-
-        logging.info(f"Capacity routing: Round {iteration}, "
-                     f"{len(congested_edges)} congested edges")
-
-        # Find affected sources: any source with a route through a congested edge
-        affected_sources = _find_affected_sources(link_specs, congested_edges)
-        if not affected_sources:
-            break
-
-        logging.info(f"  Re-routing {len(affected_sources)} affected sources")
-
-        # Re-compute paths from affected sources using capacity-adjusted costs
+        # Recompute routes from sources with remaining chunks
+        remaining_sources = {s["origin"] for s in remaining_specs}
         for profile, cargo_type in combos:
             weight = f"cost_per_ton_with_capacity_{profile}_{cargo_type}"
             subgraph = _cargo_subgraph(transport_network, weight)
-            combo_sources = affected_sources & {
-                s["origin"] for s in link_specs
+            combo_sources = remaining_sources & {
+                s["origin"] for s in remaining_specs
                 if s["cost_profile"] == profile and s["cargo_type"] == cargo_type
             }
             for source in combo_sources:
@@ -240,19 +265,99 @@ def _precompute_and_assign_with_capacity(
                 for dest, path in paths.items():
                     path_lookup[(profile, cargo_type, source, dest)] = path
 
-        # Re-assign and re-accumulate (don't fail — capacity re-routing may leave some unreachable)
-        _assign_routes_from_lookup(link_specs, path_lookup, transport_network,
-                                   fail_on_unreachable=False)
-        transport_network.reset_loads()
-        _accumulate_loads(link_specs, transport_network)
-    else:
-        n_congested = len(_find_congested_edges(transport_network, cargo_types, threshold=1.0))
-        if n_congested:
-            logging.warning(f"Capacity routing: {n_congested} edges still over-capacity "
-                            f"after {max_iterations} iterations")
+        # Assign next chunk batch
+        newly_assigned = _assign_chunk_batch(remaining_specs, path_lookup, transport_network)
+        if newly_assigned == 0:
+            logging.warning("Capacity routing: no chunks assigned in this round (unreachable?)")
+            break
+
+        chunks_done = sum(s["chunks_assigned"] for s in link_specs)
+        logging.info(f"Capacity routing: Round {round_num} — "
+                     f"{chunks_done}/{total_chunks} chunks assigned")
+
+    # --- Build route_plan on each link ---
+    _build_route_plans(link_specs)
+
+    # Log summary
+    n_multi = sum(1 for s in link_specs if len(s["link"].route_plan) > 1)
+    if n_multi:
+        logging.info(f"Capacity routing: {n_multi} links split across multiple routes")
+
+    # Check remaining congestion
+    n_congested = len(_find_congested_edges(transport_network, cargo_types, threshold=1.0))
+    if n_congested:
+        logging.warning(f"Capacity routing: {n_congested} edges still over-capacity")
 
     # Populate route cache for simulation-time use
     _populate_route_cache(link_specs, transport_network)
+
+
+def _assign_chunk_batch(link_specs: list[dict], path_lookup: dict,
+                        transport_network: TransportNetwork) -> int:
+    """Assign one chunk per link that has remaining chunks.  Returns count assigned."""
+    assigned = 0
+    for spec in link_specs:
+        if spec["chunks_assigned"] >= spec["n_chunks"]:
+            continue
+        key = (spec["cost_profile"], spec["cargo_type"],
+               spec["origin"], spec["destination"])
+        path = path_lookup.get(key)
+        if path is None or len(path) < 2:
+            continue
+
+        route = Route(path, transport_network, spec["cargo_type"])
+        chunk_tons = spec["chunk_tons"]
+
+        # Accumulate load on edges
+        cargo_type = spec["cargo_type"]
+        for u, v in route.transport_edges:
+            edge = transport_network[u][v]
+            load_key = f"current_load_{cargo_type}"
+            edge[load_key] = edge.get(load_key, 0) + chunk_tons
+
+        spec["route_plan_entries"].append((route, chunk_tons))
+        spec["chunks_assigned"] += 1
+        assigned += 1
+
+    return assigned
+
+
+def _build_route_plans(link_specs: list[dict]):
+    """Consolidate chunk entries into route_plan (Route, fraction) on each link."""
+    for spec in link_specs:
+        entries = spec["route_plan_entries"]
+        link = spec["link"]
+
+        if not entries:
+            link.route_plan = [(link.route, 1.0)] if link.route else []
+            continue
+
+        # Merge entries with the same route (compare by node list)
+        merged = []  # [(Route, tons)]
+        for route, tons in entries:
+            found = False
+            for i, (existing_route, existing_tons) in enumerate(merged):
+                if existing_route.transport_nodes == route.transport_nodes:
+                    merged[i] = (existing_route, existing_tons + tons)
+                    found = True
+                    break
+            if not found:
+                merged.append((route, tons))
+
+        # Convert to fractions
+        total_tons = sum(t for _, t in merged)
+        if total_tons > 0:
+            link.route_plan = [(r, t / total_tons) for r, t in merged]
+        else:
+            link.route_plan = [(link.route, 1.0)] if link.route else []
+
+        # Primary route = largest fraction (for backward compatibility)
+        if link.route_plan:
+            link.route_plan.sort(key=lambda x: x[1], reverse=True)
+            primary_route = link.route_plan[0][0]
+            if link.route is None or primary_route.transport_nodes != link.route.transport_nodes:
+                # Update primary route; cost was already set by _assign_routes_from_lookup
+                link.route = primary_route
 
 
 # ------------------------------------------------------------------
@@ -476,6 +581,7 @@ def _build_commercial_link_table(sc_network) -> pd.DataFrame:
             "from": link.route.transport_nodes[0] if link.use_transport_network and link.route else None,
             "to": link.route.transport_nodes[-1] if link.use_transport_network and link.route else None,
             "transport_modes": link.route.transport_modes if link.use_transport_network and link.route else None,
+            "n_routes": len(link.route_plan) if link.route_plan else 1,
         }
     df = pd.DataFrame.from_dict(rows, orient="index")
     df.index.name = "pid"

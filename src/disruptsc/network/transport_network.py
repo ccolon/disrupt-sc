@@ -233,8 +233,14 @@ class TransportNetwork(nx.Graph):
 
     def place_shipment(self, route: Route, link_pid: str, tons: float, destination_node: int,
                         monetary_quantity: float = 0.0, product_type: str = "",
-                        flow_category: str = "", cargo_type: str = ""):
-        """Place a shipment on all edges of a route and at the destination node."""
+                        flow_category: str = "", cargo_type: str = "",
+                        accumulate_at_dest: bool = False, dest_key: str = ""):
+        """Place a shipment on all edges of a route and at the destination node.
+
+        When *accumulate_at_dest* is True, the destination-node shipment is
+        accumulated under *dest_key* (used for chunked multi-route delivery
+        so the receiving agent sees one combined shipment per commercial link).
+        """
         shipment = {
             "quantity": monetary_quantity,
             "tons": tons,
@@ -244,7 +250,16 @@ class TransportNetwork(nx.Graph):
         }
         for u, v in route.transport_edges:
             self[u][v]["shipments"][link_pid] = shipment
-        self._node[destination_node]["shipments"][link_pid] = shipment
+
+        # At destination node: accumulate chunks or overwrite
+        node_key = dest_key if accumulate_at_dest and dest_key else link_pid
+        dest_shipments = self._node[destination_node].setdefault("shipments", {})
+        if accumulate_at_dest and node_key in dest_shipments:
+            existing = dest_shipments[node_key]
+            existing["quantity"] = existing.get("quantity", 0) + monetary_quantity
+            existing["tons"] = existing.get("tons", 0) + tons
+        else:
+            dest_shipments[node_key] = dict(shipment)
 
     def transport_shipment(self, link: CommercialLink, capacity_constraint: bool,
                            capacity_constraint_mode: str = "gradual"):

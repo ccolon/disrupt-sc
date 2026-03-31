@@ -58,9 +58,23 @@ def send_shipment(agent_pid, od_point: int, cost_profile: int,
                   after_shipment: Callable | None = None):
     """Send a shipment along a transport route, handling disruption rerouting.
 
-    *after_shipment(link, route)* is called on successful placement for
-    agent-specific bookkeeping (e.g. updating product_stock or qty_sold).
+    If the link has a multi-entry *route_plan*, the delivery is split
+    proportionally across routes.  Each sub-route is independently
+    checked for disruption.
+
+    *after_shipment(link, route)* is called once on successful placement
+    for agent-specific bookkeeping (e.g. updating product_stock or qty_sold).
     """
+    # --- Multi-route path (chunked delivery) ---
+    if len(link.route_plan) > 1:
+        _send_chunked_shipment(
+            agent_pid, od_point, cost_profile, transport_share,
+            link, transport_network, available_transport_network,
+            tp, routing_event_collector, after_shipment,
+        )
+        return
+
+    # --- Single-route path (original behavior) ---
     route = link.get_current_route()
 
     if route is None or not route:
@@ -137,6 +151,70 @@ def send_shipment(agent_pid, od_point: int, cost_profile: int,
 
     if after_shipment:
         after_shipment(link, route)
+
+
+def _send_chunked_shipment(
+    agent_pid, od_point: int, cost_profile: int,
+    transport_share: float,
+    link: CommercialLink,
+    transport_network: TransportNetwork,
+    available_transport_network: TransportNetwork,
+    tp: TransportParams,
+    routing_event_collector=None,
+    after_shipment: Callable | None = None,
+):
+    """Split a delivery across multiple routes per the link's route_plan."""
+    total_tons = link.delivery_in_tons
+    total_monetary = link.delivery
+    if total_tons < EPSILON:
+        link.realized_delivery = link.delivery
+        link.payment = link.delivery * link.price
+        if after_shipment:
+            after_shipment(link, link.route)
+        return
+
+    realized_fraction = 0.0
+
+    for i, (route, fraction) in enumerate(link.route_plan):
+        sub_tons = total_tons * fraction
+        sub_monetary = total_monetary * fraction
+
+        if sub_tons < EPSILON:
+            realized_fraction += fraction
+            continue
+
+        # Check route availability (disruption)
+        if not available_transport_network.is_route_available(route):
+            alt_route = discover_route(
+                od_point, cost_profile, link,
+                transport_network, available_transport_network,
+                tp.capacity_constraint_enabled, tp.use_route_cache,
+            )
+            if alt_route is None:
+                # This portion is lost
+                if routing_event_collector:
+                    routing_event_collector.record_event(
+                        agent_pid, link.buyer_id, "no_route", 0.0,
+                    )
+                continue
+            route = alt_route
+
+        # Place sub-shipment with unique chunk ID on edges
+        chunk_id = f"{link.pid}__r{i}" if i > 0 else link.pid
+        transport_network.place_shipment(
+            route, chunk_id, sub_tons, link.destination_node,
+            monetary_quantity=sub_monetary, product_type=link.product_type,
+            flow_category=link.category, cargo_type=link.cargo_type,
+            accumulate_at_dest=True,  # merge at destination node under link.pid
+            dest_key=link.pid,
+        )
+        realized_fraction += fraction
+
+    link.realized_delivery = link.delivery * realized_fraction
+    link.payment = link.realized_delivery * link.price
+
+    if after_shipment and link.route:
+        after_shipment(link, link.route)
 
 
 def deliver_without_transport(link: CommercialLink,

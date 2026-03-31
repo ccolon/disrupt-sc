@@ -39,6 +39,7 @@ class CommercialLink:
     use_transport_network: bool = False
     cargo_type: str = "dry_bulk"
     essential: bool = True
+    route_plan: list = field(default_factory=list)  # [(Route, fraction), ...]
 
     # --- Flow state ---
     order: float = 0.0
