@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import logging
-import random
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from disruptsc.config import EPSILON
 from disruptsc.agents.transport_utils import (
-    send_shipment, deliver_without_transport, discover_route,
+    send_shipment, deliver_without_transport,
     collect_shipment_from_node,
 )
 
@@ -53,19 +52,12 @@ class Country:
     extra_spending: float = 0.0
     consumption_loss: float = 0.0
 
-    # --- Routing ---
-    cost_profile: int = 0
-
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
 
     def id_str(self) -> str:
         return f"Country {self.pid} at node {self.od_point}"
-
-    def assign_cost_profile(self, nb_cost_profiles: int):
-        if nb_cost_profiles > 0:
-            self.cost_profile = random.randint(0, nb_cost_profiles - 1)
 
     # ------------------------------------------------------------------
     # Simulation loop
@@ -119,7 +111,7 @@ class Country:
                 deliver_without_transport(link, _after_delivery)
             else:
                 send_shipment(
-                    self.pid, self.od_point, self.cost_profile, self.transport_share,
+                    self.pid, self.od_point, self.transport_share,
                     link, transport_network, available_transport_network, tp,
                     routing_event_collector, _after_shipment,
                 )

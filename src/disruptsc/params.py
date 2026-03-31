@@ -83,9 +83,6 @@ class LogisticsParams:
     """Parameters for logistics cost computation."""
     speeds: dict = field(default_factory=lambda: {"roads": 50, "maritime": 35})
     basic_cost: dict = field(default_factory=lambda: {"roads": 0.01, "maritime": 0.001})
-    nb_cost_profiles: int = 1
-    basic_cost_random: bool = False
-    basic_cost_variability: dict = field(default_factory=dict)
     switching_costs: dict = field(default_factory=lambda: {"modal_switch": 0.15, "port_switch": 0.05})
     dwell_times: dict = field(default_factory=dict)
     loading_fees: dict = field(default_factory=dict)
