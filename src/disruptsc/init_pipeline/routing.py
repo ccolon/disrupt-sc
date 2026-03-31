@@ -94,13 +94,21 @@ def _collect_link_specs(sc_network, tp: TransportParams) -> list[dict]:
         if not tp.with_transport:
             continue
 
+        # Estimate tons from equilibrium order (set by set_initial_conditions)
+        # In equilibrium delivery = order, so this is exact.
+        tons = link.delivery_in_tons
+        if tons <= 0 and link.order > 0:
+            usd_per_ton = getattr(supplier, "usd_per_ton", 1.0)
+            monetary_factor = getattr(supplier, "monetary_unit_factor", 1.0)
+            tons = link.order * monetary_factor / usd_per_ton if usd_per_ton > 0 else 0.0
+
         specs.append({
             "link": link,
             "origin": supplier.od_point,
             "destination": client.od_point,
             "cost_profile": getattr(supplier, "cost_profile", 0),
             "cargo_type": link.cargo_type,
-            "tons": link.delivery_in_tons if link.delivery_in_tons > 0 else 0,
+            "tons": tons,
         })
 
     logging.info(f"Collected {len(specs)} routable commercial links")
