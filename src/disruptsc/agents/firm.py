@@ -38,6 +38,7 @@ class Firm:
     subregions: dict = field(default_factory=dict)
     importance: float = 1.0
     usd_per_ton: float = 2864.0
+    monetary_unit_factor: float = 1.0  # multiplier to convert model monetary units to USD
     input_mix: dict[str, float] = field(default_factory=dict)
 
     # --- Production state ---
@@ -118,15 +119,15 @@ class Firm:
 
     def initialize_inventory(self, time_resolution: str):
         """Set up inventory from equilibrium needs and targets."""
-        time_factor = {"day": 1, "week": 7, "month": 30, "year": 365}.get(time_resolution, 7)
         self.eq_needs = {
             input_id: self.input_mix[input_id] * self.eq_production
             for input_id in self.input_mix
         }
         self.input_needs = dict(self.eq_needs)
-        # Inventory = needs * target duration (converted to time resolution)
+        # Inventory = needs_per_step * target_duration_in_steps
+        # (inventory_duration_target is already in model time-step units)
         self.inventory = {
-            input_id: need * self.inventory_duration_target.get(input_id, 1) / time_factor
+            input_id: need * self.inventory_duration_target.get(input_id, 1)
             for input_id, need in self.eq_needs.items()
         }
 
@@ -403,14 +404,14 @@ class Firm:
             for _, client, data in sc_network.out_edges(self, data=True):
                 link: CommercialLink = data["object"]
                 link.delivery = link.order
-                link.delivery_in_tons = link.delivery / self.usd_per_ton if self.usd_per_ton > 0 else 0.0
+                link.delivery_in_tons = link.delivery * self.monetary_unit_factor / self.usd_per_ton if self.usd_per_ton > 0 else 0.0
         else:
             self.rationing = available / self.total_order
             if rationing_mode == "equal":
                 for _, client, data in sc_network.out_edges(self, data=True):
                     link: CommercialLink = data["object"]
                     link.delivery = link.order * self.rationing
-                    link.delivery_in_tons = link.delivery / self.usd_per_ton if self.usd_per_ton > 0 else 0.0
+                    link.delivery_in_tons = link.delivery * self.monetary_unit_factor / self.usd_per_ton if self.usd_per_ton > 0 else 0.0
             # household_first could be added here
 
     def _receive_shipment(self, link: CommercialLink, transport_network: TransportNetwork):

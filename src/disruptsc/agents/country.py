@@ -32,6 +32,7 @@ class Country:
     sector: str = "IMP"
     region_sector: str = ""
     usd_per_ton: float = 2864.0
+    monetary_unit_factor: float = 1.0  # multiplier to convert model monetary units to USD
     transport_share: float = 0.2
 
     # --- Trade structure (set during init_pipeline) ---
@@ -105,7 +106,7 @@ class Country:
             link: CommercialLink = data["object"]
             # Country delivers whatever was ordered (unlimited supply from outside)
             link.delivery = link.order
-            link.delivery_in_tons = link.delivery / self.usd_per_ton if self.usd_per_ton > 0 else 0.0
+            link.delivery_in_tons = link.delivery * self.monetary_unit_factor / self.usd_per_ton if self.usd_per_ton > 0 else 0.0
 
             if link.delivery < EPSILON:
                 continue

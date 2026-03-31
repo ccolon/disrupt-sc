@@ -13,7 +13,7 @@ from scipy.spatial import cKDTree
 from disruptsc.agents.firm import Firm
 from disruptsc.agents.household import Household
 from disruptsc.agents.country import Country
-from disruptsc.network.mrio import Mrio, rescale_monetary_values
+from disruptsc.network.mrio import Mrio, rescale_monetary_values, _UNITS
 from disruptsc.params import AgentParams
 
 
@@ -113,6 +113,7 @@ def create_firm_table(mrio: Mrio, sector_table: pd.DataFrame,
 
 def create_firms(firm_table: pd.DataFrame, params: AgentParams) -> dict[str, Firm]:
     """Instantiate Firm objects from firm_table."""
+    monetary_unit_factor = _UNITS.get(params.monetary_units_in_model, 1e6)
     firms = {}
     for _, row in firm_table.iterrows():
         # Collect subregion columns
@@ -131,6 +132,7 @@ def create_firms(firm_table: pd.DataFrame, params: AgentParams) -> dict[str, Fir
             geometry=row.get("geometry"),
             importance=row.get("importance", 1.0),
             usd_per_ton=row.get("usd_per_ton", 2864.0),
+            monetary_unit_factor=monetary_unit_factor,
             target_margin=row.get("target_margin", 0.2),
             transport_share=row.get("transport_share", 0.2),
             utilization_rate=params.utilization_rate,
@@ -390,6 +392,7 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
             sector=mrio.import_label or "IMP",
             region_sector=f"{country_code}_{mrio.import_label or 'IMP'}",
             usd_per_ton=country_upt,
+            monetary_unit_factor=_UNITS.get(params.monetary_units_in_model, 1e6),
             transport_share=params.country_transport_share,
             supply_importance=supply_importance,
             qty_purchased=qty_purchased,
