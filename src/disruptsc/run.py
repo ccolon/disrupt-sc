@@ -30,9 +30,10 @@ from disruptsc.run_pipeline.cache import (
 )
 from disruptsc.run_pipeline.simulate import (
     run_initial_state, run_disruption, run_criticality,
+    set_initial_conditions,
 )
 from disruptsc.run_pipeline.export import (
-    export_transport_flows, export_summary,
+    export_transport_flows, export_summary, export_logistics_report,
     export_initial_state, export_static_tables, MCWriter,
 )
 
@@ -139,6 +140,12 @@ def main():
         cache_sc_network(sc_network, firms, households, countries)
 
     # ------------------------------------------------------------------
+    # Stage 3b: Set initial conditions (before routing, so links have
+    #           equilibrium orders for capacity-aware route assignment)
+    # ------------------------------------------------------------------
+    set_initial_conditions(sc_network, firms, households, countries, tp, sp)
+
+    # ------------------------------------------------------------------
     # Stage 4: Logistic routes
     # ------------------------------------------------------------------
     if cache_flags["logistic_routes"]:
@@ -161,15 +168,22 @@ def main():
     # ------------------------------------------------------------------
     sim_type = sp.simulation_type
 
+    # Extract monitored edge names from capacity overrides (if any)
+    capacity_overrides = config.get("transport_capacity_overrides", {})
+    monitored_edges = list(capacity_overrides.keys()) if capacity_overrides else None
+
     if sim_type == "initial_state":
         logging.info("Running initial state simulation")
         data = run_initial_state(
             sc_network, transport_network, firms, households, countries, tp, sp,
             export_folder=export_folder,
+            monitored_edges=monitored_edges,
         )
         if export_folder:
             export_transport_flows(data["flow"], transport_edges, export_folder)
             export_initial_state(sc_network, export_folder)
+            if data.get("logistics_reports"):
+                export_logistics_report(data["logistics_reports"], export_folder, tp.monetary_units)
 
     elif sim_type == "disruption":
         if sp.is_monte_carlo:
@@ -181,12 +195,15 @@ def main():
                 sc_network, transport_network, firms, households, countries,
                 tp, sp, config.get("disruptions"), transport_edges, firm_table, sp.t_final,
                 export_folder=export_folder,
+                monitored_edges=monitored_edges,
             )
             if export_folder:
                 export_transport_flows(all_data["transport_flow"], transport_edges, export_folder)
                 export_summary(all_data["household"], all_data["country"],
                                household_table if not isinstance(household_table, type(None)) else None,
                                tp.monetary_units, export_folder)
+                if all_data.get("logistics_reports"):
+                    export_logistics_report(all_data["logistics_reports"], export_folder, tp.monetary_units)
 
     elif sim_type == "criticality":
         import copy
