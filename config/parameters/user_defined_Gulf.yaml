@@ -19,31 +19,30 @@ transport_modes: ["roads", "maritime", "airways"]
 
 # ── Economic settings ──
 monetary_units_in_model: "mUSD"
-monetary_units_in_data: "mUSD"
+monetary_units_in_data: "kUSD"  # Eora26 data is in thousands of USD
 firm_data_type: "mrio"
 
 # ── Time ──
-time_resolution: "week"
+time_resolution: "day"
 t_final: 10  # 3 months of blockade
 
 # ── Filtering ──
-# Eora26 values are in USD (not millions), so cutoffs need to be appropriate
 io_cutoff: 0.01
 cutoff_sector_output:
   type: "absolute"
-  value: 100
+  value: 1
   unit: "kUSD"
 cutoff_sector_demand:
   type: "absolute"
-  value: 100
+  value: 1
   unit: "kUSD"
 cutoff_firm_output:
   type: "absolute"
-  value: 10
+  value: 1
   unit: "kUSD"
 cutoff_household_demand:
   type: "absolute"
-  value: 10
+  value: 1
   unit: "kUSD"
 
 # ── Agent settings ──
@@ -97,6 +96,7 @@ logistics:
   loading_fees: # USD/ton
     roads-maritime: 2.5
     roads-airways: 5.0
+  chunk_size: 1000
 
 capacity_constraint: "gradual"
 transport_capacity_overrides:
@@ -117,13 +117,13 @@ transport_capacity_overrides:
     dry_bulk: 20000
     liquid_bulk: 30000
   port_hamad:
-    container: 191800
+    container: 55000
     dry_bulk: 19200
     liquid_bulk: 0
   port_ras_laffan:
     container: 0
     dry_bulk: 0
-    liquid_bulk: 211000
+    liquid_bulk: 300000
   port_shuwaikh:
     container: 23500
     dry_bulk: 8850
@@ -172,10 +172,10 @@ transport_capacity_overrides:
     container: 5000
     dry_bulk: 20000
     liquid_bulk: 10000
-port_shahid_rajaee:
-  container: 120000
-  dry_bulk: 30000
-  liquid_bulk: 40000
+  port_shahid_rajaee:
+    container: 120000
+    dry_bulk: 30000
+    liquid_bulk: 40000
   port_imam_khomeini:
     container: 15000
     dry_bulk: 250000

@@ -73,6 +73,13 @@ def _parse_capacity_constraint(raw) -> tuple[bool, str]:
     return True, "gradual"
 
 
+def _parse_chunk_size(logistics: dict, time_resolution: str) -> float:
+    """Convert chunk_size from tons/day (YAML) to tons/time-step."""
+    raw = logistics.get("chunk_size", 1e9)
+    time_factor = {"day": 1, "week": 7, "month": 30, "year": 365}.get(time_resolution, 7)
+    return float(raw) * time_factor
+
+
 def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams, LogisticsParams]:
     """Build frozen parameter bundles from a raw config dict."""
     logistics = config.get("logistics", {})
@@ -91,6 +98,7 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
                                               ["utility", "transport", "trade", "services", "service", "construction"])),
         monetary_units=config.get("monetary_units_in_model", "mUSD"),
         route_optimization_weight=config.get("route_optimization_weight", "cost_per_ton"),
+        chunk_size=_parse_chunk_size(logistics, config.get("time_resolution", "week")),
     )
 
     sim_params = SimParams(

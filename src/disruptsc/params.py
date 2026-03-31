@@ -17,6 +17,7 @@ class TransportParams:
     sectors_no_transport: tuple = ("utility", "transport", "trade", "services", "service", "construction")
     monetary_units: str = "mUSD"
     route_optimization_weight: str = "cost_per_ton"
+    chunk_size: float = 1e9  # tons per time-step; very large = no chunking
 
 
 @dataclass(frozen=True)
