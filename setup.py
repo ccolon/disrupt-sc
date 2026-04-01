@@ -23,7 +23,7 @@ setup(
         "License :: Other/Proprietary License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.10,<3.12",
+    python_requires=">=3.10,<3.14",
     install_requires=[
         # Core data processing
         "pandas>=1.3.0,<3.0",
