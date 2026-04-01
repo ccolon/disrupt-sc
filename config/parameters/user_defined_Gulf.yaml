@@ -15,7 +15,7 @@ filepaths:
   "usd_per_ton": "Economic/usd_per_ton.csv"
 
 # ── Transport ──
-transport_modes: ["roads", "maritime", "airways"]
+transport_modes: ["roads", "maritime", "airways", "pipelines"]
 
 # ── Economic settings ──
 monetary_units_in_model: "mUSD"
@@ -23,7 +23,7 @@ monetary_units_in_data: "kUSD"  # Eora26 data is in thousands of USD
 firm_data_type: "mrio"
 
 # ── Time ──
-time_resolution: "day"
+time_resolution: "week"
 t_final: 10  # 3 months of blockade
 
 # ── Filtering ──
@@ -96,7 +96,7 @@ logistics:
   loading_fees: # USD/ton
     roads-maritime: 2.5
     roads-airways: 5.0
-  chunk_size: 1000
+  chunk_size: 50000
 
 capacity_constraint: "gradual"
 transport_capacity_overrides:
@@ -128,6 +128,10 @@ transport_capacity_overrides:
     container: 23500
     dry_bulk: 8850
     liquid_bulk: 0
+  port_mina_al_ahmadi:
+    container: 0
+    dry_bulk: 0
+    liquid_bulk: 5000
   port_khalifa_bin_salman:
     container: 42200
     dry_bulk: 8000
@@ -136,6 +140,14 @@ transport_capacity_overrides:
     container: 27800
     dry_bulk: 105200
     liquid_bulk: 62500
+  port_mina_al_fahal:
+    container: 10000
+    dry_bulk: 50000
+    liquid_bulk: 30000
+  port_qalhat:
+    container: 0
+    dry_bulk: 0
+    liquid_bulk: 20000
   port_salalah:
     container: 249300
     dry_bulk: 20000
@@ -148,6 +160,10 @@ transport_capacity_overrides:
     container: 237800
     dry_bulk: 0
     liquid_bulk: 0
+  port_yanbu:
+    container: 0
+    dry_bulk: 0
+    liquid_bulk: 30000
   port_dammam:
     container: 115100
     dry_bulk: 0
@@ -204,7 +220,7 @@ transport_capacity_overrides:
   border_crossing_khatmat_malaha: 7000
 
 # ── Simulation ──
-simulation_type: "initial_state"
+simulation_type: "disruption"
 mc_repetitions: 0  # deterministic first run; increase for stochastic
 export_files: True
 use_route_cache: True
@@ -217,14 +233,9 @@ disruptions:
     description_type: edge_attributes
     attribute: name
     values:
-      - "Strait of Hormuz"            # main strait edge (id 95)
-      - "Hormuz north - Dubai hub"     # approaches from north
-      - "Hormuz north - Qatar-Bahrain hub"
-      - "Hormuz south - Muscat approach N"  # approaches from south
-      - "Hormuz south - Muscat approach S"
-      - "Hormuz south - Gwadar approach"
+      - "Strait of Hormuz"
     start_time: 1
-    duration: 7  # 60-day blockade
+    duration: 4  # 60-day blockade
 
 # ── Stop condition ──
 epsilon_stop_condition: 1e-3

@@ -128,7 +128,7 @@ default_transport_capacity:
     dry_bulk: 0        # no bulk by air
     liquid_bulk: 0     # no liquid by air
   multimodal: 500000   # generous for generic connectors
-  pipeline:
+  pipelines:
     container: 0
     dry_bulk: 0
     liquid_bulk: 500000
