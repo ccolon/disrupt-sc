@@ -271,7 +271,6 @@ def apply_disruptions(disruptions: list, time_step: int,
     for d in disruptions:
         if d.start_time != time_step:
             continue
-        d.log_info()
         if isinstance(d, TransportDisruption):
             d.implement(transport_network)
         elif isinstance(d, (CapitalDestruction, ProductivityShock)):
