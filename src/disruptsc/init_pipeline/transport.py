@@ -76,7 +76,7 @@ def build_transport_network(transport_modes: list, filepaths: dict,
     if not all_edges:
         raise ValueError("No transport edges loaded")
 
-    edges_gdf = pd.concat(all_edges, ignore_index=True)
+    edges_gdf = pd.concat([df.dropna(axis=1, how="all") for df in all_edges], ignore_index=True)
     edges_gdf = gpd.GeoDataFrame(edges_gdf, geometry="geometry")
 
     # Guard: edge IDs must be unique (duplicate IDs break the flow export merge)
