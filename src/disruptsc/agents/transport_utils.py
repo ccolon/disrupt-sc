@@ -102,6 +102,7 @@ def send_shipment(agent_pid, od_point: int,
         link.alternative_found = True
         alt_cost = transport_network.compute_route_cost(
             alt_route, link.cargo_type,
+            with_capacity=tp.capacity_constraint_enabled,
         )
         link.alternative_route_cost_per_ton = alt_cost
         relative_increase = link.calculate_relative_increase_in_transport_cost()
@@ -136,6 +137,8 @@ def send_shipment(agent_pid, od_point: int,
             route, link.pid, link.delivery_in_tons, link.destination_node,
             monetary_quantity=link.delivery, product_type=link.product_type,
             flow_category=link.category, cargo_type=link.cargo_type,
+            capacity_constraint=tp.capacity_constraint_enabled,
+            capacity_constraint_mode=tp.capacity_constraint_mode,
         )
 
     link.realized_delivery = link.delivery
@@ -199,6 +202,8 @@ def _send_chunked_shipment(
             flow_category=link.category, cargo_type=link.cargo_type,
             accumulate_at_dest=True,  # merge at destination node under link.pid
             dest_key=link.pid,
+            capacity_constraint=tp.capacity_constraint_enabled,
+            capacity_constraint_mode=tp.capacity_constraint_mode,
         )
         realized_fraction += fraction
 

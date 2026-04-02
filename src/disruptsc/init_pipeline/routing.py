@@ -9,7 +9,11 @@ import networkx as nx
 import pandas as pd
 
 from disruptsc.network.route import Route
-from disruptsc.network.transport_network import TransportNetwork, _get_cargo_capacity, _capacity_multiplier
+from disruptsc.network.transport_network import (
+    TransportNetwork,
+    _get_cargo_capacity,
+    _refresh_edge_capacity_costs,
+)
 from disruptsc.params import TransportParams
 
 
@@ -208,7 +212,9 @@ def _precompute_and_assign_with_capacity(
 
     # --- Assign first chunk for each link ---
     transport_network.reset_loads()
-    _assign_chunk_batch(link_specs, path_lookup, transport_network)
+    _assign_chunk_batch(
+        link_specs, path_lookup, transport_network, capacity_constraint_mode,
+    )
 
     chunks_done = sum(s["chunks_assigned"] for s in link_specs)
     logging.info(f"Capacity routing: Round 0 assigned {chunks_done}/{total_chunks} chunks")
@@ -247,8 +253,10 @@ def _precompute_and_assign_with_capacity(
                 for dest, path in paths.items():
                     path_lookup[(cargo_type, source, dest)] = path
 
-        # Assign next chunk batch (skips links whose route would overflow)
-        newly_assigned = _assign_chunk_batch(remaining_specs, path_lookup, transport_network)
+        # Assign next chunk batch with soft overflow penalties
+        newly_assigned = _assign_chunk_batch(
+            remaining_specs, path_lookup, transport_network, capacity_constraint_mode,
+        )
 
         if newly_assigned == 0:
             stalled_rounds += 1
@@ -256,7 +264,7 @@ def _precompute_and_assign_with_capacity(
                 # Truly stuck — remaining links have no alternative route
                 n_stuck = sum(s["n_chunks"] - s["chunks_assigned"] for s in remaining_specs)
                 logging.warning(f"Capacity routing: {n_stuck} chunks have no feasible route, "
-                                f"assigning to best available")
+                                f"falling back to the last available path")
                 _force_assign_remaining(remaining_specs, path_lookup, transport_network,
                                        cargo_types=list(all_cargo_types),
                                        capacity_mode=capacity_constraint_mode)
@@ -287,47 +295,46 @@ def _precompute_and_assign_with_capacity(
 
 
 def _assign_chunk_batch(link_specs: list[dict], path_lookup: dict,
-                        transport_network: TransportNetwork) -> int:
-    """Assign one chunk per link, skipping links whose route would cross capacity.
+                        transport_network: TransportNetwork,
+                        capacity_mode: str) -> int:
+    """Assign one chunk per link using current shortest paths.
 
-    When placing a chunk would push any edge on its route over capacity,
-    the chunk is deferred to the next round (where paths will be recomputed
-    with updated capacity costs).  Returns count assigned.
+    Capacity is handled through the congestion-adjusted cost labels rather
+    than a hard stop, so chunks may overflow an edge when every alternative
+    is worse. Same-node links are assigned immediately without loading any
+    transport edge.
     """
     assigned = 0
+    cargo_types = transport_network.cargo_types or []
+
     for spec in link_specs:
         if spec["chunks_assigned"] >= spec["n_chunks"]:
             continue
         key = (spec["cargo_type"], spec["origin"], spec["destination"])
         path = path_lookup.get(key)
-        if path is None or len(path) < 2:
+        if path is None or len(path) < 1:
             continue
 
         route = Route(path, transport_network, spec["cargo_type"])
-        chunk_tons = spec["chunk_tons"]
         cargo_type = spec["cargo_type"]
+        chunk_tons = spec["chunk_tons"]
 
-        # Check if placing this chunk would push any edge over capacity
-        would_overflow = False
-        for u, v in route.transport_edges:
-            edge = transport_network[u][v]
-            cap = _get_cargo_capacity(edge, cargo_type)
-            if cap >= 1e8:
-                continue  # unconstrained edge
-            current = edge.get(f"current_load_{cargo_type}", 0)
-            if current + chunk_tons > cap:
-                would_overflow = True
-                break
-
-        if would_overflow:
-            # Defer to next round — paths will be recomputed with capacity costs
+        if not route.transport_edges:
+            remaining_chunks = spec["n_chunks"] - spec["chunks_assigned"]
+            remaining_tons = chunk_tons * remaining_chunks
+            if remaining_tons > 0:
+                spec["route_plan_entries"].append((route, remaining_tons))
+            spec["chunks_assigned"] = spec["n_chunks"]
+            assigned += remaining_chunks
             continue
 
-        # Accumulate load on edges
+        # Accumulate load on edges, allowing soft overflow when needed.
         for u, v in route.transport_edges:
             edge = transport_network[u][v]
             load_key = f"current_load_{cargo_type}"
             edge[load_key] = edge.get(load_key, 0) + chunk_tons
+            if cargo_types:
+                _refresh_edge_capacity_costs(edge, cargo_types, capacity_mode)
 
         spec["route_plan_entries"].append((route, chunk_tons))
         spec["chunks_assigned"] += 1
@@ -487,9 +494,8 @@ def _assign_routes_from_lookup(link_specs: list[dict], path_lookup: dict,
         path = path_lookup.get(key)
         link = spec["link"]
 
-        if path is None or len(path) < 2:
-            if spec["origin"] != spec["destination"]:
-                unreachable.append(spec)
+        if path is None or len(path) < 1:
+            unreachable.append(spec)
             continue
 
         route = Route(path, transport_network, spec["cargo_type"])
@@ -593,28 +599,7 @@ def _update_capacity_costs(transport_network: TransportNetwork,
     """Update cost_per_ton_with_capacity based on current loads."""
     for u, v in transport_network.edges:
         edge = transport_network[u][v]
-        shared_cap = edge.get("capacity", 1e9)
-        total_load = sum(edge.get(f"current_load_{ct}", 0) for ct in cargo_types)
-
-        for ct in cargo_types:
-            ct_cap = _get_cargo_capacity(edge, ct)
-            ct_load = edge.get(f"current_load_{ct}", 0)
-
-            if ct_cap == 0:
-                continue  # blocked — no cost labels exist for this cargo type
-
-            # Multiplier from per-cargo-type capacity
-            ct_mult = _capacity_multiplier(ct_load, ct_cap) if ct_cap < 1e8 else 1.0
-            # Multiplier from shared capacity (only if no per-ct cap defined)
-            has_ct_cap = f"capacity_{ct}" in edge
-            shared_mult = _capacity_multiplier(total_load, shared_cap) if not has_ct_cap else 1.0
-            mult = max(ct_mult, shared_mult)
-
-            # Update with_capacity cost labels for this cargo type
-            for key in list(edge.keys()):
-                if key.startswith("cost_per_ton_") and key.endswith(f"_{ct}") and "with_capacity" not in key:
-                    cap_key = key.replace("cost_per_ton_", "cost_per_ton_with_capacity_")
-                    edge[cap_key] = edge[key] * mult
+        _refresh_edge_capacity_costs(edge, cargo_types, mode)
 
 
 def _find_congested_edges(transport_network: TransportNetwork,
