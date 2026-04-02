@@ -50,20 +50,18 @@ class TransportDisruption:
 
     def implement(self, transport_network):
         duration = self.recovery.duration if self.recovery else float("inf")
-        cargo_types = transport_network.cargo_types or []
+        recovery_shape = self.recovery.shape if self.recovery else "threshold"
+        recovery_rate = self.recovery.rate if self.recovery else 1.0
         for edge in transport_network.edges:
             edata = transport_network[edge[0]][edge[1]]
             eid = edata["id"]
             if eid in self.description:
                 reduction = self.description[eid]
-                edata["disruption_duration"] = duration
-                # Reduce shared capacity
-                edata["capacity"] = edata.get("capacity", 1e9) * (1 - reduction)
-                # Reduce per-cargo-type capacities
-                for ct in cargo_types:
-                    ct_key = f"capacity_{ct}"
-                    if ct_key in edata:
-                        edata[ct_key] *= (1 - reduction)
+                transport_network.start_edge_disruption(
+                    edata, reduction, duration,
+                    recovery_shape=recovery_shape,
+                    recovery_rate=recovery_rate,
+                )
                 logging.debug(f"Disrupted edge {eid}: {reduction:.0%} capacity loss for {duration} steps")
 
     def log_info(self):
@@ -71,7 +69,8 @@ class TransportDisruption:
         logging.info(f"TransportDisruption: {len(self.description)} edges at t={self.start_time}, {rec}")
 
     @classmethod
-    def from_edge_attributes(cls, edges: gpd.GeoDataFrame, attribute: str, values: list):
+    def from_edge_attributes(cls, edges: gpd.GeoDataFrame, attribute: str,
+                             values: list, reduction: float = 1.0):
         if attribute == "disruption":
             mask = pd.concat(
                 [edges[attribute].str.contains(v, na=False) for v in values], axis=1
@@ -79,7 +78,7 @@ class TransportDisruption:
         else:
             mask = edges[attribute].isin(values)
         ids = edges.loc[mask, "id"].tolist()
-        return cls(description={eid: 1.0 for eid in ids})
+        return cls(description={eid: reduction for eid in ids})
 
 
 # ------------------------------------------------------------------
@@ -188,8 +187,9 @@ def parse_disruptions(config_list: list | None,
         dtype = cfg.get("type", "")
 
         if dtype == "transport_disruption":
+            reduction = cfg.get("capacity_reduction", cfg.get("fraction_capacity_lost", 1.0))
             d = TransportDisruption.from_edge_attributes(
-                transport_edges, cfg["attribute"], cfg["values"],
+                transport_edges, cfg["attribute"], cfg["values"], reduction=reduction,
             )
             d.start_time = cfg.get("start_time", 1)
             if "duration" in cfg:
@@ -201,8 +201,9 @@ def parse_disruptions(config_list: list | None,
             disruptions.append(d)
 
         elif dtype == "transport_disruption_probability":
+            reduction = cfg.get("capacity_reduction", cfg.get("fraction_capacity_lost", 1.0))
             base = TransportDisruption.from_edge_attributes(
-                transport_edges, cfg["attribute"], cfg["values"],
+                transport_edges, cfg["attribute"], cfg["values"], reduction=reduction,
             )
             starts, durations = _generate_probabilistic_disruptions(
                 cfg["scenario_duration"], cfg["probability_duration_pairs"],

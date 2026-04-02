@@ -118,6 +118,11 @@ def generate_report(output_folder: Path) -> Path:
     if df_firm is not None:
         sections.append(_section_propagation_heatmap(df_firm))
 
+    # 14. Inventory levels by input sector
+    df_inv = load_csv(output_folder / "inventory_data.csv")
+    if df_inv is not None:
+        sections.append(_section_inventory_by_input_sector(df_inv))
+
     # Write HTML
     sections.append("</body></html>")
     html = "\n".join(sections)
@@ -815,4 +820,45 @@ def _section_propagation_heatmap(df_firm: pd.DataFrame) -> str:
     )
     html.append(fig_to_div(fig2))
 
+    return "\n".join(html)
+
+
+# ======================================================================
+# Section 14: Inventory levels by input sector
+# ======================================================================
+
+
+def _section_inventory_by_input_sector(df_inv: pd.DataFrame) -> str:
+    html = ["<h2>14. Inventory Levels by Input Sector</h2>",
+            '<p class="section-note">Average inventory in days, weighted by '
+            'equilibrium input need (eq_need), grouped by input sector '
+            '(aggregated across regions).</p>']
+
+    df = df_inv.copy()
+    # Strip region prefix from input_sector (e.g., "ARE_Trade" → "Trade")
+    df["sector"] = df["input_sector"].str.split("_", n=1).str[1]
+    # Weighted average: weight by eq_need
+    df["weighted_days"] = df["inventory_days"] * df["eq_need"]
+    agg = df.groupby(["time_step", "sector"]).agg(
+        weighted_days=("weighted_days", "sum"),
+        total_need=("eq_need", "sum"),
+    ).reset_index()
+    agg["avg_inventory_days"] = agg["weighted_days"] / agg["total_need"].replace(0, np.nan)
+
+    sectors = sorted(agg["sector"].unique())
+    fig = go.Figure()
+    for i, sector in enumerate(sectors):
+        sub = agg[agg["sector"] == sector]
+        fig.add_trace(go.Scatter(
+            x=sub["time_step"], y=sub["avg_inventory_days"],
+            mode="lines+markers", name=sector,
+            line=dict(color=_SECTOR_COLORS[i % len(_SECTOR_COLORS)]),
+        ))
+
+    fig.update_layout(
+        xaxis_title="Time step",
+        yaxis_title="Inventory level (days)",
+        height=500,
+    )
+    html.append(fig_to_div(fig))
     return "\n".join(html)
