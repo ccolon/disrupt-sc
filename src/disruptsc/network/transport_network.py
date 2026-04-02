@@ -489,17 +489,23 @@ class TransportNetwork(nx.Graph):
 # ======================================================================
 
 def _capacity_multiplier(current_load: float, capacity: float) -> float:
+    """Barrier cost multiplier that grows to infinity at and beyond capacity.
+
+    Below capacity:  1 + (u / (1 - u))²   — smooth barrier approaching capacity
+    Above capacity:  scales as (u)²        — continues growing with overcapacity
+
+    This ensures that overcapacity edges become progressively more expensive,
+    not capped at a fixed maximum.
+    """
     if capacity <= 0:
         return 1.0
     u = current_load / capacity
-    if u < 0.7:
-        return 1.0
-    elif u < 0.9:
-        return 1.0 + (u - 0.7) * 2.5
-    elif u < 1.0:
-        return 1.5 + (u - 0.9) * 15.0
+    if u < 0.999:
+        return 1.0 + (u / (1.0 - u)) ** 2
     else:
-        return 3.0 + min(u - 1.0, 1.0) * 7.0
+        # Beyond capacity: multiplier keeps growing with load
+        # At u=1: ~1e6, at u=2: ~4e6, at u=10: ~1e8
+        return 1.0 + (u * 1000) ** 2
 
 
 def _get_speed(edge_attr: dict, speed_dict: dict) -> float:
