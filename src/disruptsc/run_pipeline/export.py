@@ -54,7 +54,7 @@ class CsvWriter:
 FIRM_COLUMNS = [
     "time_step", "firm", "region", "sector",
     "production", "production_target", "production_capacity",
-    "product_stock", "total_order", "rationing",
+    "product_stock", "total_order", "total_input", "rationing",
     "profit", "price", "delta_price_input",
 ]
 
@@ -170,13 +170,7 @@ def export_logistics_report(reports: list[dict], export_folder: Path,
                      f"→ logistics_report.csv")
 
         # Log a concise summary to console
-        for _, row in df.iterrows():
-            caps = [c for c in df.columns if c.startswith("utilization_") and c.endswith("_pct")]
-            utils = ", ".join(f"{c.split('_')[1]}={row[c]:.0f}%" for c in caps
-                              if row.get(c, 0) > 0)
-            logging.info(f"  t={row['time_step']} {row['name']}: "
-                         f"{row['flow_tons']:,.0f} tons, {row['flow_usd']:,.0f} {monetary_units} "
-                         f"[{utils}]")
+        logging.debug(f"Monitored edges detail in logistics_report.csv")
     else:
         logging.info("Logistics report: no monitored edges found")
 
@@ -291,6 +285,63 @@ def export_initial_state(sc_network, export_folder: Path):
     sc_network.calculate_io_matrix().to_csv(export_folder / "io_table.csv")
     sc_network.generate_edge_list().to_csv(export_folder / "sc_network_edgelist.csv")
     logging.info(f"Exported IO table and edge list to {export_folder}")
+
+
+def export_mrio_summary(mrio, selected, export_folder: Path):
+    """Export MRIO reference summaries for reporting comparison.
+
+    Writes two CSVs:
+      - mrio_by_sector.csv   — output, input, VA, final_demand, export per sector
+      - mrio_by_region.csv   — output, input, VA per region
+
+    Values are in MRIO's native monetary units (annual).  The report
+    applies time-resolution scaling when comparing to model values.
+    """
+    selected = selected or mrio.region_sectors
+
+    total_output = mrio.get_total_output(selected)
+    total_input = mrio.get_total_input(selected)
+
+    # Final demand per region_sector
+    fd = mrio.get_final_demand(selected).sum(axis=1)
+
+    # Export per region_sector
+    export_cols = [t for t in mrio.columns if t[1] == mrio.export_label]
+    exports = mrio.loc[selected, export_cols].sum(axis=1) if export_cols else pd.Series(0, index=total_output.index)
+
+    # Value added (if available in MRIO)
+    va_label = mrio.value_added_label
+    if va_label:
+        va_rows = [t for t in mrio.index if t[1] == va_label]
+        va = mrio.loc[va_rows, selected].sum(axis=0) if va_rows else total_output - total_input
+    else:
+        va = total_output - total_input
+
+    # Build per-region_sector DataFrame
+    rs_df = pd.DataFrame({
+        "region": [rs[0] for rs in selected],
+        "sector": [rs[1] for rs in selected],
+        "mrio_output": total_output.values,
+        "mrio_input": total_input.values,
+        "mrio_va": va.values,
+        "mrio_final_demand": fd.reindex(selected, fill_value=0).values,
+        "mrio_export": exports.reindex(selected, fill_value=0).values,
+    })
+
+    # --- By sector ---
+    by_sector = rs_df.groupby("sector")[
+        ["mrio_output", "mrio_input", "mrio_va", "mrio_final_demand", "mrio_export"]
+    ].sum().reset_index()
+    by_sector.to_csv(export_folder / "mrio_by_sector.csv", index=False)
+
+    # --- By region ---
+    by_region = rs_df.groupby("region")[
+        ["mrio_output", "mrio_input", "mrio_va"]
+    ].sum().reset_index()
+    by_region.to_csv(export_folder / "mrio_by_region.csv", index=False)
+
+    logging.info(f"Exported MRIO summaries ({len(by_sector)} sectors, "
+                 f"{len(by_region)} regions) to {export_folder}")
 
 
 def export_static_tables(firm_table, household_table, transport_edges,
