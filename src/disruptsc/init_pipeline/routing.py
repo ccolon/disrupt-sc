@@ -147,7 +147,7 @@ def _precompute_and_assign(link_specs: list[dict],
 
 
 # ------------------------------------------------------------------
-# Pre-computation with iterative capacity feedback (chunked)
+# Pre-computation with iterative capacity feedback
 # ------------------------------------------------------------------
 
 def _precompute_and_assign_with_capacity(
@@ -163,7 +163,8 @@ def _precompute_and_assign_with_capacity(
     Round 0: assign one chunk per link using unconstrained costs.
     Subsequent rounds: update capacity costs, recompute routes from
     sources with remaining chunks, assign next batch of chunks.
-    This naturally distributes large flows across multiple ports.
+    This naturally distributes large flows across multiple ports
+    as congestion builds up incrementally.
     """
     all_cargo_types = _get_cargo_types(link_specs)
     network_cargo_types = transport_network.cargo_types or []
@@ -179,7 +180,7 @@ def _precompute_and_assign_with_capacity(
 
     total_chunks = sum(s["n_chunks"] for s in link_specs)
     logging.info(f"Capacity routing: {len(link_specs)} links, "
-                 f"{total_chunks} chunks (chunk_size={chunk_size:.0f} t)")
+                 f"{total_chunks} chunks (chunk_size={chunk_size:,.0f} t)")
 
     # --- Round 0: compute shortest paths (unconstrained) ---
     path_lookup = {}
@@ -188,6 +189,9 @@ def _precompute_and_assign_with_capacity(
         subgraph = _cargo_subgraph(transport_network, weight)
         sources = {s["origin"] for s in link_specs
                    if s["cargo_type"] == cargo_type}
+
+        logging.info(f"Pre-computing routes: cargo={cargo_type}, "
+                     f"{len(sources)} sources, {subgraph.number_of_edges()} edges")
 
         for source in sources:
             try:
@@ -211,12 +215,9 @@ def _precompute_and_assign_with_capacity(
 
     # --- Subsequent rounds: capacity-aware chunk assignment ---
     round_num = 0
-    max_chunk_rounds = max(s["n_chunks"] for s in link_specs) + max_iterations
+    stalled_rounds = 0
     while True:
         round_num += 1
-        if round_num > max_chunk_rounds:
-            logging.warning(f"Capacity routing: reached max rounds ({max_chunk_rounds})")
-            break
 
         # Any remaining chunks?
         remaining_specs = [s for s in link_specs if s["chunks_assigned"] < s["n_chunks"]]
@@ -246,15 +247,27 @@ def _precompute_and_assign_with_capacity(
                 for dest, path in paths.items():
                     path_lookup[(cargo_type, source, dest)] = path
 
-        # Assign next chunk batch
+        # Assign next chunk batch (skips links whose route would overflow)
         newly_assigned = _assign_chunk_batch(remaining_specs, path_lookup, transport_network)
+
         if newly_assigned == 0:
-            logging.warning("Capacity routing: no chunks assigned in this round (unreachable?)")
-            break
+            stalled_rounds += 1
+            if stalled_rounds >= 3:
+                # Truly stuck — remaining links have no alternative route
+                n_stuck = sum(s["n_chunks"] - s["chunks_assigned"] for s in remaining_specs)
+                logging.warning(f"Capacity routing: {n_stuck} chunks have no feasible route, "
+                                f"assigning to best available")
+                _force_assign_remaining(remaining_specs, path_lookup, transport_network,
+                                       cargo_types=list(all_cargo_types),
+                                       capacity_mode=capacity_constraint_mode)
+                break
+        else:
+            stalled_rounds = 0
 
         chunks_done = sum(s["chunks_assigned"] for s in link_specs)
-        logging.info(f"Capacity routing: Round {round_num} — "
-                     f"{chunks_done}/{total_chunks} chunks assigned")
+        if round_num % 50 == 0 or newly_assigned > 0:
+            logging.info(f"Capacity routing: Round {round_num} — "
+                         f"{chunks_done}/{total_chunks} chunks assigned")
 
     # --- Build route_plan on each link ---
     _build_route_plans(link_specs)
@@ -275,7 +288,12 @@ def _precompute_and_assign_with_capacity(
 
 def _assign_chunk_batch(link_specs: list[dict], path_lookup: dict,
                         transport_network: TransportNetwork) -> int:
-    """Assign one chunk per link that has remaining chunks.  Returns count assigned."""
+    """Assign one chunk per link, skipping links whose route would cross capacity.
+
+    When placing a chunk would push any edge on its route over capacity,
+    the chunk is deferred to the next round (where paths will be recomputed
+    with updated capacity costs).  Returns count assigned.
+    """
     assigned = 0
     for spec in link_specs:
         if spec["chunks_assigned"] >= spec["n_chunks"]:
@@ -287,9 +305,25 @@ def _assign_chunk_batch(link_specs: list[dict], path_lookup: dict,
 
         route = Route(path, transport_network, spec["cargo_type"])
         chunk_tons = spec["chunk_tons"]
+        cargo_type = spec["cargo_type"]
+
+        # Check if placing this chunk would push any edge over capacity
+        would_overflow = False
+        for u, v in route.transport_edges:
+            edge = transport_network[u][v]
+            cap = _get_cargo_capacity(edge, cargo_type)
+            if cap >= 1e8:
+                continue  # unconstrained edge
+            current = edge.get(f"current_load_{cargo_type}", 0)
+            if current + chunk_tons > cap:
+                would_overflow = True
+                break
+
+        if would_overflow:
+            # Defer to next round — paths will be recomputed with capacity costs
+            continue
 
         # Accumulate load on edges
-        cargo_type = spec["cargo_type"]
         for u, v in route.transport_edges:
             edge = transport_network[u][v]
             load_key = f"current_load_{cargo_type}"
@@ -300,6 +334,86 @@ def _assign_chunk_batch(link_specs: list[dict], path_lookup: dict,
         assigned += 1
 
     return assigned
+
+
+def _force_assign_remaining(link_specs: list[dict], path_lookup: dict,
+                            transport_network: TransportNetwork,
+                            cargo_types: list | None = None,
+                            capacity_mode: str = "gradual"):
+    """Force-assign remaining chunks without the hard capacity limit.
+
+    Unlike the normal batch, this does NOT skip chunks that would overflow.
+    However, it still updates capacity costs and recomputes routes between
+    rounds so that flows are distributed as well as possible.
+    """
+    all_cargo_types = cargo_types or list({s["cargo_type"] for s in link_specs})
+    network_cargo_types = transport_network.cargo_types or all_cargo_types
+
+    remaining = [s for s in link_specs if s["chunks_assigned"] < s["n_chunks"]]
+    total_remaining = sum(s["n_chunks"] - s["chunks_assigned"] for s in remaining)
+    logging.warning(f"Force-assigning {total_remaining} remaining chunks "
+                    f"across {len(remaining)} links (no hard limit)")
+
+    rounds = 0
+    while remaining:
+        rounds += 1
+        # Update costs from current loads
+        _update_capacity_costs(transport_network, network_cargo_types, capacity_mode)
+
+        # Recompute paths with capacity costs
+        sources_by_ct = {}
+        for s in remaining:
+            sources_by_ct.setdefault(s["cargo_type"], set()).add(s["origin"])
+        for ct, sources in sources_by_ct.items():
+            weight = f"cost_per_ton_with_capacity_{ct}"
+            subgraph = _cargo_subgraph(transport_network, weight)
+            for source in sources:
+                try:
+                    paths = nx.single_source_dijkstra_path(
+                        subgraph, source, weight=weight)
+                except nx.NetworkXError:
+                    paths = {}
+                for dest, path in paths.items():
+                    path_lookup[(ct, source, dest)] = path
+
+        # Assign one chunk per link (no hard limit, but costs guide distribution)
+        for spec in remaining:
+            if spec["chunks_assigned"] >= spec["n_chunks"]:
+                continue
+            key = (spec["cargo_type"], spec["origin"], spec["destination"])
+            path = path_lookup.get(key)
+            if path is None or len(path) < 2:
+                spec["chunks_assigned"] = spec["n_chunks"]  # give up
+                continue
+            route = Route(path, transport_network, spec["cargo_type"])
+            cargo_type = spec["cargo_type"]
+            for u, v in route.transport_edges:
+                edge = transport_network[u][v]
+                load_key = f"current_load_{cargo_type}"
+                edge[load_key] = edge.get(load_key, 0) + spec["chunk_tons"]
+            spec["route_plan_entries"].append((route, spec["chunk_tons"]))
+            spec["chunks_assigned"] += 1
+
+        remaining = [s for s in link_specs if s["chunks_assigned"] < s["n_chunks"]]
+        if rounds > 500:
+            # Safety valve — assign everything on last known path
+            for spec in remaining:
+                while spec["chunks_assigned"] < spec["n_chunks"]:
+                    key = (spec["cargo_type"], spec["origin"], spec["destination"])
+                    path = path_lookup.get(key)
+                    if path is None or len(path) < 2:
+                        spec["chunks_assigned"] = spec["n_chunks"]
+                        break
+                    route = Route(path, transport_network, spec["cargo_type"])
+                    for u, v in route.transport_edges:
+                        edge = transport_network[u][v]
+                        load_key = f"current_load_{spec['cargo_type']}"
+                        edge[load_key] = edge.get(load_key, 0) + spec["chunk_tons"]
+                    spec["route_plan_entries"].append((route, spec["chunk_tons"]))
+                    spec["chunks_assigned"] += 1
+            break
+
+    logging.info(f"Force-assign completed in {rounds} rounds")
 
 
 def _build_route_plans(link_specs: list[dict]):
@@ -336,7 +450,6 @@ def _build_route_plans(link_specs: list[dict]):
             link.route_plan.sort(key=lambda x: x[1], reverse=True)
             primary_route = link.route_plan[0][0]
             if link.route is None or primary_route.transport_nodes != link.route.transport_nodes:
-                # Update primary route; cost was already set by _assign_routes_from_lookup
                 link.route = primary_route
 
 
@@ -438,6 +551,21 @@ def _report_unreachable(unreachable: list[dict], transport_network: TransportNet
             f"{info['as_origin']} as origin, {info['as_destination']} as dest — "
             f"agents: {agents_str}"
         )
+
+    # Log individual unreachable links with both origin and destination coordinates
+    logging.error("Unreachable links (origin → destination):")
+    for spec in unreachable[:20]:
+        o, d = spec["origin"], spec["destination"]
+        o_data = transport_network._node.get(o, {})
+        d_data = transport_network._node.get(d, {})
+        link = spec["link"]
+        logging.error(
+            f"  {link.supplier_id} → {link.buyer_id}: "
+            f"node {o} ({o_data.get('lat', '?'):.4f}, {o_data.get('long', '?'):.4f}) → "
+            f"node {d} ({d_data.get('lat', '?'):.4f}, {d_data.get('long', '?'):.4f})"
+        )
+    if len(unreachable) > 20:
+        logging.error(f"  ... and {len(unreachable) - 20} more")
 
     raise RuntimeError(
         f"Cannot initialize: {len(unreachable)} commercial links have no route. "
