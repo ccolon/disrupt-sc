@@ -75,17 +75,24 @@ COUNTRY_COLUMNS = [
     "usd_transported", "tons_transported", "tonkm_transported",
 ]
 
+INVENTORY_COLUMNS = [
+    "time_step", "firm", "input_sector",
+    "eq_need", "inventory_qty", "inventory_days",
+]
+
 
 class AgentWriters:
     """Manage the set of CSV writers for agent time-series data."""
 
-    def __init__(self, export_folder: Path):
+    def __init__(self, export_folder: Path, days_per_timestep: float = 7.0):
         self.firm = CsvWriter(export_folder / "firm_data.csv", FIRM_COLUMNS)
         self.household = CsvWriter(export_folder / "household_data.csv", HOUSEHOLD_COLUMNS)
         self.household_by_sector = CsvWriter(
             export_folder / "household_data_by_sector.csv", HOUSEHOLD_BY_SECTOR_COLUMNS,
         )
         self.country = CsvWriter(export_folder / "country_data.csv", COUNTRY_COLUMNS)
+        self.inventory = CsvWriter(export_folder / "inventory_data.csv", INVENTORY_COLUMNS)
+        self._days_per_timestep = days_per_timestep
 
     def write_step(self, firms: dict, households: dict, countries: dict, time_step: int):
         """Collect and write one time step of agent data."""
@@ -114,11 +121,26 @@ class AgentWriters:
         for c in countries.values():
             self.country.write_row(c.collect_data(time_step))
 
+        # Firm inventories — one row per (firm, input_sector)
+        for firm in firms.values():
+            for input_sector, inv_qty in firm.inventory.items():
+                eq_need = firm.eq_needs.get(input_sector, 0.0)
+                inv_days = (inv_qty / eq_need * self._days_per_timestep) if eq_need > 0 else 0.0
+                self.inventory.write_row({
+                    "time_step": time_step,
+                    "firm": firm.pid,
+                    "input_sector": input_sector,
+                    "eq_need": eq_need,
+                    "inventory_qty": inv_qty,
+                    "inventory_days": inv_days,
+                })
+
     def close(self):
         self.firm.close()
         self.household.close()
         self.household_by_sector.close()
         self.country.close()
+        self.inventory.close()
 
     def __enter__(self):
         return self
