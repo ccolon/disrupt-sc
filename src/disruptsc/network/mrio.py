@@ -126,6 +126,47 @@ class Mrio(pd.DataFrame):
         rows = [t for t in self.index if t[1] == self.import_label]
         return self.loc[rows, cols]
 
+    def get_region_sectors_with_internal_flows(self, threshold: float = 0) -> list:
+        """Return region-sectors whose diagonal technical coefficient exceeds *threshold*.
+
+        These are region-sectors that consume a significant share of their own
+        output (e.g. oil fields using oil as fuel).  When a region-sector has
+        only one firm, the supply-chain builder cannot create a self-loop, so
+        the firm must be duplicated so one copy can supply the other.
+
+        Returns a list of tuples, e.g. [('SAU', 'Oil'), ('QAT', 'Oil'), ...].
+        """
+        inter = self.get_intermediary()
+        output = self.get_total_output()
+        result = []
+        for rs in self.region_sectors:
+            try:
+                total = float(output.loc[rs])
+            except (KeyError, TypeError):
+                continue
+            if total <= 0:
+                continue
+            try:
+                diag = float(inter.loc[rs, rs])
+            except (KeyError, TypeError):
+                continue
+            coef = diag / total
+            if coef > threshold:
+                result.append(rs)
+        if result:
+            logging.info(
+                f"Found {len(result)} region-sectors with internal flows "
+                f"(diagonal coef > {threshold}): "
+                + ", ".join("_".join(str(x) for x in rs) for rs in result[:10])
+                + ("..." if len(result) > 10 else "")
+            )
+        else:
+            logging.warning(
+                f"No region-sectors with internal flows above threshold={threshold} "
+                f"(checked {len(self.region_sectors)} region-sectors)"
+            )
+        return result
+
     def get_tech_coef_dict(self, threshold=0, selected=None) -> dict:
         output = self.get_total_output()
         intermediate = self.get_intermediary()
