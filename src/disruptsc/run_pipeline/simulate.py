@@ -246,6 +246,10 @@ def set_initial_conditions(sc_network, firms, households, countries,
     for firm in firm_list:
         firm.send_purchase_orders(sc_network)
 
+    # Set equilibrium total_input (= sum of realized deliveries from suppliers)
+    for firm in firm_list:
+        firm.total_input = sum(firm.eq_needs.values())
+
     # Set client shares
     for firm in firm_list:
         firm.retrieve_orders(sc_network)
@@ -277,6 +281,12 @@ def _run_one_time_step(time_step, sc_network, transport_network,
     unless *monitored_edges* is provided.
     """
     logging.info(f"--- Time step {time_step} ---")
+
+    # Reset per-timestep tracking on households and countries
+    for hh in households.values():
+        hh.reset_variables()
+    for c in countries.values():
+        c.reset_variables()
 
     # Apply disruptions starting this step
     if disruptions:
