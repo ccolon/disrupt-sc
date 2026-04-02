@@ -12,14 +12,13 @@
 filepaths:
   "mrio": "Economic/mrio.csv"
   "sector_table": "Economic/sector_table.csv"
-  "usd_per_ton": "Economic/usd_per_ton.csv"
 
 # ── Transport ──
 transport_modes: ["roads", "maritime", "airways", "pipelines"]
 
 # ── Economic settings ──
 monetary_units_in_model: "mUSD"
-monetary_units_in_data: "kUSD"  # Eora26 data is in thousands of USD
+monetary_units_in_data: "kUSD"
 firm_data_type: "mrio"
 
 # ── Time ──
@@ -96,10 +95,17 @@ logistics:
   loading_fees: # USD/ton
     roads-maritime: 2.5
     roads-airways: 5.0
-  chunk_size: 50000
+  chunk_size: 10000  # tons/day
+
+# Override default transport capacity: block containers on airways
+default_transport_capacity:
+  airways:
+    container: 0       # containers cannot fly
+    dry_bulk: 0
+    liquid_bulk: 0
 
 capacity_constraint: "gradual"
-transport_capacity_overrides:
+transport_capacity_overrides:  # tons/day
   port_jebel_ali:
     container: 744000
     dry_bulk: 0
@@ -131,7 +137,7 @@ transport_capacity_overrides:
   port_mina_al_ahmadi:
     container: 0
     dry_bulk: 0
-    liquid_bulk: 5000
+    liquid_bulk: 250000
   port_khalifa_bin_salman:
     container: 42200
     dry_bulk: 8000
@@ -147,7 +153,7 @@ transport_capacity_overrides:
   port_qalhat:
     container: 0
     dry_bulk: 0
-    liquid_bulk: 20000
+    liquid_bulk: 31000
   port_salalah:
     container: 249300
     dry_bulk: 20000
@@ -163,7 +169,7 @@ transport_capacity_overrides:
   port_yanbu:
     container: 0
     dry_bulk: 0
-    liquid_bulk: 30000
+    liquid_bulk: 700000
   port_dammam:
     container: 115100
     dry_bulk: 0
@@ -212,15 +218,20 @@ transport_capacity_overrides:
     container: 0
     dry_bulk: 20000
     liquid_bulk: 350000
-  border_crossing_al_batha_al_ghuwaifat: 35000
-  border_crossing_abu_samra_salwa: 16800
-  border_crossing_nuwaiseeb_khafji: 8400
-  border_crossing_king_fahd_causeway: 9800
-  border_crossing_wajajah_hatta: 9800
-  border_crossing_khatmat_malaha: 7000
+  border_crossing_al_batha_al_ghuwaifat: 35000  # SAU ARE
+  border_crossing_abu_samra_salwa: 16800  # SAU QAT
+  border_crossing_nuwaiseeb_khafji: 8400  # SAU KWT
+  border_crossing_king_fahd_causeway: 9800  # SAU BHR
+  border_crossing_al_ain_al_buraimi: 9800  # ARE OMN
+  border_crossing_khatmat_malaha: 7000  # ARE OMN
+  offshore_supply:
+    container: 1000
+    dry_bulk: 1000
+    liquid_bulk: 0
+
 
 # ── Simulation ──
-simulation_type: "disruption"
+simulation_type: "disruption"  # disruption initial_state
 mc_repetitions: 0  # deterministic first run; increase for stochastic
 export_files: True
 use_route_cache: True
