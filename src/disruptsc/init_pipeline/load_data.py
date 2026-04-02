@@ -24,16 +24,12 @@ def load_sector_table(filepath: Path) -> pd.DataFrame:
     return table
 
 
-def load_usd_per_ton(filepath: Path) -> dict:
-    """Load USD-per-ton conversion factors. Returns dict keyed by region_sector."""
-    if filepath is None or not Path(filepath).exists():
+def load_usd_per_ton(sector_table: pd.DataFrame) -> dict:
+    """Extract USD-per-ton from sector_table. Returns dict keyed by region_sector."""
+    if sector_table is None or "usd_per_ton" not in sector_table.columns:
         return {}
-    df = pd.read_csv(filepath)
-    result = {}
-    for _, row in df.iterrows():
-        key = f"{row['region']}_{row['sector']}"
-        result[key] = row["usd_per_ton"]
-    return result
+    sub = sector_table.dropna(subset=["usd_per_ton"])
+    return dict(zip(sub["region_sector"], sub["usd_per_ton"]))
 
 
 def load_mrio(filepath: Path, monetary_units: str) -> Mrio:
