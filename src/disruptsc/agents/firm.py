@@ -81,6 +81,7 @@ class Firm:
     order_book: dict[str, float] = field(default_factory=dict)
     total_order: float = 0.0
     eq_total_order: float = 0.0
+    total_input: float = 0.0  # sum of realized deliveries from all suppliers
     rationing: float = 1.0
     reconstruction_demand: float = 0.0
 
@@ -118,8 +119,10 @@ class Firm:
         self.input_needs = dict(self.eq_needs)
         # Inventory = needs_per_step * target_duration_in_steps
         # (inventory_duration_target is already in model time-step units)
+        # Clamp to at least 1 step so firms can produce at full capacity
+        # from t=0 (sub-step targets can't be represented within one step).
         self.inventory = {
-            input_id: need * self.inventory_duration_target.get(input_id, 1)
+            input_id: need * max(self.inventory_duration_target.get(input_id, 1), 1.0)
             for input_id, need in self.eq_needs.items()
         }
 
@@ -249,12 +252,14 @@ class Firm:
                          sectors_no_transport: tuple,
                          transport_to_households: bool):
         """Receive all shipments from suppliers."""
+        self.total_input = 0.0
         for supplier, _, data in sc_network.in_edges(self, data=True):
             link: CommercialLink = data["object"]
             if link.product_type in sectors_no_transport:
-                self._receive_service(link)
+                qty = self._receive_service(link)
             else:
-                self._receive_shipment(link, transport_network)
+                qty = self._receive_shipment(link, transport_network)
+            self.total_input += qty
 
     # ------------------------------------------------------------------
     # Simulation loop — Phase 5: Finance
@@ -311,6 +316,7 @@ class Firm:
             "production_capacity": self.current_production_capacity,
             "product_stock": self.product_stock,
             "total_order": self.total_order,
+            "total_input": self.total_input,
             "rationing": self.rationing,
             "profit": self.profit,
             "price": self.price,
@@ -406,8 +412,8 @@ class Firm:
                     link.delivery_in_tons = link.delivery * self.monetary_unit_factor / self.usd_per_ton if self.usd_per_ton > 0 else 0.0
             # household_first could be added here
 
-    def _receive_shipment(self, link: CommercialLink, transport_network: TransportNetwork):
-        """Receive a shipment from the transport network."""
+    def _receive_shipment(self, link: CommercialLink, transport_network: TransportNetwork) -> float:
+        """Receive a shipment from the transport network. Returns quantity received."""
         available_shipments = transport_network._node[self.od_point].get("shipments", {})
         if link.pid in available_shipments:
             shipment = available_shipments.pop(link.pid)
@@ -419,10 +425,12 @@ class Firm:
             quantity_received = 0.0
 
         link.update_indicator(quantity_received)
+        return quantity_received
 
-    def _receive_service(self, link: CommercialLink):
-        """Receive a service (no transport needed)."""
+    def _receive_service(self, link: CommercialLink) -> float:
+        """Receive a service (no transport needed). Returns quantity received."""
         quantity_received = link.realized_delivery
         self.inventory[link.product] = self.inventory.get(link.product, 0.0) + quantity_received
         link.payment = quantity_received * link.price
         link.update_indicator(quantity_received)
+        return quantity_received

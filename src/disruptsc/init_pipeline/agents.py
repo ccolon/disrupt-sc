@@ -154,10 +154,19 @@ def create_firms(firm_table: pd.DataFrame, params: AgentParams) -> dict[str, Fir
 def load_tech_coefs(firms: dict[str, Firm], mrio: Mrio, io_cutoff: float):
     """Load input_mix (technical coefficients) into each firm."""
     tech_coefs = mrio.get_tech_coef_dict(threshold=io_cutoff)
+
+    # Count firms per region_sector to decide whether to keep diagonal entries
+    from collections import Counter
+    rs_counts = Counter(f.region_sector for f in firms.values())
+
     for firm in firms.values():
-        coefs = tech_coefs.get(firm.region_sector, {})
-        # Remove self-consumption for single-firm region_sectors
-        coefs.pop(firm.region_sector, None)
+        coefs = dict(tech_coefs.get(firm.region_sector, {}))
+        # Remove self-consumption only when there is a single firm in the
+        # region_sector (a firm cannot supply itself).  When there are 2+
+        # firms, the diagonal coefficient represents intra-sector trade and
+        # another firm in the same region_sector will act as supplier.
+        if rs_counts[firm.region_sector] < 2:
+            coefs.pop(firm.region_sector, None)
         firm.input_mix = coefs
 
 
@@ -196,7 +205,8 @@ def load_inventories(firms: dict[str, Firm], inventory_targets: dict,
 def create_household_table(mrio: Mrio, households_spatial_path: Path,
                            transport_nodes: gpd.GeoDataFrame,
                            present_region_sectors: list[str],
-                           params: AgentParams) -> tuple[pd.DataFrame, dict]:
+                           params: AgentParams,
+                           time_resolution: str = "week") -> tuple[pd.DataFrame, dict]:
     """Build household_table and consumption patterns."""
     # Load spatial data
     ht = gpd.read_file(households_spatial_path)
@@ -235,7 +245,7 @@ def create_household_table(mrio: Mrio, households_spatial_path: Path,
         input_units=params.monetary_units_in_data,
         input_time_resolution="year",
         target_units=params.monetary_units_in_model,
-        target_time_resolution=params.inventory_duration_targets.get("unit", "day"),  # Use time_resolution
+        target_time_resolution=time_resolution,
     )
 
     # Distribute per household by population proportion in each region
@@ -341,9 +351,21 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
     countries_gdf = gpd.read_file(countries_spatial_path)
 
     # Extract trade matrices
+    # Import table: what external countries sell TO model firms (import supply)
     import_table = mrio.get_import_rows()
     import_table = rescale_monetary_values(
         import_table, input_units=params.monetary_units_in_data,
+        input_time_resolution="year",
+        target_units=params.monetary_units_in_model,
+        target_time_resolution=time_resolution,
+    )
+
+    # Export table: what external countries buy FROM model firms (export demand)
+    export_label = mrio.export_label
+    export_cols = [t for t in mrio.columns if t[1] == export_label]
+    export_table = mrio.loc[mrio.region_sectors, export_cols]
+    export_table = rescale_monetary_values(
+        export_table, input_units=params.monetary_units_in_data,
         input_time_resolution="year",
         target_units=params.monetary_units_in_model,
         target_time_resolution=time_resolution,
@@ -365,15 +387,19 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
         gdf_point = gpd.GeoDataFrame([{"geometry": centroid}], geometry="geometry")
         od_point = int(find_nearest_node_id(country_nodes, gdf_point)[0])
 
-        # Trade data
+        # Export demand: what this country BUYS from model region-sectors
         qty_purchased = {}
-        if country_code in selling:
-            imp_row = import_table.loc[(country_code, mrio.import_label)]
-            for rs_tuple, val in imp_row.items():
+        if country_code in buying and (country_code, export_label) in export_table.columns:
+            exp_col = export_table[(country_code, export_label)]
+            for rs_tuple, val in exp_col.items():
                 if val > 0:
                     qty_purchased[f"{rs_tuple[0]}_{rs_tuple[1]}"] = val
 
-        supply_importance = sum(qty_purchased.values()) / total_imports if total_imports > 0 else 0
+        # Supply importance based on import volumes (what country sells to model)
+        supply_importance = 0.0
+        if country_code in selling:
+            imp_row = import_table.loc[(country_code, mrio.import_label)]
+            supply_importance = imp_row.sum() / total_imports if total_imports > 0 else 0
 
         # USD per ton — look for country-specific or default
         country_upt = 2864.0
@@ -399,7 +425,14 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
         )
         countries[c.pid] = c
 
-    logging.info(f"Created {len(countries)} countries")
+    # Log export demand summary
+    total_export_demand = sum(
+        sum(c.qty_purchased.values()) for c in countries.values()
+    )
+    logging.info(
+        f"Created {len(countries)} countries — "
+        f"total export demand: {total_export_demand:,.2f} {params.monetary_units_in_model}/{time_resolution}"
+    )
     return countries
 
 
@@ -424,21 +457,36 @@ def _integrate_spatial_firms(ft: gpd.GeoDataFrame, filepath: Path, mrio: Mrio) -
 
     # Handle wide-format spatial data (columns = sectors, rows = locations)
     if "region" in spatial.columns and "sector" not in spatial.columns:
-        non_sector_cols = ["region", "geometry"] + [c for c in spatial.columns if c.startswith("subregion_")]
-        sector_cols = [c for c in spatial.columns if c not in non_sector_cols and c != "geometry"]
-        # Melt wide to long
+        # Only columns matching MRIO sector names are treated as sectors;
+        # everything else (e.g. "field", "operator", "capacity") is kept
+        # as a plain attribute.
+        mrio_sectors = set(mrio.sectors)
+        sector_cols = [c for c in spatial.columns
+                       if c in mrio_sectors and c != "geometry"]
+        attr_cols = [c for c in spatial.columns
+                     if c not in sector_cols and c != "geometry"
+                     and c not in ("region",)
+                     and not c.startswith("subregion_")]
+        id_vars = ["region", "geometry"] + \
+                  [c for c in spatial.columns if c.startswith("subregion_")] + \
+                  attr_cols
+        id_vars = [c for c in id_vars if c in spatial.columns]
+
+        # Melt wide to long: one row per (location × sector)
         if sector_cols:
             spatial = spatial.melt(
-                id_vars=[c for c in non_sector_cols if c in spatial.columns],
+                id_vars=id_vars,
                 value_vars=sector_cols,
                 var_name="sector", value_name="importance",
             )
             spatial = spatial.dropna(subset=["importance"])
-            spatial = spatial[spatial["importance"] > 0]
+            spatial = spatial[spatial["importance"] > 0.0]
             spatial["region_sector"] = spatial["region"] + "_" + spatial["sector"]
-            logging.info(f"Melted wide-format spatial firms: {len(spatial)} rows")
+            logging.info(f"Melted wide-format spatial firms: {len(spatial)} rows "
+                         f"({len(sector_cols)} sectors, {len(attr_cols)} attribute cols kept)")
         else:
-            logging.warning("Spatial firms file has no sector columns, skipping integration")
+            logging.warning("Spatial firms file has no columns matching MRIO sectors "
+                            f"({list(spatial.columns)}), skipping integration")
             return ft
     elif "region_sector" not in spatial.columns and "region" in spatial.columns and "sector" in spatial.columns:
         spatial["region_sector"] = spatial["region"] + "_" + spatial["sector"]
@@ -476,23 +524,28 @@ def _integrate_spatial_firms(ft: gpd.GeoDataFrame, filepath: Path, mrio: Mrio) -
 
 def _handle_internal_flows(ft: gpd.GeoDataFrame, mrio: Mrio, io_cutoff: float) -> gpd.GeoDataFrame:
     """Duplicate single-firm region_sectors that have internal consumption."""
-    internal_rs = mrio.get_region_sectors_with_internal_flows(threshold=io_cutoff) if hasattr(mrio, 'get_region_sectors_with_internal_flows') else []
+    internal_rs = mrio.get_region_sectors_with_internal_flows(threshold=io_cutoff)
     internal_rs_names = {"_".join(t) for t in internal_rs} if internal_rs else set()
+    logging.info(f"Internal flows: {len(internal_rs_names)} region-sectors above io_cutoff={io_cutoff}")
 
     new_rows = []
     for rs_name in internal_rs_names:
         rs_firms = ft[ft["region_sector"] == rs_name]
         if len(rs_firms) == 1:
-            # Duplicate the single firm
+            # Duplicate the single firm so intra-sector trade is possible
             row = rs_firms.iloc[0].copy()
             row["importance"] = row["importance"] / 2
             new_rows.append(row)
             ft.loc[rs_firms.index[0], "importance"] = ft.loc[rs_firms.index[0], "importance"] / 2
+        elif len(rs_firms) > 1:
+            logging.debug(f"  {rs_name}: already has {len(rs_firms)} firms, no duplication needed")
 
     if new_rows:
         extra = gpd.GeoDataFrame(new_rows, geometry="geometry")
         ft = pd.concat([ft, extra], ignore_index=True)
         logging.info(f"Duplicated {len(new_rows)} single-firm region_sectors for internal flows")
+    else:
+        logging.warning("No single-firm region_sectors needed duplication — check io_cutoff or MRIO diagonal")
 
     return ft
 
@@ -503,17 +556,19 @@ def _filter_small_firms(ft: gpd.GeoDataFrame, mrio: Mrio,
     threshold = _get_absolute_cutoff(cutoff, data_units)
 
     # For each region_sector, keep top 2 by importance + any above threshold
-    keep = []
+    keep_idx = set()
     for rs, group in ft.groupby("region_sector"):
         sorted_group = group.sort_values("importance", ascending=False)
-        top2 = sorted_group.head(2)
-        above_threshold = sorted_group[sorted_group["importance"] > threshold]
-        combined = pd.concat([top2, above_threshold]).drop_duplicates()
-        keep.append(combined)
+        # Always keep top 2 (by original DataFrame index)
+        keep_idx.update(sorted_group.head(2).index)
+        # Also keep any above threshold
+        keep_idx.update(sorted_group[sorted_group["importance"] > threshold].index)
 
-    if keep:
-        return pd.concat(keep, ignore_index=True)
-    return ft
+    n_removed = len(ft) - len(keep_idx)
+    if n_removed:
+        logging.info(f"Filtered out {n_removed} small firms (threshold={threshold:.2f})")
+
+    return ft.loc[sorted(keep_idx)].reset_index(drop=True)
 
 
 def _get_absolute_cutoff(cutoff_dict: dict, data_units: str) -> float:
