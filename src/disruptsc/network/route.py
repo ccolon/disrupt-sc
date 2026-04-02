@@ -40,7 +40,7 @@ class Route(list):
         for u, v in self.transport_edges:
             if not transport_network.has_edge(u, v):
                 return False
-            if transport_network[u][v].get("disruption_duration", 0) > 0:
+            if transport_network[u][v].get("closed", False):
                 return False
         return True
 

@@ -115,6 +115,91 @@ class TransportNetwork(nx.Graph):
         }
         for _, attr in self.edges.items():
             _calculate_cost_per_ton(attr, logistic_parameters, self.cargo_types, time_resolution)
+        self.capture_base_capacity_state()
+
+    def capture_base_capacity_state(self):
+        """Snapshot the edge capacities that represent the undisrupted network."""
+        for u, v in self.edges:
+            edge = self[u][v]
+            edge["base_capacity"] = float(edge.get("capacity", 1e9))
+            for ct in (self.cargo_types or []):
+                key = f"capacity_{ct}"
+                base_key = f"base_{key}"
+                if key in edge:
+                    edge[base_key] = float(edge[key])
+                else:
+                    edge.pop(base_key, None)
+
+    def ensure_base_capacity_state(self, edge: dict):
+        """Backfill missing base-capacity fields for networks loaded from old caches."""
+        if edge.get("base_capacity") is None:
+            edge["base_capacity"] = float(edge.get("capacity", 1e9))
+        for ct in (self.cargo_types or []):
+            key = f"capacity_{ct}"
+            base_key = f"base_{key}"
+            if key in edge and edge.get(base_key) is None:
+                edge[base_key] = float(edge[key])
+
+    def restore_edge_capacity(self, edge: dict):
+        """Restore dynamic capacities from the saved undisrupted state."""
+        self.ensure_base_capacity_state(edge)
+        edge["capacity"] = float(edge.get("base_capacity", edge.get("capacity", 1e9)))
+        for ct in (self.cargo_types or []):
+            key = f"capacity_{ct}"
+            base_key = f"base_{key}"
+            if base_key in edge:
+                edge[key] = float(edge[base_key])
+            else:
+                edge.pop(key, None)
+        edge["closed"] = False
+
+    def apply_edge_capacity_factor(self, edge: dict, factor: float):
+        """Scale the edge's dynamic capacities by *factor* relative to base state."""
+        self.ensure_base_capacity_state(edge)
+        factor = max(0.0, min(1.0, float(factor)))
+        edge["capacity"] = float(edge.get("base_capacity", edge.get("capacity", 1e9))) * factor
+        for ct in (self.cargo_types or []):
+            key = f"capacity_{ct}"
+            base_key = f"base_{key}"
+            if base_key in edge:
+                edge[key] = float(edge[base_key]) * factor
+            elif key in edge:
+                edge.pop(key, None)
+        edge["closed"] = factor <= 1e-12
+
+    def start_edge_disruption(self, edge: dict, reduction: float, duration: float,
+                              recovery_shape: str = "threshold",
+                              recovery_rate: float = 1.0):
+        """Attach disruption metadata and update dynamic capacities immediately."""
+        edge["disruption_duration"] = duration
+        edge["disruption_total_duration"] = duration
+        edge["disruption_elapsed"] = 0
+        edge["disruption_initial_reduction"] = max(0.0, min(1.0, float(reduction)))
+        edge["disruption_recovery_shape"] = recovery_shape
+        edge["disruption_recovery_rate"] = float(recovery_rate)
+        self._refresh_edge_disruption_state(edge)
+
+    def clear_edge_disruption(self, edge: dict):
+        """Remove disruption metadata and restore the edge to its base capacity."""
+        self.restore_edge_capacity(edge)
+        edge["disruption_duration"] = 0
+        edge["disruption_total_duration"] = 0
+        edge["disruption_elapsed"] = 0
+        edge["disruption_initial_reduction"] = 0.0
+        edge["disruption_recovery_shape"] = "threshold"
+        edge["disruption_recovery_rate"] = 1.0
+
+    def _refresh_edge_disruption_state(self, edge: dict):
+        """Recompute dynamic capacities from the edge's stored disruption metadata."""
+        reduction = float(edge.get("disruption_initial_reduction", 0.0))
+        recovered_fraction = _recovery_factor(
+            edge.get("disruption_elapsed", 0),
+            edge.get("disruption_total_duration", 0),
+            edge.get("disruption_recovery_shape", "threshold"),
+            edge.get("disruption_recovery_rate", 1.0),
+        )
+        active_factor = 1.0 - reduction * (1.0 - recovered_fraction)
+        self.apply_edge_capacity_factor(edge, active_factor)
 
     # ------------------------------------------------------------------
     # Routing
@@ -170,9 +255,11 @@ class TransportNetwork(nx.Graph):
         """Check if a route's edges are all undisrupted."""
         return route.is_usable(self)
 
-    def compute_route_cost(self, route: Route, cargo_type: str) -> float:
-        """Sum cost_per_ton along a route."""
-        weight = f"cost_per_ton_{cargo_type}"
+    def compute_route_cost(self, route: Route, cargo_type: str,
+                           with_capacity: bool = False) -> float:
+        """Sum the chosen transport cost label along a route."""
+        prefix = "cost_per_ton_with_capacity" if with_capacity else "cost_per_ton"
+        weight = f"{prefix}_{cargo_type}"
         return route.sum_indicator(self, weight)
 
     # ------------------------------------------------------------------
@@ -180,9 +267,10 @@ class TransportNetwork(nx.Graph):
     # ------------------------------------------------------------------
 
     def get_undisrupted_network(self) -> TransportNetwork:
-        available_edges = [(u, v) for u, v in self.edges if self[u][v]["disruption_duration"] == 0]
+        available_edges = [(u, v) for u, v in self.edges if not self[u][v].get("closed", False)]
         sub = self.edge_subgraph(available_edges)
         tn = TransportNetwork(sub)
+        tn.cargo_types = list(self.cargo_types or [])
         tn.min_cost_per_tonkm = self.min_cost_per_tonkm
         return tn
 
@@ -192,7 +280,7 @@ class TransportNetwork(nx.Graph):
         for u, v in self.edges:
             edge = self[u][v]
             if edge["id"] in edge_ids:
-                edge["disruption_duration"] = duration
+                self.start_edge_disruption(edge, 1.0, duration)
                 edges_by_type[edge["type"]].append(edge["id"])
         if edges_by_type:
             logging.info("Transport disruption:")
@@ -205,7 +293,7 @@ class TransportNetwork(nx.Graph):
         for u, v in self.edges:
             edge = self[u][v]
             if edge.get(attribute) in values:
-                edge["disruption_duration"] = duration
+                self.start_edge_disruption(edge, 1.0, duration)
                 edge_ids.append(edge["id"])
         if edge_ids:
             logging.info(f"Disrupted {len(edge_ids)} edges where {attribute} in {values} for {duration} steps")
@@ -218,7 +306,14 @@ class TransportNetwork(nx.Graph):
         for u, v in self.edges:
             d = self[u][v]
             if d["disruption_duration"] > 0:
-                d["disruption_duration"] -= 1
+                if math.isinf(d["disruption_duration"]):
+                    continue
+                d["disruption_duration"] = max(d["disruption_duration"] - 1, 0)
+                d["disruption_elapsed"] = d.get("disruption_elapsed", 0) + 1
+                if d["disruption_duration"] <= 0:
+                    self.clear_edge_disruption(d)
+                else:
+                    self._refresh_edge_disruption_state(d)
 
     def reinitialize_flows_and_disruptions(self):
         for node_id in self.nodes:
@@ -227,7 +322,7 @@ class TransportNetwork(nx.Graph):
             d["shipments"] = {}
         for u, v in self.edges:
             d = self[u][v]
-            d["disruption_duration"] = 0
+            self.clear_edge_disruption(d)
             d["shipments"] = {}
             for ct in (self.cargo_types or []):
                 d[f"current_load_{ct}"] = 0
@@ -240,7 +335,9 @@ class TransportNetwork(nx.Graph):
     def place_shipment(self, route: Route, link_pid: str, tons: float, destination_node: int,
                         monetary_quantity: float = 0.0, product_type: str = "",
                         flow_category: str = "", cargo_type: str = "",
-                        accumulate_at_dest: bool = False, dest_key: str = ""):
+                        accumulate_at_dest: bool = False, dest_key: str = "",
+                        capacity_constraint: bool = False,
+                        capacity_constraint_mode: str = "gradual"):
         """Place a shipment on all edges of a route and at the destination node.
 
         When *accumulate_at_dest* is True, the destination-node shipment is
@@ -267,65 +364,40 @@ class TransportNetwork(nx.Graph):
         else:
             dest_shipments[node_key] = dict(shipment)
 
+        if tons > 0 and cargo_type:
+            self.update_load_on_route(
+                route, tons, cargo_type,
+                capacity_constraint, capacity_constraint_mode,
+            )
+
     def transport_shipment(self, link: CommercialLink, capacity_constraint: bool,
                            capacity_constraint_mode: str = "gradual"):
         """Legacy method: place shipment and update load from a CommercialLink."""
         route = link.get_current_route()
-        shipment = {
-            "supplier_id": link.supplier_id,
-            "buyer_id": link.buyer_id,
-            "origin_node": link.origin_node,
-            "destination_node": link.destination_node,
-            "quantity": link.delivery,
-            "tons": link.delivery_in_tons,
-            "product_type": link.product_type,
-            "flow_category": link.category,
-            "price": link.price,
-        }
-        for u, v in route.transport_edges:
-            self[u][v]["shipments"][link.pid] = shipment
-        self._node[link.destination_node]["shipments"][link.pid] = shipment
-        self.update_load_on_route(route, link.delivery_in_tons, link.cargo_type,
-                                 capacity_constraint, capacity_constraint_mode)
+        self.place_shipment(
+            route, link.pid, link.delivery_in_tons, link.destination_node,
+            monetary_quantity=link.delivery, product_type=link.product_type,
+            flow_category=link.category, cargo_type=link.cargo_type,
+            capacity_constraint=capacity_constraint,
+            capacity_constraint_mode=capacity_constraint_mode,
+        )
 
     def update_load_on_route(self, route: Route, load: float,
                              cargo_type: str,
                              capacity_constraint: bool,
                              capacity_constraint_mode: str = "gradual"):
-        """Update per-cargo-type loads on route edges and adjust capacity costs."""
+        """Update per-cargo-type loads on route edges.
+
+        Load tracking always happens. When *capacity_constraint* is enabled,
+        edge costs are also refreshed so later routes see the updated scarcity.
+        """
         for u, v in route.transport_edges:
             edge = self[u][v]
             load_key = f"current_load_{cargo_type}"
             edge[load_key] = edge.get(load_key, 0) + load
 
             if capacity_constraint:
-                cap = _get_cargo_capacity(edge, cargo_type)
-                current = edge[load_key]
-                # Also check shared capacity (total load across all cargo types)
-                total_load = sum(edge.get(f"current_load_{ct}", 0) for ct in self.cargo_types)
-                shared_cap = edge.get("capacity", 1e9)
-
-                if capacity_constraint_mode == "gradual":
-                    # Congestion from cargo-specific capacity
-                    ct_mult = _capacity_multiplier(current, cap) if cap < 1e8 else 1.0
-                    # Congestion from shared capacity
-                    shared_mult = _capacity_multiplier(total_load, shared_cap) if f"capacity_{cargo_type}" not in edge else 1.0
-                    mult = max(ct_mult, shared_mult)
-
-                    # Update cost_per_ton_with_capacity for this cargo type only
-                    base_key = f"cost_per_ton_{cargo_type}"
-                    cap_key = f"cost_per_ton_with_capacity_{cargo_type}"
-                    if base_key in edge:
-                        edge[cap_key] = edge[base_key] * mult
-
-                    edge["overused"] = total_load > shared_cap or current > cap
-                else:  # binary
-                    over = current > cap or total_load > shared_cap
-                    if over and not edge.get("overused", False):
-                        edge["overused"] = True
-                        cap_key = f"cost_per_ton_with_capacity_{cargo_type}"
-                        if cap_key in edge:
-                            edge[cap_key] += 1e10
+                _refresh_edge_capacity_costs(edge, self.cargo_types or [], capacity_constraint_mode)
 
     def reset_loads(self):
         """Reset all load tracking and capacity costs to base values."""
@@ -506,6 +578,59 @@ def _capacity_multiplier(current_load: float, capacity: float) -> float:
         # Beyond capacity: multiplier keeps growing with load
         # At u=1: ~1e6, at u=2: ~4e6, at u=10: ~1e8
         return 1.0 + (u * 1000) ** 2
+
+
+def _recovery_factor(time_since_start: int, duration: float,
+                     shape: str, rate: float) -> float:
+    """Return the recovered share of capacity for an edge disruption."""
+    if duration <= 0:
+        return 1.0
+    if math.isinf(duration):
+        return 0.0
+    if time_since_start >= duration:
+        return 1.0
+
+    progress = time_since_start / duration
+    if shape == "threshold":
+        return 0.0
+    if shape == "linear":
+        return max(0.0, min(1.0, progress * rate))
+    if shape == "exponential":
+        if rate == 0:
+            return progress
+        return max(
+            0.0,
+            min(1.0, (1 - math.exp(-rate * progress)) / (1 - math.exp(-rate))),
+        )
+    raise ValueError(f"Unknown recovery shape: {shape}")
+
+
+def _refresh_edge_capacity_costs(edge: dict, cargo_types: list[str], mode: str):
+    """Refresh all congestion-adjusted cost labels for a single edge."""
+    shared_cap = edge.get("capacity", 1e9)
+    total_load = sum(edge.get(f"current_load_{ct}", 0) for ct in cargo_types)
+    edge["overused"] = False
+
+    for ct in cargo_types:
+        base_key = f"cost_per_ton_{ct}"
+        cap_key = f"cost_per_ton_with_capacity_{ct}"
+        if base_key not in edge:
+            continue
+
+        ct_cap = _get_cargo_capacity(edge, ct)
+        ct_load = edge.get(f"current_load_{ct}", 0)
+        has_ct_cap = f"capacity_{ct}" in edge
+        over_ct = ct_cap < 1e8 and ct_cap > 0 and ct_load > ct_cap
+        over_shared = shared_cap < 1e8 and total_load > shared_cap and not has_ct_cap
+        edge["overused"] = edge["overused"] or over_ct or over_shared
+
+        if mode == "binary":
+            edge[cap_key] = edge[base_key] + (1e10 if (over_ct or over_shared) else 0.0)
+            continue
+
+        ct_mult = _capacity_multiplier(ct_load, ct_cap) if ct_cap < 1e8 else 1.0
+        shared_mult = _capacity_multiplier(total_load, shared_cap) if not has_ct_cap else 1.0
+        edge[cap_key] = edge[base_key] * max(ct_mult, shared_mult)
 
 
 def _get_speed(edge_attr: dict, speed_dict: dict) -> float:

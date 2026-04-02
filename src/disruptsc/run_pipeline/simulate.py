@@ -40,7 +40,7 @@ def run_initial_state(sc_network, transport_network, firms, households, countrie
 
     # Write CSVs if exporting
     if export_folder:
-        with AgentWriters(export_folder) as writers:
+        with AgentWriters(export_folder, _days_per_timestep(sp.time_resolution)) as writers:
             writers.write_step(firms, households, countries, 0)
 
     # Still return in-memory data for callers that need it
@@ -67,7 +67,7 @@ def run_disruption(sc_network, transport_network, firms, households, countries,
 
     all_data = {"firm": [], "household": [], "country": [], "transport_flow": []}
     logistics_reports = []
-    writers = AgentWriters(export_folder) if export_folder else None
+    writers = AgentWriters(export_folder, _days_per_timestep(sp.time_resolution)) if export_folder else None
 
     # Collect logistics report at t=0 and t=1
     def _report_timesteps():
@@ -386,3 +386,7 @@ def _is_back_to_equilibrium(households, countries, epsilon):
     c_extra = sum(c.extra_spending for c in countries.values())
     c_loss = sum(c.consumption_loss for c in countries.values())
     return all(v <= epsilon for v in (hh_extra, hh_loss, c_extra, c_loss))
+
+
+def _days_per_timestep(time_resolution: str) -> float:
+    return {"day": 1, "week": 7, "month": 30, "year": 365}.get(time_resolution, 7)
