@@ -12,7 +12,6 @@ input/*
 .claude
 CLAUDE.md
 AGENTS.md
-data/.claude/*
 
 # PyCharm
 .idea/
