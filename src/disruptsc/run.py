@@ -34,7 +34,8 @@ from disruptsc.run_pipeline.simulate import (
 )
 from disruptsc.run_pipeline.export import (
     export_transport_flows, export_summary, export_logistics_report,
-    export_initial_state, export_static_tables, MCWriter,
+    export_initial_state, export_static_tables, export_mrio_summary,
+    MCWriter,
 )
 
 
@@ -79,6 +80,7 @@ def main():
     # ------------------------------------------------------------------
     # Stage 2: Agents
     # ------------------------------------------------------------------
+    selected = None  # filtered MRIO sectors (set when building fresh)
     if cache_flags["agents"]:
         logging.info("Loading agents from cache")
         mrio, sector_table, firms, firm_table, households, household_table, countries = load_cached_agents()
@@ -86,7 +88,7 @@ def main():
         logging.info("Building agents")
         mrio = load_mrio(filepaths.get("mrio"), ap.monetary_units_in_data)
         sector_table = load_sector_table(filepaths.get("sector_table"))
-        usd_per_ton = load_usd_per_ton(filepaths.get("usd_per_ton"))
+        usd_per_ton = load_usd_per_ton(sector_table)
 
         # Filter sectors
         selected = filter_sectors(
@@ -110,7 +112,7 @@ def main():
         present_rs = [f"{rs[0]}_{rs[1]}" for rs in selected]
         household_table, consumption = create_household_table(
             mrio, filepaths.get("households_spatial"), transport_nodes,
-            present_rs, ap,
+            present_rs, ap, time_resolution=sp.time_resolution,
         )
         households = create_households(household_table, consumption)
 
@@ -122,6 +124,10 @@ def main():
         )
 
         cache_agents(firms, households, countries, mrio, sector_table, firm_table, household_table)
+
+    # Export MRIO summary (for reporting comparison)
+    if export_folder:
+        export_mrio_summary(mrio, selected, export_folder)
 
     # ------------------------------------------------------------------
     # Stage 3: Supply chain network
@@ -157,7 +163,7 @@ def main():
             cl_table = setup_logistic_routes(
                 sc_network, transport_network, firms, countries,
                 tp,
-                max_capacity_iterations=config.get("capacity_routing_max_iterations", 3),
+                max_capacity_iterations=config.get("capacity_routing_max_iterations", 10),
             )
         else:
             cl_table = None
@@ -256,7 +262,40 @@ def main():
         export_static_tables(firm_table, household_table, transport_edges, transport_nodes, export_folder)
         logging.info(f"Results exported to {export_folder}")
 
+    # ------------------------------------------------------------------
+    # Stage 7: Generate report (optional)
+    # ------------------------------------------------------------------
+    if export_folder and args.open:
+        _generate_and_open_report(sim_type, export_folder)
+
     logging.info("Done.")
+
+
+# ------------------------------------------------------------------
+# Report generation
+# ------------------------------------------------------------------
+
+def _generate_and_open_report(sim_type: str, export_folder):
+    """Generate the appropriate HTML report and open it in the browser."""
+    import webbrowser
+
+    report_map = {
+        "initial_state": "disruptsc.reporting.initial_state",
+        "disruption": "disruptsc.reporting.disruption",
+    }
+    module_name = report_map.get(sim_type)
+    if not module_name:
+        logging.info(f"No report template for simulation_type={sim_type}")
+        return
+
+    try:
+        from importlib import import_module
+        mod = import_module(module_name)
+        html_path = mod.generate_report(export_folder)
+        logging.info(f"Report generated: {html_path}")
+        webbrowser.open(str(html_path))
+    except Exception as exc:
+        logging.warning(f"Report generation failed: {exc}")
 
 
 # ------------------------------------------------------------------
@@ -316,6 +355,8 @@ def _parse_args():
     parser.add_argument("--log_level", default="info", choices=["info", "debug"])
     parser.add_argument("--cache_isolation", action="store_true",
                         help="Isolate cache per process")
+    parser.add_argument("--open", action="store_true",
+                        help="Generate report and open it in browser after simulation")
     return parser.parse_args()
 
 
