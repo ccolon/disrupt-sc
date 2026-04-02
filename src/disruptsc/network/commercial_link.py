@@ -119,7 +119,7 @@ class CommercialLink:
         new_bill = self.delivery_in_tons * self.alternative_route_cost_per_ton
 
         if normal_bill == 0:
-            raise ValueError(f"Link {self.supplier_id}→{self.buyer_id}: normal_transport_bill is 0")
+            return 0.0
 
         result = max(new_bill - normal_bill, 0) / normal_bill
         if isinstance(result, float) and (np.isnan(result) or np.isinf(result)):

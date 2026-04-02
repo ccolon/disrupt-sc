@@ -74,61 +74,21 @@ def send_shipment(agent_pid, od_point: int,
         )
         return
 
-    # --- Single-route path (original behavior) ---
-    route = link.get_current_route()
-
-    if route is None or not route:
-        route = discover_route(
-            od_point, link,
-            transport_network, available_transport_network,
-            tp.capacity_constraint_enabled, tp.use_route_cache,
-        )
-        if route is None:
-            link.realized_delivery = 0.0
-            link.delivery = 0.0
-            link.payment = 0.0
-            return
-
-    # Check if main route is disrupted
-    if link.current_route == "main" and not available_transport_network.is_route_available(route):
+    # --- Single-route path ---
+    # Always try the main route first; if available, switch back to it
+    main_route = link.route
+    if main_route and available_transport_network.is_route_available(main_route):
+        link.current_route = "main"
+        link.price = link.eq_price
+        route = main_route
+    else:
+        # Main route unavailable — try to find an alternative
         alt_route = discover_route(
             od_point, link,
             transport_network, available_transport_network,
             tp.capacity_constraint_enabled, tp.use_route_cache,
         )
-        if alt_route is not None:
-            link.alternative_route = alt_route
-            link.alternative_found = True
-            alt_cost = transport_network.compute_route_cost(
-                alt_route, link.cargo_type,
-            )
-            link.alternative_route_cost_per_ton = alt_cost
-            relative_increase = link.calculate_relative_increase_in_transport_cost()
-
-            switching_penalty = link.calculate_switching_cost(
-                tp.switching_costs, transport_network,
-            )
-            relative_increase += switching_penalty
-
-            if relative_increase > tp.price_increase_threshold:
-                link.realized_delivery = 0.0
-                link.delivery = 0.0
-                link.payment = 0.0
-                if routing_event_collector:
-                    routing_event_collector.record_event(
-                        agent_pid, link.buyer_id, "too_expensive", relative_increase,
-                    )
-                return
-
-            link.current_route = "alternative"
-            route = alt_route
-            price_change = transport_share * relative_increase
-            link.price = link.eq_price * (1 + price_change)
-            if routing_event_collector:
-                routing_event_collector.record_event(
-                    agent_pid, link.buyer_id, "rerouted", relative_increase,
-                )
-        else:
+        if alt_route is None:
             link.realized_delivery = 0.0
             link.delivery = 0.0
             link.payment = 0.0
@@ -137,6 +97,38 @@ def send_shipment(agent_pid, od_point: int,
                     agent_pid, link.buyer_id, "no_route", 0.0,
                 )
             return
+
+        link.alternative_route = alt_route
+        link.alternative_found = True
+        alt_cost = transport_network.compute_route_cost(
+            alt_route, link.cargo_type,
+        )
+        link.alternative_route_cost_per_ton = alt_cost
+        relative_increase = link.calculate_relative_increase_in_transport_cost()
+
+        switching_penalty = link.calculate_switching_cost(
+            tp.switching_costs, transport_network,
+        )
+        relative_increase += switching_penalty
+
+        if relative_increase > tp.price_increase_threshold:
+            link.realized_delivery = 0.0
+            link.delivery = 0.0
+            link.payment = 0.0
+            if routing_event_collector:
+                routing_event_collector.record_event(
+                    agent_pid, link.buyer_id, "too_expensive", relative_increase,
+                )
+            return
+
+        link.current_route = "alternative"
+        route = alt_route
+        price_change = transport_share * relative_increase
+        link.price = link.eq_price * (1 + price_change)
+        if routing_event_collector:
+            routing_event_collector.record_event(
+                agent_pid, link.buyer_id, "rerouted", relative_increase,
+            )
 
     # Place shipment on transport network
     if link.delivery_in_tons > EPSILON:
