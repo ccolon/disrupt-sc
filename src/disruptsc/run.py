@@ -164,6 +164,7 @@ def main():
                 sc_network, transport_network, firms, countries,
                 tp,
                 max_capacity_iterations=config.get("capacity_routing_max_iterations", 10),
+                export_folder=export_folder,
             )
         else:
             cl_table = None

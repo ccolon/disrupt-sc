@@ -112,7 +112,7 @@ def send_shipment(agent_pid, od_point: int,
         )
         relative_increase += switching_penalty
 
-        if relative_increase > tp.price_increase_threshold:
+        if tp.price_increase_threshold is not None and 1.0 + relative_increase > tp.price_increase_threshold:
             link.realized_delivery = 0.0
             link.delivery = 0.0
             link.payment = 0.0
@@ -169,6 +169,7 @@ def _send_chunked_shipment(
         return
 
     realized_fraction = 0.0
+    any_rerouted = False
 
     for i, (route, fraction) in enumerate(link.route_plan):
         sub_tons = total_tons * fraction
@@ -192,7 +193,35 @@ def _send_chunked_shipment(
                         agent_pid, link.buyer_id, "no_route", 0.0,
                     )
                 continue
+
+            # Check cost of alternative against price_increase_threshold
+            alt_cost = transport_network.compute_route_cost(
+                alt_route, link.cargo_type,
+                with_capacity=tp.capacity_constraint_enabled,
+            )
+            normal_cost = link.route_cost_per_ton
+            if normal_cost > 0 and sub_tons > 0:
+                relative_increase = max(alt_cost - normal_cost, 0) / normal_cost
+                switching_penalty = link.calculate_switching_cost(
+                    tp.switching_costs, transport_network,
+                )
+                relative_increase += switching_penalty
+                if tp.price_increase_threshold is not None and 1.0 + relative_increase > tp.price_increase_threshold:
+                    if routing_event_collector:
+                        routing_event_collector.record_event(
+                            agent_pid, link.buyer_id, "too_expensive",
+                            relative_increase,
+                        )
+                    continue
+            else:
+                relative_increase = 0.0
+
             route = alt_route
+            any_rerouted = True
+            if routing_event_collector:
+                routing_event_collector.record_event(
+                    agent_pid, link.buyer_id, "rerouted", relative_increase,
+                )
 
         # Place sub-shipment with unique chunk ID on edges
         chunk_id = f"{link.pid}__r{i}" if i > 0 else link.pid
@@ -206,6 +235,9 @@ def _send_chunked_shipment(
             capacity_constraint_mode=tp.capacity_constraint_mode,
         )
         realized_fraction += fraction
+
+    if any_rerouted:
+        link.current_route = "alternative"
 
     link.realized_delivery = link.delivery * realized_fraction
     link.payment = link.realized_delivery * link.price
