@@ -10,14 +10,22 @@ class TransportParams:
     transport_to_households: bool = True
     capacity_constraint_enabled: bool = False
     capacity_constraint_mode: str = "gradual"
+    initial_route_assignment: str = "heuristic"
     rationing_mode: str = "equal"
     use_route_cache: bool = True
     switching_costs: dict = field(default_factory=lambda: {"modal_switch": 0.15, "port_switch": 0.05})
-    price_increase_threshold: float = 2.0
+    price_increase_threshold: float | None = 2.0  # None = no threshold
     sectors_no_transport: tuple = ("utility", "transport", "trade", "services", "service", "construction")
     monetary_units: str = "mUSD"
     route_optimization_weight: str = "cost_per_ton"
     chunk_size: float = 1e9  # tons per time-step; very large = no chunking
+    route_candidate_count: int = 4
+    route_candidate_stretch: float = 3.0
+    route_candidate_overlap: float = 0.85
+    lp_route_candidate_count: int = 20
+    lp_route_candidate_stretch: float = 4.0
+    lp_route_candidate_overlap: float = 0.9
+    lp_overcapacity_limit: float = 1.05
 
 
 @dataclass(frozen=True)

@@ -32,7 +32,7 @@ def run_initial_state(sc_network, transport_network, firms, households, countrie
     set_initial_conditions(sc_network, firms, households, countries, tp, sp)
 
     # Run t=0
-    flow_data, logistics_report = _run_one_time_step(
+    flow_data, logistics_report, _ = _run_one_time_step(
         0, sc_network, transport_network, transport_network,
         firms, households, countries, tp, sp, disruptions=[],
         monitored_edges=monitored_edges,
@@ -67,6 +67,7 @@ def run_disruption(sc_network, transport_network, firms, households, countries,
 
     all_data = {"firm": [], "household": [], "country": [], "transport_flow": []}
     logistics_reports = []
+    all_routing_summaries = []
     writers = AgentWriters(export_folder, _days_per_timestep(sp.time_resolution)) if export_folder else None
 
     # Collect logistics report at t=0 and t=1
@@ -76,15 +77,17 @@ def run_disruption(sc_network, transport_network, firms, households, countries,
     try:
         # Time step 0: equilibrium snapshot
         mon = monitored_edges if 0 in _report_timesteps() else None
-        flow_data, lr = _run_one_time_step(
+        flow_data, lr, rs = _run_one_time_step(
             0, sc_network, transport_network, transport_network,
             firms, households, countries, tp, sp, disruptions=[],
             monitored_edges=mon,
         )
         _accumulate_and_write(all_data, firms, households, countries, 0,
-                              flow_data, writers, collect_flows=True)
+                              flow_data, writers, collect_flows=True,
+                              sc_network=sc_network)
         if lr is not None:
             logistics_reports.append(lr)
+        all_routing_summaries.extend(rs)
 
         # Parse disruptions
         disruptions = parse_disruptions(
@@ -93,16 +96,19 @@ def run_disruption(sc_network, transport_network, firms, households, countries,
         if not disruptions:
             logging.info("No disruptions — running one baseline step and returning")
             mon = monitored_edges if 1 in _report_timesteps() else None
-            flow_data, lr = _run_one_time_step(
+            flow_data, lr, rs = _run_one_time_step(
                 1, sc_network, transport_network, transport_network,
                 firms, households, countries, tp, sp, disruptions=[],
                 monitored_edges=mon,
             )
             _accumulate_and_write(all_data, firms, households, countries, 1,
-                                  flow_data, writers, collect_flows=True)
+                                  flow_data, writers, collect_flows=True,
+                                  sc_network=sc_network)
             if lr is not None:
                 logistics_reports.append(lr)
+            all_routing_summaries.extend(rs)
             all_data["logistics_reports"] = logistics_reports
+            _export_routing_summary(all_routing_summaries, export_folder)
             return all_data
 
         logging.info(f"{len(disruptions)} disruption(s) parsed")
@@ -112,15 +118,17 @@ def run_disruption(sc_network, transport_network, firms, households, countries,
         # Time loop
         for t in range(1, t_final + 1):
             mon = monitored_edges if t in _report_timesteps() else None
-            flow_data, lr = _run_one_time_step(
+            flow_data, lr, rs = _run_one_time_step(
                 t, sc_network, transport_network, transport_network,
                 firms, households, countries, tp, sp, disruptions=disruptions,
                 monitored_edges=mon,
             )
             _accumulate_and_write(all_data, firms, households, countries, t,
-                                  flow_data, writers, collect_flows=(t <= 1))
+                                  flow_data, writers, collect_flows=(t <= 1),
+                                  sc_network=sc_network)
             if lr is not None:
                 logistics_reports.append(lr)
+            all_routing_summaries.extend(rs)
 
             # Early stop
             if sp.epsilon_stop and t > max(d.start_time for d in disruptions):
@@ -133,6 +141,7 @@ def run_disruption(sc_network, transport_network, firms, households, countries,
             writers.close()
 
     all_data["logistics_reports"] = logistics_reports
+    _export_routing_summary(all_routing_summaries, export_folder)
     return all_data
 
 
@@ -151,7 +160,7 @@ def run_criticality(sc_network, transport_network, firms, households, countries,
     all_data = {"firm": [], "household": [], "country": [], "transport_flow": []}
 
     for t in range(0, t_final + 1):
-        flow_data, _ = _run_one_time_step(
+        flow_data, _, _ = _run_one_time_step(
             t, sc_network, transport_network, transport_network,
             firms, households, countries, tp, sp, disruptions=disruptions,
         )
@@ -326,6 +335,9 @@ def _run_one_time_step(time_step, sc_network, transport_network,
     for firm in firms.values():
         firm.deliver(sc_network, transport_network, available_transport_network, tp)
 
+    # 7b. Collect routing summary from commercial links
+    routing_summary = _collect_routing_summary(sc_network, time_step)
+
     # 8. Collect flow data while shipments are still on edges
     flow_data = transport_network.compute_flow_per_segment(time_step)
 
@@ -359,7 +371,7 @@ def _run_one_time_step(time_step, sc_network, transport_network,
     for firm in firms.values():
         firm.update_disrupted_production_capacity()
 
-    return flow_data, logistics_report
+    return flow_data, logistics_report, routing_summary
 
 
 # ------------------------------------------------------------------
@@ -368,7 +380,7 @@ def _run_one_time_step(time_step, sc_network, transport_network,
 
 def _accumulate_and_write(all_data, firms, households, countries, time_step,
                           flow_data, writers: AgentWriters | None,
-                          collect_flows=True):
+                          collect_flows=True, sc_network=None):
     """Accumulate in-memory data AND write CSV rows if writers are open."""
     all_data["firm"].extend(collect_firm_data(firms, time_step))
     all_data["household"].extend(collect_household_data(households, time_step))
@@ -378,6 +390,8 @@ def _accumulate_and_write(all_data, firms, households, countries, time_step,
 
     if writers:
         writers.write_step(firms, households, countries, time_step)
+        if sc_network is not None:
+            writers.write_links(sc_network, time_step)
 
 
 def _is_back_to_equilibrium(households, countries, epsilon):
@@ -390,3 +404,52 @@ def _is_back_to_equilibrium(households, countries, epsilon):
 
 def _days_per_timestep(time_resolution: str) -> float:
     return {"day": 1, "week": 7, "month": 30, "year": 365}.get(time_resolution, 7)
+
+
+def _collect_routing_summary(sc_network, time_step: int) -> list[dict]:
+    """Aggregate commercial link routing outcomes per cargo type.
+
+    For each cargo type, tallies:
+      - total ordered value (mUSD)
+      - value delivered on main route (normal price)
+      - value delivered on alternative route (higher price)
+      - value blocked (not delivered due to no route or too expensive)
+    """
+    from collections import defaultdict
+
+    buckets = defaultdict(lambda: {
+        "total_usd": 0.0,
+        "main_usd": 0.0,
+        "alternative_usd": 0.0,
+        "blocked_usd": 0.0,
+    })
+
+    for u, v, data in sc_network.edges(data=True):
+        link = data["object"]
+        if link.order < EPSILON:
+            continue
+
+        ct = getattr(link, "cargo_type", "unknown")
+        order_value = link.order * link.eq_price
+        buckets[ct]["total_usd"] += order_value
+
+        if link.current_route == "main":
+            buckets[ct]["main_usd"] += link.realized_delivery * link.eq_price
+        elif link.current_route == "alternative":
+            buckets[ct]["alternative_usd"] += link.realized_delivery * link.eq_price
+        # Blocked = ordered but not delivered
+        blocked = max(0.0, link.order - link.realized_delivery) * link.eq_price
+        buckets[ct]["blocked_usd"] += blocked
+
+    rows = []
+    for ct, vals in sorted(buckets.items()):
+        rows.append({"time_step": time_step, "cargo_type": ct, **vals})
+    return rows
+
+
+def _export_routing_summary(rows: list[dict], export_folder):
+    if not export_folder or not rows:
+        return
+    import pandas as pd
+    pd.DataFrame(rows).to_csv(export_folder / "routing_summary.csv", index=False)
+    logging.info(f"Routing summary: {len(rows)} rows → routing_summary.csv")
