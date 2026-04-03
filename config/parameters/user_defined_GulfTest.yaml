@@ -1,0 +1,154 @@
+# ─────────────────────────────────────────────────────
+# GulfTest - Minimal routing test scope
+# ─────────────────────────────────────────────────────
+# Stripped-down Gulf scope: ARE only (region) + CHN (country)
+# Maritime network keeps only 4 UAE ports:
+#   port_jebel_ali, port_khor_fakkan, port_fujairah, port_khalifa
+# ─────────────────────────────────────────────────────
+
+# ── Data paths ──
+filepaths:
+  "mrio": "Economic/mrio.csv"
+  "sector_table": "Economic/sector_table.csv"
+
+# ── Transport ──
+transport_modes: ["roads", "maritime", "airways", "pipelines"]
+
+# ── Economic settings ──
+monetary_units_in_model: "mUSD"
+monetary_units_in_data: "kUSD"
+firm_data_type: "mrio"
+
+# ── Time ──
+time_resolution: "week"
+t_final: 10
+
+# ── Filtering ──
+io_cutoff: 0.01
+cutoff_sector_output:
+  type: "absolute"
+  value: 1
+  unit: "kUSD"
+cutoff_sector_demand:
+  type: "absolute"
+  value: 1
+  unit: "kUSD"
+cutoff_firm_output:
+  type: "absolute"
+  value: 1
+  unit: "kUSD"
+cutoff_household_demand:
+  type: "absolute"
+  value: 1
+  unit: "kUSD"
+
+# ── Agent settings ──
+nb_suppliers_per_input: 1
+weight_localization_firm: 1
+weight_localization_household: 4
+utilization_rate: 0.8
+rationing_mode: "equal"
+propagate_input_price_change: True
+explicit_service_firm: True
+
+# ── Inventory ──
+inventory_duration_targets:
+  definition: per_input_type
+  values:
+    default: 30
+    agriculture: 14
+    manufacturing: 30
+    mining: 60
+    utility: 3
+    service: 90
+    trade: 30
+    transport: 5
+  unit: day
+inventory_restoration_time: 4
+
+# ── Logistics ──
+logistics:
+  initial_route_assignment: "edge_lp"
+  speeds:  # km/hour
+    roads: 60
+    maritime: 25
+    airways: 800
+  basic_cost:  # USD per ton*km
+    roads: 0.08
+    maritime: 0.003
+    airways: 1.5
+    multimodal: 0.01
+  border_crossing_fees:  # USD/ton
+    roads: 50
+    maritime: 20
+    airways: 10
+  border_crossing_times:  # hours
+    roads: 1.0
+    maritime: 4
+    airways: 2
+    multimodal: 3
+  dwell_times: # hours
+    roads-maritime: 18
+    roads-airways: 18
+  loading_fees: # USD/ton
+    roads-maritime: 2.5
+    roads-airways: 5.0
+  chunk_size: 10000  # tons/day
+
+# Override default transport capacity: block containers on airways
+default_transport_capacity:
+  airways:
+    container: 0
+    dry_bulk: 0
+    liquid_bulk: 0
+
+capacity_constraint: "gradual"
+transport_capacity_overrides:  # tons/day — only UAE ports kept
+  port_jebel_ali:
+    container: 744000
+    dry_bulk: 30000
+    liquid_bulk: 0
+  port_khalifa:
+    container: 575000
+    dry_bulk: 98500
+    liquid_bulk: 120000
+  port_fujairah:
+    container: 27600
+    dry_bulk: 3600
+    liquid_bulk: 265800
+  port_khor_fakkan:
+    container: 287000
+    dry_bulk: 20000
+    liquid_bulk: 30000
+  border_crossing_al_batha_al_ghuwaifat: 35000  # SAU ARE
+  border_crossing_al_ain_al_buraimi: 9800  # ARE OMN
+  border_crossing_khatmat_malaha: 7000  # ARE OMN
+  offshore_supply:
+    container: 50000
+    dry_bulk: 50000
+    liquid_bulk: 0
+
+# ── Simulation ──
+simulation_type: "disruption"
+mc_repetitions: 0
+export_files: True
+use_route_cache: True
+
+# ── Disruption: Hormuz Strait Blockade ──
+# Block all edges passing through the Strait of Hormuz
+# This forces rerouting via Red Sea / Suez / air / overland
+disruptions:
+  - type: transport_disruption
+    description_type: edge_attributes
+    attribute: name
+    values:
+      - "Strait of Hormuz"
+    start_time: 1
+    duration: 4  # 60-day blockade
+
+# ── Stop condition ──
+epsilon_stop_condition: 1e-3
+
+# ── Route optimization ──
+route_optimization_weight: "cost_per_ton"
+price_increase_threshold: null
