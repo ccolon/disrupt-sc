@@ -44,6 +44,33 @@ cutoff_household_demand:
   value: 1
   unit: "kUSD"
 
+
+
+# ── Simulation ──
+simulation_type: "disruption"  # disruption initial_state
+mc_repetitions: 0  # deterministic first run; increase for stochastic
+export_files: True
+use_route_cache: True
+
+# ── Disruption: Hormuz Strait Blockade ──
+# Block all edges passing through the Strait of Hormuz
+# This forces rerouting via Red Sea / Suez / air / overland
+disruptions:
+  - type: transport_disruption
+    description_type: edge_attributes
+    attribute: name
+    values:
+      - "Strait of Hormuz"
+    start_time: 1
+    duration: 4  # 60-day blockade
+
+# ── Stop condition ──
+epsilon_stop_condition: 1e-3
+
+# ── Route optimization ──
+route_optimization_weight: "cost_per_ton"
+price_increase_threshold: 1000
+
 # ── Agent settings ──
 nb_suppliers_per_input: 1
 weight_localization_firm: 1
@@ -71,6 +98,7 @@ inventory_restoration_time: 4
 
 # ── Logistics ──
 logistics:
+  initial_route_assignment: "edge_lp"
   speeds:  # km/hour
     roads: 60       # Gulf highways are high quality
     maritime: 25    # average container vessel in Gulf waters
@@ -81,7 +109,7 @@ logistics:
     airways: 1.5    # air freight premium
     multimodal: 0.01
   border_crossing_fees:  # USD/ton — GCC has relatively low barriers
-    roads: 15
+    roads: 30
     maritime: 20
     airways: 10
   border_crossing_times:  # hours
@@ -100,7 +128,7 @@ logistics:
 # Override default transport capacity: block containers on airways
 default_transport_capacity:
   airways:
-    container: 0       # containers cannot fly
+    container: 5000       # containers cannot fly
     dry_bulk: 0
     liquid_bulk: 0
 
@@ -108,7 +136,7 @@ capacity_constraint: "gradual"
 transport_capacity_overrides:  # tons/day
   port_jebel_ali:
     container: 744000
-    dry_bulk: 0
+    dry_bulk: 68500
     liquid_bulk: 0
   port_khalifa:
     container: 575000
@@ -123,15 +151,15 @@ transport_capacity_overrides:  # tons/day
     dry_bulk: 20000
     liquid_bulk: 30000
   port_hamad:
-    container: 55000
-    dry_bulk: 19200
+    container: 155000
+    dry_bulk: 29200
     liquid_bulk: 0
   port_ras_laffan:
     container: 0
     dry_bulk: 0
-    liquid_bulk: 300000
+    liquid_bulk: 400000
   port_shuwaikh:
-    container: 23500
+    container: 33500
     dry_bulk: 8850
     liquid_bulk: 0
   port_mina_al_ahmadi:
@@ -139,9 +167,9 @@ transport_capacity_overrides:  # tons/day
     dry_bulk: 0
     liquid_bulk: 250000
   port_khalifa_bin_salman:
-    container: 42200
-    dry_bulk: 8000
-    liquid_bulk: 5000
+    container: 92200
+    dry_bulk: 16000
+    liquid_bulk: 10000
   port_sohar:
     container: 27800
     dry_bulk: 105200
@@ -163,7 +191,7 @@ transport_capacity_overrides:  # tons/day
     dry_bulk: 13700
     liquid_bulk: 35000
   port_jeddah_islamic:
-    container: 237800
+    container: 337800
     dry_bulk: 0
     liquid_bulk: 0
   port_yanbu:
@@ -171,11 +199,11 @@ transport_capacity_overrides:  # tons/day
     dry_bulk: 0
     liquid_bulk: 700000
   port_dammam:
-    container: 115100
+    container: 215100
     dry_bulk: 0
     liquid_bulk: 0
   port_king_abdullah:
-    container: 249300
+    container: 449300
     dry_bulk: 19200
     liquid_bulk: 0
   port_ras_tanura:
@@ -199,13 +227,17 @@ transport_capacity_overrides:  # tons/day
     dry_bulk: 30000
     liquid_bulk: 40000
   port_imam_khomeini:
-    container: 15000
+    container: 150000
     dry_bulk: 250000
     liquid_bulk: 120000
   port_bushehr:
     container: 15000
     dry_bulk: 30000
     liquid_bulk: 20000
+  port_bandar_abbas:
+    container: 80000
+    dry_bulk: 15000
+    liquid_bulk: 10000
   port_bandar_lengeh:
     container: 8000
     dry_bulk: 15000
@@ -225,32 +257,6 @@ transport_capacity_overrides:  # tons/day
   border_crossing_al_ain_al_buraimi: 9800  # ARE OMN
   border_crossing_khatmat_malaha: 7000  # ARE OMN
   offshore_supply:
-    container: 1000
-    dry_bulk: 1000
+    container: 50000
+    dry_bulk: 50000
     liquid_bulk: 0
-
-
-# ── Simulation ──
-simulation_type: "disruption"  # disruption initial_state
-mc_repetitions: 0  # deterministic first run; increase for stochastic
-export_files: True
-use_route_cache: True
-
-# ── Disruption: Hormuz Strait Blockade ──
-# Block all edges passing through the Strait of Hormuz
-# This forces rerouting via Red Sea / Suez / air / overland
-disruptions:
-  - type: transport_disruption
-    description_type: edge_attributes
-    attribute: name
-    values:
-      - "Strait of Hormuz"
-    start_time: 1
-    duration: 4  # 60-day blockade
-
-# ── Stop condition ──
-epsilon_stop_condition: 1e-3
-
-# ── Route optimization ──
-route_optimization_weight: "cost_per_ton"
-price_increase_threshold: 2
