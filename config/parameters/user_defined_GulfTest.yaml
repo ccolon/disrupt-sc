@@ -8,8 +8,8 @@
 
 # ── Data paths ──
 filepaths:
-  "mrio": "Economic/mrio.csv"
-  "sector_table": "Economic/sector_table.csv"
+  "mrio": "Economic/mrio_ARE_RoW_full.csv"
+  "sector_table": "Economic/sector_table_ARE_RoW_full.csv"
 
 # ── Transport ──
 transport_modes: ["roads", "maritime", "airways", "pipelines"]
@@ -151,4 +151,4 @@ epsilon_stop_condition: 1e-3
 
 # ── Route optimization ──
 route_optimization_weight: "cost_per_ton"
-price_increase_threshold: null
+price_increase_threshold: 10

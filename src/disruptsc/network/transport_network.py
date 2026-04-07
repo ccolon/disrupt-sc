@@ -561,23 +561,29 @@ class TransportNetwork(nx.Graph):
 # ======================================================================
 
 def _capacity_multiplier(current_load: float, capacity: float) -> float:
-    """Barrier cost multiplier that grows to infinity at and beyond capacity.
+    """Piecewise capacity surcharge (Form A, 5-branch).
 
-    Below capacity:  1 + (u / (1 - u))²   — smooth barrier approaching capacity
-    Above capacity:  scales as (u)²        — continues growing with overcapacity
+    - u ≤ 0.8          :  0.5·(1 + u/0.8)          — gentle ramp 0.5 → 1.0
+    - 0.8 < u ≤ 1.0    :  1 + 5·(u − 0.8)          — linear       1.0 → 2.0
+    - 1.0 < u ≤ 1.05   :  2 + 60·(u − 1.0)         — steep        2.0 → 5.0
+    - 1.05 < u ≤ 1.1   :  5 + 100·(u − 1.05)       — steeper      5.0 → 10.0
+    - u > 1.1          :  10 + 1000·(u − 1.1)      — linear blowup
 
-    This ensures that overcapacity edges become progressively more expensive,
-    not capped at a fixed maximum.
+    Aligned (at breakpoints) with LP piecewise surcharge in
+    init_pipeline/routing.py via h(u) = (f(u)−1)·u.
     """
     if capacity <= 0:
         return 1.0
     u = current_load / capacity
-    if u < 0.999:
-        return 1.0 + (u / (1.0 - u)) ** 2
-    else:
-        # Beyond capacity: multiplier keeps growing with load
-        # At u=1: ~1e6, at u=2: ~4e6, at u=10: ~1e8
-        return 1.0 + (u * 1000) ** 2
+    if u <= 0.8:
+        return 0.5 * (1.0 + u / 0.8)
+    if u <= 1.0:
+        return 1.0 + 5.0 * (u - 0.8)
+    if u <= 1.05:
+        return 2.0 + 60.0 * (u - 1.0)
+    if u <= 1.1:
+        return 5.0 + 100.0 * (u - 1.05)
+    return 10.0 + 1000.0 * (u - 1.1)
 
 
 def _recovery_factor(time_since_start: int, duration: float,

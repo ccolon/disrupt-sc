@@ -98,9 +98,7 @@ def create_firm_table(mrio: Mrio, sector_table: pd.DataFrame,
     ft["target_margin"] = ft.apply(
         lambda r: margins.get((r["region"], r["sector"]), 0.2), axis=1
     )
-    ft["transport_share"] = ft.apply(
-        lambda r: transport_shares.get((r["region"], r["sector"]), 0.2), axis=1
-    )
+    ft["transport_share"] = params.firm_transport_share  # uniform transport share from YAML
 
     # Assign IDs
     ft = ft.reset_index(drop=True)
@@ -152,8 +150,20 @@ def create_firms(firm_table: pd.DataFrame, params: AgentParams) -> dict[str, Fir
 
 
 def load_tech_coefs(firms: dict[str, Firm], mrio: Mrio, io_cutoff: float):
-    """Load input_mix (technical coefficients) into each firm."""
-    tech_coefs = mrio.get_tech_coef_dict(threshold=io_cutoff)
+    """Load input_mix (technical coefficients) into each firm.
+
+    *io_cutoff* is interpreted as a cumulative input-coverage fraction
+    (e.g. 0.95 means keep enough inputs to cover 95 % of each buyer's
+    intermediate consumption, ranked by absolute MRIO flow).  Legacy
+    values below 0.5 are still treated as an absolute tech-coefficient
+    threshold for backward compatibility.
+    """
+    if io_cutoff > 0.5:
+        # Cumulative coverage mode
+        tech_coefs = mrio.get_tech_coef_dict(coverage=io_cutoff)
+    else:
+        # Legacy absolute threshold mode
+        tech_coefs = mrio.get_tech_coef_dict(threshold=io_cutoff)
 
     # Count firms per region_sector to decide whether to keep diagonal entries
     from collections import Counter
@@ -198,6 +208,43 @@ def load_inventories(firms: dict[str, Firm], inventory_targets: dict,
             firm.inventory_duration_target = targets
 
 
+def configure_household_inventories(households: dict[str, Household],
+                                    enabled: bool,
+                                    inventory_targets: dict,
+                                    inventory_restoration_time: float,
+                                    time_resolution: str,
+                                    sector_table: pd.DataFrame = None):
+    """Attach firm-style inventory parameters to households."""
+    definition = inventory_targets.get("definition", "per_input_type")
+    values = inventory_targets.get("values", {"default": 30})
+    target_unit = inventory_targets.get("unit", "day")
+
+    time_days = {"day": 1, "week": 7, "month": 30, "year": 365}
+    factor = time_days.get(target_unit, 1) / time_days.get(time_resolution, 7)
+
+    sector_type_map = {}
+    if sector_table is not None:
+        sector_type_map = sector_table.set_index("sector")["type"].to_dict()
+
+    for hh in households.values():
+        hh.use_inventories = enabled
+        hh.inventory_restoration_time = inventory_restoration_time
+        hh.inventory_duration_target = {}
+        hh.eq_needs = dict(hh.sector_consumption)
+
+        for sector_id in hh.sector_consumption:
+            if definition == "per_input_type":
+                input_sector = sector_id.split("_", 1)[-1] if "_" in sector_id else sector_id
+                input_type = sector_type_map.get(input_sector, "default")
+                duration = values.get(input_type, values.get("default", 30))
+            else:
+                duration = values.get("default", 30)
+            hh.inventory_duration_target[sector_id] = duration * factor
+
+        if not enabled:
+            hh.inventory = {}
+
+
 # ======================================================================
 # Households
 # ======================================================================
@@ -228,6 +275,8 @@ def create_household_table(mrio: Mrio, households_spatial_path: Path,
     ht["name"] = ht["region"] + "_household" + ht["id"].astype(str)
     if "population" not in ht.columns:
         ht["population"] = 1.0
+    else:
+        ht["population"] = ht["population"].fillna(1.0)
 
     # Calculate consumption patterns
     final_demand = mrio.get_final_demand(
@@ -261,25 +310,15 @@ def create_household_table(mrio: Mrio, households_spatial_path: Path,
         total_pop = ht.loc[region_mask, "population"].sum()
         proportion = pop / total_pop if total_pop > 0 else 0
 
-        # Get final demand for this region
+        # Get final demand destined for this household's region
         hh_consumption = {}
-        for rs_tuple in final_demand.index:
-            rs_region = rs_tuple[0]
-            if rs_region != region:
-                continue
-            rs_name = f"{rs_tuple[0]}_{rs_tuple[1]}"
-            demand = final_demand.loc[rs_tuple].sum() * proportion
-            if demand > cutoff:
-                hh_consumption[rs_name] = demand
-
-        # Also include import demand
-        for rs_tuple in import_rows:
-            demand_cols = final_demand.columns[final_demand.columns.get_level_values(0) == region]
-            if len(demand_cols) > 0:
+        demand_cols = final_demand.columns[final_demand.columns.get_level_values(0) == region]
+        if len(demand_cols) > 0:
+            for rs_tuple in final_demand.index:
                 demand = final_demand.loc[rs_tuple, demand_cols].sum() * proportion
-                rs_name = f"{rs_tuple[0]}_{rs_tuple[1]}"
                 if demand > cutoff:
-                    hh_consumption[rs_name] = hh_consumption.get(rs_name, 0) + demand
+                    rs_name = f"{rs_tuple[0]}_{rs_tuple[1]}"
+                    hh_consumption[rs_name] = demand
 
         if hh_consumption:
             consumption[hh_idx] = hh_consumption
@@ -524,9 +563,12 @@ def _integrate_spatial_firms(ft: gpd.GeoDataFrame, filepath: Path, mrio: Mrio) -
 
 def _handle_internal_flows(ft: gpd.GeoDataFrame, mrio: Mrio, io_cutoff: float) -> gpd.GeoDataFrame:
     """Duplicate single-firm region_sectors that have internal consumption."""
-    internal_rs = mrio.get_region_sectors_with_internal_flows(threshold=io_cutoff)
+    # Internal-flow detection always uses a fixed tech-coef threshold on the
+    # diagonal, independent of the io_cutoff coverage parameter.
+    _INTERNAL_FLOW_THRESHOLD = 0.02
+    internal_rs = mrio.get_region_sectors_with_internal_flows(threshold=_INTERNAL_FLOW_THRESHOLD)
     internal_rs_names = {"_".join(t) for t in internal_rs} if internal_rs else set()
-    logging.info(f"Internal flows: {len(internal_rs_names)} region-sectors above io_cutoff={io_cutoff}")
+    logging.info(f"Internal flows: {len(internal_rs_names)} region-sectors above threshold={_INTERNAL_FLOW_THRESHOLD}")
 
     new_rows = []
     for rs_name in internal_rs_names:

@@ -99,6 +99,7 @@ class Country:
             # Country delivers whatever was ordered (unlimited supply from outside)
             link.delivery = link.order
             link.delivery_in_tons = link.delivery * self.monetary_unit_factor / self.usd_per_ton if self.usd_per_ton > 0 else 0.0
+            link.reset_transport_tracking()
 
             if link.delivery < EPSILON:
                 continue

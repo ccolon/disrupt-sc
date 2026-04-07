@@ -51,6 +51,8 @@ class CommercialLink:
     price: float = 1.0
     fulfilment_rate: float = 1.0
     status: str = "ok"
+    main_route_realized_delivery: float = 0.0
+    alternative_route_realized_delivery: float = 0.0
 
     # ------------------------------------------------------------------
 
@@ -65,13 +67,24 @@ class CommercialLink:
         self.current_route = "main"
         self.order = 0.0
         self.delivery = 0.0
-        self.payment = 0.0
         self.fulfilment_rate = 1.0
-        self.alternative_route = None
-        self.alternative_route_cost_per_ton = 0.0
         self.price = self.eq_price
-        self.alternative_found = False
         self.status = "ok"
+        self.reset_transport_tracking()
+
+    def reset_transport_tracking(self):
+        """Reset per-timestep transport execution fields."""
+        self.realized_delivery = 0.0
+        self.payment = 0.0
+        self.price = self.eq_price
+        self.status = "ok"
+        self.current_route = "main"
+        self.alternative_route = None
+        self.alternative_route_length = 1.0
+        self.alternative_route_cost_per_ton = 0.0
+        self.alternative_found = False
+        self.main_route_realized_delivery = 0.0
+        self.alternative_route_realized_delivery = 0.0
 
     def determine_cargo_type(self, sector_to_cargo_type: dict):
         self.cargo_type = sector_to_cargo_type.get(
@@ -127,16 +140,10 @@ class CommercialLink:
         return result
 
     def has_modal_switch(self) -> bool:
-        if not self.alternative_found or not self.route or not self.alternative_route:
-            return False
-        return set(self.route.transport_modes) != set(self.alternative_route.transport_modes)
+        return self._routes_have_modal_switch(self.route, self.alternative_route)
 
     def has_port_switch(self, transport_network: TransportNetwork) -> bool:
-        if not self.alternative_found or not self.route or not self.alternative_route:
-            return False
-        main_edges = self.route.get_maritime_multimodal_edges(transport_network)
-        alt_edges = self.alternative_route.get_maritime_multimodal_edges(transport_network)
-        return len(main_edges) > 0 and len(alt_edges) > 0 and main_edges != alt_edges
+        return self._routes_have_port_switch(self.route, self.alternative_route, transport_network)
 
     def calculate_switching_cost(self, switching_costs: dict, transport_network: TransportNetwork) -> float:
         if self.has_modal_switch():
@@ -145,9 +152,40 @@ class CommercialLink:
             return switching_costs.get("port_switch", 0.05)
         return 0.0
 
+    def calculate_switching_cost_between(self, baseline_route: Route | None,
+                                         alternative_route: Route | None,
+                                         switching_costs: dict,
+                                         transport_network: TransportNetwork) -> float:
+        if self._routes_have_modal_switch(baseline_route, alternative_route):
+            return switching_costs.get("modal_switch", 0.15)
+        if self._routes_have_port_switch(baseline_route, alternative_route, transport_network):
+            return switching_costs.get("port_switch", 0.05)
+        return 0.0
+
     # ------------------------------------------------------------------
     # Private
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _routes_have_modal_switch(baseline_route: Route | None,
+                                  alternative_route: Route | None) -> bool:
+        if baseline_route is None or alternative_route is None:
+            return False
+        return set(baseline_route.transport_modes) != set(alternative_route.transport_modes)
+
+    @staticmethod
+    def _routes_have_port_switch(baseline_route: Route | None,
+                                 alternative_route: Route | None,
+                                 transport_network: TransportNetwork) -> bool:
+        if baseline_route is None or alternative_route is None:
+            return False
+        baseline_edges = baseline_route.get_maritime_multimodal_edges(transport_network)
+        alternative_edges = alternative_route.get_maritime_multimodal_edges(transport_network)
+        return (
+            len(baseline_edges) > 0
+            and len(alternative_edges) > 0
+            and baseline_edges != alternative_edges
+        )
 
     def _update_status(self):
         delivery_status = "ok"

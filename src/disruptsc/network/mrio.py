@@ -167,12 +167,35 @@ class Mrio(pd.DataFrame):
             )
         return result
 
-    def get_tech_coef_dict(self, threshold=0, selected=None) -> dict:
+    def get_tech_coef_dict(self, threshold=0, selected=None,
+                           coverage: float | None = None) -> dict:
+        """Return technical coefficients as nested dict.
+
+        Parameters
+        ----------
+        threshold : float
+            Minimum tech-coefficient value to keep (legacy absolute cutoff).
+            Ignored when *coverage* is set.
+        selected : list, optional
+            Subset of region-sectors to include.
+        coverage : float in (0, 1], optional
+            Cumulative input-coverage fraction.  For each buyer, inputs are
+            sorted by **absolute MRIO flow** (descending) and kept until their
+            cumulative share of the buyer's total intermediate input reaches
+            *coverage*.  This preserves large absolute trade flows even when
+            the tech-coefficient is small (e.g. small-country oil exports to
+            large-economy refiners).
+        """
         output = self.get_total_output()
         intermediate = self.get_intermediary()
         mat = pd.concat([output] * len(intermediate.index), axis=1).T
         mat.index = intermediate.index
         tech = intermediate / mat
+
+        if coverage is not None:
+            return self._tech_coef_by_coverage(
+                tech, intermediate, coverage, selected,
+            )
 
         if selected:
             if isinstance(selected[0], str):
@@ -192,6 +215,71 @@ class Mrio(pd.DataFrame):
             }
             for rs, col in tech.to_dict().items()
         }
+
+    def _tech_coef_by_coverage(self, tech: pd.DataFrame,
+                               intermediate: pd.DataFrame,
+                               coverage: float,
+                               selected: list | None) -> dict:
+        """Keep the largest inputs per buyer until *coverage* fraction is met.
+
+        Inputs are ranked by absolute MRIO flow (not tech-coefficient) so that
+        large trade flows between a small supplier and a large buyer are not
+        lost.  The returned dict still contains tech-coefficient values
+        (fraction of buyer output), only the *selection* uses absolute flows.
+        """
+        result: dict[str, dict[str, float]] = {}
+
+        if selected:
+            if isinstance(selected[0], str):
+                selected = [tuple(s.split("_", 1)) for s in selected]
+
+        for buyer in tech.columns:
+            if selected and buyer not in selected:
+                continue
+
+            buyer_key = "_".join(str(x) for x in buyer)
+
+            # Absolute flows for ranking, tech coefs for the values we store
+            abs_col = intermediate[buyer]
+            tech_col = tech[buyer]
+
+            # Build list of (supplier_key_tuple, abs_flow, tech_coef)
+            entries = []
+            for supplier in tech_col.index:
+                tc = tech_col[supplier]
+                if pd.isna(tc) or tc <= 0:
+                    continue
+                if selected and supplier not in selected:
+                    if not (hasattr(self, "external_selling_countries")
+                            and supplier[0] in self.external_selling_countries):
+                        continue
+                af = abs_col[supplier]
+                entries.append((supplier, float(af), float(tc)))
+
+            if not entries:
+                result[buyer_key] = {}
+                continue
+
+            # Sort by absolute flow descending
+            entries.sort(key=lambda x: x[1], reverse=True)
+            total_abs = sum(e[1] for e in entries)
+
+            if total_abs <= 0:
+                result[buyer_key] = {}
+                continue
+
+            kept: dict[str, float] = {}
+            cumsum = 0.0
+            for supplier, af, tc in entries:
+                supplier_key = "_".join(str(x) for x in supplier)
+                kept[supplier_key] = tc
+                cumsum += af
+                if cumsum / total_abs >= coverage:
+                    break
+
+            result[buyer_key] = kept
+
+        return result
 
     # ------------------------------------------------------------------
     # Filtering
