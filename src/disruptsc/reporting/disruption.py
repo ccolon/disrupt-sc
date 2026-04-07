@@ -56,8 +56,9 @@ def generate_report(output_folder: Path) -> Path:
     # 1. Flow comparison maps (t=0 vs t=1)
     gdf_t0 = load_geodata(output_folder / "transport_edges_with_flows_0.geojson")
     gdf_t1 = load_geodata(output_folder / "transport_edges_with_flows_1.geojson")
+    df_routing = load_csv(output_folder / "routing_summary.csv")
     if gdf_t0 is not None and gdf_t1 is not None:
-        sections.append(_section_flow_comparison(gdf_t0, gdf_t1, params))
+        sections.append(_section_flow_comparison(gdf_t0, gdf_t1, params, df_routing))
     elif gdf_t0 is not None:
         log.warning("transport_edges_with_flows_1.geojson not found — "
                     "skipping flow comparison")
@@ -90,9 +91,10 @@ def generate_report(output_folder: Path) -> Path:
     if df_firm is not None:
         sections.append(_section_output_by_region(df_firm, mu))
 
-    # 7. Average price increase by sector
-    if df_firm is not None:
-        sections.append(_section_price_by_sector(df_firm))
+    # 7. Average purchase price increase by sector
+    df_link = load_csv(output_folder / "link_data.csv")
+    if df_link is not None:
+        sections.append(_section_price_by_sector(df_link, mu))
 
     # 8. Weighted rationing by sector
     if df_firm is not None:
@@ -142,7 +144,7 @@ def _html_header(output_folder: Path, params: dict) -> str:
     ts = output_folder.name
     mu = monetary_label(params)
 
-    disruptions = params.get("disruptions", [])
+    disruptions = params.get("disruptions") or []
     desc_parts = []
     for d in disruptions:
         dtype = d.get("type", "?")
@@ -193,7 +195,8 @@ def _html_header(output_folder: Path, params: dict) -> str:
 
 def _section_flow_comparison(gdf_t0: gpd.GeoDataFrame,
                              gdf_t1: gpd.GeoDataFrame,
-                             params: dict) -> str:
+                             params: dict,
+                             df_routing: pd.DataFrame | None = None) -> str:
     html = ["<h2>1. Flow Comparison — Pre-disruption vs. Disrupted</h2>"]
     mu = monetary_label(params)
 
@@ -249,48 +252,188 @@ def _section_flow_comparison(gdf_t0: gpd.GeoDataFrame,
     apply_geo_layout(fig, lon_range, lat_range, n_ct, n_cols=2)
 
     html.append(fig_to_div(fig, height=400 * n_ct))
-    html.append(_flow_change_summary(gdf_t0, gdf_t1, cargo_types, mu))
+    html.append(_disrupted_edge_baseline_flows(gdf_t0, cargo_types, params, mu))
+    html.append(_flow_change_summary(gdf_t0, gdf_t1, cargo_types, mu, df_routing))
 
     return "\n".join(html)
 
 
-def _flow_change_summary(gdf_t0, gdf_t1, cargo_types, mu):
+def _disrupted_edge_baseline_flows(gdf_t0: gpd.GeoDataFrame,
+                                   cargo_types: list[str],
+                                   params: dict, mu: str) -> str:
+    """Show value and tonnage flowing through disrupted edges at t=0."""
+    disruptions = params.get("disruptions") or []
+    # Collect attribute/values pairs that identify disrupted edges
+    edge_filters = []
+    for d in disruptions:
+        if d.get("type") != "transport_disruption":
+            continue
+        attr = d.get("attribute", "name")
+        desc_type = d.get("description_type", "")
+        if desc_type == "edge_attributes":
+            for val in d.get("values", []):
+                edge_filters.append((attr, val))
+
+    if not edge_filters:
+        return ""
+
+    # Find matching edges in t=0 GeoJSON
+    mask = pd.Series(False, index=gdf_t0.index)
+    for attr, val in edge_filters:
+        if attr in gdf_t0.columns:
+            mask |= gdf_t0[attr] == val
+
+    disrupted = gdf_t0[mask]
+    if disrupted.empty:
+        edge_desc = ", ".join(f'{a}="{v}"' for a, v in edge_filters)
+        return (f'<h3>Baseline flows on disrupted edges</h3>'
+                f'<p class="warning">No edges found matching {edge_desc} '
+                f'in t=0 flow data.</p>')
+
+    html = ['<h3>Baseline flows on disrupted edges (t=0)</h3>',
+            '<p class="section-note">Value and tonnage on transport edges '
+            'that will be disrupted at t=1. This represents the flow '
+            'directly exposed to the disruption.</p>']
+
+    # Per-edge detail
+    edge_rows = []
+    for _, row in disrupted.iterrows():
+        edge_name = row.get("name", "?")
+        r = {"Edge": edge_name}
+        for ct in cargo_types:
+            usd_col = f"usd_{ct}"
+            tons_col = f"tons_{ct}"
+            r[f"{ct.replace('_', ' ').title()} ({mu})"] = f"{row.get(usd_col, 0) or 0:,.1f}"
+            r[f"{ct.replace('_', ' ').title()} (tons)"] = f"{row.get(tons_col, 0) or 0:,.0f}"
+        r[f"Total ({mu})"] = f"{row.get('flow_total', 0) or 0:,.1f}"
+        r["Total (tons)"] = f"{row.get('flow_total_tons', 0) or 0:,.0f}"
+        edge_rows.append(r)
+
+    # Summary row if multiple edges
+    if len(disrupted) > 1:
+        summary = {"Edge": "All disrupted"}
+        for ct in cargo_types:
+            usd_col = f"usd_{ct}"
+            tons_col = f"tons_{ct}"
+            summary[f"{ct.replace('_', ' ').title()} ({mu})"] = (
+                f"{disrupted[usd_col].fillna(0).sum():,.1f}" if usd_col in disrupted.columns else "0.0")
+            summary[f"{ct.replace('_', ' ').title()} (tons)"] = (
+                f"{disrupted[tons_col].fillna(0).sum():,.0f}" if tons_col in disrupted.columns else "0")
+        summary[f"Total ({mu})"] = f"{disrupted['flow_total'].fillna(0).sum():,.1f}" if "flow_total" in disrupted.columns else "0.0"
+        summary["Total (tons)"] = f"{disrupted['flow_total_tons'].fillna(0).sum():,.0f}" if "flow_total_tons" in disrupted.columns else "0"
+        edge_rows.append(summary)
+
+    df = pd.DataFrame(edge_rows)
+    html.append(_df_to_html_table(df))
+    return "\n".join(html)
+
+
+def _flow_change_summary(gdf_t0, gdf_t1, cargo_types, mu,
+                         df_routing: pd.DataFrame | None = None):
+    _ = (gdf_t0, gdf_t1)  # this table is sourced only from routing_summary.csv
+    if df_routing is None or df_routing.empty:
+        return (
+            "<h3>Flow change summary</h3>"
+            '<p class="warning">routing_summary.csv is required to build this table.</p>'
+        )
+    return _flow_summary_from_routing(df_routing, cargo_types, mu)
+
+
+def _flow_summary_from_routing(df_routing: pd.DataFrame,
+                               cargo_types: list[str], mu: str) -> str:
+    """Unified flow & routing table from routing_summary.csv."""
+    html = ["<h3>Flow change summary</h3>",
+            '<p class="section-note">Any flow between agents, split into: '
+            'cargo types for transport-network flows with different OD points, '
+            'one row for transport-network flows with the same OD point, and '
+            'one row for flows that do not use the transport network. Values '
+            'are in equilibrium prices.</p>']
+
+    timesteps = sorted(df_routing["time_step"].unique())
+    if len(timesteps) < 2:
+        html.append("<p>Not enough time steps for comparison.</p>")
+        return "\n".join(html)
+    t0, t1 = timesteps[0], timesteps[1]
+
+    rt0 = df_routing[df_routing["time_step"] == t0].set_index("cargo_type")
+    rt1 = df_routing[df_routing["time_step"] == t1].set_index("cargo_type")
+    special_rows = ["transport_same_od_point", "no_transport_network"]
+    cargo_rows = [ct for ct in cargo_types if ct in rt0.index or ct in rt1.index]
+    extra_rows = sorted(
+        ct for ct in (set(rt0.index) | set(rt1.index))
+        if ct not in set(cargo_rows) and ct not in set(special_rows)
+    )
+    all_ct = cargo_rows + extra_rows + [
+        ct for ct in special_rows if ct in rt0.index or ct in rt1.index
+    ]
+
     rows = []
-    for ct in cargo_types:
-        col = f"usd_{ct}"
-        t0_total = gdf_t0[col].fillna(0).sum() if col in gdf_t0.columns else 0
-        t1_total = gdf_t1[col].fillna(0).sum() if col in gdf_t1.columns else 0
-        change = t1_total - t0_total
-        pct = (change / t0_total * 100) if t0_total else 0
+    totals = {"t0": 0, "t1": 0, "blocked": 0, "rerouted": 0}
+    for ct in all_ct:
+        val_t0 = rt0.loc[ct, "total_usd"] if ct in rt0.index else 0
+        val_t1 = rt1.loc[ct, "total_usd"] if ct in rt1.index else 0
+        blocked = rt1.loc[ct, "blocked_usd"] if ct in rt1.index else 0
+        rerouted = rt1.loc[ct, "alternative_usd"] if ct in rt1.index else 0
+        change = val_t1 - val_t0
+        pct_change = (change / val_t0 * 100) if val_t0 else 0
+        pct_blocked = (blocked / val_t0 * 100) if val_t0 else 0
+        pct_rerouted = (rerouted / val_t0 * 100) if val_t0 else 0
+
+        totals["t0"] += val_t0
+        totals["t1"] += val_t1
+        totals["blocked"] += blocked
+        totals["rerouted"] += rerouted
+
+        if ct == "transport_same_od_point":
+            label = "Transport Network, Same OD Point"
+        elif ct == "no_transport_network":
+            label = "No Transport Network"
+        else:
+            label = ct.replace("_", " ").title()
+
         rows.append({
-            "Cargo type": ct.replace("_", " ").title(),
-            f"t=0 ({mu})": f"{t0_total:,.1f}",
-            f"t=1 ({mu})": f"{t1_total:,.1f}",
+            "Flow category": label,
+            f"t=0 ({mu})": f"{val_t0:,.1f}",
+            f"t=1 ({mu})": f"{val_t1:,.1f}",
             f"Change ({mu})": f"{change:+,.1f}",
-            "Change (%)": f"{pct:+.1f}%",
+            "Change (%)": f"{pct_change:+.1f}%",
+            f"Blocked ({mu})": f"{blocked:,.1f}",
+            "Blocked (%)": f"{pct_blocked:.1f}%",
+            f"Rerouted ({mu})": f"{rerouted:,.1f}",
+            "Rerouted (%)": f"{pct_rerouted:.1f}%",
         })
 
-    col_total = "flow_total"
-    t0_all = gdf_t0[col_total].fillna(0).sum() if col_total in gdf_t0.columns else 0
-    t1_all = gdf_t1[col_total].fillna(0).sum() if col_total in gdf_t1.columns else 0
-    change_all = t1_all - t0_all
-    pct_all = (change_all / t0_all * 100) if t0_all else 0
+    # Total row
+    t = totals
+    change_all = t["t1"] - t["t0"]
+    pct_all = (change_all / t["t0"] * 100) if t["t0"] else 0
+    pct_b = (t["blocked"] / t["t0"] * 100) if t["t0"] else 0
+    pct_r = (t["rerouted"] / t["t0"] * 100) if t["t0"] else 0
     rows.append({
-        "Cargo type": "Total",
-        f"t=0 ({mu})": f"{t0_all:,.1f}",
-        f"t=1 ({mu})": f"{t1_all:,.1f}",
+        "Flow category": "Total",
+        f"t=0 ({mu})": f"{t['t0']:,.1f}",
+        f"t=1 ({mu})": f"{t['t1']:,.1f}",
         f"Change ({mu})": f"{change_all:+,.1f}",
         "Change (%)": f"{pct_all:+.1f}%",
+        f"Blocked ({mu})": f"{t['blocked']:,.1f}",
+        "Blocked (%)": f"{pct_b:.1f}%",
+        f"Rerouted ({mu})": f"{t['rerouted']:,.1f}",
+        "Rerouted (%)": f"{pct_r:.1f}%",
     })
 
     df = pd.DataFrame(rows)
-    html = ["<h3>Flow change summary</h3>"]
-    html.append("<table>")
-    html.append("<tr>" + "".join(f"<th>{c}</th>" for c in df.columns) + "</tr>")
-    for _, row in df.iterrows():
-        html.append("<tr>" + "".join(f"<td>{row[c]}</td>" for c in df.columns) + "</tr>")
-    html.append("</table>")
+    html.append(_df_to_html_table(df))
     return "\n".join(html)
+
+
+def _df_to_html_table(df: pd.DataFrame) -> str:
+    """Convert a DataFrame to a simple HTML table string."""
+    lines = ["<table>"]
+    lines.append("<tr>" + "".join(f"<th>{c}</th>" for c in df.columns) + "</tr>")
+    for _, row in df.iterrows():
+        lines.append("<tr>" + "".join(f"<td>{row[c]}</td>" for c in df.columns) + "</tr>")
+    lines.append("</table>")
+    return "\n".join(lines)
 
 
 # ======================================================================
@@ -454,34 +597,86 @@ def _section_output_by_region(df_firm: pd.DataFrame, mu: str) -> str:
 # ======================================================================
 
 
-def _section_price_by_sector(df_firm: pd.DataFrame) -> str:
-    html = ["<h2>7. Average Price Increase by Sector</h2>",
-            '<p class="section-note">Production-weighted average of '
-            'delta_price_input (cost-push markup above equilibrium price).</p>']
+def _section_price_by_sector(df_link: pd.DataFrame, mu: str) -> str:
+    html = ["<h2>7. Average Purchase Price Increase by Sector</h2>",
+            '<p class="section-note">Order-weighted average purchase price '
+            'increase relative to equilibrium, by seller sector. Includes '
+            'both input cost-push and transport cost-push components. '
+            'Columns = buyer type, rows = buyer region.</p>']
 
-    df = df_firm.copy()
-    # Weighted average: weight by production
-    df["weighted_dp"] = df["delta_price_input"] * df["production"]
-    agg = df.groupby(["time_step", "sector"]).agg(
+    df = df_link.copy()
+    # Filter out rows with no eq_price or zero eq_price
+    df = df[df["eq_price"] > 0]
+    if df.empty:
+        html.append("<p>No link data with positive equilibrium price.</p>")
+        return "\n".join(html)
+
+    # Map buyer_type to readable labels
+    buyer_type_map = {"Firm": "Firm", "Household": "Household", "Country": "Country"}
+    df["buyer_type_label"] = df["buyer_type"].map(buyer_type_map).fillna(df["buyer_type"])
+
+    # For buyer_region: use buyer_region column; fill blanks with buyer_id for countries
+    df["buyer_region_label"] = df["buyer_region"].replace("", np.nan).fillna(df["buyer_id"])
+
+    # Relative price increase per link
+    df["price_ratio"] = df["price"] / df["eq_price"]
+    df["price_increase"] = df["price_ratio"] - 1.0
+    # Weight by order value at equilibrium price
+    df["order_value"] = df["order"] * df["eq_price"]
+    df["weighted_dp"] = df["price_increase"] * df["order_value"]
+
+    # Group by time_step, seller_sector, buyer_type, buyer_region
+    agg = df.groupby(["time_step", "seller_sector", "buyer_type_label",
+                       "buyer_region_label"]).agg(
         weighted_dp=("weighted_dp", "sum"),
-        total_prod=("production", "sum"),
+        total_order=("order_value", "sum"),
     ).reset_index()
-    agg["avg_price_increase"] = agg["weighted_dp"] / agg["total_prod"].replace(0, np.nan)
+    agg["avg_price_increase"] = agg["weighted_dp"] / agg["total_order"].replace(0, np.nan)
 
-    sectors = sorted(agg["sector"].unique())
-    fig = go.Figure()
-    for i, sector in enumerate(sectors):
-        sub = agg[agg["sector"] == sector]
-        fig.add_trace(go.Scatter(
-            x=sub["time_step"], y=sub["avg_price_increase"] * 100,
-            mode="lines+markers", name=sector,
-            line=dict(color=_SECTOR_COLORS[i % len(_SECTOR_COLORS)]),
-        ))
+    # Build facet grid: columns = buyer type, rows = buyer region
+    buyer_types = sorted(agg["buyer_type_label"].unique())
+    buyer_regions = sorted(agg["buyer_region_label"].unique())
+    sectors = sorted(agg["seller_sector"].unique())
+    sector_color = {s: _SECTOR_COLORS[i % len(_SECTOR_COLORS)]
+                    for i, s in enumerate(sectors)}
+
+    n_rows = len(buyer_regions)
+    n_cols = len(buyer_types)
+    if n_rows == 0 or n_cols == 0:
+        html.append("<p>No data for price facets.</p>")
+        return "\n".join(html)
+
+    fig = make_subplots(
+        rows=n_rows, cols=n_cols,
+        subplot_titles=[f"{bt} — {br}" for br in buyer_regions for bt in buyer_types],
+        shared_xaxes=True, shared_yaxes=True,
+        vertical_spacing=0.04, horizontal_spacing=0.04,
+    )
+
+    # Track which sectors already have a legend entry
+    legend_shown = set()
+
+    for ri, region in enumerate(buyer_regions, 1):
+        for ci, btype in enumerate(buyer_types, 1):
+            sub = agg[(agg["buyer_type_label"] == btype) &
+                      (agg["buyer_region_label"] == region)]
+            for sector in sectors:
+                ss = sub[sub["seller_sector"] == sector]
+                if ss.empty:
+                    continue
+                show_legend = sector not in legend_shown
+                legend_shown.add(sector)
+                fig.add_trace(go.Scatter(
+                    x=ss["time_step"], y=ss["avg_price_increase"] * 100,
+                    mode="lines+markers", name=sector,
+                    legendgroup=sector, showlegend=show_legend,
+                    line=dict(color=sector_color[sector]),
+                ), row=ri, col=ci)
 
     fig.update_layout(
-        xaxis_title="Time step",
+        height=max(400, 250 * n_rows),
         yaxis_title="Price increase (%)",
-        height=500,
+        xaxis_title="Time step",
     )
     html.append(fig_to_div(fig))
     return "\n".join(html)

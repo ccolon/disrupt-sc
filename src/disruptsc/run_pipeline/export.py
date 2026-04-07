@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import csv
+import json
 import logging
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -24,18 +26,28 @@ def _ensure_crs(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
 class CsvWriter:
     """Append rows to a CSV file incrementally (no in-memory accumulation)."""
 
-    def __init__(self, path: Path, columns: list[str]):
+    def __init__(self, path: Path, columns: list[str], flush_each_write: bool = False):
         self.path = path
         self.columns = columns
+        self.flush_each_write = flush_each_write
         self._fp = open(path, "w", newline="")
         self._writer = csv.DictWriter(self._fp, fieldnames=columns, extrasaction="ignore")
         self._writer.writeheader()
+        if self.flush_each_write:
+            self._fp.flush()
+            os.fsync(self._fp.fileno())
 
     def write_row(self, row: dict):
         self._writer.writerow(row)
+        if self.flush_each_write:
+            self._fp.flush()
+            os.fsync(self._fp.fileno())
 
     def write_rows(self, rows: list[dict]):
         self._writer.writerows(rows)
+        if self.flush_each_write:
+            self._fp.flush()
+            os.fsync(self._fp.fileno())
 
     def close(self):
         self._fp.close()
@@ -80,6 +92,14 @@ INVENTORY_COLUMNS = [
     "eq_need", "inventory_qty", "inventory_days",
 ]
 
+LINK_COLUMNS = [
+    "time_step", "seller_id", "seller_region", "seller_sector",
+    "buyer_id", "buyer_type", "buyer_region", "buyer_sector",
+    "order", "delivery", "realized_delivery", "delivery_in_tons",
+    "product_type", "cargo_type",
+    "eq_price", "price",
+]
+
 
 class AgentWriters:
     """Manage the set of CSV writers for agent time-series data."""
@@ -92,6 +112,7 @@ class AgentWriters:
         )
         self.country = CsvWriter(export_folder / "country_data.csv", COUNTRY_COLUMNS)
         self.inventory = CsvWriter(export_folder / "inventory_data.csv", INVENTORY_COLUMNS)
+        self.link = CsvWriter(export_folder / "link_data.csv", LINK_COLUMNS)
         self._days_per_timestep = days_per_timestep
 
     def write_step(self, firms: dict, households: dict, countries: dict, time_step: int):
@@ -135,12 +156,43 @@ class AgentWriters:
                     "inventory_days": inv_days,
                 })
 
+    def write_links(self, sc_network, time_step: int):
+        """Write one row per commercial link for this time step."""
+        for u, v, data in sc_network.edges(data=True):
+            link = data["object"]
+            seller_type = type(u).__name__
+            buyer_type = type(v).__name__
+
+            seller_sector = "imports" if seller_type == "Country" else getattr(u, "sector", "")
+            buyer_sector = "" if buyer_type in ("Country", "Household") else getattr(v, "sector", "")
+            cargo = link.cargo_type if link.use_transport_network else ""
+
+            self.link.write_row({
+                "time_step": time_step,
+                "seller_id": u.pid,
+                "seller_region": getattr(u, "region", ""),
+                "seller_sector": seller_sector,
+                "buyer_id": v.pid,
+                "buyer_type": buyer_type,
+                "buyer_region": getattr(v, "region", ""),
+                "buyer_sector": buyer_sector,
+                "order": link.order,
+                "delivery": link.delivery,
+                "realized_delivery": link.realized_delivery,
+                "delivery_in_tons": link.delivery_in_tons,
+                "product_type": link.product_type,
+                "cargo_type": cargo,
+                "eq_price": link.eq_price,
+                "price": link.price,
+            })
+
     def close(self):
         self.firm.close()
         self.household.close()
         self.household_by_sector.close()
         self.country.close()
         self.inventory.close()
+        self.link.close()
 
     def __enter__(self):
         return self
@@ -284,22 +336,135 @@ def export_summary(household_data: list, country_data: list,
 
     # Country losses
     c_df = pd.DataFrame(country_data)
-    c_df["loss"] = c_df["extra_spending"] + c_df["consumption_loss"]
-    country_loss = c_df["loss"].sum()
+    if c_df.empty:
+        country_loss = 0.0
+    else:
+        c_df["loss"] = c_df["extra_spending"] + c_df["consumption_loss"]
+        country_loss = c_df["loss"].sum()
 
     logging.info(f"Cumulated household loss: {household_loss:,.2f} {monetary_units}")
     logging.info(f"Cumulated country loss: {country_loss:,.2f} {monetary_units}")
 
     if export_folder:
         loss_df.to_csv(export_folder / "loss_per_region_sector_time.csv", index=False)
-        c_df[["time_step", "country", "loss"]].to_csv(
-            export_folder / "loss_per_country.csv", index=False,
-        )
+        if not c_df.empty:
+            c_df[["time_step", "country", "loss"]].to_csv(
+                export_folder / "loss_per_country.csv", index=False,
+            )
         pd.DataFrame({"households": [household_loss], "countries": [country_loss]}).to_csv(
             export_folder / "loss_summary.csv", index=False,
         )
 
     return {"household_loss": household_loss, "country_loss": country_loss}
+
+
+def summarize_criticality_losses(household_data: list, country_data: list) -> dict:
+    """Aggregate compact loss metrics for scenario-based criticality runs."""
+    hh_df = pd.DataFrame(household_data)
+    if hh_df.empty:
+        household_loss = 0.0
+        by_region = {}
+    else:
+        hh_df = hh_df.copy()
+        hh_df["loss"] = hh_df["extra_spending"].fillna(0.0) + hh_df["consumption_loss"].fillna(0.0)
+        household_loss = float(hh_df["loss"].sum())
+        if "region" in hh_df.columns:
+            by_region = {
+                str(region): float(loss)
+                for region, loss in hh_df.groupby("region", dropna=False)["loss"].sum().items()
+            }
+        else:
+            by_region = {}
+
+    c_df = pd.DataFrame(country_data)
+    if c_df.empty:
+        country_loss = 0.0
+    else:
+        c_df = c_df.copy()
+        c_df["loss"] = c_df["extra_spending"].fillna(0.0) + c_df["consumption_loss"].fillna(0.0)
+        country_loss = float(c_df["loss"].sum())
+
+    return {
+        "total_household_loss": household_loss,
+        "household_loss_per_region": dict(sorted(by_region.items())),
+        "country_loss": country_loss,
+    }
+
+
+CRITICALITY_RESULT_COLUMNS = [
+    "edge", "total_household_loss", "household_loss_per_region",
+]
+
+
+def criticality_result_to_row(result: dict) -> dict:
+    return {
+        "edge": json.dumps(result["edge_names"]),
+        "total_household_loss": float(result["total_household_loss"]),
+        "household_loss_per_region": json.dumps(
+            result["household_loss_per_region"], sort_keys=True,
+        ),
+    }
+
+
+def create_criticality_results_writer(csv_path: Path) -> CsvWriter:
+    csv_path.parent.mkdir(parents=True, exist_ok=True)
+    return CsvWriter(csv_path, CRITICALITY_RESULT_COLUMNS, flush_each_write=True)
+
+
+def build_criticality_results_table(results: list[dict]) -> pd.DataFrame:
+    """Build the compact CSV table for scenario-based criticality outputs."""
+    rows = [criticality_result_to_row(result) for result in results]
+    return pd.DataFrame(rows, columns=CRITICALITY_RESULT_COLUMNS)
+
+
+def build_criticality_results_geodata(results: list[dict],
+                                      transport_edges: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Map scenario summaries onto the disrupted transport-edge geometries."""
+    cols_to_drop = [c for c in ["node_tuple"] if c in transport_edges.columns]
+    frames = []
+    for result in results:
+        edge_names = result["edge_names"]
+        scenario_edges = transport_edges.loc[
+            transport_edges["name"].isin(edge_names)
+        ].drop(columns=cols_to_drop).copy()
+        if scenario_edges.empty:
+            continue
+        scenario_edges["edge"] = json.dumps(edge_names)
+        scenario_edges["total_household_loss"] = float(result["total_household_loss"])
+        scenario_edges["household_loss_per_region"] = json.dumps(
+            result["household_loss_per_region"], sort_keys=True,
+        )
+        frames.append(scenario_edges)
+
+    if not frames:
+        empty = transport_edges.iloc[0:0].drop(columns=cols_to_drop).copy()
+        return _ensure_crs(gpd.GeoDataFrame(empty, geometry="geometry"))
+
+    merged = gpd.GeoDataFrame(pd.concat(frames, ignore_index=True), geometry="geometry")
+    return _ensure_crs(merged)
+
+
+def export_criticality_results(results: list[dict],
+                               transport_edges: gpd.GeoDataFrame,
+                               csv_path: Path,
+                               geojson_path: Path):
+    """Write the compact CSV and GeoJSON outputs for scenario-based criticality."""
+    csv_path.parent.mkdir(parents=True, exist_ok=True)
+    geojson_path.parent.mkdir(parents=True, exist_ok=True)
+
+    build_criticality_results_table(results).to_csv(csv_path, index=False)
+    build_criticality_results_geodata(results, transport_edges).to_file(
+        geojson_path, driver="GeoJSON", index=False,
+    )
+
+
+def export_criticality_geojson(results: list[dict],
+                               transport_edges: gpd.GeoDataFrame,
+                               geojson_path: Path):
+    geojson_path.parent.mkdir(parents=True, exist_ok=True)
+    build_criticality_results_geodata(results, transport_edges).to_file(
+        geojson_path, driver="GeoJSON", index=False,
+    )
 
 
 def export_initial_state(sc_network, export_folder: Path):

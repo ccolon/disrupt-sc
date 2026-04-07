@@ -59,12 +59,12 @@ logistics:
     roads-maritime-dom: 12
     roads-airways: 12
     roads-waterways: 12
-    railways-maritime: 24
-    railways-waterways: 24
-    waterways-maritime: 24
-    roads-pipelines: 6
-    railways-pipelines: 6
-    pipelines-maritime: 6
+    railways-maritime: 12
+    railways-waterways: 12
+    waterways-maritime: 12
+    roads-pipelines: 12
+    railways-pipelines: 12
+    pipelines-maritime: 12
   loading_fees: #USD/ton
     roads-maritime: 2.2
     roads-maritime-dom: 2.2
@@ -74,9 +74,9 @@ logistics:
     railways-maritime: 2.2
     railways-waterways: 2.2
     waterways-maritime: 2.2
-    roads-pipelines: 1.0
-    railways-pipelines: 1.0
-    pipelines-maritime: 1.0
+    roads-pipelines: 2.2
+    railways-pipelines: 2.2
+    pipelines-maritime: 2.2
   border_crossing_fees: #USD/ton
     roads: 30
     maritime: 30
@@ -272,25 +272,10 @@ inventory_duration_targets:
 # A too large value leads to dynamic instabilities, called Bullwhip effect
 inventory_restoration_time: 4
 
-# ----- Household Inventory Parameters -----
-# Enable household inventory buffers to smooth consumption during disruptions
-# When enabled, households maintain inventories (pantries, reserves) that can be drawn upon
-# when deliveries are insufficient, reducing immediate consumption losses
-enable_household_inventories: False  # Disabled by default for backward compatibility
-
-# Duration target for household inventories
-# Represents how many days of normal consumption households buffer at home
-# Can be specified globally or per sector type (food spoils faster than durables)
-household_inventory_duration_target:
-  definition: global  # Options: global, per_sector_type
-  values:
-    default: 30  # Days of consumption buffered (global default)
-  unit: day
-
-# Determines the speed at which households restore depleted inventories
-# Lower values = faster restoration but more volatile purchases
-# Higher values = gradual restoration but slower recovery
-household_inventory_restoration_time: 14  # Days
+# Whether households should use inventory buffers.
+# When enabled, households reuse the same `inventory_duration_targets`
+# and `inventory_restoration_time` parameters as firms.
+enable_household_inventories: False
 
 # In case firms have more than one supplier for an input, determines whether to adapt the order to each supplier
 # based on how well they covered the previous order
@@ -302,12 +287,13 @@ adaptive_supplier_weight: False
 # It applies uniformly to all firms.
 utilization_rate: 0.8
 
-# Determines which inputs will be kept in the firms' Leontief production function
-# It sets to 0 the elements of the technical coefficient IO matrix that are below this cutoff
-# E.g., if sector A uses 0.3 input of sector B and 0.005 input of sector C to produce 1 unit of output (data from
-# the technical coefficient matrix), then, with a io_cutoff of 0.01, firms for sector A will only source inputs from
-# sector B firms.
-io_cutoff: 0.01
+# Determines which inputs will be kept in the firms' Leontief production function.
+# Values > 0.5 are interpreted as cumulative input coverage: for each buyer, inputs
+# are sorted by absolute MRIO flow (descending) and kept until their cumulative share
+# of the buyer's total intermediate input reaches this fraction.  E.g., 0.95 keeps
+# enough inputs to cover 95% of each buyer's intermediate consumption.
+# Values <= 0.5 are treated as a legacy absolute tech-coefficient threshold.
+io_cutoff: 0.95
 
 # Determines the way firms ration their clients if they cannot meet all demand
 # Possible values are:
@@ -359,7 +345,21 @@ time_resolution: 'week'
 
 # Defines the criticality loop
 criticality:
+    # New scenario-list mode:
+    # Each inner list is one run, using edge names and a full shutdown
+    # Example:
+    # scenarios:
+    #   - ["port_fujairah"]
+    #   - ["Strait of Hormuz", "port_fujairah"]
+    # Outputs are written directly to:
+    #   output/<scope>/criticality_results.csv
+    #   output/<scope>/criticality_results.geojson
+    scenarios: []
+
+    # Legacy flat edge loop mode (used when scenarios is empty)
+    # Select edges via an attribute/value filter, then shut each one separately
     edges: []
+    attribute: null
     duration: 1
 
 
@@ -396,6 +396,7 @@ capacity_routing_max_iterations: 3
 
 # Share of transport cost in country import/export prices (for rerouting cost passthrough)
 country_transport_share: 0.2
+firm_transport_share: 0.2
 
 # Define how much built capital firms have given their level of output
 capital_to_value_added_ratio: 3

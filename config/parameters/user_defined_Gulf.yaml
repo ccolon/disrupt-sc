@@ -10,8 +10,8 @@
 
 # ── Data paths ──
 filepaths:
-  "mrio": "Economic/mrio.csv"
-  "sector_table": "Economic/sector_table.csv"
+  "mrio": "Economic/mrio_full.csv"
+  "sector_table": "Economic/sector_table_full.csv"
 
 # ── Transport ──
 transport_modes: ["roads", "maritime", "airways", "pipelines"]
@@ -23,10 +23,10 @@ firm_data_type: "mrio"
 
 # ── Time ──
 time_resolution: "week"
-t_final: 10  # 3 months of blockade
+t_final: 10
 
 # ── Filtering ──
-io_cutoff: 0.01
+io_cutoff: 0.80  # cumulative input coverage: keep inputs covering 80% of each buyer's intermediate consumption
 cutoff_sector_output:
   type: "absolute"
   value: 1
@@ -47,14 +47,87 @@ cutoff_household_demand:
 
 
 # ── Simulation ──
-simulation_type: "disruption"  # disruption initial_state
+simulation_type: "criticality"
 mc_repetitions: 0  # deterministic first run; increase for stochastic
 export_files: True
 use_route_cache: True
+country_transport_share: 0.5
+firm_transport_share: 0.5
+
+criticality:
+  duration: 5
+  scenarios:
+    - ["port_jebel_ali"]
+    - ["Strait of Hormuz", "port_jebel_ali"]
+    - ["port_khalifa"]
+    - ["Strait of Hormuz", "port_khalifa"]
+    - ["port_fujairah"]
+    - ["Strait of Hormuz", "port_fujairah"]
+    - ["port_khor_fakkan"]
+    - ["Strait of Hormuz", "port_khor_fakkan"]
+    - ["port_hamad"]
+    - ["Strait of Hormuz", "port_hamad"]
+    - ["port_ras_laffan"]
+    - ["Strait of Hormuz", "port_ras_laffan"]
+    - ["port_shuwaikh"]
+    - ["Strait of Hormuz", "port_shuwaikh"]
+    - ["port_mina_al_ahmadi"]
+    - ["Strait of Hormuz", "port_mina_al_ahmadi"]
+    - ["port_khalifa_bin_salman"]
+    - ["Strait of Hormuz", "port_khalifa_bin_salman"]
+    - ["port_ras_tanura"]
+    - ["Strait of Hormuz", "port_ras_tanura"]
+    - ["port_sohar"]
+    - ["Strait of Hormuz", "port_sohar"]
+    - ["port_mina_al_fahal"]
+    - ["Strait of Hormuz", "port_mina_al_fahal"]
+    - ["port_qalhat"]
+    - ["Strait of Hormuz", "port_qalhat"]
+    - ["port_salalah"]
+    - ["Strait of Hormuz", "port_salalah"]
+    - ["port_duqm"]
+    - ["Strait of Hormuz", "port_duqm"]
+    - ["port_jeddah_islamic"]
+    - ["Strait of Hormuz", "port_jeddah_islamic"]
+    - ["port_yanbu"]
+    - ["Strait of Hormuz", "port_yanbu"]
+    - ["port_dammam"]
+    - ["Strait of Hormuz", "port_dammam"]
+    - ["port_king_abdullah"]
+    - ["Strait of Hormuz", "port_king_abdullah"]
+    - ["port_umm_qasr"]
+    - ["Strait of Hormuz", "port_umm_qasr"]
+    - ["port_khor_al_zubair"]
+    - ["Strait of Hormuz", "port_khor_al_zubair"]
+    - ["port_al_maqal"]
+    - ["Strait of Hormuz", "port_al_maqal"]
+    - ["port_imam_khomeini"]
+    - ["Strait of Hormuz", "port_imam_khomeini"]
+    - ["port_bushehr"]
+    - ["Strait of Hormuz", "port_bushehr"]
+    - ["port_bandar_abbas"]
+    - ["Strait of Hormuz", "port_bandar_abbas"]
+    - ["port_bandar_lengeh"]
+    - ["Strait of Hormuz", "port_bandar_lengeh"]
+    - ["port_kharg_island"]
+    - ["Strait of Hormuz", "port_kharg_island"]
+    - ["port_assaluyeh"]
+    - ["Strait of Hormuz", "port_assaluyeh"]
+    - ["border_crossing_al_batha_al_ghuwaifat"]
+    - ["Strait of Hormuz", "border_crossing_al_batha_al_ghuwaifat"]
+    - ["border_crossing_abu_samra_salwa"]
+    - ["Strait of Hormuz", "border_crossing_abu_samra_salwa"]
+    - ["border_crossing_nuwaiseeb_khafji"]
+    - ["Strait of Hormuz", "border_crossing_nuwaiseeb_khafji"]
+    - ["border_crossing_king_fahd_causeway"]
+    - ["Strait of Hormuz", "border_crossing_king_fahd_causeway"]
+    - ["border_crossing_al_ain_al_buraimi"]
+    - ["Strait of Hormuz", "border_crossing_al_ain_al_buraimi"]
+    - ["border_crossing_khatmat_malaha"]
+    - ["Strait of Hormuz", "border_crossing_khatmat_malaha"]
 
 # ── Disruption: Hormuz Strait Blockade ──
-# Block all edges passing through the Strait of Hormuz
-# This forces rerouting via Red Sea / Suez / air / overland
+# Block the Strait of Hormuz chokepoint edge
 disruptions:
   - type: transport_disruption
     description_type: edge_attributes
@@ -62,14 +135,14 @@ disruptions:
     values:
       - "Strait of Hormuz"
     start_time: 1
-    duration: 4  # 60-day blockade
+    duration: 13  # 13-week blockade
 
 # ── Stop condition ──
-epsilon_stop_condition: 1e-3
+epsilon_stop_condition: 0  # disabled — always run full t_final
 
 # ── Route optimization ──
 route_optimization_weight: "cost_per_ton"
-price_increase_threshold: 1000
+price_increase_threshold: 10  # max 10x price increase for rerouting
 
 # ── Agent settings ──
 nb_suppliers_per_input: 1
@@ -81,6 +154,7 @@ propagate_input_price_change: True
 explicit_service_firm: True
 
 # ── Inventory ──
+enable_household_inventories: True
 # Gulf states rely heavily on imports; inventories tend to be short for perishables
 inventory_duration_targets:
   definition: per_input_type
@@ -104,7 +178,7 @@ logistics:
     maritime: 25    # average container vessel in Gulf waters
     airways: 800
   basic_cost:  # USD per ton*km
-    roads: 0.08
+    roads: 0.09
     maritime: 0.003
     airways: 1.5    # air freight premium
     multimodal: 0.01
@@ -113,15 +187,19 @@ logistics:
     maritime: 20
     airways: 10
   border_crossing_times:  # hours
-    roads: 1.0      # GCC borders are relatively smooth
+    roads: 2.0      # GCC borders are relatively smooth
     maritime: 4
     airways: 2
     multimodal: 3
   dwell_times: # hours
     roads-maritime: 18
     roads-airways: 18
+    roads-maritime-fujairah: 18
+    roads-pipelines-fujairah: 18
   loading_fees: # USD/ton
     roads-maritime: 2.5
+    roads-maritime-fujairah: 10
+    roads-pipelines-fujairah: 10
     roads-airways: 5.0
   chunk_size: 10000  # tons/day
 
@@ -131,125 +209,132 @@ default_transport_capacity:
     container: 5000       # containers cannot fly
     dry_bulk: 0
     liquid_bulk: 0
+  roads:
+    container: 100000
+    dry_bulk: 100000
+    liquid_bulk: 30000       # tanker trucks along Hormuz bypass corridors (~900 trucks/day)
 
 capacity_constraint: "gradual"
+# Capacity = F_i / margin.  margin = 0.8 for container/dry_bulk (20% headroom),
+# 0.95 for liquid_bulk (5% headroom).  Ports with zero baseline flow keep a
+# small rerouting buffer.
 transport_capacity_overrides:  # tons/day
   port_jebel_ali:
-    container: 744000
-    dry_bulk: 68500
+    container: 80000         # raised to keep Jebel Ali the default ARE container gateway
+    dry_bulk: 37453
     liquid_bulk: 0
   port_khalifa:
-    container: 575000
-    dry_bulk: 68500
-    liquid_bulk: 120000
+    container: 48308
+    dry_bulk: 33275
+    liquid_bulk: 74668
   port_fujairah:
-    container: 27600
-    dry_bulk: 3600
-    liquid_bulk: 265800
+    container: 5000          # real Fujairah container throughput ~700-1000 t/day; tight enough to make baseline surcharge > Jebel Ali
+    dry_bulk: 3000
+    liquid_bulk: 23971
   port_khor_fakkan:
-    container: 287000
-    dry_bulk: 20000
-    liquid_bulk: 30000
+    container: 31251
+    dry_bulk: 3125
+    liquid_bulk: 23359
   port_hamad:
-    container: 155000
+    container: 41658
     dry_bulk: 29200
     liquid_bulk: 0
   port_ras_laffan:
     container: 0
     dry_bulk: 0
-    liquid_bulk: 400000
+    liquid_bulk: 30802
   port_shuwaikh:
-    container: 33500
-    dry_bulk: 8850
+    container: 39782
+    dry_bulk: 10510
     liquid_bulk: 0
   port_mina_al_ahmadi:
     container: 0
     dry_bulk: 0
-    liquid_bulk: 250000
+    liquid_bulk: 51813
   port_khalifa_bin_salman:
-    container: 92200
-    dry_bulk: 16000
-    liquid_bulk: 10000
+    container: 15237
+    dry_bulk: 8528
+    liquid_bulk: 8519
+  port_ras_tanura:
+    container: 0
+    dry_bulk: 0
+    liquid_bulk: 900000      # boosted so it's the cheapest SAU baseline outlet at u<<0.8
   port_sohar:
-    container: 27800
-    dry_bulk: 105200
-    liquid_bulk: 62500
+    container: 11017
+    dry_bulk: 27801
+    liquid_bulk: 80000       # Sohar ~600 kbbl/day crude/refined exports (Arabian Sea, outside Hormuz)
   port_mina_al_fahal:
-    container: 10000
-    dry_bulk: 50000
-    liquid_bulk: 30000
+    container: 1000
+    dry_bulk: 1000
+    liquid_bulk: 1000
   port_qalhat:
     container: 0
     dry_bulk: 0
-    liquid_bulk: 31000
+    liquid_bulk: 23774
   port_salalah:
-    container: 249300
-    dry_bulk: 20000
-    liquid_bulk: 16400
+    container: 1000
+    dry_bulk: 1000
+    liquid_bulk: 1000
   port_duqm:
-    container: 57500
-    dry_bulk: 13700
-    liquid_bulk: 35000
+    container: 7543
+    dry_bulk: 10000
+    liquid_bulk: 553
   port_jeddah_islamic:
-    container: 337800
+    container: 62882
     dry_bulk: 0
     liquid_bulk: 0
   port_yanbu:
     container: 0
     dry_bulk: 0
-    liquid_bulk: 700000
+    liquid_bulk: 120000      # Yanbu crude terminal — tight so baseline u>0.8, Ras Tanura becomes cheaper
   port_dammam:
-    container: 215100
+    container: 61118
     dry_bulk: 0
     liquid_bulk: 0
   port_king_abdullah:
-    container: 449300
-    dry_bulk: 19200
+    container: 42856
+    dry_bulk: 22800
     liquid_bulk: 0
-  port_ras_tanura:
-    container: 0
-    dry_bulk: 0
-    liquid_bulk: 885000
   port_umm_qasr:
-    container: 45000
-    dry_bulk: 120000
-    liquid_bulk: 40000
+    container: 53438
+    dry_bulk: 3399
+    liquid_bulk: 29781
   port_khor_al_zubair:
-    container: 10000
-    dry_bulk: 150000
-    liquid_bulk: 80000
+    container: 1000
+    dry_bulk: 1000
+    liquid_bulk: 1000
   port_al_maqal:
-    container: 5000
-    dry_bulk: 20000
-    liquid_bulk: 10000
+    container: 5938
+    dry_bulk: 13770
+    liquid_bulk: 11053
   port_shahid_rajaee:
-    container: 120000
-    dry_bulk: 30000
-    liquid_bulk: 40000
+    container: 1000
+    dry_bulk: 1000
+    liquid_bulk: 1000
   port_imam_khomeini:
-    container: 150000
-    dry_bulk: 250000
-    liquid_bulk: 120000
+    container: 93750
+    dry_bulk: 35561
+    liquid_bulk: 277
   port_bushehr:
-    container: 15000
-    dry_bulk: 30000
-    liquid_bulk: 20000
+    container: 1000
+    dry_bulk: 1000
+    liquid_bulk: 1000
   port_bandar_abbas:
-    container: 80000
-    dry_bulk: 15000
-    liquid_bulk: 10000
+    container: 50000         # boosted: Iran's main Arabian-Sea-facing container outlet (Chabahar proxy)
+    dry_bulk: 1000
+    liquid_bulk: 1286
   port_bandar_lengeh:
-    container: 8000
-    dry_bulk: 15000
-    liquid_bulk: 10000
+    container: 1000
+    dry_bulk: 1000
+    liquid_bulk: 1000
   port_kharg_island:
     container: 0
     dry_bulk: 0
-    liquid_bulk: 900000
+    liquid_bulk: 50312
   port_assaluyeh:
     container: 0
-    dry_bulk: 20000
-    liquid_bulk: 350000
+    dry_bulk: 1000
+    liquid_bulk: 1000
   border_crossing_al_batha_al_ghuwaifat: 35000  # SAU ARE
   border_crossing_abu_samra_salwa: 16800  # SAU QAT
   border_crossing_nuwaiseeb_khafji: 8400  # SAU KWT
@@ -257,6 +342,6 @@ transport_capacity_overrides:  # tons/day
   border_crossing_al_ain_al_buraimi: 9800  # ARE OMN
   border_crossing_khatmat_malaha: 7000  # ARE OMN
   offshore_supply:
-    container: 50000
-    dry_bulk: 50000
+    container: 66
+    dry_bulk: 1885
     liquid_bulk: 0

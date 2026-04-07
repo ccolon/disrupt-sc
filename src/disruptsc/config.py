@@ -106,7 +106,7 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
         lp_route_candidate_count=int(logistics.get("lp_route_candidate_count", 20)),
         lp_route_candidate_stretch=float(logistics.get("lp_route_candidate_stretch", 4.0)),
         lp_route_candidate_overlap=float(logistics.get("lp_route_candidate_overlap", 0.9)),
-        lp_overcapacity_limit=float(logistics.get("lp_overcapacity_limit", 1.05)),
+        lp_overcapacity_limit=float(logistics.get("lp_overcapacity_limit", 1.1)),
     )
 
     sim_params = SimParams(
@@ -126,7 +126,7 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
     )
 
     agent_params = AgentParams(
-        io_cutoff=config.get("io_cutoff", 0.01),
+        io_cutoff=config.get("io_cutoff", 0.95),
         cutoff_sector_output=config.get("cutoff_sector_output", {"type": "absolute", "value": 1.0, "unit": "mUSD"}),
         cutoff_sector_demand=config.get("cutoff_sector_demand", {"type": "absolute", "value": 1.0, "unit": "mUSD"}),
         cutoff_firm_output=config.get("cutoff_firm_output", {"type": "absolute", "value": 10, "unit": "kUSD"}),
@@ -138,6 +138,7 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
         utilization_rate=config.get("utilization_rate", 0.8),
         inventory_duration_targets=config.get("inventory_duration_targets", {}),
         inventory_restoration_time=config.get("inventory_restoration_time", 4.0),
+        enable_household_inventories=config.get("enable_household_inventories", False),
         firm_data_type=config.get("firm_data_type", "mrio"),
         sectors_to_include=config.get("sectors_to_include", "all"),
         sectors_to_exclude=tuple(config.get("sectors_to_exclude") or []),

@@ -26,9 +26,12 @@ from disruptsc.params import TransportParams
 # Public API
 # ------------------------------------------------------------------
 
-LP_CAPACITY_BREAKS = (0.5, 0.8, 0.95, 1.0, 1.05)
-LP_CAPACITY_SURCHARGES = (0.0, 0.25, 1.5, 10.0, 200.0)
-LP_OVERFLOW_SURCHARGE = 5000.0  # penalty multiplier for flow beyond overcapacity_limit
+# Aligned with runtime Form A capacity multiplier f(u) in transport_network._capacity_multiplier.
+# Slopes are chosen so that the LP piecewise-linear surcharge matches (f(u)-1)·u at breakpoints:
+#   h(0.8)=0.0, h(1.0)=1.0, h(1.05)=4.2, h(1.1)=9.9
+LP_CAPACITY_BREAKS = (0.8, 1.0, 1.05, 1.1)
+LP_CAPACITY_SURCHARGES = (0.0, 5.0, 64.0, 114.0)
+LP_OVERFLOW_SURCHARGE = 1200.0  # penalty multiplier for flow beyond overcapacity_limit
 LP_SHARE_DROP_THRESHOLD = 0.01
 CAPACITY_INF = 1e8
 

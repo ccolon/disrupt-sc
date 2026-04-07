@@ -226,21 +226,23 @@ class Firm:
         self._evaluate_quantities_to_deliver(sc_network, tp.rationing_mode)
         for _, client, data in sc_network.out_edges(self, data=True):
             link: CommercialLink = data["object"]
+            link.reset_transport_tracking()
             if link.delivery < EPSILON:
                 continue
 
             # Check if this link needs the transport network
             if link.product_type in tp.sectors_no_transport:
-                deliver_without_transport(link, _after_delivery)
+                deliver_without_transport(link, _after_delivery, supplier_price=self.price)
             elif not tp.with_transport:
-                deliver_without_transport(link, _after_delivery)
+                deliver_without_transport(link, _after_delivery, supplier_price=self.price)
             elif client.__class__.__name__ == "Household" and not tp.transport_to_households:
-                deliver_without_transport(link, _after_delivery)
+                deliver_without_transport(link, _after_delivery, supplier_price=self.price)
             else:
                 send_shipment(
                     self.pid, self.od_point, self.transport_share,
                     link, transport_network, available_transport_network, tp,
                     routing_event_collector, _after_shipment,
+                    supplier_price=self.price,
                 )
 
     # ------------------------------------------------------------------

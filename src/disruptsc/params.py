@@ -25,7 +25,7 @@ class TransportParams:
     lp_route_candidate_count: int = 20
     lp_route_candidate_stretch: float = 4.0
     lp_route_candidate_overlap: float = 0.9
-    lp_overcapacity_limit: float = 1.05
+    lp_overcapacity_limit: float = 1.1
 
 
 @dataclass(frozen=True)
@@ -53,7 +53,7 @@ class SimParams:
 @dataclass(frozen=True)
 class AgentParams:
     """Parameters for agent creation and filtering."""
-    io_cutoff: float = 0.01
+    io_cutoff: float = 0.95
     cutoff_sector_output: dict = field(default_factory=lambda: {"type": "absolute", "value": 1.0, "unit": "mUSD"})
     cutoff_sector_demand: dict = field(default_factory=lambda: {"type": "absolute", "value": 1.0, "unit": "mUSD"})
     cutoff_firm_output: dict = field(default_factory=lambda: {"type": "absolute", "value": 10, "unit": "kUSD"})
@@ -71,6 +71,7 @@ class AgentParams:
         "unit": "day",
     })
     inventory_restoration_time: float = 4.0
+    enable_household_inventories: bool = False
     firm_data_type: str = "mrio"
     sectors_to_include: str = "all"
     sectors_to_exclude: tuple = ()
@@ -84,6 +85,7 @@ class AgentParams:
     monetary_units_in_data: str = "mUSD"
     capital_to_value_added_ratio: float = 3.0
     country_transport_share: float = 0.2
+    firm_transport_share: float = 0.2
 
 
 @dataclass(frozen=True)

@@ -31,6 +31,11 @@ class Household:
     sector_consumption: dict[str, float] = field(default_factory=dict)
     retailers: dict = field(default_factory=dict)  # supplier_id -> {sector, weight}
     purchase_plan: dict[str, float] = field(default_factory=dict)
+    use_inventories: bool = False
+    inventory: dict[str, float] = field(default_factory=dict)
+    inventory_duration_target: dict[str, float] = field(default_factory=dict)
+    inventory_restoration_time: float = 1.0
+    eq_needs: dict[str, float] = field(default_factory=dict)
 
     # --- Per-timestep tracking ---
     consumption_per_retailer: dict[str, float] = field(default_factory=dict)
@@ -57,6 +62,8 @@ class Household:
 
     def initialize_from_purchase_plan(self):
         """Initialize tracking variables from purchase plan."""
+        self.consumption_per_sector = {}
+        self.spending_per_sector = {}
         self.consumption_per_retailer = {sid: qty for sid, qty in self.purchase_plan.items()}
         self.spending_per_retailer = {sid: qty for sid, qty in self.purchase_plan.items()}
         self.tot_consumption = sum(self.purchase_plan.values())
@@ -68,6 +75,38 @@ class Household:
             self.spending_per_sector[sector] = self.spending_per_sector.get(sector, 0.0) + qty
         self.consumption_loss_per_sector = {s: 0.0 for s in self.sector_consumption}
         self.extra_spending_per_sector = {s: 0.0 for s in self.sector_consumption}
+
+    def initialize_inventory(self):
+        """Set up household inventories from equilibrium consumption targets."""
+        self.eq_needs = dict(self.sector_consumption)
+        if not self.use_inventories:
+            self.inventory = {}
+            return
+
+        self.inventory = {
+            sector: need * max(self.inventory_duration_target.get(sector, 1.0), 1.0)
+            for sector, need in self.eq_needs.items()
+        }
+
+    def set_equilibrium_purchase_plan(self):
+        """Reset household orders to equilibrium consumption needs."""
+        self._set_purchase_plan_from_sector_totals(self.sector_consumption)
+
+    def plan_purchase(self):
+        """Order enough to cover consumption and optionally restore inventories."""
+        if not self.use_inventories:
+            self.set_equilibrium_purchase_plan()
+            return
+
+        sector_totals = {}
+        for sector, need in self.sector_consumption.items():
+            eq_need = self.eq_needs.get(sector, need)
+            target_inventory = eq_need * max(self.inventory_duration_target.get(sector, 1.0), 1.0)
+            current_inv = self.inventory.get(sector, 0.0)
+            restoration = max(0.0, target_inventory - current_inv) / max(self.inventory_restoration_time, 1.0)
+            sector_totals[sector] = need + restoration
+
+        self._set_purchase_plan_from_sector_totals(sector_totals)
 
     # ------------------------------------------------------------------
     # Simulation loop
@@ -99,27 +138,32 @@ class Household:
         """Receive products from all suppliers."""
         for supplier, _, data in sc_network.in_edges(self, data=True):
             link: CommercialLink = data["object"]
+            supplier_id = supplier.pid
             if transport_to_households:
                 collect_shipment_from_node(self.od_point, link, transport_network, sectors_no_transport)
             quantity_received = link.realized_delivery
             price = link.price
 
-            # Track consumption
+            # Track purchases and replenish inventory if enabled.
             sector = link.product
-            self.consumption_per_retailer[supplier] = quantity_received
-            self.spending_per_retailer[supplier] = quantity_received * price
-            self.consumption_per_sector[sector] = self.consumption_per_sector.get(sector, 0.0) + quantity_received
+            self.spending_per_retailer[supplier_id] = quantity_received * price
             self.spending_per_sector[sector] = self.spending_per_sector.get(sector, 0.0) + quantity_received * price
-            self.tot_consumption += quantity_received
             self.tot_spending += quantity_received * price
 
-            # Track losses
-            expected = self.purchase_plan.get(supplier.pid, 0.0)
-            loss = max(0.0, expected - quantity_received)
-            self.consumption_loss_per_sector[sector] = self.consumption_loss_per_sector.get(sector, 0.0) + loss
-            self.consumption_loss += loss
+            if self.use_inventories:
+                self.inventory[sector] = self.inventory.get(sector, 0.0) + quantity_received
+            else:
+                self.consumption_per_retailer[supplier_id] = quantity_received
+                self.consumption_per_sector[sector] = self.consumption_per_sector.get(sector, 0.0) + quantity_received
+                self.tot_consumption += quantity_received
+
+                expected = self.purchase_plan.get(supplier_id, 0.0)
+                loss = max(0.0, expected - quantity_received)
+                self.consumption_loss_per_sector[sector] = self.consumption_loss_per_sector.get(sector, 0.0) + loss
+                self.consumption_loss += loss
 
             # Track extra spending (price increase)
+            expected = self.purchase_plan.get(supplier_id, 0.0)
             eq_spending = expected * link.eq_price
             actual_spending = quantity_received * price
             extra = max(0.0, actual_spending - eq_spending)
@@ -129,9 +173,20 @@ class Household:
             link.update_indicator(quantity_received)
 
     def consume(self):
-        """Consume received products (placeholder for inventory-based consumption)."""
-        # In the basic model, consumption = what was received (tracked above)
-        pass
+        """Consume from inventory when household inventories are enabled."""
+        if not self.use_inventories:
+            return
+
+        for sector, need in self.sector_consumption.items():
+            available = self.inventory.get(sector, 0.0)
+            consumed = min(need, available)
+            self.inventory[sector] = max(0.0, available - consumed)
+            self.consumption_per_sector[sector] = self.consumption_per_sector.get(sector, 0.0) + consumed
+            self.tot_consumption += consumed
+
+            loss = max(0.0, need - consumed)
+            self.consumption_loss_per_sector[sector] = self.consumption_loss_per_sector.get(sector, 0.0) + loss
+            self.consumption_loss += loss
 
     # ------------------------------------------------------------------
     # Data collection
@@ -147,3 +202,20 @@ class Household:
             "consumption_loss_per_sector": dict(self.consumption_loss_per_sector),
             "extra_spending_per_sector": dict(self.extra_spending_per_sector),
         }
+
+    def _set_purchase_plan_from_sector_totals(self, sector_totals: dict[str, float]):
+        """Distribute sector-level purchases across retailers using existing weights."""
+        self.purchase_plan = {}
+        for sector, amount in sector_totals.items():
+            retailer_ids = [
+                sid for sid, info in self.retailers.items()
+                if info.get("sector") == sector
+            ]
+            if not retailer_ids:
+                continue
+
+            total_weight = sum(self.retailers[sid].get("weight", 1.0) for sid in retailer_ids)
+            for sid in retailer_ids:
+                weight = self.retailers[sid].get("weight", 1.0)
+                share = weight / total_weight if total_weight > EPSILON else 0.0
+                self.purchase_plan[sid] = amount * share
