@@ -365,11 +365,8 @@ def _run_one_time_step(time_step, sc_network, transport_network,
         c.deliver(sc_network, transport_network, available_transport_network, tp)
 
     # 7. Firms deliver
-    from disruptsc.agents import transport_utils as _tu
-    if _tu._DBG: _tu._dbg_reset()
     for firm in firms.values():
         firm.deliver(sc_network, transport_network, available_transport_network, tp)
-    if _tu._DBG: _tu._dbg_report()
 
     # 7b. Collect routing summary from commercial links
     routing_summary = _collect_routing_summary(sc_network, time_step)
