@@ -7,6 +7,9 @@ import logging
 import sys
 from pathlib import Path
 
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from disruptsc import paths
 from disruptsc.config import load_config, build_params, setup_output, setup_logging
 
