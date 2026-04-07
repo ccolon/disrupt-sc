@@ -14,18 +14,6 @@ if TYPE_CHECKING:
     from disruptsc.params import TransportParams
 
 
-# --- DEBUG INSTRUMENTATION ---
-import os
-_DBG = os.environ.get("DSC_DEBUG_REROUTE") == "1"
-_dbg_counts = {"main_ok": 0, "alt_found": 0, "no_route": 0, "too_expensive": 0,
-               "alt_cost_max_rel": 0.0}
-def _dbg_reset():
-    for k in _dbg_counts: _dbg_counts[k] = 0 if isinstance(_dbg_counts[k], int) else 0.0
-def _dbg_report():
-    print(f"  [DBG send_shipment] {_dbg_counts}", flush=True)
-# --- END DEBUG ---
-
-
 def discover_route(od_point: int,
                    link: CommercialLink,
                    transport_network: TransportNetwork,
@@ -106,7 +94,6 @@ def send_shipment(agent_pid, od_point: int,
     # Always try the main route first; if available, switch back to it
     main_route = link.route
     if main_route and available_transport_network.is_route_available(main_route):
-        if _DBG: _dbg_counts["main_ok"] += 1
         link.current_route = "main"
         link.price = base_price
         link.main_route_realized_delivery = link.delivery
@@ -119,10 +106,6 @@ def send_shipment(agent_pid, od_point: int,
             tp.capacity_constraint_enabled, tp.use_route_cache,
         )
         if alt_route is None:
-            if _DBG:
-                _dbg_counts["no_route"] += 1
-                if _dbg_counts["no_route"] <= 3:
-                    print(f"  [DBG no_route] od={od_point} dest={link.destination_node} cargo={link.cargo_type}", flush=True)
             link.realized_delivery = 0.0
             link.delivery = 0.0
             link.payment = 0.0
@@ -147,10 +130,6 @@ def send_shipment(agent_pid, od_point: int,
         relative_increase += switching_penalty
 
         if tp.price_increase_threshold is not None and 1.0 + relative_increase > tp.price_increase_threshold:
-            if _DBG:
-                _dbg_counts["too_expensive"] += 1
-                if _dbg_counts["too_expensive"] <= 3:
-                    print(f"  [DBG too_exp] od={od_point} dest={link.destination_node} cargo={link.cargo_type} rel_inc={relative_increase:.2f}", flush=True)
             link.realized_delivery = 0.0
             link.delivery = 0.0
             link.payment = 0.0
@@ -159,10 +138,6 @@ def send_shipment(agent_pid, od_point: int,
                     agent_pid, link.buyer_id, "too_expensive", relative_increase,
                 )
             return
-        if _DBG:
-            _dbg_counts["alt_found"] += 1
-            if relative_increase > _dbg_counts["alt_cost_max_rel"]:
-                _dbg_counts["alt_cost_max_rel"] = relative_increase
 
         link.current_route = "alternative"
         route = alt_route

@@ -23,7 +23,7 @@ firm_data_type: "mrio"
 
 # ── Time ──
 time_resolution: "week"
-t_final: 10
+t_final: 52
 
 # ── Filtering ──
 io_cutoff: 0.80  # cumulative input coverage: keep inputs covering 80% of each buyer's intermediate consumption
@@ -47,12 +47,12 @@ cutoff_household_demand:
 
 
 # ── Simulation ──
-simulation_type: "criticality"
+simulation_type: "disruption"
 mc_repetitions: 0  # deterministic first run; increase for stochastic
 export_files: True
 use_route_cache: True
-country_transport_share: 0.5
-firm_transport_share: 0.5
+country_transport_share: 0.2
+firm_transport_share: 0.2
 
 criticality:
   duration: 5
@@ -142,7 +142,7 @@ epsilon_stop_condition: 0  # disabled — always run full t_final
 
 # ── Route optimization ──
 route_optimization_weight: "cost_per_ton"
-price_increase_threshold: 10  # max 10x price increase for rerouting
+price_increase_threshold: 2  # max 100% per-link mark-up (bracketing run)
 
 # ── Agent settings ──
 nb_suppliers_per_input: 1
@@ -195,11 +195,13 @@ logistics:
     roads-maritime: 18
     roads-airways: 18
     roads-maritime-fujairah: 18
+    roads-maritime-khor_fakkan: 18
     roads-pipelines-fujairah: 18
   loading_fees: # USD/ton
     roads-maritime: 2.5
-    roads-maritime-fujairah: 10
-    roads-pipelines-fujairah: 10
+    roads-maritime-fujairah: 8
+    roads-pipelines-fujairah: 8
+    roads-maritime-khor_fakkan: 10
     roads-airways: 5.0
   chunk_size: 10000  # tons/day
 
@@ -228,7 +230,7 @@ transport_capacity_overrides:  # tons/day
     dry_bulk: 33275
     liquid_bulk: 74668
   port_fujairah:
-    container: 5000          # real Fujairah container throughput ~700-1000 t/day; tight enough to make baseline surcharge > Jebel Ali
+    container: 20000         # raised to absorb Hormuz-blockade rerouting from Jebel Ali/Khalifa without runtime cost cliff
     dry_bulk: 3000
     liquid_bulk: 23971
   port_khor_fakkan:
