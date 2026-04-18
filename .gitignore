@@ -11,9 +11,13 @@ research/dataprep/
 # Exclude input folder - data is now in separate repository
 input/*
 
+# Local
+local
+
 # Claude
 .claude
 CLAUDE.md
+AGENTS.md
 
 # PyCharm
 .idea/
