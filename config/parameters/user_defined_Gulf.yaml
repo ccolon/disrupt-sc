@@ -135,14 +135,14 @@ disruptions:
     values:
       - "Strait of Hormuz"
     start_time: 1
-    duration: 13  # 13-week blockade
+    duration: 10  # blockade duration
 
 # ── Stop condition ──
 epsilon_stop_condition: 0  # disabled — always run full t_final
 
 # ── Route optimization ──
 route_optimization_weight: "cost_per_ton"
-price_increase_threshold: 2  # max 100% per-link mark-up (bracketing run)
+price_increase_threshold: 10
 
 # ── Agent settings ──
 nb_suppliers_per_input: 1
@@ -150,7 +150,7 @@ weight_localization_firm: 1
 weight_localization_household: 4
 utilization_rate: 0.8
 rationing_mode: "equal"
-propagate_input_price_change: True
+propagate_input_price_change: False
 explicit_service_firm: True
 
 # ── Inventory ──
