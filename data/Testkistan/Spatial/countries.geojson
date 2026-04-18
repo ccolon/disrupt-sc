@@ -1,0 +1,7 @@
+{
+"type": "FeatureCollection",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "pid": "FOREIGN", "region": "FOREIGN", "iso3": "FOR" }, "geometry": { "type": "Point", "coordinates": [ -1.0, -1.0 ] } }
+]
+}
