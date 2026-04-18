@@ -1,0 +1,4 @@
+region,sector,name,type,usd_per_ton,share_exporting_firms
+TESTKISTAN,MANUF,Manufacturing,manufacturing,2000.0,0.1
+TESTKISTAN,AGRI,Agriculture,agriculture,1000.0,0.05
+FOREIGN,imports,Imports,imports,1500.0,

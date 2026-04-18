@@ -1,0 +1,16 @@
+{
+"type": "FeatureCollection",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "pid": "firm_MANUF_0", "sector": "MANUF", "value_added": 1000000, "region": "TESTKISTAN" }, "geometry": { "type": "Point", "coordinates": [ 0.1, 0.1 ] } },
+{ "type": "Feature", "properties": { "pid": "firm_MANUF_1", "sector": "MANUF", "value_added": 800000, "region": "TESTKISTAN" }, "geometry": { "type": "Point", "coordinates": [ 0.2, 0.2 ] } },
+{ "type": "Feature", "properties": { "pid": "firm_MANUF_2", "sector": "MANUF", "value_added": 900000, "region": "TESTKISTAN" }, "geometry": { "type": "Point", "coordinates": [ 0.3, 0.1 ] } },
+{ "type": "Feature", "properties": { "pid": "firm_MANUF_3", "sector": "MANUF", "value_added": 700000, "region": "TESTKISTAN" }, "geometry": { "type": "Point", "coordinates": [ 0.1, 0.3 ] } },
+{ "type": "Feature", "properties": { "pid": "firm_MANUF_4", "sector": "MANUF", "value_added": 650000, "region": "TESTKISTAN" }, "geometry": { "type": "Point", "coordinates": [ 0.4, 0.2 ] } },
+{ "type": "Feature", "properties": { "pid": "firm_AGRI_0", "sector": "AGRI", "value_added": 500000, "region": "TESTKISTAN" }, "geometry": { "type": "Point", "coordinates": [ 0.2, 0.6 ] } },
+{ "type": "Feature", "properties": { "pid": "firm_AGRI_1", "sector": "AGRI", "value_added": 450000, "region": "TESTKISTAN" }, "geometry": { "type": "Point", "coordinates": [ 0.4, 0.7 ] } },
+{ "type": "Feature", "properties": { "pid": "firm_AGRI_2", "sector": "AGRI", "value_added": 400000, "region": "TESTKISTAN" }, "geometry": { "type": "Point", "coordinates": [ 0.6, 0.5 ] } },
+{ "type": "Feature", "properties": { "pid": "firm_AGRI_3", "sector": "AGRI", "value_added": 350000, "region": "TESTKISTAN" }, "geometry": { "type": "Point", "coordinates": [ 0.1, 0.7 ] } },
+{ "type": "Feature", "properties": { "pid": "firm_AGRI_4", "sector": "AGRI", "value_added": 300000, "region": "TESTKISTAN" }, "geometry": { "type": "Point", "coordinates": [ 0.7, 0.6 ] } }
+]
+}
