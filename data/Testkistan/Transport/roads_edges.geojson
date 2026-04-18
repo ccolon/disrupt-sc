@@ -1,0 +1,11 @@
+{
+"type": "FeatureCollection",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 0, "type": "roads", "km": 50.0, "surface": "paved", "class": "primary", "capacity": 1000, "special": null, "name": "Main Road North", "disruption_duration": 0, "cost_per_ton_0_road": 10.0, "cost_per_ton_with_capacity_0_road": 12.0 }, "geometry": { "type": "LineString", "coordinates": [ [ 0.0, 0.0 ], [ 0.0, 0.5 ] ] } },
+{ "type": "Feature", "properties": { "id": 1, "type": "roads", "km": 50.0, "surface": "paved", "class": "primary", "capacity": 1000, "special": null, "name": "Main Road East", "disruption_duration": 0, "cost_per_ton_0_road": 10.0, "cost_per_ton_with_capacity_0_road": 12.0 }, "geometry": { "type": "LineString", "coordinates": [ [ 0.0, 0.0 ], [ 0.5, 0.0 ] ] } },
+{ "type": "Feature", "properties": { "id": 2, "type": "roads", "km": 30.0, "surface": "paved", "class": "secondary", "capacity": 500, "special": null, "name": "North Branch", "disruption_duration": 0, "cost_per_ton_0_road": 15.0, "cost_per_ton_with_capacity_0_road": 18.0 }, "geometry": { "type": "LineString", "coordinates": [ [ 0.0, 0.5 ], [ 0.3, 0.8 ] ] } },
+{ "type": "Feature", "properties": { "id": 3, "type": "roads", "km": 40.0, "surface": "paved", "class": "secondary", "capacity": 500, "special": null, "name": "East Branch", "disruption_duration": 0, "cost_per_ton_0_road": 15.0, "cost_per_ton_with_capacity_0_road": 18.0 }, "geometry": { "type": "LineString", "coordinates": [ [ 0.5, 0.0 ], [ 0.8, 0.3 ] ] } },
+{ "type": "Feature", "properties": { "id": 4, "type": "roads", "km": 20.0, "surface": "paved", "class": "tertiary", "capacity": 200, "special": null, "name": "Port Access Road", "disruption_duration": 0, "cost_per_ton_0_road": 20.0, "cost_per_ton_with_capacity_0_road": 25.0 }, "geometry": { "type": "LineString", "coordinates": [ [ 0.0, 0.0 ], [ -0.2, -0.2 ] ] } }
+]
+}
