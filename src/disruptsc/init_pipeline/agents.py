@@ -82,7 +82,8 @@ def create_firm_table(mrio: Mrio, sector_table: pd.DataFrame,
 
     # Phase 6: Enrich with sector metadata
     if sector_table is not None:
-        sector_type_map = sector_table.set_index("sector")["type"].to_dict()
+        sector_type_map = (sector_table.drop_duplicates("sector")
+                                       .set_index("sector")["type"].to_dict())
         ft["sector_type"] = ft["sector"].map(sector_type_map).fillna("manufacturing")
     else:
         ft["sector_type"] = "manufacturing"
@@ -93,7 +94,8 @@ def create_firm_table(mrio: Mrio, sector_table: pd.DataFrame,
     # Margins and transport share from MRIO
     margins = mrio.get_margin_per_industry()
     transport_shares = mrio.get_transport_input_share(
-        sector_table.set_index("sector")["type"] if sector_table is not None else {},
+        (sector_table.drop_duplicates("sector").set_index("sector")["type"]
+         if sector_table is not None else {}),
     )
     ft["target_margin"] = ft.apply(
         lambda r: margins.get((r["region"], r["sector"]), 0.2), axis=1
@@ -195,7 +197,8 @@ def load_inventories(firms: dict[str, Firm], inventory_targets: dict,
         # Map sector to sector_type
         sector_type_map = {}
         if sector_table is not None:
-            sector_type_map = sector_table.set_index("sector")["type"].to_dict()
+            sector_type_map = (sector_table.drop_duplicates("sector")
+                                           .set_index("sector")["type"].to_dict())
 
         for firm in firms.values():
             targets = {}
@@ -224,7 +227,8 @@ def configure_household_inventories(households: dict[str, Household],
 
     sector_type_map = {}
     if sector_table is not None:
-        sector_type_map = sector_table.set_index("sector")["type"].to_dict()
+        sector_type_map = (sector_table.drop_duplicates("sector")
+                                       .set_index("sector")["type"].to_dict())
 
     for hh in households.values():
         hh.use_inventories = enabled
