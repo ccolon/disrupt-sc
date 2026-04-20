@@ -1,213 +1,208 @@
 # Data Setup
 
-DisruptSC requires input data to run simulations. This guide explains how to set up your data sources.
+DisruptSC keeps model code and large input datasets separate. The public
+repository contains the model code, configuration, documentation, and a small
+bundled `Testkistan` dataset for smoke tests and examples. Full country and
+regional datasets should live outside the code repository.
 
-## Repository Separation
+## Data Location Priority
 
-The model code and data are maintained in separate repositories:
+DisruptSC resolves data per scope:
 
-- **disrupt-sc** (public) - Model code, configuration, documentation
-- **disrupt-sc-data** (private) - Input data files
+1. If `DISRUPT_SC_DATA_PATH` is set, use that data root for all scopes.
+2. Otherwise, if the requested scope is `Testkistan`, use the bundled example
+   data at `./examples/data/Testkistan`.
+3. Otherwise, use the sibling private data repository at `../disrupt-sc-data`.
 
-This separation allows for:
-- Public sharing of the model code
-- Secure handling of sensitive economic data
-- Flexible data source configuration
+If `DISRUPT_SC_DATA_PATH` is set but points to a folder that does not exist,
+DisruptSC raises a clear error instead of silently falling back to bundled data.
 
-## Data Setup Options
+## Recommended Setup: Sibling Data Repository
 
-Choose one of the following methods to provide input data:
+If you have access to the private data repository, clone it next to
+`disrupt-sc`:
 
-### Option 1: Git Submodule (Recommended)
-
-If you have access to the private data repository, the submodule should be automatically set up when you clone:
-
-```bash
-# If you cloned with --recurse-submodules, data is already available
-ls data/  # Should show: Cambodia, ECA, Ecuador, etc.
-
-# If data folder is empty, initialize the submodule
-git submodule update --init --recursive
-
-# Update data to latest version
-git submodule update --remote data
+```text
+DisruptSC/
++-- disrupt-sc/
++-- disrupt-sc-data/
 ```
 
-!!! warning "Common Submodule Issues"
-    - **Empty data folder**: Run `git submodule update --init --recursive`
-    - **"Already exists" error**: Don't run `git submodule add` again, just update existing submodule
-    - **New computer setup**: Always use `git clone --recurse-submodules` or initialize submodules after cloning
-
-**Advantages:**
-- Version-controlled data
-- Automatic updates with git
-- Collaborative data management
-
-### Option 2: Local Input Folder (Simple)
-
-Create a local `input/` folder:
-
 ```bash
-# Create input directory
-mkdir input
-
-# Copy your data files following the structure below
-# input/Cambodia/Economic/mrio.csv
-# input/Cambodia/Transport/roads_edges.geojson
-# etc.
+cd DisruptSC
+git clone https://github.com/ccolon/disrupt-sc.git
+git clone <private-data-repo-url> disrupt-sc-data
+cd disrupt-sc
 ```
 
-**Advantages:**
-- Simple setup
-- No external dependencies
-- Good for testing
+With this layout, no environment variable is needed. DisruptSC automatically
+uses `../disrupt-sc-data`.
 
-## Data Path Priority
+## Custom Data Location
 
-DisruptSC automatically detects data location in this order:
+If your data repository is elsewhere, set `DISRUPT_SC_DATA_PATH` to the folder
+that contains scope folders such as `Cambodia`, `Ecuador`, or `Testkistan`.
 
-1. **`data/`** folder (git submodule, highest priority)
-2. **`input/`** folder (local fallback)
+PowerShell:
+
+```powershell
+$env:DISRUPT_SC_DATA_PATH = "C:\path\to\disrupt-sc-data"
+```
+
+bash/zsh:
+
+```bash
+export DISRUPT_SC_DATA_PATH=/path/to/disrupt-sc-data
+```
+
+For a persistent user-level setting on Windows:
+
+```powershell
+[Environment]::SetEnvironmentVariable(
+    "DISRUPT_SC_DATA_PATH",
+    "C:\path\to\disrupt-sc-data",
+    "User"
+)
+```
+
+Open a new terminal after setting a persistent environment variable.
+
+## Bundled Test Data
+
+If `DISRUPT_SC_DATA_PATH` is not set, DisruptSC uses
+`./examples/data/Testkistan` for the synthetic `Testkistan` dataset.
+
+```bash
+python src/disruptsc/run.py Testkistan
+```
 
 ## Required Data Structure
 
-Input data must be organized by scope:
+Input data must be organized by scope inside the resolved data root:
 
-```
-data/{scope}/               # e.g., data/Cambodia/
-├── Economic/               # Economic data
-│   ├── mrio.csv           # Multi-regional input-output table
-│   └── sector_table.csv   # Sector definitions and parameters
-├── Transport/              # Infrastructure networks
-│   ├── roads_edges.geojson          # Road network (LineString)
-│   ├── maritime_edges.geojson       # Maritime routes (LineString) 
-│   ├── railways_edges.geojson       # Railway network (LineString)
-│   ├── airways_edges.geojson        # Air routes (LineString)
-│   ├── waterways_edges.geojson      # Waterway network (LineString)
-│   ├── pipelines_edges.geojson      # Pipeline network (LineString)
-│   └── multimodal_edges.geojson     # Multimodal connections
-└── Spatial/                # Geographic disaggregation
-    ├── households.geojson           # Household locations (Point)
-    ├── countries.geojson            # Country entry points (Point)
-    └── firms.geojson                # Firm spatial distribution (Point)
+```text
+<data-root>/
++-- <scope>/                  # e.g. Cambodia, Ecuador, Testkistan
+    +-- Economic/             # MRIO tables, sector definitions, firm data
+    +-- Transport/            # Infrastructure GeoJSON files
+    +-- Spatial/              # Geographic disaggregation files
+    +-- Disruption/           # Optional scenario files
 ```
 
-Note that the exact filename can always be changed in the user_defined.yml (see below)
+The exact filenames are configured in
+`config/parameters/user_defined_<scope>.yaml` under `filepaths`.
 
 ## Scope Configuration
 
-Each scope requires:
+Each runnable scope needs:
 
-1. **Data folder**: `data/{scope}/` or `input/{scope}/`
-2. **Parameter file**: `parameter/user_defined_{scope}.yaml`
+1. A data folder at `<data-root>/<scope>/`.
+2. A parameter file at `config/parameters/user_defined_<scope>.yaml`.
 
-For example, to set up Cambodia:
-- Data: `data/Cambodia/`
-- Parameters: `parameter/user_defined_Cambodia.yaml`
+For example, with the sibling data repository:
+
+```text
+../disrupt-sc-data/Cambodia/
+config/parameters/user_defined_Cambodia.yaml
+```
 
 ## File Requirements
 
-### Essential Files (Always Required)
-- `Economic/mrio.csv` - Input-output table
-- `Economic/sector_table.csv` - Sector definitions
-- `Transport/roads_edges.geojson` - Road network
-- `Spatial/households.geojson` - Household locations
+### Essential Files
+
+- `Economic/mrio.csv` - Input-output table.
+- `Economic/sector_table.csv` - Sector definitions.
+- `Transport/roads_edges.geojson` - Road network.
+- `Spatial/households.geojson` - Household locations.
 
 ### Transport Networks
+
 At minimum, roads are required. Additional transport modes are optional:
-- Maritime (international trade)
-- Railways (freight transport)
-- Airways (high-value goods)
-- Waterways (bulk transport)
-- Pipelines (energy/chemicals)
+
+- Maritime networks for international shipping.
+- Railways for freight transport.
+- Airways for high-value goods.
+- Waterways for inland navigation.
+- Pipelines for energy and chemicals.
 
 ### Data Modes
-Different data requirements based on mode:
 
-!!! info "MRIO Mode (Default)"
-    
-    **Required:**
-    - `Economic/mrio.csv`
-    - `Economic/sector_table.csv`
-    - `Spatial/*.geojson` files
-    
-    **Generated:** Firms, households, countries from MRIO data
+MRIO mode is the default and uses:
 
-!!! tip "Supplier-Buyer Network Mode"
-    
-    **Additional Requirements:**
-    - `Economic/firm_table.csv`
-    - `Economic/location_table.csv`
-    - `Economic/transaction_table.csv`
-    
-    **Use case:** When you have detailed firm-level data
+- `Economic/mrio.csv`
+- `Economic/sector_table.csv`
+- `Spatial/*.geojson`
+
+Supplier-buyer network mode additionally uses:
+
+- `Economic/firm_table.csv`
+- `Economic/location_table.csv`
+- `Economic/transaction_table.csv`
 
 ## Verification
 
-After setting up your data, verify the configuration:
+Check which data path DisruptSC resolves:
 
 ```bash
-# Check data path detection
-python -c "from disruptsc.paths import get_data_path; print(get_data_path('Cambodia'))"
+python -c "from disruptsc.paths import get_data_path; print(get_data_path('Testkistan'))"
+```
 
-# Validate input files
-python validate_inputs.py Cambodia
+Then run a smoke test with bundled data:
 
-# Test basic model initialization
-python disruptsc/main.py Cambodia --help
+```bash
+python src/disruptsc/run.py Testkistan
 ```
 
 ## Troubleshooting
 
-### Data Path Issues
+### Data Path Not Found
 
-??? failure "Data path not found"
-    
-    ```bash
-    # Verify folder exists
-    ls -la data/Cambodia/
-    ls -la input/Cambodia/
-    
-    # Check folder permissions
-    ls -la data/
-    ```
+Check the resolved data root:
 
-??? failure "Git submodule problems"
-    
-    ```bash
-    # Most common issue: initialize submodules
-    git submodule update --init --recursive
-    
-    # Check submodule status
-    git submodule status
-    
-    # If completely broken, reset submodule (last resort)
-    git submodule deinit data
-    git rm data
-    git submodule add <data-repository-url> data
-    git submodule update --init --recursive
-    ```
+```bash
+python -c "from disruptsc.paths import get_data_root; print(get_data_root())"
+```
 
-### File Format Issues
+If using `DISRUPT_SC_DATA_PATH`, verify that it points to the data root, not to
+an individual scope folder.
 
-??? failure "Invalid file formats"
-    
-    - Ensure CSV files use UTF-8 encoding
-    - GeoJSON files must have valid geometry
-    - LineString required for transport edges
-    - Point geometry required for spatial locations
+PowerShell:
 
-??? failure "Missing required columns"
-    
-    Run the input validator for detailed error messages:
-    ```bash
-    python validate_inputs.py Cambodia
-    ```
+```powershell
+echo $env:DISRUPT_SC_DATA_PATH
+Test-Path $env:DISRUPT_SC_DATA_PATH
+```
+
+bash/zsh:
+
+```bash
+echo "$DISRUPT_SC_DATA_PATH"
+test -d "$DISRUPT_SC_DATA_PATH"
+```
+
+### Missing Scope
+
+If DisruptSC resolves the data root correctly but a scope fails to load, verify
+that the scope folder exists:
+
+```bash
+ls ../disrupt-sc-data/Cambodia
+```
+
+If you are using only the public repository, use `Testkistan` unless you have
+provided another dataset.
+
+### Invalid File Formats
+
+- CSV files should use UTF-8 encoding.
+- Transport edges must use LineString geometries.
+- Spatial agent files must use Point geometries.
+- Required columns must match the parameter file references.
 
 ## What's Next?
 
-After setting up your data:
+After setting up data:
 
-1. **[Validate inputs](validation.md)** - Check data quality
-2. **[Run quick start](quick-start.md)** - Test your setup
-3. **[Configure parameters](../user-guide/parameters.md)** - Customize simulation settings
+1. Read the [Quick Start](quick-start.md).
+2. Review [Input Validation](validation.md).
+3. Customize [Parameters](../user-guide/parameters.md).

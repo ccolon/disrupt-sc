@@ -1,4 +1,4 @@
-# Indicate the subfolder of the input folder that contains the input files
+# File paths are relative to the scope folder in the resolved data root.
 filepaths:
   "sector_table": "National/59sector_2016_sector_table.csv"
   "tech_coef": "National/59sector_2016_tech_coef.csv"

@@ -11,29 +11,25 @@ This guide will help you install DisruptSC and set up the required environment.
 
 ## Step 1: Clone the Repository
 
-The DisruptSC project uses Git submodules to manage data separately from the main codebase. Choose one of the following methods:
-
-### Method A: Clone with Submodules (Recommended)
+Clone the public code repository:
 
 ```bash
-# Clone repository and initialize submodules in one step
-git clone --recurse-submodules https://github.com/worldbank/disrupt-sc.git
-cd disrupt-sc
-```
-
-### Method B: Clone then Initialize Submodules
-
-```bash
-# Clone repository
 git clone https://github.com/ccolon/disrupt-sc.git
 cd disrupt-sc
-
-# Initialize and update data submodule
-git submodule update --init --recursive
 ```
 
-!!! info "About Data Submodules"
-    DisruptSC uses a separate private repository for input data to keep the main codebase lightweight. The data is automatically linked as a Git submodule in the `data/` folder.
+The public repository includes bundled demo data for `Testkistan`. For full
+country and regional datasets, clone the private data repository next to the
+code repository:
+
+```bash
+cd ..
+git clone <private-data-repo-url> disrupt-sc-data
+cd disrupt-sc
+```
+
+With this sibling layout, DisruptSC automatically uses `../disrupt-sc-data`.
+If the data repository is elsewhere, set `DISRUPT_SC_DATA_PATH` to that folder.
 
 ## Step 2: Environment Setup
 
@@ -110,28 +106,18 @@ DisruptSC relies on several key packages:
 
 ### Common Installation Issues
 
-??? failure "Empty data folder after cloning"
+??? failure "Full datasets are not found"
     
-    If your `data/` folder is empty after cloning, the submodule wasn't initialized:
-    
-    ```bash
-    # Initialize and update submodules
-    git submodule update --init --recursive
-    
-    # Verify data is present
-    ls data/
-    # Should show: Cambodia, ECA, Ecuador, Global, Testkistan, etc.
-    ```
-
-??? failure "Submodule already exists error"
-    
-    If you get `fatal: 'data' already exists in the index` when trying to add submodules:
+    DisruptSC uses `DISRUPT_SC_DATA_PATH` when set. Otherwise, bundled
+    `./examples/data/Testkistan` is used for `Testkistan`, and other scopes
+    are loaded from `../disrupt-sc-data`.
     
     ```bash
-    # The submodule is already configured, just update it
-    git submodule update --init --recursive
+    # Check the resolved data root
+    python -c "from disruptsc.paths import get_data_root; print(get_data_root())"
     
-    # Don't run git submodule add again
+    # If using the sibling layout, verify the private repo exists
+    ls ../disrupt-sc-data
     ```
 
 ??? failure "Conda environment creation hangs"
@@ -199,8 +185,8 @@ pip install -e .
 For developers contributing to DisruptSC:
 
 ```bash
-# Clone with development dependencies and submodules
-git clone --recurse-submodules https://github.com/worldbank/disrupt-sc.git
+# Clone the code repository
+git clone https://github.com/ccolon/disrupt-sc.git
 cd disrupt-sc
 
 # Create development environment

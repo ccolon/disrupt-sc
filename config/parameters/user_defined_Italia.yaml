@@ -1,4 +1,4 @@
-# Indicate the subfolder of the input folder that contains the input files
+# File paths are relative to the scope folder in the resolved data root.
 filepaths:
   "sector_table": "Network/sector_table.csv"
   "mrio": "Network/mrio_treated.csv"

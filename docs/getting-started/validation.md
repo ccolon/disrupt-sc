@@ -74,13 +74,13 @@ When validation fails:
 ❌ Validation failed for Cambodia
 
 Errors found:
-- Missing file: data/Cambodia/Economic/mrio.csv
-- Invalid geometry in data/Cambodia/Transport/roads_edges.geojson
+- Missing file: <data-root>/Cambodia/Economic/mrio.csv
+- Invalid geometry in <data-root>/Cambodia/Transport/roads_edges.geojson
 - MRIO table is not balanced (rows != columns)
 
 Warnings:
-- Deprecated file found: data/Cambodia/legacy_data.csv
-- Large file detected: data/Cambodia/Transport/roads_edges.geojson (>50MB)
+- Deprecated file found: <data-root>/Cambodia/legacy_data.csv
+- Large file detected: <data-root>/Cambodia/Transport/roads_edges.geojson (>50MB)
 ```
 
 ### Detailed Output
@@ -95,7 +95,7 @@ python validate_inputs.py Cambodia --verbose
 
 ??? failure "Missing required files"
     
-    **Error:** `Missing file: data/Cambodia/Economic/mrio.csv`
+    **Error:** `Missing file: <data-root>/Cambodia/Economic/mrio.csv`
     
     **Solutions:**
     - Check data path configuration
@@ -104,7 +104,7 @@ python validate_inputs.py Cambodia --verbose
     
     ```bash
     # Check data structure
-    ls -la data/Cambodia/Economic/
+    python -c "from disruptsc.paths import get_data_path; print(get_data_path('Cambodia'))"
     
     # Verify data path
     python -c "from disruptsc.paths import get_data_path; print(get_data_path('Cambodia'))"
@@ -117,10 +117,10 @@ python validate_inputs.py Cambodia --verbose
     **Solutions:**
     ```bash
     # Fix file permissions
-    chmod 644 data/Cambodia/Economic/mrio.csv
+    chmod 644 "$(python -c 'from disruptsc.paths import get_data_path; print(get_data_path("Cambodia") / "Economic" / "mrio.csv")')"
     
     # Fix directory permissions
-    chmod 755 data/Cambodia/
+    chmod 755 "$(python -c 'from disruptsc.paths import get_data_path; print(get_data_path("Cambodia"))')"
     ```
 
 ### Economic Data Errors
