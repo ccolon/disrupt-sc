@@ -1,6 +1,6 @@
 # DisruptSC
 
-[![Version](https://img.shields.io/badge/version-1.1.4-blue)](https://github.com/ccolon/disrupt-sc/releases/tag/v1.1.4)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue)](https://github.com/ccolon/disrupt-sc/releases/tag/v2.0.0)
 [![Documentation](https://img.shields.io/badge/docs-available-brightgreen)](https://ccolon.github.io/disrupt-sc)
 [![License](https://img.shields.io/github/license/ccolon/disrupt-sc)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
@@ -8,77 +8,113 @@
 
 **Spatial agent-based model for supply chain disruption analysis**
 
-_DisruptSC_ simulates economic impacts of supply chain disruptions using spatial networks, multi-regional input-output data, and agent-based modeling. Analyze transport infrastructure failures, natural disasters, and other disruptions across countries and regions.
+_DisruptSC_ simulates the economic impact of supply chain disruptions using spatial transport networks, multi-regional input-output data, and agent-based modeling. It analyzes transport infrastructure failures, natural disasters, productivity shocks, and other disruptions across countries and regions.
+
+> **v2.0 is a major release.** The module layout, CLI entry point, and several config keys changed. If you are upgrading from v1, read [MIGRATION.md](MIGRATION.md). The legacy v1 line is preserved on the [`legacy/v1`](https://github.com/ccolon/disrupt-sc/tree/legacy/v1) branch and tagged [`v1-last-submodule`](https://github.com/ccolon/disrupt-sc/releases/tag/v1-last-submodule).
 
 ## Quick Start
 
-### Installation
+### Install
+
 ```bash
-# Clone the repository
 git clone https://github.com/ccolon/disrupt-sc.git
 cd disrupt-sc
 
-# Create environment
 conda env create -f dsc-environment.yml
 conda activate dsc
 
-# Optional: clone the private data repo next to this repo for full datasets
-cd ..
-git clone <data-repo-url> disrupt-sc-data
-cd disrupt-sc
-
-# Alternative: point to any data folder explicitly
-# PowerShell: $env:DISRUPT_SC_DATA_PATH = "C:\path\to\disrupt-sc-data"
-# bash/zsh:   export DISRUPT_SC_DATA_PATH=/path/to/disrupt-sc-data
+pip install -e .
 ```
 
-The public repository includes bundled demo data for `Testkistan` in `examples/data/Testkistan`.
+### Run the bundled demo
 
-### Run Your First Simulation
+The repo ships with a small demo scope, `Testkistan`, under `examples/data/Testkistan/`. No extra download required.
+
 ```bash
-# Validate bundled demo data first
+# Sanity-check the demo inputs
 validate-inputs Testkistan
 
-# Run baseline simulation
+# Baseline equilibrium
 disruptsc Testkistan
 
-# Run disruption scenario
+# Disruption scenario
 disruptsc Testkistan --simulation_type disruption
 ```
 
+### Use your own data
+
+Full regional scopes (ECA, Ecuador, Gulf, Cambodia, …) live in a separate data repo. Point DisruptSC at a data folder either by cloning it next to this repo:
+
+```bash
+cd ..
+git clone <data-repo-url> disrupt-sc-data
+cd disrupt-sc
+disruptsc ECA
+```
+
+…or by setting an environment variable:
+
+```bash
+# PowerShell
+$env:DISRUPT_SC_DATA_PATH = "C:\path\to\disrupt-sc-data"
+# bash/zsh
+export DISRUPT_SC_DATA_PATH=/path/to/disrupt-sc-data
+```
+
+Resolution order: `DISRUPT_SC_DATA_PATH` → sibling `../disrupt-sc-data` → bundled `examples/data/`.
+
+## What's in v2
+
+- **Pipeline architecture.** The monolithic `Model` class and `Parameters` loader are gone. Initialization (`init_pipeline/`) and execution (`run_pipeline/`) are organized as explicit stages — easier to cache, resume, and reason about.
+- **Frozen, typed parameter bundles.** `TransportParams`, `SimParams`, `AgentParams`, `LogisticsParams` dataclasses replace the v1 `Parameters` object. Config loading is a flat `dict` + dataclass build step.
+- **Unified transport graph.** Transport data is now consumed from `transport.gpkg` + `multimodal.gpkg` rather than one GeoJSON per mode.
+- **Alternative routing + capacity-aware costs.** Rerouting under disruption, price-increase thresholds, LP-based flow assignment, capacity constraints.
+- **Local config overrides.** Drop a `user_defined_<scope>.local.yaml` next to the scope file for personal tweaks; it's gitignored and overlays the committed scope file.
+- **Bundled demo data.** No submodule required to run the model out of the box.
+
+See [MIGRATION.md](MIGRATION.md) for the full list of changes from v1.
+
 ## Documentation
 
-**Full documentation available at: [https://ccolon.github.io/disrupt-sc](https://ccolon.github.io/disrupt-sc)**
+Full documentation: **[https://ccolon.github.io/disrupt-sc](https://ccolon.github.io/disrupt-sc)**
 
-- **[Getting Started](https://ccolon.github.io/disrupt-sc/getting-started/)** - Installation, data setup, first simulation
-- **[User Guide](https://ccolon.github.io/disrupt-sc/user-guide/)** - Parameters, data modes, input/output files
-- **[Tutorials](https://ccolon.github.io/disrupt-sc/tutorials/)** - Step-by-step examples and workflows
-- **[Architecture](https://ccolon.github.io/disrupt-sc/architecture/)** - Model design, agents, networks, disruptions
+- **[Getting Started](https://ccolon.github.io/disrupt-sc/getting-started/)** – install, data setup, first simulation
+- **[User Guide](https://ccolon.github.io/disrupt-sc/user-guide/)** – parameters, data modes, inputs and outputs
+- **[Architecture](https://ccolon.github.io/disrupt-sc/architecture/)** – model design, agents, networks, disruptions
 
 ## Key Features
 
-- **Spatial Networks**: Multimodal transport infrastructure
-- **Economic Agents**: Firms, households, and countries with spatial disaggregation
-- **Disruption Scenarios**: Transport failures, capital destruction, productivity shock
-- **Input Validation**: Comprehensive data quality checks before simulation
+- **Spatial multimodal transport**: roads, rail, maritime, airways, waterways, pipelines
+- **Agent-based economy**: firms, households, and countries with spatial disaggregation from MRIO data
+- **Disruption scenarios**: transport-edge failures, capital destruction, productivity shocks, capacity shocks
+- **Monte Carlo support**: configurable `mc_repetitions` for disruption and initial-state runs
+- **Input validation**: comprehensive data-quality checks before simulation
+
+## Legacy v1
+
+The last v1 release lives at:
+
+- Branch: [`legacy/v1`](https://github.com/ccolon/disrupt-sc/tree/legacy/v1)
+- Tag: [`v1-last-submodule`](https://github.com/ccolon/disrupt-sc/releases/tag/v1-last-submodule)
+
+v1 is no longer actively developed. Bug reports and feature requests on v1 will generally be directed to v2.
 
 ## Contributing & Support
 
 - **Issues**: [Report bugs or request features](https://github.com/ccolon/disrupt-sc/issues)
 - **Discussions**: [Ask questions or share ideas](https://github.com/ccolon/disrupt-sc/discussions)
-- **Get involved**: See [contributor guidelines](https://ccolon.github.io/disrupt-sc/contacts/)
-
+- **Get involved**: see [contributor guidelines](https://ccolon.github.io/disrupt-sc/contacts/)
 
 ## Citation
 
 If you use _DisruptSC_, please cite:
 
-Colon, C., Hallegatte, S., & Rozenberg, J. (2021). Criticality analysis of a country’s transport network via an agent-based supply chain model. Nature Sustainability, 4(3), 209-215.
+Colon, C., Hallegatte, S., & Rozenberg, J. (2021). Criticality analysis of a country's transport network via an agent-based supply chain model. *Nature Sustainability*, 4(3), 209–215.
 
 ```bibtex
-@article{colon2020disruptsc,
+@article{colon2021disruptsc,
   author  = {Celian Colon and Stephane Hallegatte and Julie Rozenberg},
-  title   = {Criticality analysis of a country’s transport network via an agent-based supply chain model},
+  title   = {Criticality analysis of a country's transport network via an agent-based supply chain model},
   journal = {Nature Sustainability},
   volume  = {4},
   pages   = {209--215},
@@ -87,11 +123,12 @@ Colon, C., Hallegatte, S., & Rozenberg, J. (2021). Criticality analysis of a cou
   url     = {https://www.nature.com/articles/s41893-020-00649-4}
 }
 ```
+
 ```bibtex
-@software{disruptsc2024,
-  title={DisruptSC: Spatial Agent-Based Model for Supply Chain Disruption Analysis},
-  author={Celian Colon},
-  year={2024},
-  url={https://github.com/ccolon/disrupt-sc}
+@software{disruptsc_software,
+  title  = {DisruptSC: Spatial Agent-Based Model for Supply Chain Disruption Analysis},
+  author = {Celian Colon},
+  year   = {2026},
+  url    = {https://github.com/ccolon/disrupt-sc}
 }
 ```
