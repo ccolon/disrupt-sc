@@ -76,9 +76,8 @@ The `scope` argument identifies the case study:
 DisruptSC loads configuration in this order:
 
 1. `config/default.yaml` (shipped)
-2. `config/user_defined_<scope>.yaml` (optional, shipped for bundled demos only)
-3. `config/user_defined_<scope>.local.yaml` (optional, gitignored — your personal tweaks)
-4. Supported CLI overrides
+2. `config/user_defined_<scope>.local.yaml` (optional, gitignored — your personal tweaks)
+3. Supported CLI overrides
 
 File paths in the YAML are relative to the scope folder in the resolved data root.
 
