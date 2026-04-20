@@ -4,10 +4,13 @@ This comprehensive guide explains all input data files required by DisruptSC, th
 
 ## Data Organization
 
-All input data must be organized by scope (region/country):
+All input data must be organized by scope (region/country) inside the resolved
+data root. DisruptSC uses `DISRUPT_SC_DATA_PATH` when set. Otherwise,
+bundled `./examples/data/Testkistan` is used for `Testkistan`, and other
+scopes are loaded from `../disrupt-sc-data`.
 
 ```
-data/<scope>/               # e.g., data/Cambodia/
+<data-root>/<scope>/        # e.g., ../disrupt-sc-data/Cambodia/
 ├── Economic/               # Economic and sector data
 ├── Transport/              # Infrastructure networks  
 ├── Spatial/                # Geographic disaggregation

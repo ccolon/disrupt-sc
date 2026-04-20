@@ -1,4 +1,4 @@
-# Indicate the subfolder of the input folder that contains the input files
+# File paths are relative to the scope folder in the resolved data root.
 filepaths:
   "usd_per_ton": "Economic/sector_table.csv"
 transport_modes: [roads, maritime, waterways, airways]

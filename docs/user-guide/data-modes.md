@@ -24,7 +24,7 @@ firm_data_type: "mrio"
 
 #### Required Files
 ```
-data/<scope>/
+<data-root>/<scope>/
 ├── Economic/
 │   ├── mrio.csv            # Multi-regional input-output table
 │   └── sector_table.csv    # Sector definitions and parameters
@@ -148,7 +148,7 @@ firm_data_type: "supplier-buyer network"
 ### Additional Data Requirements
 
 ```
-data/<scope>/
+<data-root>/<scope>/
 ├── Economic/
 │   ├── mrio.csv            # Still required for households/countries
 │   ├── sector_table.csv    # Still required for sectors

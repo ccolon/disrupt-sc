@@ -46,10 +46,18 @@ git clone
 conda env create -f dsc-environment.yml
 conda activate dsc
 
-# Set up data (choose one option)
+# Set up data
 cd disrupt-sc
-mkdir input  # Option 1: create your set of input data
-git submodule add <data-repo-url> data     # Option 2: Git disrupt-sc-data submodule (invitation-only)
+
+# Optional full-data setup: clone the private data repo next to this repo
+cd ..
+git clone <data-repo-url> disrupt-sc-data
+cd disrupt-sc
+
+# Alternative custom location:
+# export DISRUPT_SC_DATA_PATH=/path/to/disrupt-sc-data
+
+# Without private data, the bundled examples/data/Testkistan dataset is available.
 
 # Validate inputs
 python validate_inputs.py Testkistan

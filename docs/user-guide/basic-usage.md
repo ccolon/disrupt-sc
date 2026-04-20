@@ -30,8 +30,12 @@ python disruptsc/main.py <region> --cache_isolation
 
 The `scope` argument specifies the region/case study:
 
-- Must match a data folder: `data/<scope>/` or `input/<scope>/`
-- Must have corresponding parameter file: `parameter/user_defined_<scope>.yaml`
+- Must match a folder under the resolved data root.
+- Must have corresponding parameter file: `config/parameters/user_defined_<scope>.yaml`.
+
+DisruptSC uses `DISRUPT_SC_DATA_PATH` when set. Otherwise, bundled
+`./examples/data/Testkistan` is used for `Testkistan`, and other scopes are
+loaded from `../disrupt-sc-data`.
 
 **Available scopes:**
 - `Cambodia` - Southeast Asian economy
@@ -475,7 +479,7 @@ cp -r output/Cambodia/latest/ results/cambodia_baseline_$(date +%Y%m%d)
     **Solution:** Check data path and file structure
     ```bash
     python validate_inputs.py Cambodia
-    ls -la data/Cambodia/Economic/
+    python -c "from disruptsc.paths import get_data_path; print(get_data_path('Cambodia'))"
     ```
 
 ### Debug Mode

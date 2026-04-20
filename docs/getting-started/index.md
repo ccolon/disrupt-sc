@@ -43,14 +43,13 @@ After completing the setup:
 
 ??? question "Data path not found"
     
-    Make sure your data path is correctly set:
+    Check the resolved data root and make sure the target scope exists:
     
     ```bash
-    # Check if environment variable is set
-    echo $DISRUPT_SC_DATA_PATH
+    python -c "from disruptsc.paths import get_data_root; print(get_data_root())"
     
-    # Or verify data folder exists
-    ls -la data/
+    # For full private datasets, the default sibling location is:
+    ls -la ../disrupt-sc-data
     ```
 
 ??? question "Import errors when running"

@@ -48,7 +48,7 @@ def load_config(scope: str, parameter_folder: Path = None) -> dict:
     # Resolve filepaths to absolute
     for key, val in config.get("filepaths", {}).items():
         if val and val != "None":
-            config["filepaths"][key] = paths.INPUT_FOLDER / scope / val
+            config["filepaths"][key] = paths.get_data_path(scope) / val
         else:
             config["filepaths"][key] = None
 

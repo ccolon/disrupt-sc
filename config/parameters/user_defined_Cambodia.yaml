@@ -1,4 +1,4 @@
-# Indicate the subfolder of the input folder that contains the input files
+# File paths are relative to the scope folder in the resolved data root.
 filepaths:
   roads_edges: "Transport/roads_edges_with_disruptions.geojson"
 transport_modes: [roads, maritime, waterways, railways]

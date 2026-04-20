@@ -10,8 +10,8 @@ prune input
 prune output
 prune parameter
 
-recursive-include input/Testkistan *
-include parameter/default.yaml
-include parameter/user_defined_Testkistan.yaml
+recursive-include examples/data/Testkistan *
+include config/parameters/default.yaml
+include config/parameters/user_defined_Testkistan.yaml
 include output/README.md
 include tmp/README.md

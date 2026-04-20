@@ -1,23 +1,18 @@
 import pathlib
 import sys
-import os
 #logger = logging.getLogger(__name__)
 
 ROOT_FOLDER = pathlib.Path(__file__).parent.parent.parent
+sys.path.insert(1, str(ROOT_FOLDER / "src"))
+
+from disruptsc import paths as _paths
+
 PARAMETER_FOLDER = ROOT_FOLDER / "config" / "parameters"
 OUTPUT_FOLDER = ROOT_FOLDER / "output"
 TMP_FOLDER = ROOT_FOLDER / "tmp"
-
-# Support configurable data path for repository separation
-DATA_PATH = os.environ.get('DISRUPT_SC_DATA_PATH')
-if DATA_PATH:
-    INPUT_FOLDER = pathlib.Path(DATA_PATH)
-elif (ROOT_FOLDER / "data").exists():
-    INPUT_FOLDER = ROOT_FOLDER / "data"  # Git submodule
-else:
-    INPUT_FOLDER = ROOT_FOLDER / "input"  # Fallback to current structure
-
-sys.path.insert(1, str(ROOT_FOLDER / "src"))
+INPUT_FOLDER = _paths.INPUT_FOLDER
+get_data_root = _paths.get_data_root
+get_data_path = _paths.get_data_path
 # if __file__ == "__main__":
 #     print(ROOT_FOLDER)
 

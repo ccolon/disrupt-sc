@@ -22,10 +22,17 @@ cd disrupt-sc
 conda env create -f dsc-environment.yml
 conda activate dsc
 
-# Setup data (choose one option)
-# OR mkdir input                                # Option 1: Local folder
-# OR git submodule add <data-repo-url> data     # Option 2: Git submodule (private repo, invitation-only)
+# Optional: clone the private data repo next to this repo for full datasets
+cd ..
+git clone <data-repo-url> disrupt-sc-data
+cd disrupt-sc
+
+# Alternative: point to any data folder explicitly
+# PowerShell: $env:DISRUPT_SC_DATA_PATH = "C:\path\to\disrupt-sc-data"
+# bash/zsh:   export DISRUPT_SC_DATA_PATH=/path/to/disrupt-sc-data
 ```
+
+The public repository includes bundled demo data for `Testkistan` in `examples/data/Testkistan`.
 
 ### Run Your First Simulation
 ```bash
