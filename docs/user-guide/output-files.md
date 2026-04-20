@@ -334,7 +334,8 @@ recovery_time,45,days,Time to 95% recovery
 
 ### Sensitivity Analysis (`sensitivity_*.csv`)
 
-Parameter sensitivity results from `disruption-sensitivity` simulations.
+Sensitivity output is not produced by the current v2 runtime. This section is
+kept as a legacy output reference.
 
 #### Structure
 ```csv
@@ -426,8 +427,8 @@ timestamp: "20241201_143022"
 io_cutoff: 0.01
 monetary_units_in_model: "mUSD"
 
-# Events applied
-events:
+# Disruptions applied
+disruptions:
   - type: "transport_disruption"
     start_time: 10
     duration: 20

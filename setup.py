@@ -43,4 +43,10 @@ setup(
         "PyYAML>=5.3.0,<7.0",
         "tqdm>=4.60.0,<5.0"
     ],
+    entry_points={
+        "console_scripts": [
+            "disruptsc=disruptsc.run:main",
+            "validate-inputs=disruptsc.validate_inputs:main",
+        ],
+    },
 )

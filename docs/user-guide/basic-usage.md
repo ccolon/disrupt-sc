@@ -1,498 +1,170 @@
 # Basic Usage
 
-This guide covers the command-line interface and basic usage patterns for DisruptSC.
+This guide covers the current v2 command-line interface.
 
 ## Command Line Interface
 
-The main entry point for DisruptSC is `disruptsc/main.py`:
+After installing the package with `pip install -e .`, run simulations with:
 
 ```bash
-python disruptsc/main.py <scope> [options]
+disruptsc <scope> [options]
 ```
 
-### Basic Syntax
+You can also run the module directly from the repository:
 
 ```bash
-# Basic usage
-python disruptsc/main.py <region>
-
-# With caching options  
-python disruptsc/main.py <region> --cache <cache_type>
-
-# With custom parameters
-python disruptsc/main.py <region> --duration 90 --io_cutoff 0.5
-
-# With cache isolation (for concurrent server runs)
-python disruptsc/main.py <region> --cache_isolation
+python -m disruptsc.run <scope> [options]
 ```
 
-### Scope Argument
-
-The `scope` argument specifies the region/case study:
-
-- Must match a folder under the resolved data root.
-- Must have corresponding parameter file: `config/parameters/user_defined_<scope>.yaml`.
-
-DisruptSC uses `DISRUPT_SC_DATA_PATH` when set. Otherwise, bundled
-`./examples/data/Testkistan` is used for `Testkistan`, and other scopes are
-loaded from `../disrupt-sc-data`.
-
-**Available scopes:**
-- `Cambodia` - Southeast Asian economy
-- `ECA` - Europe & Central Asia
-- `Ecuador` - South American economy  
-- `Global` - World economy
-- `Testkistan` - Synthetic test case
-
-### Command Options
-
-#### Caching Options
-
-| Option | Description | Use Case |
-|--------|-------------|----------|
-| `same_transport_network_new_agents` | Reuse transport network, rebuild agents | Testing agent parameters |
-| `same_agents_new_sc_network` | Reuse agents, rebuild supply chain | Testing supplier selection |
-| `same_sc_network_new_logistic_routes` | Reuse supply chain, rebuild logistics | Testing transport parameters |
-| `same_logistic_routes` | Reuse everything | Running different disruption scenarios |
-
-#### Parameter Overrides
+## Common Commands
 
 ```bash
-# Economic parameters
---io_cutoff 0.5                    # Input-output cutoff threshold
---cutoff_firm_output_value 1000000 # Minimum firm output (in model units)
---duration 90                      # Simulation duration (time steps)
+# Run the bundled demo dataset
+disruptsc Testkistan
 
-# Transport parameters  
---capacity_constraint true          # Enable transport capacity limits
---transport_to_households false     # Disable household transport modeling
+# Override the simulation type from the YAML configuration
+disruptsc Testkistan --simulation_type disruption
 
-# Performance parameters
---sectors_to_include "AGR,MAN"      # Only include specified sectors
---sectors_to_exclude "SER"          # Exclude specified sectors
+# Reuse cached components
+disruptsc Cambodia --cache same_transport_network_new_agents
+
+# Override selected runtime parameters
+disruptsc Cambodia --duration 90 --io_cutoff 0.5
+
+# Use a process-specific cache folder
+disruptsc Cambodia --cache_isolation
+
+# Show version and help
+disruptsc --version
+disruptsc Testkistan --help
 ```
 
-#### Utility Options
+## Scope Argument
 
-```bash
---version                          # Show version information
---help                            # Show help message
---verbose                         # Enable verbose output
---config path/to/config.yaml      # Use custom config file
---cache_isolation                 # Isolate cache directory per process (for server runs)
-```
+The `scope` argument identifies the case study:
 
-## Simulation Workflow
+- It must have a parameter file at `config/parameters/user_defined_<scope>.yaml`.
+- It must have a matching data folder under the resolved data location.
+- `Testkistan` is bundled at `examples/data/Testkistan`.
+- Other scopes are loaded from `DISRUPT_SC_DATA_PATH` when set, otherwise from `../disrupt-sc-data`.
 
-### Standard Workflow
+## Supported CLI Options
 
-```mermaid
-graph TD
-    A[1. Setup Transport Network] --> B[2. Setup Agents]
-    B --> C[3. Setup Supply Chain Network]
-    C --> D[4. Setup Logistic Routes]
-    D --> E[5. Initialize Economic Variables]
-    E --> F[6. Run Time Step 0]
-    F --> G[7. Run Disruption Scenario]
-```
+| Option | Description |
+|--------|-------------|
+| `--simulation_type` | Override YAML `simulation_type`. Choices: `initial_state`, `disruption`, `criticality`. |
+| `--cache` | Reuse cached initialization stages. |
+| `--duration` | Override `t_final`. |
+| `--io_cutoff` | Override the input-output cutoff. |
+| `--log_level` | Set logging level: `info` or `debug`. |
+| `--verbose` | Alias for `--log_level debug`. |
+| `--cache_isolation` | Use a process-private cache directory. |
+| `--open` | Generate and open the report after simulation. |
+| `--version` | Print the package version. |
 
-### Effect of Caching
+## Cache Presets
 
-The `--cache` option determines where the workflow starts:
-
-- **No cache**: Starts at step 1 (full rebuild)
-- **`same_transport_network_new_agents`**: Starts at step 2
-- **`same_agents_new_sc_network`**: Starts at step 3  
-- **`same_sc_network_new_logistic_routes`**: Starts at step 4
-- **`same_logistic_routes`**: Starts at step 5
-
-!!! tip "Development Workflow"
-    
-    Use caching to speed up development:
-    
-    ```bash
-    # Initial run (slow)
-    python disruptsc/main.py Cambodia
-    
-    # Test different agent parameters (faster)
-    python disruptsc/main.py Cambodia --cache same_transport_network_new_agents
-    
-    # Test different disruption scenarios (fastest)
-    python disruptsc/main.py Cambodia --cache same_logistic_routes
-    ```
+| Preset | Reused Components |
+|--------|-------------------|
+| `same_transport_network_new_agents` | Transport network only. |
+| `same_agents_new_sc_network` | Transport network and agents. |
+| `same_sc_network_new_logistic_routes` | Transport network, agents, and supply-chain network. |
+| `same_logistic_routes` | Transport network, agents, supply-chain network, and routes. |
 
 ## Configuration Files
 
-### Parameter Structure
+DisruptSC loads configuration in this order:
 
-DisruptSC uses a hierarchical configuration system:
+1. `config/parameters/default.yaml`
+2. `config/parameters/user_defined_<scope>.yaml`
+3. Supported CLI overrides
 
-1. **`parameter/default.yaml`** - Base parameters (don't edit)
-2. **`parameter/user_defined_<scope>.yaml`** - Scope-specific overrides
+File paths in the YAML are relative to the scope folder in the resolved data root.
 
-### Key Configuration Sections
+Example:
 
-#### Simulation Settings
 ```yaml
-simulation_type: "initial_state"  # or "disruption", "criticality", etc.
-t_final: 365                      # Simulation duration (days)
-time_resolution: "day"            # Time unit
-```
+simulation_type: "disruption"
+t_final: 12
+time_resolution: "week"
 
-#### Data Sources
-```yaml
-firm_data_type: "mrio"            # "mrio" or "supplier-buyer network"
-monetary_units_in_model: "mUSD"   # Model currency unit
-monetary_units_in_data: "USD"     # Data currency unit
-```
-
-#### Economic Parameters
-```yaml
-io_cutoff: 0.01                   # Input-output coefficient threshold
-cutoff_firm_output:
-  value: 1000000
-  unit: "USD"
-cutoff_sector_output:
-  value: 50000000  
-  unit: "USD"
-```
-
-#### Transport Settings
-```yaml
-with_transport: true              # Enable transport modeling
-capacity_constraint: false       # Enable capacity constraints
-transport_to_households: false   # Model household transport
-```
-
-#### File Paths
-```yaml
 filepaths:
+  transport: "Transport/transport.gpkg"
+  multimodal: "Transport/multimodal.gpkg"
   mrio: "Economic/mrio.csv"
   sector_table: "Economic/sector_table.csv"
   households_spatial: "Spatial/households.geojson"
-  # ... other file paths
+  firms_spatial: "Spatial/firms.geojson"
+  countries_spatial: "Spatial/countries.geojson"
 ```
 
 ## Simulation Types
 
-### Initial State Analysis
+### `initial_state`
 
-Analyze baseline equilibrium without disruptions:
+Runs the baseline model without applying a disruption scenario.
 
-```yaml
-simulation_type: "initial_state"
-```
+### `disruption`
 
-**Purpose:** Understand normal economic operations
-**Output:** Equilibrium flows, agent states, network utilization
-
-### Disruption Simulation
-
-Single disruption scenario:
+Runs a disruption scenario configured under `disruptions`:
 
 ```yaml
 simulation_type: "disruption"
-events:
+disruptions:
   - type: "transport_disruption"
-    # ... disruption configuration
+    description_type: "edge_attributes"
+    attribute: "name"
+    values: ["bridge_1", "road_42"]
+    start_time: 1
+    duration: 4
 ```
 
-**Purpose:** Analyze specific disruption impacts
-**Output:** Time series of economic impacts, recovery dynamics
+The legacy key `events` is accepted for backward compatibility, but new
+configuration should use `disruptions`.
 
-### Monte Carlo Analysis
+### `criticality`
 
-Multiple disruption realizations controlled by the `mc_repetitions` parameter:
-
-```yaml
-# Monte Carlo configuration in YAML
-mc_repetitions: 100               # Run 100 iterations
-simulation_type: "disruption"     # Base simulation type to repeat
-events:
-  - type: "transport_disruption"
-    # ... disruption configuration
-```
-
-**Monte Carlo Behavior:**
-- **`mc_repetitions = 0, False, or None`**: Single run with full output folder
-- **`mc_repetitions >= 1`**: Multiple runs with consolidated CSV results only
-
-**Purpose:** Statistical analysis of disruption impacts
-**Output:** Single CSV file with aggregated results across all iterations
-
-### Criticality Assessment
-
-Systematic infrastructure assessment:
+Runs infrastructure criticality scenarios configured under `criticality`:
 
 ```yaml
 simulation_type: "criticality"
 criticality:
-  duration: 30
-  # ... criticality configuration
+  duration: 4
+  scenarios:
+    - name: bridge_1
+      edges: ["bridge_1"]
 ```
 
-**Purpose:** Identify critical infrastructure links
-**Output:** Criticality rankings, vulnerability maps
+## Validation
 
-### Flow Calibration
+Use the lightweight validator to check that required configured files exist:
 
-Calibrate transport flows to observed data:
-
-```yaml
-simulation_type: "flow_calibration"
-# ... calibration configuration
-```
-
-**Purpose:** Match model outputs to empirical data
-**Output:** Calibrated parameters, goodness-of-fit metrics
-
-### Sensitivity Analysis
-
-Systematic parameter exploration across multiple parameter combinations:
-
-```yaml
-simulation_type: "disruption-sensitivity"
-sensitivity:
-  io_cutoff: [0.01, 0.1]
-  utilization: [0.8, 1.0]
-  inventory_duration_targets.values.transport: [1, 3, 5]
-```
-
-**Purpose:** Understand model sensitivity to parameter variations
-**Output:** CSV file with results for all parameter combinations
-
-**Configuration:**
-- **Parameter ranges:** List values for each parameter to vary
-- **Nested parameters:** Use dot notation for complex parameters
-- **Cartesian product:** All combinations automatically generated
-- **No caching:** Each combination rebuilds complete model
-
-**Example - 12 combinations (2×2×3):**
 ```bash
-python disruptsc/main.py Ecuador --simulation_type disruption-sensitivity
+validate-inputs Testkistan
+validate-inputs Cambodia
 ```
 
-**Output:** `sensitivity_TIMESTAMP.csv` with columns for each parameter plus final household/country losses
+## Output
 
-### Ad Hoc Analysis
+When `export_files: true`, results are written to:
 
-Systematic testing of sector or geographic vulnerability:
-
-#### Sector Analysis
-```yaml
-simulation_type: "ad_hoc_sectors"
-```
-
-**Purpose:** Test disruption impact on each sector individually
-**Output:** Comparative sector vulnerability assessment
-
-#### Geographic Analysis
-```yaml
-simulation_type: "ad_hoc_provinces"  # or "ad_hoc_cantons"
-```
-
-**Purpose:** Test disruption impact on each geographic region individually
-**Output:** Spatial vulnerability mapping
-
-#### Combined Analysis
-```yaml
-simulation_type: "ad_hoc_province_sectors"  # or "ad_hoc_canton_sectors"
-```
-
-**Purpose:** Test disruption impact on all (region, sector) combinations
-**Output:** Detailed spatial-sectoral vulnerability matrix
-
-### Stationary Test
-
-Model stability and equilibrium validation:
-
-```yaml
-simulation_type: "stationary_test"
-```
-
-**Purpose:** Verify model reaches stable equilibrium without disruptions
-**Output:** Equilibrium validation metrics and convergence analysis
-
-## Data Modes
-
-DisruptSC supports two data input modes:
-
-### MRIO Mode (Default)
-
-```yaml
-firm_data_type: "mrio"  # or omit parameter
-```
-
-**Data Requirements:**
-- Multi-Regional Input-Output table (`Economic/mrio.csv`)
-- Sector definitions (`Economic/sector_table.csv`)
-- Spatial disaggregation files (`Spatial/*.geojson`)
-
-**Generated:**
-- Firms from MRIO output data
-- Households from MRIO final demand
-- Countries from MRIO trade flows
-- Supply chains from technical coefficients
-
-### Supplier-Buyer Network Mode
-
-```yaml
-firm_data_type: "supplier-buyer network"
-```
-
-**Additional Requirements:**
-- Firm data (`Economic/firm_table.csv`)
-- Location data (`Economic/location_table.csv`)  
-- Transaction data (`Economic/transaction_table.csv`)
-
-**Use Case:** When you have detailed firm-level transaction data
-
-!!! info "Mode Selection"
-    
-    **Use MRIO mode when:**
-    - You have standard economic accounts data
-    - Working at regional/national scale
-    - Need comprehensive coverage
-    
-    **Use supplier-buyer mode when:**
-    - You have detailed firm transaction data
-    - Studying specific supply chains
-    - Need micro-level accuracy
-
-## Output Management
-
-### Output Structure
-
-Results are saved to timestamped folders:
-
-```
+```text
 output/<scope>/<timestamp>/
-├── firm_data.json           # Firm state time series
-├── household_data.json      # Household data
-├── country_data.json        # Country trade data
-├── firm_table.geojson       # Firm locations and attributes
-├── household_table.geojson  # Household locations
-├── transport_edges_with_flows_0.geojson  # Transport flows
-├── sc_network_edgelist.csv  # Supply chain network
-├── parameters.yaml          # Run configuration
-└── exp.log                  # Execution log
 ```
 
-### Key Output Files
+Typical exported files include:
 
-#### Time Series Data
-- **`*_data.json`** - Agent state evolution over time
-- **`flow_df_*.csv`** - Transport flow data by time step
-- **`loss_*.csv`** - Economic loss metrics
+- `parameters.yaml`
+- `firm_table.geojson`
+- `household_table.geojson`
+- `transport_edges_with_flows_*.geojson`
+- `summary.csv`
+- `exp.log`
 
-#### Spatial Data  
-- **`*_table.geojson`** - Agent locations with attributes
-- **`transport_edges_with_flows_*.geojson`** - Network flows for visualization
-
-#### Network Data
-- **`sc_network_edgelist.csv`** - Supply chain relationships
-- **`io_table.csv`** - Input-output flows
-
-#### Metadata
-- **`parameters.yaml`** - Complete configuration snapshot
-- **`exp.log`** - Detailed execution log with timing and debug info
-
-### Result Analysis
-
-Basic result exploration:
-
-```python
-import json
-import pandas as pd
-import geopandas as gpd
-
-# Load time series data
-with open('firm_data.json', 'r') as f:
-    firm_data = json.load(f)
-
-# Load spatial results
-firms = gpd.read_file('firm_table.geojson')
-flows = gpd.read_file('transport_edges_with_flows_0.geojson')
-
-# Analyze production losses
-production_loss = pd.DataFrame(firm_data['production']).diff(axis=1)
-total_loss = production_loss.sum().sum()
-print(f"Total production loss: {total_loss:.2f}")
-```
-
-## Best Practices
-
-### Development Workflow
-
-1. **Start small** - Test with `Testkistan` first
-2. **Use caching** - Speed up iterative development
-3. **Validate inputs** - Always run validation before long simulations
-4. **Monitor logs** - Check `exp.log` for issues
-5. **Save configurations** - Version control your parameter files
-
-### Performance Optimization
+## Practical Workflow
 
 ```bash
-# Use firm filtering for large models
-python disruptsc/main.py Cambodia --cutoff_firm_output_value 5000000
-
-# Exclude service sectors if not needed
-python disruptsc/main.py Cambodia --sectors_to_exclude "SER,TRA"
-
-# Disable household transport for faster runs
-python disruptsc/main.py Cambodia --transport_to_households false
-```
-
-### Production Runs
-
-```bash
-# Full validation before production
-python validate_inputs.py Cambodia
-
-# Production run with full logging
-python disruptsc/main.py Cambodia --verbose > production.log 2>&1
-
-# Archive results with metadata
-cp -r output/Cambodia/latest/ results/cambodia_baseline_$(date +%Y%m%d)
-```
-
-## Troubleshooting
-
-### Common Issues
-
-!!! failure "Memory errors"
-    
-    **Solution:** Reduce model size or increase system memory
-    ```bash
-    python disruptsc/main.py Cambodia --cutoff_firm_output_value 10000000
-    ```
-
-!!! failure "Long initialization times"
-    
-    **Solution:** Use caching for repeated runs
-    ```bash
-    python disruptsc/main.py Cambodia --cache same_transport_network_new_agents
-    ```
-
-!!! failure "Missing data files"
-    
-    **Solution:** Check data path and file structure
-    ```bash
-    python validate_inputs.py Cambodia
-    python -c "from disruptsc.paths import get_data_path; print(get_data_path('Cambodia'))"
-    ```
-
-### Debug Mode
-
-For detailed debugging:
-
-```bash
-# Enable verbose logging
-python disruptsc/main.py Cambodia --verbose
-
-# Check execution log
-tail -f output/Cambodia/latest/exp.log
-
-# Validate data first
-python validate_inputs.py Cambodia --verbose
+validate-inputs Testkistan
+disruptsc Testkistan
+disruptsc Testkistan --simulation_type disruption --duration 12
 ```

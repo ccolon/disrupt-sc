@@ -36,14 +36,14 @@ The public repository includes bundled demo data for `Testkistan` in `examples/d
 
 ### Run Your First Simulation
 ```bash
-# Validate your input data first
-python validate_inputs.py Cambodia
+# Validate bundled demo data first
+validate-inputs Testkistan
 
 # Run baseline simulation
-python disruptsc/main.py Cambodia
+disruptsc Testkistan
 
 # Run disruption scenario
-python disruptsc/main.py Cambodia --simulation_type disruption
+disruptsc Testkistan --simulation_type disruption
 ```
 
 ## Documentation

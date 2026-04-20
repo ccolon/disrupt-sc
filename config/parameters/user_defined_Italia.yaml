@@ -17,7 +17,7 @@ export_files: False
 firm_data_type: "mrio"
 #disruption_description:
 #  type: compound
-#  events:
+#  disruptions:
 #    - item_type: transport_edges
 #      attribute: id
 #      values: [465]

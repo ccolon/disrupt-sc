@@ -84,7 +84,7 @@ Input data must be organized by scope inside the resolved data root:
 <data-root>/
 +-- <scope>/                  # e.g. Cambodia, Ecuador, Testkistan
     +-- Economic/             # MRIO tables, sector definitions, firm data
-    +-- Transport/            # Infrastructure GeoJSON files
+    +-- Transport/            # Infrastructure GeoPackage files
     +-- Spatial/              # Geographic disaggregation files
     +-- Disruption/           # Optional scenario files
 ```
@@ -112,7 +112,7 @@ config/parameters/user_defined_Cambodia.yaml
 
 - `Economic/mrio.csv` - Input-output table.
 - `Economic/sector_table.csv` - Sector definitions.
-- `Transport/roads_edges.geojson` - Road network.
+- `Transport/transport.gpkg` - Transport network GeoPackage.
 - `Spatial/households.geojson` - Household locations.
 
 ### Transport Networks

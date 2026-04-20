@@ -54,8 +54,8 @@ Repository = "https://github.com/ccolon/disruptsc.git"
 Issues = "https://github.com/ccolon/disruptsc/issues"
 
 [project.scripts]
-disruptsc = "disruptsc.main:main"
-validate-inputs = "disruptsc.model.input_validation:main"
+disruptsc = "disruptsc.run:main"
+validate-inputs = "disruptsc.validate_inputs:main"
 
 [project.optional-dependencies]
 dev = [

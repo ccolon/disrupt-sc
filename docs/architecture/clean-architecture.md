@@ -314,7 +314,7 @@ class CompositeAnalyzer(Analyzer):
 ### Standard Simulation Pipeline
 The most common usage through the factory:
 ```python
-from disruptsc.simulation.factory import ExecutorFactory
+from disruptsc.run import main
 
 # Create appropriate executor for simulation type
 executor = ExecutorFactory.create_executor('disruption', model, parameters)
@@ -395,7 +395,7 @@ class ExecutorFactory:
 - `destruction_sectors` - Sector-based destruction analysis
 - `destruction_provinces` - Geographic destruction analysis
 - `criticality` - Infrastructure criticality assessment
-- `disruption-sensitivity` - Parameter sensitivity analysis
+- `criticality` - Infrastructure criticality analysis
 
 ## Migration from Legacy Architecture
 

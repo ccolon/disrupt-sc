@@ -8,21 +8,19 @@ DisruptSC is designed to be flexible and configurable for different use cases. T
 
 - **[Basic Usage](basic-usage.md)** - Command-line interface and simulation types
 - **[Parameters](parameters.md)** - Configuration options and settings
-- **[Data Modes](data-modes.md)** - MRIO vs Supplier-Buyer network approaches
+- **[Data Modes](data-modes.md)** - Current MRIO data mode
 - **[Input Data](input-data.md)** - Required data files and formats
 - **[Output Files](output-files.md)** - Understanding and interpreting results
 
 ## Simulation Types
 
-DisruptSC supports several simulation modes:
+The current v2 runtime supports these simulation modes:
 
 | Type | Purpose | Use Case |
 |------|---------|----------|
 | `initial_state` | Baseline equilibrium | Understand normal operations |
 | `disruption` | Single disruption scenario | Analyze specific events |
-| `disruption_mc` | Monte Carlo analysis | Statistical robustness |
 | `criticality` | Infrastructure assessment | Identify critical links |
-| `flow_calibration` | Transport calibration | Match observed data |
 
 ## Configuration Workflow
 

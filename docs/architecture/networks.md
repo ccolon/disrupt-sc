@@ -145,7 +145,7 @@ def select_suppliers(self, buyer, candidates, total_demand):
 
 #### Network-Based Formation
 
-For supplier-buyer network mode, relationships are explicitly defined:
+For a future transaction-based network mode, relationships would be explicitly defined:
 
 ```python
 def create_network_supply_chains(self, transaction_table):

@@ -44,6 +44,9 @@ def load_config(scope: str, parameter_folder: Path = None) -> dict:
         logging.info(f"No user-defined parameter file for {scope}, using defaults")
 
     config["scope"] = scope
+    if config.get("events") and not config.get("disruptions"):
+        logging.warning("'events' is deprecated; use 'disruptions' instead.")
+        config["disruptions"] = config["events"]
 
     # Resolve filepaths to absolute
     for key, val in config.get("filepaths", {}).items():
