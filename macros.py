@@ -2,39 +2,29 @@
 MkDocs macros to inject version and other dynamic content.
 """
 
-import os
-import sys
 from pathlib import Path
 
 def define_env(env):
     """
     Define variables and macros for MkDocs.
+
+    The version is always read from src/disruptsc/_version.py.
+    We deliberately do not catch failures here: if the version can't be
+    resolved, the docs build should fail loudly rather than silently
+    ship a stale hardcoded fallback (as happened before v2).
     """
-    # Try multiple ways to get the version
-    version_value = "1.1.6"  # Fallback default
-    
-    try:
-        # Method 1: Try to import from source
-        current_dir = Path(__file__).parent
-        src_dir = current_dir / "src"
-        
-        if src_dir.exists():
-            sys.path.insert(0, str(src_dir))
-            from disruptsc._version import __version__
-            version_value = __version__
-    except Exception:
-        try:
-            # Method 2: Try to read the version file directly
-            version_file = Path(__file__).parent / "src" / "disruptsc" / "_version.py"
-            if version_file.exists():
-                version_content = version_file.read_text()
-                for line in version_content.split('\n'):
-                    if line.strip().startswith('__version__'):
-                        version_value = line.split('=')[1].strip().strip('"').strip("'")
-                        break
-        except Exception:
-            pass  # Use fallback
-    
+    version_file = Path(__file__).parent / "src" / "disruptsc" / "_version.py"
+    version_content = version_file.read_text()
+    version_value = None
+    for line in version_content.split('\n'):
+        if line.strip().startswith('__version__'):
+            version_value = line.split('=')[1].strip().strip('"').strip("'")
+            break
+    if not version_value:
+        raise RuntimeError(
+            f"Could not parse __version__ from {version_file}"
+        )
+
     # Set as simple variable instead of function
     env.variables['version'] = version_value
     
