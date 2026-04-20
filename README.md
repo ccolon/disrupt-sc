@@ -63,13 +63,15 @@ export DISRUPT_SC_DATA_PATH=/path/to/disrupt-sc-data
 
 Resolution order: `DISRUPT_SC_DATA_PATH` → sibling `../disrupt-sc-data` → bundled `examples/data/`.
 
+You also need a scope parameter file. Only the bundled `Testkistan` scope ships with one (`config/user_defined_Testkistan.yaml`). For any other scope, create a gitignored personal file `config/user_defined_<scope>.local.yaml` with the paths and options for your data folder.
+
 ## What's in v2
 
 - **Pipeline architecture.** The monolithic `Model` class and `Parameters` loader are gone. Initialization (`init_pipeline/`) and execution (`run_pipeline/`) are organized as explicit stages — easier to cache, resume, and reason about.
 - **Frozen, typed parameter bundles.** `TransportParams`, `SimParams`, `AgentParams`, `LogisticsParams` dataclasses replace the v1 `Parameters` object. Config loading is a flat `dict` + dataclass build step.
 - **Unified transport graph.** Transport data is now consumed from `transport.gpkg` + `multimodal.gpkg` rather than one GeoJSON per mode.
 - **Alternative routing + capacity-aware costs.** Rerouting under disruption, price-increase thresholds, LP-based flow assignment, capacity constraints.
-- **Local config overrides.** Drop a `user_defined_<scope>.local.yaml` next to the scope file for personal tweaks; it's gitignored and overlays the committed scope file.
+- **Local-first config.** Only `Testkistan`'s scope YAML ships with the repo. For any other scope, drop a gitignored `config/user_defined_<scope>.local.yaml` pointing at your own data folder — the model picks it up automatically.
 - **Bundled demo data.** No submodule required to run the model out of the box.
 
 See [MIGRATION.md](MIGRATION.md) for the full list of changes from v1.

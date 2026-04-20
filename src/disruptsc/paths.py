@@ -4,7 +4,7 @@ import os
 #logger = logging.getLogger(__name__)
 
 ROOT_FOLDER = pathlib.Path(__file__).parent.parent.parent
-PARAMETER_FOLDER = ROOT_FOLDER / "config" / "parameters"
+PARAMETER_FOLDER = ROOT_FOLDER / "config"
 OUTPUT_FOLDER = ROOT_FOLDER / "output"
 TMP_FOLDER = ROOT_FOLDER / "tmp"
 

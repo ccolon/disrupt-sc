@@ -11,7 +11,7 @@ prune output
 prune parameter
 
 recursive-include examples/data/Testkistan *
-include config/parameters/default.yaml
-include config/parameters/user_defined_Testkistan.yaml
+include config/default.yaml
+include config/user_defined_Testkistan.yaml
 include output/README.md
 include tmp/README.md

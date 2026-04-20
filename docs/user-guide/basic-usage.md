@@ -43,7 +43,7 @@ disruptsc Testkistan --help
 
 The `scope` argument identifies the case study:
 
-- It must have a parameter file at `config/parameters/user_defined_<scope>.yaml`.
+- It must have a parameter file at `config/user_defined_<scope>.yaml` or `config/user_defined_<scope>.local.yaml`.
 - It must have a matching data folder under the resolved data location.
 - `Testkistan` is bundled at `examples/data/Testkistan`.
 - Other scopes are loaded from `DISRUPT_SC_DATA_PATH` when set, otherwise from `../disrupt-sc-data`.
@@ -75,9 +75,10 @@ The `scope` argument identifies the case study:
 
 DisruptSC loads configuration in this order:
 
-1. `config/parameters/default.yaml`
-2. `config/parameters/user_defined_<scope>.yaml`
-3. Supported CLI overrides
+1. `config/default.yaml` (shipped)
+2. `config/user_defined_<scope>.yaml` (optional, shipped for bundled demos only)
+3. `config/user_defined_<scope>.local.yaml` (optional, gitignored — your personal tweaks)
+4. Supported CLI overrides
 
 File paths in the YAML are relative to the scope folder in the resolved data root.
 

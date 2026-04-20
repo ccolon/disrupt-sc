@@ -90,20 +90,26 @@ Input data must be organized by scope inside the resolved data root:
 ```
 
 The exact filenames are configured in
-`config/parameters/user_defined_<scope>.yaml` under `filepaths`.
+`config/user_defined_<scope>.yaml` (or `config/user_defined_<scope>.local.yaml`
+for an untracked personal version) under `filepaths`.
 
 ## Scope Configuration
 
 Each runnable scope needs:
 
 1. A data folder at `<data-root>/<scope>/`.
-2. A parameter file at `config/parameters/user_defined_<scope>.yaml`.
+2. A parameter file at `config/user_defined_<scope>.yaml` (committed) or
+   `config/user_defined_<scope>.local.yaml` (gitignored, for personal tweaks).
+
+Only the bundled `Testkistan` scope ships with a committed parameter file. For
+any other scope you are expected to create a `.local.yaml` file pointing at
+your own data folder.
 
 For example, with the sibling data repository:
 
 ```text
 ../disrupt-sc-data/Cambodia/
-config/parameters/user_defined_Cambodia.yaml
+config/user_defined_Cambodia.local.yaml
 ```
 
 ## File Requirements
