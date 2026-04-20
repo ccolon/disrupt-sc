@@ -128,6 +128,7 @@ extra_javascript:
 # Navigation
 nav:
   - Home: index.md
+  - Hormuz Updates: hormuz.md
   - Getting Started:
     - getting-started/index.md
     - Installation: getting-started/installation.md
