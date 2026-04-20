@@ -141,7 +141,7 @@ nav:
     - Data Modes: user-guide/data-modes.md
     - Input Data: user-guide/input-data.md
     - Output Files: user-guide/output-files.md
-    - Tutorials: user-guide/tutorials.md
+    - Tutorial: user-guide/tutorial.md
   - Use Cases:
     - applications/index.md
   - Research & Policy:

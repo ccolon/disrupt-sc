@@ -19,7 +19,7 @@ firm_data_type: "mrio"
 disruption_description: None
 #disruption_description:
 #  type: compound
-#  events:
+#  disruptions:
 #    - item_type: transport_edges
 #      attribute: id
 #      values: [465]

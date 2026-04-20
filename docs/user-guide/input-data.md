@@ -124,9 +124,10 @@ SER_KHM,service,3000000,600000,0,0.10,ser_emp,2000000
     - Use UN COMTRADE data for realistic values
     - Typical ranges: 500-5000 USD/ton for most goods
 
-### Firm-Level Data (Network Mode Only)
+### Firm-Level Data (Future Transaction Mode)
 
-Required only when using `firm_data_type: "supplier-buyer network"`.
+The current v2 runtime does not implement transaction-based firm creation.
+These files are documented as a future data mode, not as active v2 inputs.
 
 #### Firm Table (`Economic/firm_table.csv`)
 
@@ -166,13 +167,16 @@ supplier_id,buyer_id,product_sector,transaction,is_essential
 
 ## Transport Networks
 
-All transport files must be GeoJSON with **LineString** geometry.
+The current v2 runtime loads transport data from a GeoPackage configured as
+`filepaths.transport`, usually `Transport/transport.gpkg`. The GeoPackage should
+contain one layer per transport mode, with layer names matching
+`transport_modes` such as `roads`, `maritime`, or `railways`.
 
 ### Required Files
 
-#### Roads (`Transport/roads_edges.geojson`)
+#### Transport GeoPackage (`Transport/transport.gpkg`)
 
-Primary transport network for domestic movements.
+Primary transport network file for the scope.
 
 ```json
 {
@@ -195,7 +199,7 @@ Primary transport network for domestic movements.
 - `length_km` - Length in kilometers
 - Optional: `max_speed`, `capacity`, `surface_type`
 
-#### Maritime (`Transport/maritime_edges.geojson`)
+#### Maritime Layer
 
 International shipping and ferry routes.
 
@@ -403,11 +407,11 @@ Specify transport disruptions using edge attributes:
 
 ```yaml
 # In parameter file
-events:
+disruptions:
   - type: "transport_disruption"
     description_type: "edge_attributes"
     attribute: "highway"
-    value: ["primary", "trunk"]
+    values: ["primary", "trunk"]
     start_time: 10
     duration: 20
 ```
@@ -495,10 +499,10 @@ assert pd.api.types.is_numeric_dtype(data['output']), "Output must be numeric"
 
 ### Automated Validation
 
-Run comprehensive validation before simulations:
+Run lightweight file-existence validation before simulations:
 
 ```bash
-python validate_inputs.py Cambodia --comprehensive
+validate-inputs Cambodia
 ```
 
 ### Manual Checks
@@ -567,7 +571,7 @@ python validate_inputs.py Cambodia --comprehensive
 
 ### Performance Optimization
 
-1. **File sizes** - Keep GeoJSON files under 50MB when possible
+1. **File sizes** - Keep spatial layers reasonably small when possible
 2. **Precision** - Round coordinates to appropriate precision (5-6 decimal places)
 3. **Compression** - Use gzip for large CSV files
 4. **Indexing** - Ensure proper indexing for database files

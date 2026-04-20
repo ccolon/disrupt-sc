@@ -26,6 +26,7 @@ from disruptsc.init_pipeline.supply_chain import build_supply_chain_network
 from disruptsc.init_pipeline.routing import setup_logistic_routes
 
 from disruptsc.run_pipeline.cache import (
+    setup_cache_isolation,
     parse_cache_arg,
     cache_transport_network, load_cached_transport_network,
     cache_agents, load_cached_agents,
@@ -53,17 +54,20 @@ def main():
     setup_logging(args.log_level)
     logging.info(f"DisruptSC v2 — scope={scope}")
 
-    # Load config + build params
+    # Load config, apply CLI overrides, then build params.
     config = load_config(scope)
+    if args.simulation_type:
+        config["simulation_type"] = args.simulation_type
+    if args.duration is not None:
+        config["t_final"] = args.duration
+    if args.io_cutoff is not None:
+        config["io_cutoff"] = args.io_cutoff
+
     tp, sp, ap, lp = build_params(config)
     cache_flags = parse_cache_arg(args.cache)
+    if args.cache_isolation:
+        setup_cache_isolation(scope)
     export_folder = setup_output(config, sp)
-
-    # Override t_final / io_cutoff from CLI if given
-    if args.duration:
-        sp = _replace_frozen(sp, t_final=args.duration)
-    if args.io_cutoff is not None:
-        ap = _replace_frozen(ap, io_cutoff=args.io_cutoff)
 
     filepaths = config.get("filepaths", {})
     transport_modes = config.get("transport_modes", ["roads"])
@@ -472,20 +476,30 @@ def _replace_frozen(dc, **overrides):
 
 
 def _parse_args():
+    from disruptsc._version import __version__
+
     parser = argparse.ArgumentParser(description="DisruptSC v2")
     parser.add_argument("scope", help="Region scope (e.g. ECA, Gulf, Armenia)")
     parser.add_argument("--cache", default=None,
                         help="Cache preset (same_transport_network_new_agents, etc.)")
+    parser.add_argument("--simulation_type", choices=["initial_state", "disruption", "criticality"],
+                        help="Override simulation_type from the YAML configuration")
     parser.add_argument("--duration", type=int, default=None,
                         help="Override t_final")
     parser.add_argument("--io_cutoff", type=float, default=None,
                         help="Override IO cutoff")
     parser.add_argument("--log_level", default="info", choices=["info", "debug"])
+    parser.add_argument("--verbose", action="store_true",
+                        help="Alias for --log_level debug")
     parser.add_argument("--cache_isolation", action="store_true",
                         help="Isolate cache per process")
     parser.add_argument("--open", action="store_true",
                         help="Generate report and open it in browser after simulation")
-    return parser.parse_args()
+    parser.add_argument("--version", action="version", version=f"DisruptSC {__version__}")
+    args = parser.parse_args()
+    if args.verbose:
+        args.log_level = "debug"
+    return args
 
 
 if __name__ == "__main__":

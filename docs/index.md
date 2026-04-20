@@ -40,15 +40,14 @@ DisruptSC is a **spatial agent-based model** for simulating supply chain disrupt
 
 ```bash
 # Clone repo
-git clone 
+git clone https://github.com/ccolon/disrupt-sc.git
+cd disrupt-sc
 
 # Install dependencies
 conda env create -f dsc-environment.yml
 conda activate dsc
 
 # Set up data
-cd disrupt-sc
-
 # Optional full-data setup: clone the private data repo next to this repo
 cd ..
 git clone <data-repo-url> disrupt-sc-data
@@ -60,10 +59,10 @@ cd disrupt-sc
 # Without private data, the bundled examples/data/Testkistan dataset is available.
 
 # Validate inputs
-python validate_inputs.py Testkistan
+validate-inputs Testkistan
 
 # Run a simulation
-python disruptsc/main.py Testkistan
+disruptsc Testkistan
 ```
 
 ## Use Cases
