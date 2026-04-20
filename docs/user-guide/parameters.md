@@ -1,12 +1,13 @@
 # Parameters
 
-DisruptSC v2 uses YAML configuration files in `config/parameters/`.
+DisruptSC v2 uses YAML configuration files in `config/`.
 
 ## Load Order
 
-1. `config/parameters/default.yaml`
-2. `config/parameters/user_defined_<scope>.yaml`
-3. Supported CLI overrides
+1. `config/default.yaml` (shipped)
+2. `config/user_defined_<scope>.yaml` (optional, shipped for bundled demos only)
+3. `config/user_defined_<scope>.local.yaml` (optional, gitignored — your personal tweaks)
+4. Supported CLI overrides
 
 Supported CLI overrides are:
 

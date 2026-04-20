@@ -28,29 +28,34 @@ def _merge_dicts(base: dict, overrides: dict):
 
 
 def load_config(scope: str, parameter_folder: Path = None) -> dict:
-    """Load default.yaml, overlay user_defined_<scope>.yaml, return flat dict."""
+    """Load default.yaml, overlay user_defined_<scope>.yaml then .local.yaml.
+
+    Both the shared and the local file are optional. The shared file
+    (``user_defined_<scope>.yaml``) is committed; the local file
+    (``user_defined_<scope>.local.yaml``) is gitignored and overlays the
+    shared one. If neither exists, only defaults are used.
+    """
     parameter_folder = parameter_folder or paths.PARAMETER_FOLDER
 
     with open(parameter_folder / "default.yaml", "r") as f:
         config = yaml.safe_load(f)
 
     user_file = parameter_folder / f"user_defined_{scope}.yaml"
-    if os.path.exists(user_file):
-        logging.info(f"User-defined parameter file found for {scope}")
-        with open(user_file, "r") as f:
-            overrides = yaml.safe_load(f)
-        _merge_dicts(config, overrides)
-    else:
-        logging.info(f"No user-defined parameter file for {scope}, using defaults")
-
-    # Local-only overrides (gitignored), applied on top of user_defined_<scope>.yaml
     local_file = parameter_folder / f"user_defined_{scope}.local.yaml"
-    if os.path.exists(local_file):
-        logging.info(f"Local parameter overrides found for {scope}")
-        with open(local_file, "r") as f:
-            local_overrides = yaml.safe_load(f)
-        if local_overrides:
-            _merge_dicts(config, local_overrides)
+
+    for candidate, label in ((user_file, "user-defined"),
+                              (local_file, "local override")):
+        if os.path.exists(candidate):
+            logging.info(f"Loading {label} parameters for {scope}: {candidate.name}")
+            with open(candidate, "r") as f:
+                overrides = yaml.safe_load(f)
+            if overrides:
+                _merge_dicts(config, overrides)
+
+    if not user_file.exists() and not local_file.exists():
+        logging.info(
+            f"No user-defined or local parameter file for {scope}; using defaults"
+        )
 
     config["scope"] = scope
     if config.get("events") and not config.get("disruptions"):

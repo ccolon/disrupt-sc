@@ -92,9 +92,17 @@ The GeoPackages carry per-mode layers internally. v1 per-mode GeoJSONs are no lo
 
 - `events` is still read but deprecated in favor of `disruptions`. v2 logs a warning and maps `events` → `disruptions`.
 
-### Local overrides (new)
+### Parameter folder flattened
 
-v2 reads `user_defined_<scope>.local.yaml` on top of the committed scope file. The local file is gitignored. Use it for personal tweaks (short `t_final`, local `DISRUPT_SC_DATA_PATH`, etc.) without modifying the shared config.
+Parameter files moved up one level: `config/parameters/*.yaml` → `config/*.yaml`.
+
+### Scope parameter files no longer shipped (except Testkistan)
+
+v1 shipped `user_defined_<scope>.yaml` for ECA, Ecuador, Gulf, Cambodia, Armenia, Italia, Global2, GulfTest. v2 ships only `config/user_defined_Testkistan.yaml` (for the bundled demo). Recreate your scope file locally as `config/user_defined_<scope>.local.yaml` (gitignored) — the loader reads `.local.yaml` on its own, no shared file required.
+
+### Local overrides
+
+v2 reads both `config/user_defined_<scope>.yaml` (committed) and `config/user_defined_<scope>.local.yaml` (gitignored). Either or both may be present; `.local.yaml` is layered on top. Use `.local.yaml` for personal tweaks (short `t_final`, local `DISRUPT_SC_DATA_PATH`, scenario parameters) without modifying shared config.
 
 ---
 
@@ -122,6 +130,7 @@ No breaking changes. `mc_repetitions`, `simulation_type` (`initial_state`, `disr
 4. Rewrite your scope's `filepaths` block to use `transport.gpkg` + `multimodal.gpkg` (or re-run against a freshly prepared data folder).
 5. Update any direct Python imports per the table above.
 6. Scan your scope YAML for `io_cutoff`, `events` → `disruptions`, and removed `shipment_methods_to_transport_modes` keys.
-7. `validate-inputs <scope>` to confirm the config is still readable.
+7. Move your scope file from `config/parameters/` to `config/`, and rename to `user_defined_<scope>.local.yaml` (unless it's Testkistan).
+8. `validate-inputs <scope>` to confirm the config is still readable.
 
 If you hit something not covered here, open an issue; cite the v1 commit or behavior you're comparing against.

@@ -24,7 +24,7 @@ disruptsc Testkistan
 ```
 
 The default `Testkistan` configuration runs the simulation type configured in
-`config/parameters/user_defined_Testkistan.yaml`.
+`config/user_defined_Testkistan.yaml`.
 
 ## 3. Override Runtime Options
 

@@ -36,8 +36,9 @@ The validator currently checks these required filepaths:
 These keys are configured under `filepaths` in:
 
 ```text
-config/parameters/default.yaml
-config/parameters/user_defined_<scope>.yaml
+config/default.yaml
+config/user_defined_<scope>.yaml
+config/user_defined_<scope>.local.yaml
 ```
 
 ## Data Path Problems
