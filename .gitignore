@@ -11,6 +11,9 @@ input/*
 # Local-only scratch files and scripts
 /local/
 
+# Local parameter overrides (not tracked)
+*.local.yaml
+
 # Claude
 .claude
 CLAUDE.md

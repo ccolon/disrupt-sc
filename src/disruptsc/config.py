@@ -43,6 +43,15 @@ def load_config(scope: str, parameter_folder: Path = None) -> dict:
     else:
         logging.info(f"No user-defined parameter file for {scope}, using defaults")
 
+    # Local-only overrides (gitignored), applied on top of user_defined_<scope>.yaml
+    local_file = parameter_folder / f"user_defined_{scope}.local.yaml"
+    if os.path.exists(local_file):
+        logging.info(f"Local parameter overrides found for {scope}")
+        with open(local_file, "r") as f:
+            local_overrides = yaml.safe_load(f)
+        if local_overrides:
+            _merge_dicts(config, local_overrides)
+
     config["scope"] = scope
     if config.get("events") and not config.get("disruptions"):
         logging.warning("'events' is deprecated; use 'disruptions' instead.")
