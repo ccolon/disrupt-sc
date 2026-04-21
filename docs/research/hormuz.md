@@ -7,7 +7,7 @@
 !!! note "Preliminary research"
     This brief is based on ongoing research that has **not** yet been peer-reviewed. It presents preliminary analytical insights rather than final published results. Critical feedback is welcome.
  
-[:material-file-pdf-box: **Download full brief (PDF)**](assets/CC_Hormuz_v1_2.pdf){ .md-button .md-button--primary }
+[:material-file-pdf-box: **Download full brief (PDF)**](assets/CC_Hormuz_v1.2.pdf){ .md-button .md-button--primary }
  
 ---
  
