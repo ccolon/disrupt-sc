@@ -319,12 +319,13 @@ class Mrio(pd.DataFrame):
         unbalanced = inp[inp > output].index.tolist()
         if unbalanced:
             logging.warning(f"{len(unbalanced)} region_sectors with input > output, adjusting export")
-            for rs in unbalanced:
-                export_cols = pd.MultiIndex.from_product(
-                    [self.external_buying_countries, [self.export_label]]
-                )
-                delta = (inp[rs] - output[rs] + EPSILON) / len(export_cols)
-                self.loc[rs, export_cols] += delta
+            export_cols = pd.MultiIndex.from_product(
+                [self.external_buying_countries, [self.export_label]]
+            )
+            deltas = (inp.loc[unbalanced] - output.loc[unbalanced] + EPSILON) / len(export_cols)
+            self.loc[unbalanced, export_cols] = (
+                self.loc[unbalanced, export_cols].add(deltas, axis=0)
+            )
 
     @staticmethod
     def _filter(series, cutoff_value, cutoff_type, cutoff_units, data_units) -> list:
