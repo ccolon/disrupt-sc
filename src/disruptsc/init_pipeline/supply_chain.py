@@ -11,6 +11,7 @@ import numpy as np
 from disruptsc.agents.firm import Firm
 from disruptsc.network.commercial_link import CommercialLink
 from disruptsc.network.sc_network import ScNetwork
+from disruptsc.utils import progress
 
 
 # ------------------------------------------------------------------
@@ -40,7 +41,7 @@ def build_supply_chain_network(
 
     # 1. Households select retailers (domestic B2C + import B2C)
     logging.info("Households selecting retailers")
-    for hh in households.values():
+    for hh in progress(households.values(), "Households", total=len(households)):
         _household_select_suppliers(
             hh, sc, firms, countries, rs_to_firms,
             nb_suppliers_per_input, weight_localization_household,
@@ -53,7 +54,7 @@ def build_supply_chain_network(
     if sector_table is not None and "share_exporting_firms" in sector_table.columns:
         share_exporting = sector_table.set_index("sector")["share_exporting_firms"].to_dict()
 
-    for country in countries.values():
+    for country in progress(countries.values(), "Countries", total=len(countries)):
         _country_select_suppliers(
             country, sc, firms, countries, rs_to_firms,
             share_exporting, sector_to_cargo_type,
@@ -61,7 +62,7 @@ def build_supply_chain_network(
 
     # 3. Firms select B2B + import suppliers
     logging.info("Firms selecting suppliers")
-    for firm in firms.values():
+    for firm in progress(firms.values(), "Firms", total=len(firms)):
         _firm_select_suppliers(
             firm, sc, firms, countries, rs_to_firms,
             nb_suppliers_per_input, weight_localization_firm,
