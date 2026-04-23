@@ -21,7 +21,7 @@ from disruptsc.reporting._common import (
     load_params, load_csv, load_geodata,
     time_scale_factor, monetary_label, mrio_to_model_annual,
     detect_cargo_types, add_flow_traces, apply_geo_layout, fig_to_div,
-    df_to_html, pct_dev, warn_box, ok_box,
+    df_to_html, warn_box, ok_box,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s  %(message)s")
@@ -119,6 +119,12 @@ def _html_header(output_folder: Path, params: dict) -> str:
              border-radius: 4px; margin: 4px; font-size: 14px; }}
   .metric b {{ color: #2c3e50; }}
   td:first-child {{ text-align: left; }}
+  /* Round caps/joins for flow map lines (matches QGIS round cap/join style) */
+  .js-plotly-plot .scattergeolayer path,
+  .js-plotly-plot .scatterlayer path.js-line {{
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }}
 </style>
 </head><body>
 <h1>Initial State Report — {scope}</h1>
@@ -136,80 +142,56 @@ def _html_header(output_folder: Path, params: dict) -> str:
 def _section_flow_maps(flow_gdf: gpd.GeoDataFrame, params: dict) -> str:
     html_parts = ["<h2>1. Transport Flow Maps</h2>"]
 
-    # Filter to edges with flow
     gdf = flow_gdf.copy()
-
-    # Determine cargo types present
     cargo_types = detect_cargo_types(gdf)
 
     if not cargo_types:
         return "<h2>1. Transport Flow Maps</h2><p>No cargo type columns found.</p>"
 
-    # Bounding box from data
     bounds = gdf.total_bounds  # minx, miny, maxx, maxy
     pad = 2
     lon_range = [bounds[0] - pad, bounds[2] + pad]
     lat_range = [bounds[1] - pad, bounds[3] + pad]
 
-    # --- Total flow map (2 panels: USD, tons) ---
-    fig_total = _make_flow_map_pair(
-        gdf, "flow_total", "flow_total_tons",
-        "Total flow (mUSD)", "Total flow (tons)",
-        lon_range, lat_range,
+    # --- Total flow (tons only) ---
+    fig_total = make_subplots(
+        rows=1, cols=1,
+        subplot_titles=["Total flow (tons)"],
+        specs=[[{"type": "scattergeo"}]],
     )
+    add_flow_traces(fig_total, gdf, "flow_total_tons", lon_range, lat_range,
+                    row=1, col=1, value_label="tons")
+    fig_total.update_layout(
+        height=500, showlegend=False,
+        margin=dict(l=0, r=0, t=30, b=0),
+    )
+    apply_geo_layout(fig_total, lon_range, lat_range, n_rows=1, n_cols=1)
     html_parts.append(fig_to_div(fig_total, height=500))
 
-    # --- Per cargo type (3 rows x 2 cols) ---
+    # --- Per cargo type (tons only, single row) ---
     n_ct = len(cargo_types)
-    titles = []
-    for ct in cargo_types:
-        label = ct.replace("_", " ").title()
-        titles.extend([f"{label} (mUSD)", f"{label} (tons)"])
+    titles = [ct.replace("_", " ").title() + " (tons)" for ct in cargo_types]
 
     fig = make_subplots(
-        rows=n_ct, cols=2,
+        rows=1, cols=n_ct,
         subplot_titles=titles,
-        specs=[[{"type": "scattergeo"}, {"type": "scattergeo"}]] * n_ct,
-        vertical_spacing=0.06,
+        specs=[[{"type": "scattergeo"}] * n_ct],
         horizontal_spacing=0.02,
     )
 
     for i, ct in enumerate(cargo_types):
-        row = i + 1
-        add_flow_traces(fig, gdf, f"usd_{ct}", lon_range, lat_range,
-                         row=row, col=1, value_label="mUSD")
         add_flow_traces(fig, gdf, f"tons_{ct}", lon_range, lat_range,
-                         row=row, col=2, value_label="tons")
+                        row=1, col=i + 1, value_label="tons")
 
     fig.update_layout(
-        height=400 * n_ct,
+        height=450,
         showlegend=False,
         margin=dict(l=0, r=0, t=30, b=0),
     )
-    apply_geo_layout(fig, lon_range, lat_range, n_ct)
+    apply_geo_layout(fig, lon_range, lat_range, n_rows=1, n_cols=n_ct)
 
-    html_parts.append(fig_to_div(fig, height=400 * n_ct))
+    html_parts.append(fig_to_div(fig, height=450))
     return "\n".join(html_parts)
-
-
-def _make_flow_map_pair(gdf, usd_col, tons_col, title_usd, title_tons,
-                        lon_range, lat_range):
-    fig = make_subplots(
-        rows=1, cols=2,
-        subplot_titles=[title_usd, title_tons],
-        specs=[[{"type": "scattergeo"}, {"type": "scattergeo"}]],
-        horizontal_spacing=0.02,
-    )
-    add_flow_traces(fig, gdf, usd_col, lon_range, lat_range,
-                    row=1, col=1, value_label="mUSD")
-    add_flow_traces(fig, gdf, tons_col, lon_range, lat_range,
-                    row=1, col=2, value_label="tons")
-    fig.update_layout(
-        height=500, showlegend=False,
-        margin=dict(l=0, r=0, t=30, b=0),
-    )
-    apply_geo_layout(fig, lon_range, lat_range, 1)
-    return fig
 
 
 # ======================================================================
@@ -271,152 +253,68 @@ def _section_mrio_comparison(firm_data: pd.DataFrame,
         html.append(f"<p><em>MRIO values converted from {data_mu}/yr to {mu}/yr "
                     f"(factor {mrio_conv:g})</em></p>")
 
-    # Model: aggregate t=0 data per region and sector
     t0 = firm_data[firm_data["time_step"] == 0].copy()
     if t0.empty:
         return "<h2>3. Model vs. MRIO Comparison</h2><p>No firm data at t=0.</p>"
 
-    # Use total_input if available (realized intermediate input), else fall back to total_order
-    input_col = "total_input" if "total_input" in t0.columns else "total_order"
-
     model_by_region = t0.groupby("region").agg(
         total_output=("production", "sum"),
-        total_input=(input_col, "sum"),
     ).reset_index()
     model_by_region["total_output_annual"] = model_by_region["total_output"] * scale
-    model_by_region["total_input_annual"] = model_by_region["total_input"] * scale
 
     model_by_sector = t0.groupby("sector").agg(
         total_output=("production", "sum"),
-        total_input=(input_col, "sum"),
     ).reset_index()
     model_by_sector["total_output_annual"] = model_by_sector["total_output"] * scale
-    model_by_sector["total_input_annual"] = model_by_sector["total_input"] * scale
 
-    # --- By-sector comparison ---
-    if mrio_by_sector is not None:
-        # Convert MRIO values to model monetary units (annual)
-        for col in ["mrio_output", "mrio_input", "mrio_va", "mrio_final_demand", "mrio_export"]:
-            if col in mrio_by_sector.columns:
-                mrio_by_sector[col] = mrio_by_sector[col] * mrio_conv
+    fig = make_subplots(
+        rows=1, cols=2,
+        subplot_titles=["Total output by sector", "Total output by region"],
+        horizontal_spacing=0.12,
+    )
 
-        merged = model_by_sector.merge(mrio_by_sector, on="sector", how="outer")
-        merged["model_va"] = merged["total_output_annual"] - merged["total_input_annual"]
-        merged["output_dev_pct"] = pct_dev(
-            merged["total_output_annual"], merged["mrio_output"])
-
-        display_cols = ["sector", "total_output_annual", "mrio_output", "output_dev_pct",
-                        "total_input_annual", "mrio_input",
-                        "model_va", "mrio_va",
-                        "mrio_final_demand", "mrio_export"]
-        rename = {
-            "total_output_annual": f"Model output ({mu}/yr)",
-            "mrio_output": f"MRIO output ({mu}/yr)",
-            "output_dev_pct": "Dev (%)",
-            "total_input_annual": f"Model input ({mu}/yr)",
-            "mrio_input": f"MRIO input ({mu}/yr)",
-            "model_va": f"Model VA ({mu}/yr)",
-            "mrio_va": f"MRIO VA ({mu}/yr)",
-            "mrio_final_demand": f"MRIO FD ({mu}/yr)",
-            "mrio_export": f"MRIO export ({mu}/yr)",
-        }
-        available = [c for c in display_cols if c in merged.columns]
-        display_df = merged[available].rename(columns=rename)
-        html.append("<h3>By sector (annualized)</h3>")
-        html.append(df_to_html(display_df, fmt_nums=True))
-
-        # Scatter plot: model vs MRIO output
+    def _scatter(merged, label_col, col_idx, color):
         plot_df = merged.dropna(subset=["total_output_annual", "mrio_output"])
-        if not plot_df.empty:
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(
-                x=plot_df["mrio_output"], y=plot_df["total_output_annual"],
-                mode="markers+text", text=plot_df["sector"],
-                textposition="top center", textfont_size=9,
-                marker=dict(size=10, color="#2c3e50"),
-                hovertemplate="%{text}<br>MRIO: %{x:,.1f}<br>Model: %{y:,.1f}<extra></extra>",
-            ))
-            max_val = max(plot_df["total_output_annual"].max(),
-                         plot_df["mrio_output"].max()) * 1.1
-            fig.add_trace(go.Scatter(
-                x=[0, max_val], y=[0, max_val],
-                mode="lines", line=dict(dash="dash", color="gray"),
-                showlegend=False,
-            ))
-            fig.update_layout(
-                title="Model vs. MRIO output by sector",
-                xaxis_title=f"MRIO output ({mu}/yr)",
-                yaxis_title=f"Model output ({mu}/yr)",
-                height=450, width=600,
-                margin=dict(l=60, r=20, t=40, b=60),
-            )
-            html.append(fig_to_div(fig))
+        if plot_df.empty:
+            return
+        fig.add_trace(go.Scatter(
+            x=plot_df["mrio_output"], y=plot_df["total_output_annual"],
+            mode="markers+text", text=plot_df[label_col],
+            textposition="top center", textfont_size=9,
+            marker=dict(size=10, color=color),
+            hovertemplate="%{text}<br>MRIO: %{x:,.1f}<br>Model: %{y:,.1f}<extra></extra>",
+            showlegend=False,
+        ), row=1, col=col_idx)
+        mx = max(plot_df["total_output_annual"].max(),
+                 plot_df["mrio_output"].max()) * 1.1
+        fig.add_trace(go.Scatter(
+            x=[0, mx], y=[0, mx],
+            mode="lines", line=dict(dash="dash", color="gray"),
+            showlegend=False,
+        ), row=1, col=col_idx)
+        fig.update_xaxes(title_text=f"MRIO output ({mu}/yr)", row=1, col=col_idx)
+        fig.update_yaxes(title_text=f"Model output ({mu}/yr)", row=1, col=col_idx)
+
+    if mrio_by_sector is not None and "mrio_output" in mrio_by_sector.columns:
+        ms = mrio_by_sector.copy()
+        ms["mrio_output"] = ms["mrio_output"] * mrio_conv
+        merged_s = model_by_sector.merge(ms[["sector", "mrio_output"]],
+                                         on="sector", how="outer")
+        _scatter(merged_s, "sector", 1, "#2c3e50")
     else:
-        html.append("<p><em>mrio_by_sector.csv not found — sector MRIO comparison "
-                    "unavailable.</em></p>")
+        html.append("<p><em>mrio_by_sector.csv not found — sector scatter unavailable.</em></p>")
 
-    # --- By-region comparison ---
-    html.append("<h3>By region (annualized)</h3>")
-    if mrio_by_region is not None:
-        for col in ["mrio_output", "mrio_input", "mrio_va"]:
-            if col in mrio_by_region.columns:
-                mrio_by_region[col] = mrio_by_region[col] * mrio_conv
-
-        merged_r = model_by_region.merge(mrio_by_region, on="region", how="outer")
-        merged_r["model_va"] = merged_r["total_output_annual"] - merged_r["total_input_annual"]
-        merged_r["output_dev_pct"] = pct_dev(
-            merged_r["total_output_annual"], merged_r["mrio_output"])
-
-        display_cols_r = ["region", "total_output_annual", "mrio_output", "output_dev_pct",
-                          "total_input_annual", "mrio_input",
-                          "model_va", "mrio_va"]
-        rename_r = {
-            "total_output_annual": f"Model output ({mu}/yr)",
-            "mrio_output": f"MRIO output ({mu}/yr)",
-            "output_dev_pct": "Dev (%)",
-            "total_input_annual": f"Model input ({mu}/yr)",
-            "mrio_input": f"MRIO input ({mu}/yr)",
-            "model_va": f"Model VA ({mu}/yr)",
-            "mrio_va": f"MRIO VA ({mu}/yr)",
-        }
-        available_r = [c for c in display_cols_r if c in merged_r.columns]
-        html.append(df_to_html(merged_r[available_r].rename(columns=rename_r), fmt_nums=True))
-
-        # Scatter plot: model vs MRIO output per region
-        plot_r = merged_r.dropna(subset=["total_output_annual", "mrio_output"])
-        if not plot_r.empty:
-            fig_r = go.Figure()
-            fig_r.add_trace(go.Scatter(
-                x=plot_r["mrio_output"], y=plot_r["total_output_annual"],
-                mode="markers+text", text=plot_r["region"],
-                textposition="top center", textfont_size=9,
-                marker=dict(size=10, color="#2c3e50"),
-                hovertemplate="%{text}<br>MRIO: %{x:,.1f}<br>Model: %{y:,.1f}<extra></extra>",
-            ))
-            max_val_r = max(plot_r["total_output_annual"].max(),
-                           plot_r["mrio_output"].max()) * 1.1
-            fig_r.add_trace(go.Scatter(
-                x=[0, max_val_r], y=[0, max_val_r],
-                mode="lines", line=dict(dash="dash", color="gray"),
-                showlegend=False,
-            ))
-            fig_r.update_layout(
-                title="Model vs. MRIO output by region",
-                xaxis_title=f"MRIO output ({mu}/yr)",
-                yaxis_title=f"Model output ({mu}/yr)",
-                height=450, width=600,
-                margin=dict(l=60, r=20, t=40, b=60),
-            )
-            html.append(fig_to_div(fig_r))
+    if mrio_by_region is not None and "mrio_output" in mrio_by_region.columns:
+        mr = mrio_by_region.copy()
+        mr["mrio_output"] = mr["mrio_output"] * mrio_conv
+        merged_r = model_by_region.merge(mr[["region", "mrio_output"]],
+                                         on="region", how="outer")
+        _scatter(merged_r, "region", 2, "#00CC96")
     else:
-        region_display = model_by_region[["region", "total_output_annual", "total_input_annual"]].copy()
-        region_display["va"] = region_display["total_output_annual"] - region_display["total_input_annual"]
-        region_display = region_display.rename(columns={
-            "total_output_annual": f"Output ({mu}/yr)",
-            "total_input_annual": f"Input ({mu}/yr)",
-            "va": f"VA ({mu}/yr)",
-        })
-        html.append(df_to_html(region_display, fmt_nums=True))
+        html.append("<p><em>mrio_by_region.csv not found — region scatter unavailable.</em></p>")
+
+    fig.update_layout(height=450, margin=dict(l=60, r=20, t=60, b=60))
+    html.append(fig_to_div(fig))
 
     return "\n".join(html)
 
