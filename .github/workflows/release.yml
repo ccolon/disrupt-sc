@@ -137,12 +137,10 @@ jobs:
           fi
       
       - name: Create Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.check-version.outputs.current-version }}
-          release_name: Release v${{ needs.check-version.outputs.current-version }}
+          name: Release v${{ needs.check-version.outputs.current-version }}
           body_path: release_notes.md
           draft: false
           prerelease: false
@@ -166,51 +164,21 @@ jobs:
           pip install -r docs-requirements.txt
           pip install mike  # For versioned documentation
       
-      - name: Configure git
+      - name: Configure git (needed by mike deploy)
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-      
-      - name: Update version in MkDocs
-        run: |
-          VERSION="${{ needs.check-version.outputs.current-version }}"
-          
-          # Update site_description to include version
-          sed -i "s/site_description: .*/site_description: Spatial agent-based model for supply chain disruption analysis (v$VERSION)/" mkdocs.yml
-      
+
       - name: Deploy documentation with mike
         run: |
           VERSION="${{ needs.check-version.outputs.current-version }}"
-          
-          # Deploy this version and update 'latest' alias
+
+          # Deploy this version and update 'latest' alias.
+          # mike commits to the gh-pages branch, which is unprotected.
           mike deploy --push --update-aliases $VERSION latest
-          
+
           # Set this version as default
           mike set-default --push latest
-      
-      - name: Update README with version badge
-        run: |
-          VERSION="${{ needs.check-version.outputs.current-version }}"
-          
-          # Create version badge
-          VERSION_BADGE="[![Version](https://img.shields.io/badge/version-$VERSION-blue)](https://github.com/ccolon/disrupt-sc/releases/tag/v$VERSION)"
-          
-          # Add version badge after the existing badges if not already present
-          if ! grep -q "img.shields.io/badge/version-" README.md; then
-            sed -i "/^[![Python]/i $VERSION_BADGE" README.md
-          else
-            # Update existing version badge
-            sed -i "s|!\[Version\](https://img.shields.io/badge/version-[^)]*)|$VERSION_BADGE|" README.md
-          fi
-          
-          # Commit and push README changes
-          git add README.md mkdocs.yml
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "docs: update version to v$VERSION [skip ci]"
-            git push
-          fi
 
   # Deploy docs for non-version changes
   deploy-docs-no-version:
