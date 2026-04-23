@@ -329,10 +329,10 @@ def create_households(household_table: pd.DataFrame,
                       consumption: dict) -> dict[str, Household]:
     """Instantiate Household objects."""
     households = {}
-    for idx, row in household_table.iterrows():
+    for idx, row in enumerate(household_table.to_dict(orient="records")):
         if idx not in consumption:
             continue  # Skip households with no demand
-        subregion_kwargs = {col: row[col] for col in household_table.columns if col.startswith("subregion_")}
+        subregion_kwargs = {k: v for k, v in row.items() if k.startswith("subregion_")}
         hh = Household(
             pid=row["household"],
             region=row["region"],
