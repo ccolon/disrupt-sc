@@ -23,8 +23,9 @@ from disruptsc.params import AgentParams
 
 def find_nearest_node_id(transport_nodes: gpd.GeoDataFrame, gdf: gpd.GeoDataFrame) -> np.ndarray:
     """Find nearest transport node for each geometry in gdf using KDTree."""
-    node_coords = np.array([(g.x, g.y) for g in transport_nodes.geometry])
-    query_coords = np.array([(g.x, g.y) for g in gdf.geometry])
+    node_coords = np.column_stack([transport_nodes.geometry.x.values,
+                                   transport_nodes.geometry.y.values])
+    query_coords = np.column_stack([gdf.geometry.x.values, gdf.geometry.y.values])
     tree = cKDTree(node_coords)
     _, indices = tree.query(query_coords)
     return transport_nodes.index.values[indices]
@@ -410,17 +411,27 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
     countries = {}
     total_imports = import_table.sum().sum() if len(import_table) > 0 else 1.0
 
+    # Collect centroids for all countries with spatial data (one KDTree query total)
+    country_centroids = []
     for country_code in all_countries:
-        # Find spatial data
         match = countries_gdf[countries_gdf["region"] == country_code]
         if match.empty:
             logging.warning(f"No spatial data for country {country_code}, skipping")
             continue
-
         geom = match.iloc[0].geometry
         centroid = geom.centroid if geom.geom_type != "Point" else geom
-        gdf_point = gpd.GeoDataFrame([{"geometry": centroid}], geometry="geometry")
-        od_point = int(find_nearest_node_id(country_nodes, gdf_point)[0])
+        country_centroids.append((country_code, centroid))
+
+    if country_centroids:
+        centroids_gdf = gpd.GeoDataFrame(
+            [{"geometry": c[1]} for c in country_centroids], geometry="geometry"
+        )
+        od_points = find_nearest_node_id(country_nodes, centroids_gdf)
+    else:
+        od_points = np.array([], dtype=int)
+
+    for (country_code, centroid), od_point in zip(country_centroids, od_points):
+        od_point = int(od_point)
 
         # Export demand: what this country BUYS from model region-sectors
         qty_purchased = {}
