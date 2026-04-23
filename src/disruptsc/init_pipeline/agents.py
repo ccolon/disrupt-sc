@@ -53,6 +53,9 @@ def create_firm_table(mrio: Mrio, sector_table: pd.DataFrame,
 
     # Phase 1: Base table from MRIO (one firm per region_sector)
     total_output = mrio.get_total_output()
+    region_centroids = _load_region_centroids(households_spatial_path)
+    from shapely.geometry import Point
+    default_centroid = Point(0, 0)
     rows = []
     for rs in mrio.region_sectors:
         region, sector = rs
@@ -61,7 +64,7 @@ def create_firm_table(mrio: Mrio, sector_table: pd.DataFrame,
             "sector": sector,
             "region_sector": f"{region}_{sector}",
             "importance": total_output.get(rs, 0),
-            "geometry": _get_region_centroid(region, households_spatial_path),
+            "geometry": region_centroids.get(region, default_centroid),
         })
     ft = gpd.GeoDataFrame(rows, geometry="geometry")
 
@@ -98,9 +101,7 @@ def create_firm_table(mrio: Mrio, sector_table: pd.DataFrame,
         (sector_table.drop_duplicates("sector").set_index("sector")["type"]
          if sector_table is not None else {}),
     )
-    ft["target_margin"] = ft.apply(
-        lambda r: margins.get((r["region"], r["sector"]), 0.2), axis=1
-    )
+    ft["target_margin"] = [margins.get(k, 0.2) for k in zip(ft["region"], ft["sector"])]
     ft["transport_share"] = params.firm_transport_share  # uniform transport share from YAML
 
     # Assign IDs
@@ -486,15 +487,20 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
 # Private helpers
 # ======================================================================
 
-def _get_region_centroid(region: str, households_spatial_path: Path | None):
-    """Get centroid geometry for a region from households spatial data."""
-    from shapely.geometry import Point
-    if households_spatial_path and Path(households_spatial_path).exists():
-        gdf = gpd.read_file(households_spatial_path)
-        match = gdf[gdf["region"] == region]
-        if not match.empty:
-            return match.geometry.unary_union.centroid
-    return Point(0, 0)
+def _load_region_centroids(households_spatial_path: Path | None) -> dict:
+    """Build a {region: centroid} dict from the households geojson.
+
+    Reads the file once; callers use dict lookups instead of per-region I/O.
+    """
+    if not households_spatial_path or not Path(households_spatial_path).exists():
+        return {}
+    gdf = gpd.read_file(households_spatial_path)
+    if "region" not in gdf.columns:
+        return {}
+    return {
+        region: group.geometry.unary_union.centroid
+        for region, group in gdf.groupby("region")
+    }
 
 
 def _integrate_spatial_firms(ft: gpd.GeoDataFrame, filepath: Path, mrio: Mrio) -> gpd.GeoDataFrame:
@@ -604,20 +610,15 @@ def _filter_small_firms(ft: gpd.GeoDataFrame, mrio: Mrio,
     """Filter out small firms, keeping at least 2 per region_sector."""
     threshold = _get_absolute_cutoff(cutoff, data_units)
 
-    # For each region_sector, keep top 2 by importance + any above threshold
-    keep_idx = set()
-    for rs, group in ft.groupby("region_sector"):
-        sorted_group = group.sort_values("importance", ascending=False)
-        # Always keep top 2 (by original DataFrame index)
-        keep_idx.update(sorted_group.head(2).index)
-        # Also keep any above threshold
-        keep_idx.update(sorted_group[sorted_group["importance"] > threshold].index)
+    # Keep top 2 by importance per region_sector, plus any above threshold
+    rank = ft.groupby("region_sector")["importance"].rank(method="first", ascending=False)
+    keep = (rank <= 2) | (ft["importance"] > threshold)
 
-    n_removed = len(ft) - len(keep_idx)
+    n_removed = int((~keep).sum())
     if n_removed:
         logging.info(f"Filtered out {n_removed} small firms (threshold={threshold:.2f})")
 
-    return ft.loc[sorted(keep_idx)].reset_index(drop=True)
+    return ft.loc[keep].reset_index(drop=True)
 
 
 def _get_absolute_cutoff(cutoff_dict: dict, data_units: str) -> float:
