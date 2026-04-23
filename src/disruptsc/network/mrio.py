@@ -143,21 +143,14 @@ class Mrio(pd.DataFrame):
         """
         inter = self.get_intermediary()
         output = self.get_total_output()
-        result = []
-        for rs in self.region_sectors:
-            try:
-                total = float(output.loc[rs])
-            except (KeyError, TypeError):
-                continue
-            if total <= 0:
-                continue
-            try:
-                diag = float(inter.loc[rs, rs])
-            except (KeyError, TypeError):
-                continue
-            coef = diag / total
-            if coef > threshold:
-                result.append(rs)
+        # Intermediary is guaranteed square (_check_square in __init__) with
+        # aligned row/col labels, so the diagonal maps one-to-one to output.
+        diag = pd.Series(np.diag(inter.values), index=inter.index)
+        common = output.index.intersection(diag.index)
+        out_c = output.loc[common]
+        diag_c = diag.loc[common]
+        mask = (out_c > 0) & ((diag_c / out_c.where(out_c > 0)) > threshold)
+        result = [rs for rs, keep in zip(common, mask) if keep]
         if result:
             logging.info(
                 f"Found {len(result)} region-sectors with internal flows "
