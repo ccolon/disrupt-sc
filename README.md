@@ -1,6 +1,6 @@
 # DisruptSC
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue)](https://github.com/ccolon/disrupt-sc/releases/tag/v2.0.0)
+[![Version](https://img.shields.io/github/v/release/ccolon/disrupt-sc?label=version)](https://github.com/ccolon/disrupt-sc/releases/latest)
 [![Documentation](https://img.shields.io/badge/docs-available-brightgreen)](https://ccolon.github.io/disrupt-sc)
 [![License](https://img.shields.io/github/license/ccolon/disrupt-sc)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
