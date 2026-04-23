@@ -2,15 +2,20 @@ from setuptools import setup, find_packages
 import os
 
 # Read version from _version.py
+# encoding="utf-8" is explicit so setup.py works on systems whose default
+# locale is not UTF-8 (e.g. Windows with cp936/GBK).
 version_file = os.path.join(os.path.dirname(__file__), 'src', 'disruptsc', '_version.py')
-with open(version_file) as f:
+with open(version_file, encoding="utf-8") as f:
     exec(f.read())
+
+with open("README.md", encoding="utf-8") as f:
+    long_description = f.read()
 
 setup(
     name="disruptsc",
     version=__version__,
     description="A spatial agent-based model to simulate the dynamics supply chains subject to disruptions",
-    long_description=open("README.md").read(),
+    long_description=long_description,
     long_description_content_type="text/markdown",
     author="Celian Colon",
     author_email="celian.colon.2007@polytechnique.org",
