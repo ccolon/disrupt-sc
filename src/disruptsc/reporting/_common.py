@@ -88,11 +88,17 @@ def detect_cargo_types(gdf: gpd.GeoDataFrame) -> list[str]:
 
 
 def add_flow_traces(fig, gdf, value_col, lon_range, lat_range,
-                    row, col, value_label="", max_log=None):
-    """Add flow lines to a scattergeo subplot, width ~ log(value).
+                    row, col, value_label="", max_value=None,
+                    max_width=3.0, exponent=0.57, min_width=0.1):
+    """Add flow lines to a scattergeo subplot with QGIS-style width scaling.
 
-    If *max_log* is given the width scale is normalised against that
-    global maximum so that multiple subplots share the same visual scale.
+        width = max_width * (value / max_value) ** exponent
+
+    Defaults (max_width=3, exponent=0.57) match the QGIS data-driven
+    linewidth most commonly used for transport flow maps.
+
+    If *max_value* is given, the scale is normalised against that global
+    maximum so multiple subplots share the same visual scale.
     """
     if value_col not in gdf.columns:
         return
@@ -103,14 +109,13 @@ def add_flow_traces(fig, gdf, value_col, lon_range, lat_range,
     if gdf_flow.empty:
         return
 
-    vals = gdf_flow[value_col].values
-    log_vals = np.log1p(vals)
-    log_max = max_log if max_log is not None else log_vals.max()
-    log_min = log_vals.min() if max_log is None else 0.0
-    if log_max > log_min:
-        widths = 0.5 + 7.5 * (log_vals - log_min) / (log_max - log_min)
+    vals = gdf_flow[value_col].values.astype(float)
+    vmax = max_value if max_value is not None else vals.max()
+    if vmax > 0:
+        widths = max_width * np.power(vals / vmax, exponent)
+        widths = np.maximum(widths, min_width)
     else:
-        widths = np.full_like(log_vals, 2.0)
+        widths = np.full_like(vals, min_width)
 
     for mode, color in MODE_COLORS.items():
         mask = gdf_flow["type"] == mode

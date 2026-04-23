@@ -178,6 +178,12 @@ def _html_header(output_folder: Path, params: dict) -> str:
   .ok {{ background: #d4edda; border-left: 4px solid #28a745;
          padding: 10px; margin: 10px 0; }}
   .section-note {{ color: #7f8c8d; font-size: 0.9em; margin-bottom: 10px; }}
+  /* Round caps/joins for flow map lines (matches QGIS round cap/join style) */
+  .js-plotly-plot .scattergeolayer path,
+  .js-plotly-plot .scatterlayer path.js-line {{
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }}
 </style>
 </head><body>
 <h1>Disruption Report — {scope}</h1>
@@ -218,7 +224,7 @@ def _section_flow_comparison(gdf_t0: gpd.GeoDataFrame,
                 mx = gdf[col].fillna(0).max()
                 if mx > global_max_val:
                     global_max_val = mx
-    global_log_max = float(np.log1p(global_max_val)) if global_max_val > 0 else 1.0
+    global_max = global_max_val if global_max_val > 0 else None
 
     n_ct = len(cargo_types)
     titles = []
@@ -239,10 +245,10 @@ def _section_flow_comparison(gdf_t0: gpd.GeoDataFrame,
         col_name = f"usd_{ct}"
         add_flow_traces(fig, gdf_t0, col_name, lon_range, lat_range,
                         row=row, col=1, value_label=mu,
-                        max_log=global_log_max)
+                        max_value=global_max)
         add_flow_traces(fig, gdf_t1, col_name, lon_range, lat_range,
                         row=row, col=2, value_label=mu,
-                        max_log=global_log_max)
+                        max_value=global_max)
 
     fig.update_layout(
         height=400 * n_ct,
