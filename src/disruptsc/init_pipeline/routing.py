@@ -20,6 +20,7 @@ from disruptsc.network.transport_network import (
     _refresh_edge_capacity_costs,
 )
 from disruptsc.params import TransportParams
+from disruptsc.utils import progress
 
 
 # ------------------------------------------------------------------
@@ -161,7 +162,7 @@ def _precompute_and_assign(link_specs: list[dict],
         logging.info(f"Pre-computing routes: cargo={cargo_type}, "
                      f"{len(sources)} sources, {subgraph.number_of_edges()} edges")
 
-        for source in sources:
+        for source in progress(sources, f"Dijkstra {cargo_type}", total=len(sources)):
             try:
                 paths = nx.single_source_dijkstra_path(
                     subgraph, source, weight=weight,
