@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 
@@ -59,7 +60,11 @@ class Mrio(pd.DataFrame):
 
     @classmethod
     def load(cls, filepath: Path, monetary_units: str = "mUSD") -> Mrio:
-        table = pd.read_csv(filepath, header=[0, 1], index_col=[0, 1])
+        filepath = Path(filepath)
+        if filepath.suffix == ".parquet":
+            table = pd.read_parquet(filepath)
+        else:
+            table = pd.read_csv(filepath, header=[0, 1], index_col=[0, 1])
         zero_output = table.index[table.sum(axis=1) == 0].tolist()
         zero_input = table.columns[table.sum(axis=0) == 0].tolist()
         no_flow = list(set(zero_output) & set(zero_input))
@@ -188,9 +193,7 @@ class Mrio(pd.DataFrame):
         """
         output = self.get_total_output()
         intermediate = self.get_intermediary()
-        mat = pd.concat([output] * len(intermediate.index), axis=1).T
-        mat.index = intermediate.index
-        tech = intermediate / mat
+        tech = intermediate.div(output, axis="columns")
 
         if coverage is not None:
             return self._tech_coef_by_coverage(
@@ -229,55 +232,62 @@ class Mrio(pd.DataFrame):
         """
         result: dict[str, dict[str, float]] = {}
 
+        selected_set = None
         if selected:
             if isinstance(selected[0], str):
                 selected = [tuple(s.split("_", 1)) for s in selected]
+            selected_set = set(selected)
+        external_set = set(getattr(self, "external_selling_countries", []) or [])
 
-        for buyer in tech.columns:
-            if selected and buyer not in selected:
+        supplier_tuples = list(intermediate.index)
+        supplier_keys = np.array(["_".join(str(x) for x in t) for t in supplier_tuples])
+        if selected_set is not None:
+            supplier_allowed = np.array([
+                (t in selected_set) or (t[0] in external_set) for t in supplier_tuples
+            ])
+        else:
+            supplier_allowed = None
+
+        tech_values = tech.values
+        abs_values = intermediate.values
+        buyers = list(tech.columns)
+
+        for col_idx, buyer in enumerate(buyers):
+            if selected_set is not None and buyer not in selected_set:
                 continue
-
             buyer_key = "_".join(str(x) for x in buyer)
 
-            # Absolute flows for ranking, tech coefs for the values we store
-            abs_col = intermediate[buyer]
-            tech_col = tech[buyer]
+            tech_col = tech_values[:, col_idx]
+            abs_col = abs_values[:, col_idx]
 
-            # Build list of (supplier_key_tuple, abs_flow, tech_coef)
-            entries = []
-            for supplier in tech_col.index:
-                tc = tech_col[supplier]
-                if pd.isna(tc) or tc <= 0:
-                    continue
-                if selected and supplier not in selected:
-                    if not (hasattr(self, "external_selling_countries")
-                            and supplier[0] in self.external_selling_countries):
-                        continue
-                af = abs_col[supplier]
-                entries.append((supplier, float(af), float(tc)))
-
-            if not entries:
+            mask = (tech_col > 0) & ~np.isnan(tech_col)
+            if supplier_allowed is not None:
+                mask = mask & supplier_allowed
+            if not mask.any():
                 result[buyer_key] = {}
                 continue
 
-            # Sort by absolute flow descending
-            entries.sort(key=lambda x: x[1], reverse=True)
-            total_abs = sum(e[1] for e in entries)
+            abs_m = abs_col[mask]
+            tech_m = tech_col[mask]
+            keys_m = supplier_keys[mask]
 
+            # Stable sort on negated values = descending with ties in original
+            # order, matching Python's list.sort(key=..., reverse=True).
+            order = np.argsort(-abs_m, kind="stable")
+            abs_sorted = abs_m[order]
+            total_abs = abs_sorted.sum()
             if total_abs <= 0:
                 result[buyer_key] = {}
                 continue
 
-            kept: dict[str, float] = {}
-            cumsum = 0.0
-            for supplier, af, tc in entries:
-                supplier_key = "_".join(str(x) for x in supplier)
-                kept[supplier_key] = tc
-                cumsum += af
-                if cumsum / total_abs >= coverage:
-                    break
+            cumsum = np.cumsum(abs_sorted)
+            keep_n = int(np.searchsorted(cumsum, coverage * total_abs, side="left")) + 1
+            keep_n = min(keep_n, len(abs_sorted))
 
-            result[buyer_key] = kept
+            result[buyer_key] = {
+                str(keys_m[order[i]]): float(tech_m[order[i]])
+                for i in range(keep_n)
+            }
 
         return result
 
