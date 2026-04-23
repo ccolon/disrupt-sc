@@ -115,9 +115,8 @@ def create_firms(firm_table: pd.DataFrame, params: AgentParams) -> dict[str, Fir
     """Instantiate Firm objects from firm_table."""
     monetary_unit_factor = _UNITS.get(params.monetary_units_in_model, 1e6)
     firms = {}
-    for _, row in firm_table.iterrows():
-        # Collect subregion columns
-        subregion_kwargs = {col: row[col] for col in firm_table.columns if col.startswith("subregion_")}
+    for row in firm_table.to_dict(orient="records"):
+        subregion_kwargs = {k: v for k, v in row.items() if k.startswith("subregion_")}
 
         firm = Firm(
             pid=row["id"],
@@ -141,12 +140,6 @@ def create_firms(firm_table: pd.DataFrame, params: AgentParams) -> dict[str, Fir
             subregions=subregion_kwargs,
         )
         firms[firm.pid] = firm
-
-    # Add small coordinate noise for visualization
-    for firm in firms.values():
-        if firm.long is not None:
-            firm.long += np.random.uniform(-0.01, 0.01)
-            firm.lat += np.random.uniform(-0.01, 0.01)
 
     return firms
 
@@ -305,27 +298,26 @@ def create_household_table(mrio: Mrio, households_spatial_path: Path,
     consumption = {}
     cutoff = _get_absolute_cutoff(params.cutoff_household_demand, params.monetary_units_in_data)
 
-    for hh_idx, hh_row in ht.iterrows():
-        region = hh_row["region"]
-        pop = hh_row.get("population", 1.0)
+    # Pre-aggregate: one column per region, rows = region_sectors
+    region_demand = final_demand.T.groupby(level=0).sum().T
+    total_pop_per_region = ht.groupby("region")["population"].transform("sum")
+    proportion_per_hh = (ht["population"] / total_pop_per_region).fillna(0.0)
 
-        # Total population in this region
-        region_mask = ht["region"] == region
-        total_pop = ht.loc[region_mask, "population"].sum()
-        proportion = pop / total_pop if total_pop > 0 else 0
-
-        # Get final demand destined for this household's region
-        hh_consumption = {}
-        demand_cols = final_demand.columns[final_demand.columns.get_level_values(0) == region]
-        if len(demand_cols) > 0:
-            for rs_tuple in final_demand.index:
-                demand = final_demand.loc[rs_tuple, demand_cols].sum() * proportion
-                if demand > cutoff:
-                    rs_name = f"{rs_tuple[0]}_{rs_tuple[1]}"
-                    hh_consumption[rs_name] = demand
-
+    for hh in ht.itertuples():
+        region = hh.region
+        if region not in region_demand.columns:
+            continue
+        proportion = proportion_per_hh.iloc[hh.Index]
+        if proportion <= 0:
+            continue
+        series = region_demand[region] * proportion
+        hh_consumption = {
+            f"{r}_{s}": float(v)
+            for (r, s), v in series.items()
+            if v > cutoff
+        }
         if hh_consumption:
-            consumption[hh_idx] = hh_consumption
+            consumption[hh.Index] = hh_consumption
 
     logging.info(f"Created household table with {len(ht)} households, "
                  f"{len(consumption)} with demand above cutoff")
