@@ -5,10 +5,30 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+import threading
 from pathlib import Path
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+# ---------------------------------------------------------------------------
+# Scaling guards for large MRIOs (see also: pickle hooks in network/route.py
+# and network/commercial_link.py, sparse Leontief in run_pipeline/simulate.py)
+# ---------------------------------------------------------------------------
+# Caching the routes/sc_network on a large scope (e.g. ~316k Route objects on
+# the China scope) recurses deeper than Python's default 1000-frame limit.
+# 50000 frames at ~300 bytes of C stack each ≈ 15 MB, which sits comfortably
+# inside the 64 MB thread stack we allocate below on Windows (and inside the
+# default 8 MB main-thread stack on Linux/macOS).
+sys.setrecursionlimit(50000)
+
+# Windows main threads default to a 1–4 MB C stack, which Python can exhaust
+# during deep pickle traversals even before Python's own recursion guard
+# fires. On Windows we therefore re-enter main() in a worker thread with an
+# explicit large stack. On other platforms the default 8 MB main-thread stack
+# is sufficient after the pickle hooks above.
+_LARGE_STACK_SIZE = 64 * 1024 * 1024  # 64 MB
+_NEEDS_LARGE_STACK = sys.platform == "win32"
 
 from disruptsc import paths
 from disruptsc.config import load_config, build_params, setup_output, setup_logging
@@ -48,6 +68,39 @@ from disruptsc.run_pipeline.export import (
 
 
 def main():
+    """Entry point. On Windows, re-spawn in a 64 MB-stack thread to avoid
+    STATUS_STACK_OVERFLOW during pickle of large logistic-route caches."""
+    if not _NEEDS_LARGE_STACK or getattr(threading.current_thread(),
+                                          "_disruptsc_large_stack", False):
+        return _main_impl()
+
+    captured_exc: list[BaseException] = []
+    captured_exit: list = [None]
+
+    def _run():
+        threading.current_thread()._disruptsc_large_stack = True
+        try:
+            _main_impl()
+        except SystemExit as e:
+            captured_exit[0] = e.code
+        except BaseException as e:  # noqa: BLE001
+            captured_exc.append(e)
+
+    prev = threading.stack_size(_LARGE_STACK_SIZE)
+    try:
+        t = threading.Thread(target=_run, name="disruptsc-main", daemon=True)
+        t.start()
+        t.join()
+    finally:
+        threading.stack_size(prev or 0)
+
+    if captured_exc:
+        raise captured_exc[0]
+    if captured_exit[0] is not None:
+        sys.exit(captured_exit[0])
+
+
+def _main_impl():
     args = _parse_args()
     scope = args.scope
 

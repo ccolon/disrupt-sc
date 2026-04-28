@@ -18,6 +18,11 @@ if TYPE_CHECKING:
 @dataclass
 class CommercialLink:
     # --- Identity ---
+    # NOTE on pickling: see __getstate__/__setstate__ at the bottom of this
+    # class. The 10 transient fields listed in _TRANSIENT_FIELDS are reset
+    # every simulation step by reset_transport_tracking(); excluding them
+    # from pickle saves recursion depth and size at scale.
+
     pid: str = ""
     supplier_id: str = ""
     buyer_id: str = ""
@@ -201,3 +206,41 @@ class CommercialLink:
             self.status = "ok"
         else:
             self.status = f"delivery: {delivery_status}, price: {price_status}"
+
+    # ------------------------------------------------------------------
+    # Pickle hooks — exclude transient per-timestep fields
+    # ------------------------------------------------------------------
+    # These fields are reset by reset_transport_tracking() at the start of
+    # every simulation step, so persisting them through pickle is wasted
+    # work (and adds recursion depth at scale: ~316k links × 10 fields).
+    _TRANSIENT_FIELDS = frozenset({
+        "alternative_route",
+        "alternative_route_length",
+        "alternative_route_cost_per_ton",
+        "alternative_found",
+        "realized_delivery",
+        "payment",
+        "main_route_realized_delivery",
+        "alternative_route_realized_delivery",
+        "status",
+        "current_route",
+    })
+
+    def __getstate__(self) -> dict:
+        return {k: v for k, v in self.__dict__.items()
+                if k not in self._TRANSIENT_FIELDS}
+
+    def __setstate__(self, state: dict):
+        self.__dict__.update(state)
+        # Restore transient fields to the same values reset_transport_tracking()
+        # would write at the start of the next step.
+        self.alternative_route = None
+        self.alternative_route_length = 1.0
+        self.alternative_route_cost_per_ton = 0.0
+        self.alternative_found = False
+        self.realized_delivery = 0.0
+        self.payment = 0.0
+        self.main_route_realized_delivery = 0.0
+        self.alternative_route_realized_delivery = 0.0
+        self.status = "ok"
+        self.current_route = "main"
