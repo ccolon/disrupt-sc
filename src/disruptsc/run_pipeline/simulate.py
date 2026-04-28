@@ -7,6 +7,8 @@ from pathlib import Path
 
 import networkx as nx
 import numpy as np
+import scipy.sparse as sp_sparse
+import scipy.sparse.linalg as sp_linalg
 
 from disruptsc.config import EPSILON
 from disruptsc.params import TransportParams, SimParams
@@ -222,7 +224,14 @@ def set_initial_conditions(sc_network, firms, households, countries,
     n = len(firm_list)
     pid_to_idx = {f.pid: i for i, f in enumerate(firm_list)}
 
-    W = nx.adjacency_matrix(sc_network, weight="weight", nodelist=firm_list).todense()
+    # Sparse representation: W is the firm-by-firm intermediate-input matrix.
+    # For large MRIOs (n > ~3000) the dense (I-W) blows past available RAM and
+    # the BLAS solver's recursive block algorithm overflows the C stack on
+    # Windows. The supply-chain network is naturally sparse (typically <1 %
+    # fill), so CSR + scipy.sparse.linalg.spsolve gives the same answer in
+    # O(nnz) memory.
+    W = nx.adjacency_matrix(sc_network, weight="weight", nodelist=firm_list).tocsr()
+    logging.info(f"  Leontief matrix: {n}x{n} sparse, {W.nnz} non-zeros")
 
     # Import weight per firm
     import_weights = np.zeros(n)
@@ -235,21 +244,23 @@ def set_initial_conditions(sc_network, firms, households, countries,
     transport_shares = np.array([f.transport_share for f in firm_list])
 
     # Final demand vector = household demand + country demand (only from firms)
-    fd = np.zeros((n, 1))
+    fd = np.zeros(n)  # 1-D for spsolve
     for hh in households.values():
         for sid, qty in hh.purchase_plan.items():
             if sid in pid_to_idx:
-                fd[pid_to_idx[sid], 0] += qty
+                fd[pid_to_idx[sid]] += qty
     for c in countries.values():
         for sid, qty in c.purchase_plan.items():
             if sid in pid_to_idx:
-                fd[pid_to_idx[sid], 0] += qty
+                fd[pid_to_idx[sid]] += qty
 
-    # Solve Leontief: (I - A) X = FD  →  X = (I - A)^{-1} FD
-    eq_production = np.linalg.solve(np.eye(n) - W, fd)
+    # Solve Leontief: (I - W) X = FD  →  X = (I - W)^{-1} FD
+    IminusW = sp_sparse.eye(n, format="csr") - W
+    eq_production = sp_linalg.spsolve(IminusW, fd).reshape((n, 1))
 
     # Cost decomposition
-    domestic_input_cost = np.multiply(W.sum(axis=0).reshape((n, 1)), eq_production)
+    w_col_sum = np.asarray(W.sum(axis=0)).ravel().reshape((n, 1))
+    domestic_input_cost = w_col_sum * eq_production
     import_input_cost = np.multiply(import_weights.reshape((n, 1)), eq_production)
     input_cost = domestic_input_cost + import_input_cost
     transport_cost = np.multiply(eq_production, transport_shares.reshape((n, 1)))
