@@ -71,7 +71,11 @@ def _pkl(name: str) -> Path:
 def save_cache(name: str, data: dict):
     path = _pkl(name)
     with open(path, "wb") as f:
-        pickle.dump(data, f)
+        # Pin to HIGHEST_PROTOCOL (= protocol 5 on Python 3.8+) explicitly so
+        # behavior doesn't drift if the default ever changes. Protocol 5
+        # supports out-of-band buffers and is more efficient for the large
+        # numpy/pandas blobs we serialize.
+        pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
     logging.info(f"Cached {name} → {path}")
 
 
