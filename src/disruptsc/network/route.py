@@ -101,3 +101,40 @@ class Route(list):
         self.transport_nodes = list(reversed(self.transport_nodes))
         self.transport_edges = [(e[1], e[0]) for e in reversed(self.transport_edges)]
         self.transport_edge_ids.reverse()
+
+    # ------------------------------------------------------------------
+    # Pickle hooks — minimal state to avoid recursion blow-up at scale
+    # ------------------------------------------------------------------
+    # Default pickling stores both the list contents (transport_nodes_and_edges)
+    # AND every __dict__ attribute, which duplicates the same nodes/edges 3-4
+    # times per Route. With ~316k Route objects on the China scope this drove
+    # pickle's recursion depth past the limit and the C stack past Windows'
+    # main-thread bound. Storing only the 4 minimal fields and rebuilding the
+    # rest in __setstate__ cuts size ~75% and recursion depth proportionally.
+
+    def __getstate__(self) -> dict:
+        return {
+            "transport_nodes": self.transport_nodes,
+            "transport_edge_ids": self.transport_edge_ids,
+            "transport_modes": self.transport_modes,
+            "length": self.length,
+        }
+
+    def __setstate__(self, state: dict):
+        nodes = state["transport_nodes"]
+        if len(nodes) == 1:
+            tne = [(nodes[0],)]
+        else:
+            tne = [(nodes[0],)]
+            for i in range(len(nodes) - 1):
+                tne.append((nodes[i], nodes[i + 1]))
+                tne.append((nodes[i + 1],))
+        list.__init__(self, tne)
+        self.transport_nodes_and_edges = tne
+        self.transport_nodes = nodes
+        self.transport_edges = [
+            (nodes[i], nodes[i + 1]) for i in range(len(nodes) - 1)
+        ]
+        self.transport_edge_ids = state["transport_edge_ids"]
+        self.transport_modes = state["transport_modes"]
+        self.length = state["length"]
