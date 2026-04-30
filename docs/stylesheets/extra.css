@@ -37,6 +37,16 @@
     margin: 2rem 0;
 }
 
+/* Force white background for Mermaid diagrams in dark mode so arrows,
+   default text, and subgraph borders (which inherit dark colors from
+   Mermaid's default theme) stay readable. Custom classDef node colors
+   already work in both modes. */
+[data-md-color-scheme="slate"] .md-typeset .mermaid {
+    background: #ffffff;
+    padding: 1.5rem;
+    border-radius: 0.25rem;
+}
+
 /* Custom colors for DisruptSC branding */
 :root {
     --md-primary-fg-color: #1976D2;
