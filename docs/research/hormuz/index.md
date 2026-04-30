@@ -2,9 +2,9 @@
 
 *Supply-chain analysis by [Célian Colon](mailto:celian.colon@polytechnique.org), International Institute for Applied Systems Analysis (IIASA)*
 
-A running analysis of the supply-chain consequences of a Strait of Hormuz closure — beyond the oil-price story. Each brief combines model-based reasoning with real-time industry reporting to track how the shock is propagating across global supply chains.
+A running analysis of the supply-chain consequences of a Strait of Hormuz closure — beyond the oil-price story.
 
-!!! tip "Latest update — 29 April 2026"
+!!! tip "Latest update — 30 April 2026"
     **Brief 2** documents five concrete supply-chain cascades now unfolding worldwide: Bangladeshi fertilizer and garments, Indian polyester apparel, Korean petrochemicals and AI-chip inputs, Japanese auto manufacturing, and the global copper–sulfur chain. Toyota is the first global company whose sales decline has been publicly tied to the crisis. [Read Brief 2 →](case-studies.md)
 
 ---
@@ -17,7 +17,7 @@ A running analysis of the supply-chain consequences of a Strait of Hormuz closur
 
     ---
 
-    *Empirical, 29 April 2026*
+    *Empirical, 30 April 2026*
 
     Five documented cascades — Bangladesh, India, Korea, Japan, copper — drawn from ~150 trade-press items. Shows how Hormuz disruption is propagating downstream (energy, raw materials, labor) and upstream (Gulf-bound exports), and how national policy responses are reshaping the cascade.
 
@@ -47,10 +47,8 @@ A running analysis of the supply-chain consequences of a Strait of Hormuz closur
 
 ## For media and policy
 
-I am available for interviews, background briefings, and policy consultations on the supply-chain dimensions of the Hormuz crisis.
-
 [:material-email: celian.colon@polytechnique.org](mailto:celian.colon@polytechnique.org){ .md-button .md-button--primary }
 
 ## What's next
 
-The tracker is updated as the crisis evolves. Upcoming work combines the empirical case studies with new model runs to quantify aggregate impact and assess policy options. Subscribe to the [GitHub repository](https://github.com/ccolon/disrupt-sc) or contact me directly to be notified of new briefs.
+Upcoming work will combines the empirical case studies with new model runs to quantify aggregate impact and assess policy options. Subscribe to the [GitHub repository](https://github.com/ccolon/disrupt-sc) or contact me directly to be notified of new briefs.
