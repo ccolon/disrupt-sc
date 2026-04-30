@@ -284,7 +284,7 @@ flowchart LR
     drone --> qatalum & alba
     outputs --> toyota
     input --> toyota
-    toyota --> sales
+    toyota ~~~ sales
     nap --> plastics
     aluprice --> suppliers
     plastics --> suppliers
