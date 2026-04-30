@@ -120,7 +120,7 @@ flowchart LR
     A --> C
     A --> D
 
-    subgraph policy_response ["Policy: fertilizer prioritised, petrochemicals cut −35%"]
+    subgraph policy_response ["Policy: fertilizer prioritised,<br/>petrochemicals cut −35%"]
         direction TB
         E[Crackers run short<br/>of naphtha & gas]:::energy
         F[Cooking gas<br/>scarce for workers]:::energy
@@ -457,7 +457,7 @@ I report only the most salient URLs per case.
 
 ## For media and policy
 
-I am available for interviews, background briefings, and policy consultations on the supply-chain dimensions of the Hormuz crisis. Please contact me at [celian.colon@polytechnique.org](mailto:celian.colon@polytechnique.org).
+Please contact me at [celian.colon@polytechnique.org](mailto:celian.colon@polytechnique.org).
 
 [^1]: *Force majeure* is a clause that lets a supplier suspend its contractual obligations when an extraordinary event beyond its control makes delivery impossible. Buyers receive less or nothing, but cannot sue for breach. In commodity markets, a *force majeure* declaration is the formal signal that physical supply has broken down.
 
