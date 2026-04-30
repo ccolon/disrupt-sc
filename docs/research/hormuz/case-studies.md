@@ -4,7 +4,7 @@
 
 *[Célian Colon](mailto:celian.colon@polytechnique.org), International Institute for Applied Systems Analysis (IIASA) — updated 29 April 2026*
 
-!!! note "Brief 2 of the [Hormuz Crisis Tracker](index.md)"
+!!! note "Brief 2 of the [Hormuz Crisis Analytics](index.md)"
     This brief is the empirical companion to [Brief 1 — Logistics Disruption & Supply-Chain Spillovers](supply-chains.md) (21 April). It has **not** yet been peer-reviewed. The case-study material is drawn from independent trade-press and industry reporting; there are no model outputs.
 
 [:material-file-pdf-box: **Download full brief (PDF)**](assets/CC_Hormuz_CaseStudies.pdf){ .md-button .md-button--primary }
@@ -44,7 +44,7 @@ On the apparel side, garment factories — concentrated in the Gazipur and Ashul
 Power grid difficulties have also led authorities to shut down some facilities on university campuses.
 
 ```mermaid
-%%{init: {'theme':'default', 'themeCSS': '.cluster-label foreignObject { text-align: center; }'}}%%
+%%{init: {'themeCSS': '.cluster-label foreignObject { text-align: center; }'}}%%
 flowchart LR
     A[Strait closes]:::source
 
@@ -109,7 +109,7 @@ Supply chain disruptions do not only propagate via material inputs but also via 
 This situation is cascading to Western brands. The chief executive of a Surat-based dyed-and-printed polyester supplier (Bindal Silk Mills) to H&M, Inditex (Zara), Target, Walmart, and Ikea confirmed to Reuters that costs have "drastically" risen.
 
 ```mermaid
-%%{init: {'theme':'default', 'themeCSS': '.cluster-label foreignObject { text-align: center; }'}}%%
+%%{init: {'themeCSS': '.cluster-label foreignObject { text-align: center; }'}}%%
 flowchart LR
     A[Strait closes]:::source
 
@@ -170,11 +170,10 @@ A supplementary budget of around KRW 26 trillion (~$17 bn) was passed on 10 Apri
 ```mermaid
 ---
 config:
-  theme: default
   themeCSS: '.cluster-label foreignObject { text-align: center; }'
   layout: dagre
 ---
-%%{init: {'flowchart': {'nodeSpacing': 20, 'rankSpacing': 20}, 'theme':'default'}}%%
+%%{init: {'flowchart': {'nodeSpacing': 20, 'rankSpacing': 20}}}%%
 flowchart TB
  subgraph crackers["Crackers run short on naphtha"]
     direction LR
@@ -232,80 +231,76 @@ flowchart TB
 
 The Strait closure affects ships in both directions. We tend to focus on outbound cargoes leaving the Gulf, but inbound flows are equally disrupted. Japan's auto sector is hit on both sides.
 
-On the input side, Japanese carmakers source roughly 70% of their processed aluminum and naphtha from the Gulf — aluminum for body panels and powertrain components, naphtha-derived plastics for interiors and electronics. The Gulf aluminum smelters (8–9% of global production) benefit from abundant natural gas. Qatar Aluminium scaled back to 60% capacity from 12 March after drone strikes hit its gas supply. Aluminium Bahrain cut 19% of capacity on 15 March amid gas uncertainty and shipping disruption. Consequently, global aluminum prices rose by 14%.
+On the input side, Japanese carmakers and their suppliers source roughly 70% of their processed aluminum and naphtha from the Gulf—aluminum for body panels and powertrain components, naphtha-derived plastics for interiors and electronics. The Gulf aluminum smelters (8–9% of global production) benefit from abundant natural gas. Qatar Aluminium scaled back to 60% capacity from 12 March after drone strikes hit its gas supply. Aluminium Bahrain cut 19% of capacity on 15 March amid gas uncertainty and shipping disruption. Consequently, global aluminum prices rose by 14%.
 
 Several Japanese auto-parts suppliers (Tier-1 and Tier-2 firms feeding Toyota, Honda, and Nissan) opened negotiations in early March with Russia's Rusal, the world's second-largest aluminum producer, with no deal publicly announced yet. As in the Korean case, it constitutes a notable pivot: Japanese firms had voluntarily halted Russian aluminum purchases since February 2022.
 
-On the output side, Japanese car manufacturers dominate the Gulf car market. With the Strait blocked, those companies have trouble reaching their consumers: rerouting is costly, and war-risk insurance premiums have soared. Toyota halted production of Gulf-bound vehicles: roughly 20,000 units in March, 18,000 in April, and a further 38,000 units in total were announced on 21 April. The cumulative figure approaches 76,000 vehicles.
+On the output side, Japanese car manufacturers dominate the Gulf car market. With the Strait blocked, those companies have trouble reaching their consumers: rerouting is costly, and war-risk insurance premiums have soared. Toyota halted production of Gulf-bound vehicles: roughly 20,000 units in March, 18,000 in April, and a further 38,000 in total, according to an announcement on 21 April. The cumulative figure approaches 76,000 vehicles.
 
-Both disruption pathways — input and output — converged on 27 April: Bloomberg, Nikkei, and others connected Toyota's 5.8% year-on-year drop in March 2026 global sales to the Hormuz crisis — the first time a global company's sales decline has been publicly tied to the conflict. Honda and Nissan have also trimmed production. This drop is propagating further upstream: Toyota's largest supplier (Denso) reported a roughly 20,000-unit monthly output reduction.
+Both disruption pathways—input and output—converged on 27 April: Bloomberg, Nikkei, and others connected Toyota's 5.8% year-on-year drop in March 2026 global sales to the Hormuz crisis—the first time a global company's sales decline has been publicly tied to the conflict. The pressure is showing up at suppliers: Denso has cut its profit outlook by ~¥45 bn, and Toyoda Gosei is planning for ~200k fewer vehicles than ordered. Commodities research firm CRU has cut its 2026 global light vehicle production forecast by 600k+ units.
 
 ```mermaid
 ---
 config:
-  theme: default
   themeCSS: '.cluster-label foreignObject { text-align: center; }'
   flowchart:
     rankSpacing: 30
   layout: dagre
 ---
-%%{init: {'flowchart': {'nodeSpacing': 20, 'rankSpacing': 30}, 'theme':'default'}}%%
+%%{init: {'flowchart': {'nodeSpacing': 20, 'rankSpacing': 30}}}%%
 flowchart LR
- subgraph alu["Input side"]
+ subgraph input["Input side"]
     direction LR
-        B["Qatalum at 60%<br>(gas curtailed)"]
-        C["Alba cut 19%<br>(gas + shipping)"]
-        D["Aluminum price<br>$3,158 → $3,590/t"]
+        qatalum["Qatalum at 60%<br>(gas curtailed)"]
+        alba["Alba cut 19%<br>(gas + shipping)"]
+        nap["Naphtha supply drops"]
+        aluprice["Aluminum price +14%"]
+        plastics["Strain on plastic part supply"]
   end
  subgraph outputs[Output side]
-    direction LR
-        reroute["Costly rerouting;<br/>War-risk insurance peaks"]
+    direction TB
+        reroute["Costly rerouting"]
+        insurance["War-risk insurance peaks"]:::energy
   end
- subgraph main[" "]
+  subgraph suppliers[Auto-parts suppliers]
     direction LR
-        Ab["Drone attacks"]
-        outputs
-        alu
-        A["Strait closes<br>both ways"]
-        F["Toyota halts Mideast-<br>bound production:<br>~76 kt vehicles cut"]
-        G["Honda &amp; Nissan<br>trim production"]
-        denso["Denso (Toyota's largest<br/>supplier) cuts production"]
-        I["Toyota March sales<br>−5.8% YoY (27 Apr)"]
+        denso["Denso: profit outlook down by ~¥45 bn"]
+        gosei["Toyoda Gosei: planning for ~200k fewer vehicles"]
+        rusal["Talks with Rusal (Russia) for alternatives"]
   end
- subgraph response["Industry response"]
-    direction LR
-        J["Japanese auto-parts suppliers <br>open talks with Rusal"]
-  end
-    B --> D
-    C --> D
-    A --> alu & outputs
-    Ab --> alu
-    outputs --> F & G
-    alu --> F
-    F --> I & denso
-    Ab ~~~ response
+  drone["Drone attacks"]
+  outputs
+  input
+  suppliers
+  hormuz["Strait closes<br>both ways"]
+  toyota["Toyota halts production<br>for Gulf market:<br>~76 kt vehicles cut"]
+  honda["Global 2026 vehicle production outlook: ~600k units cut"]
+  sales["Toyota March sales<br>−5.8% YoY (27 Apr)"]
 
-     Ab:::source
-     A:::source
-     B:::material
-     C:::material
-     D:::material
-     F:::material
-     G:::material
-     I:::material
-     reroute:::energy
-     denso:::material
-     J:::policy
-    classDef source   fill:#F4C9A8,stroke:#D55E00,stroke-width:1.5px,color:#3A3A3A
-    classDef energy   fill:#DDF0FB,stroke:#0072B2,stroke-width:1px,color:#3A3A3A
-    classDef material fill:#FAECCC,stroke:#E69F00,stroke-width:1px,color:#3A3A3A
-    classDef policy   fill:#E8E0F0,stroke:#7A4FB8,stroke-width:1px,color:#3A3A3A
-    classDef default  fill:#F5F5F5,stroke:#767676,stroke-width:1px,color:#3A3A3A
 
-    style alu fill:#FBF4E5,stroke:#E69F00,stroke-width:1.5px,stroke-dasharray:5 3,color:#3A3A3A
-    style outputs fill:#DDF0FB,stroke:#0072B2,stroke-width:1.5px,stroke-dasharray:5 3,color:#3A3A3A
-    style main fill:none,stroke:none
-    style response fill:#F5EDFA,stroke:#7A4FB8,stroke-width:1.5px,stroke-dasharray:5 3,color:#3A3A3A
+    qatalum --> aluprice
+    alba --> aluprice
+    hormuz --> input & outputs
+    drone --> qatalum & alba
+    outputs --> toyota
+    input --> toyota
+    toyota --> sales
+    nap --> plastics
+    aluprice --> suppliers
+    plastics --> suppliers
+    toyota ~~~ honda
+
+classDef trigger  fill:#F4C9A8,stroke:#D55E00,stroke-width:1.5px,color:#3A3A3A
+classDef outcome  fill:#E8E0F0,stroke:#7A4FB8,stroke-width:1.5px,color:#3A3A3A  
+classDef default  fill:#F5F5F5,stroke:#767676,stroke-width:1px,color:#3A3A3A
+
+drone:::trigger
+hormuz:::trigger
+sales:::outcome
+honda:::outcome
+style input fill:#FBF4E5,stroke:#E69F00,stroke-width:1.5px,stroke-dasharray:5 3,color:#3A3A3A
+style outputs fill:#DDF0FB,stroke:#0072B2,stroke-width:1.5px,stroke-dasharray:5 3,color:#3A3A3A
+style suppliers fill:#FBF4E5,stroke:#E69F00,stroke-width:1.5px,stroke-dasharray:5 3,color:#3A3A3A
 ```
 
 *Japanese cascade: Hormuz closure propagates on both sides of Japanese car manufacturers. On the input side, they face tensions in aluminum markets due to the Strait closure and drone attacks on Gulf facilities. On the output side, they cannot ship vehicles to the Gulf market. Source: author's synthesis based on trade-press reporting.*
@@ -321,7 +316,7 @@ With Hormuz closed, sulfur could no longer be shipped out to fertilizer and chem
 As a consequence, around 200,000 tonnes of Chilean copper production are reported at risk, equivalent to about 1% of global supply. According to the financial press, BHP, one of the world's largest miners, has reportedly shifted its copper supply outlook toward its African operations and away from Chile. In parallel, the Democratic Republic of the Congo and Zambia, which together import about 2 Mt of sulfur annually for their copper mines, are reported to hold two to three months of inventory; if the squeeze persists past June, around 125,000 tonnes of copper output could be at risk.
 
 ```mermaid
-%%{init: {'theme':'default', 'themeCSS': '.cluster-label foreignObject { text-align: center; }', 'flowchart': {'rankSpacing': 30}}}%%
+%%{init: {'themeCSS': '.cluster-label foreignObject { text-align: center; }', 'flowchart': {'rankSpacing': 30}}}%%
 flowchart LR
     A[Strait closes]:::source
 

@@ -4,8 +4,8 @@
 
 *[Célian Colon](mailto:celian.colon@polytechnique.org), International Institute for Applied Systems Analysis (IIASA) — updated 21 April 2026*
 
-!!! note "Brief 1 of the [Hormuz Crisis Tracker](index.md)"
-    This is the model-based brief. The empirical companion ([Brief 2](case-studies.md), 29 April) documents five concrete supply-chain cascades now unfolding worldwide.
+!!! note "Brief 1 of the [Hormuz Crisis Analytics](index.md)"
+    This is the model-based brief. The empirical companion ([Brief 2](case-studies.md), 30 April) documents five concrete supply-chain cascades now unfolding worldwide.
 
 !!! warning "Preliminary research"
     This brief is based on ongoing research that has **not** yet been peer-reviewed. It presents preliminary analytical insights rather than final published results. Critical feedback is welcome.
