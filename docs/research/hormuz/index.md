@@ -1,4 +1,4 @@
-# Strait of Hormuz Crisis Tracker
+# Strait of Hormuz Crisis Analytics
 
 *Supply-chain analysis by [Célian Colon](mailto:celian.colon@polytechnique.org), International Institute for Applied Systems Analysis (IIASA)*
 
