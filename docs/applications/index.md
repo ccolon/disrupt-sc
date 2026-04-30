@@ -10,7 +10,7 @@
   - Assess supply-chain disturbance of Strait of Hormuz closure
   - Criticality analysis of secondary logistic bottlenecks
 
-**[More details on the dedicated page](../research/hormuz.md)**
+**[More details on the dedicated page](../research/hormuz/index.md)**
 
 
 ## <img src="https://upload.wikimedia.org/wikipedia/commons/3/38/Flag_of_Tanzania.svg" alt="Tanzania Flag" width="25"/> Tanzania
