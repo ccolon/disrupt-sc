@@ -114,4 +114,4 @@ Like any model, these results depend on both data and behavioural assumptions. T
 
 ## For media and policy
 
-I am available for interviews, background briefings, and policy consultations on the supply-chain dimensions of the Hormuz crisis. Please contact me at [celian.colon@polytechnique.org](mailto:celian.colon@polytechnique.org).
+Please contact me at [celian.colon@polytechnique.org](mailto:celian.colon@polytechnique.org).
