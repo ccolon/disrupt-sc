@@ -128,7 +128,10 @@ extra_javascript:
 # Navigation
 nav:
   - Home: index.md
-  - Hormuz Analysis: research/hormuz.md
+  - Hormuz Analysis:
+    - research/hormuz/index.md
+    - 'Brief 1 — Supply-chain spillovers (model, 21 Apr)': research/hormuz/supply-chains.md
+    - 'Brief 2 — Five case studies (empirical, 29 Apr)': research/hormuz/case-studies.md
   - Getting Started:
     - getting-started/index.md
     - Installation: getting-started/installation.md
