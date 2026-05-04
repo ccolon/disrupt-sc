@@ -2,7 +2,7 @@
 
 ## Five Cases of Supply Chain Disruptions
 
-*[Célian Colon](mailto:celian.colon@polytechnique.org), International Institute for Applied Systems Analysis (IIASA) — updated 29 April 2026*
+*[Célian Colon](mailto:celian.colon@polytechnique.org), International Institute for Applied Systems Analysis (IIASA) — updated 4 May 2026*
 
 !!! note "Brief 2 of the [Hormuz Crisis Analytics](index.md)"
     This brief is the empirical companion to [Brief 1 — Logistics Disruption & Supply-Chain Spillovers](supply-chains.md) (21 April). It has **not** yet been peer-reviewed. The case-study material is drawn from independent trade-press and industry reporting; there are no model outputs.
@@ -35,37 +35,42 @@ This is not a quantitative assessment, but an attempt to understand how, **concr
 
 ## Case 1 — Bangladesh: Qatar LNG, fertilizer, and garments
 
-When QatarEnergy declared *force majeure*[^1] on long-term LNG contracts on 3 March 2026, only four of the nine ships expected for March had made it across the Strait. Gas pressure in industrial clusters quickly fell fivefold to tenfold, with overall supply reportedly dropping by 10% between February and April.
+When QatarEnergy declared *force majeure*[^1] on long-term LNG contracts on 3 March 2026, only four of the nine ships expected for March had made it across the Strait. Gas pressure in industrial clusters fell sharply. As of late April 2026 the force majeure has been extended again.
 
-Gas is used at two points of the Bangladeshi fertilizer production: (i) power generation, and (ii) feedstock for nitrogen and phosphate fertilizer production. Natural gas is converted into ammonia, then into urea, or combined with phosphoric acid to form diammonium phosphate (DAP). As a consequence of the gas pressure drop, four of five major urea plants were shut by 5 March; by 3 April, only one (Ghorshal-Polash) was operating. On 18 April, the country's only DAP factory halted production because the on-site ammonia stockpile ran out.
+Gas is used at two points of the Bangladeshi fertilizer production: (i) power generation, and (ii) feedstock for nitrogen and phosphate fertilizer production. Natural gas is converted into ammonia, then into urea, or combined with phosphoric acid to form diammonium phosphate (DAP). As a consequence of the gas pressure drop, five of six major urea plants were shut by 5 March; by 3 April, only one (Ghorshal-Polash) was operating. On 18 April, the country's only DAP factory halted production because the on-site ammonia stockpile ran out.
 
-On the apparel side, garment factories — concentrated in the Gazipur and Ashulia clusters in Dhaka, collectively representing roughly 40 bUSD/year of exports — lost their three energy lifelines at once: power grid, piped gas for captive generation, and diesel for backstop generators (the diesel itself constrained by Hormuz disruption). The industry association reported a 20–30% output loss and raised the issue formally with the Power and Energy ministers on 13 April. As for Western apparel retailers, reports mention precautionary order cuts.
+Bangladesh imports roughly 60% of its urea, mostly from Saudi Arabia, Qatar, and the UAE. Combined with the domestic production drop and rising global urea prices (+50-80%, driven by Gulf-wide production halts), this is putting Bangladeshi agriculture at risk: the country's main fertilizer suppliers, plants, and prices are all moving in the wrong direction at once. The immediate concern is the upcoming planting season in June.
 
-Power grid difficulties have also led authorities to shut down some facilities on university campuses.
+On the apparel side, garment factories—concentrated in the Gazipur and Ashulia clusters in Dhaka—lost their three energy lifelines at once: power grid, piped gas for captive generation, and diesel for backstop generators (the diesel itself constrained by Hormuz disruption). The industry association reported a 25–30% capacity loss and raised the issue formally with the Power and Energy ministers on 13 April.
+
+This industry is critical for Bangladesh: it is the country's main export sector (~$47 bn/year) and employs 4.1 million workers. With factories at reduced capacity, workers—already among the most economically vulnerable—face hours and wage cuts. Reports describe precautionary order cuts from Western apparel retailers.
 
 ```mermaid
-%%{init: {'themeCSS': '.cluster-label foreignObject { text-align: center; }'}}%%
+%%{init: {'theme':'default', 'themeCSS': '.cluster-label foreignObject { text-align: center; }', 'flowchart': {'nodeSpacing': 20, 'rankSpacing': 30, 'padding': 5, 'curve': 'basis'}}}%%
+
 flowchart LR
-    A[Strait closes]:::source
+    A[Strait closes]:::trigger
 
-    B[Qatar LNG cargoes blocked]:::energy
-    C[Diesel imports tighten]:::energy
-    A --> B
-    A --> C
+    B[Qatar LNG cargoes blocked]
+    Ba[Gulf urea exports blocked]
+    C[Diesel imports tighten]
+    A --> B & Ba & C
 
-    subgraph policy_response ["Policy: households prioritised"]
+    subgraph policy_response ["Policy: Industry de-prioritised vs. households"]
         direction TB
-        E[Gas generators fail]:::energy
-        F[Weaker power grid]:::energy
-        G[Diesel backup fails]:::energy
+        E[Gas generators fail]
+        F[Weaker power grid]
+        G[Diesel backup fails]
     end
 
-    D[Less gas, ammonia, urea]:::material
-    V[University campus closing]
-    W[Fertilizer price rise]:::material
-    X[Fertilizer factory shutdown]:::material
-    Y[Garment factory<br/>lower production]:::material
-    Z[Impact on Western apparel retailer]:::material
+    D["Gas shortage at urea plants:<br>Feedstock (ammonia) + energy"]
+    %%V[University campus closing]:::outcome
+    W["Urea price +50-80%"]
+    X["Domestic urea/DAP plants shut (5/6 plants idle)"]
+    Y["Garment factory capacity<br>-25 to -30%"]
+    Z[Pressure on Western brands]:::outcome
+    Za[Income at risk for 4m+ workers]:::outcome
+    Zb["Fertilizer scarcity<br/>Food security concerns"]:::outcome
 
     B --> D
     B --> E
@@ -73,23 +78,21 @@ flowchart LR
     C --> G
 
     D --> X
-    E --> X
-    G --> X
-    X --> W
+    Ba --> W
 
+    F --> Y
     E --> Y
     G --> Y
-    Y --> Z
+    Y --> Z & Za
 
-    F --> V
+    X --> Zb
+    W --> Zb
+    Ba --> Zb
 
-    classDef source   fill:#F4C9A8,stroke:#D55E00,stroke-width:1.5px,color:#3A3A3A;
-    classDef energy   fill:#DDF0FB,stroke:#0072B2,stroke-width:1px,color:#3A3A3A;
-    classDef material fill:#FAECCC,stroke:#E69F00,stroke-width:1px,color:#3A3A3A;
-    classDef policy   fill:#E8E0F0,stroke:#7A4FB8,stroke-width:1px,color:#3A3A3A;
-    classDef default  fill:#F5F5F5,stroke:#767676,stroke-width:1px,color:#3A3A3A;
-
-    style policy_response fill:#F5EDFA,stroke:#7A4FB8,stroke-width:1.5px,stroke-dasharray:5 3,color:#3A3A3A
+    classDef trigger  fill:#F4C9A8,stroke:#D55E00,stroke-width:1.5px,color:#3A3A3A
+    classDef outcome  fill:#E8E0F0,stroke:#7A4FB8,stroke-width:1.5px,color:#3A3A3A  
+    classDef default  fill:#F5F5F5,stroke:#767676,stroke-width:1px,color:#3A3A3A
+    style policy_response fill:#DDF0FB,stroke:#0072B2,stroke-width:1.5px,stroke-dasharray:5 3,color:#3A3A3A
 ```
 
 *Bangladesh cascade: Hormuz closure propagates through gas and diesel supply to the fertilizer and garment industries. Source: author's synthesis based on trade-press reporting.*
