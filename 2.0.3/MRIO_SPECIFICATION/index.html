@@ -1,0 +1,1957 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Spatial agent-based model for supply chain disruption analysis">
+      
+      
+        <meta name="author" content="Celian Colon">
+      
+      
+        <link rel="canonical" href="https://ccolon.github.io/disrupt-sc/2.0.3/MRIO_SPECIFICATION/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>MRIO File Specification for DisruptSC - DisruptSC Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#mrio-file-specification-for-disruptsc" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="DisruptSC Documentation" class="md-header__button md-logo" aria-label="DisruptSC Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            DisruptSC Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              MRIO File Specification for DisruptSC
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-orange"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ccolon/disrupt-sc" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ccolon/disrupt-sc
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../research/hormuz/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Hormuz Analysis
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../getting-started/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Getting Started
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../user-guide/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  User Guide
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../applications/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Use Cases
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../research/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Research & Policy
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../contributors/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributors
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../contact/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Get involved
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="DisruptSC Documentation" class="md-nav__button md-logo" aria-label="DisruptSC Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    DisruptSC Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ccolon/disrupt-sc" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ccolon/disrupt-sc
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../research/hormuz/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hormuz Analysis
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Hormuz Analysis
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../research/hormuz/supply-chains/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Brief 1 — Supply-chain spillovers (model, 21 Apr)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../research/hormuz/case-studies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Brief 2 — Five case studies (empirical, 30 Apr)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../getting-started/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/data-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/quick-start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../user-guide/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/basic-usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Basic Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/parameters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parameters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/data-modes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Modes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/input-data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/output-files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Output Files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../applications/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use Cases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../research/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Research & Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contact/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Get involved
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture-internal-vs-external-regions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture: Internal vs External Regions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#csv-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CSV Structure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CSV Structure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#header-first-2-rows-of-csv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Header (first 2 rows of CSV)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#index-first-2-columns-of-csv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Index (first 2 columns of CSV)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#matrix-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Matrix Layout
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#label-detection-critical" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Label Detection (Critical)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Label Detection (Critical)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#naming-pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Naming Pitfalls
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#missing-labels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Missing Labels
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#required-sections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required Sections
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Required Sections">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-intermediary-matrix-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Intermediary Matrix (required)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-final-demand-columns-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Final Demand Columns (required)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-export-columns-required-for-external-trade" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Export Columns (required for external trade)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-import-rows-required-for-external-trade" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Import Rows (required for external trade)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-transit-submatrix-derived" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Transit Submatrix (derived)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-value-added-row-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Value Added Row (optional)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-tax-row-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Tax Row (optional)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#minimal-working-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Minimal Working Example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#building-from-eora26" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Building from Eora26
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Building from Eora26">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-define-internal-and-external-regions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1: Define internal and external regions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-extract-the-intermediary-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2: Extract the intermediary matrix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-build-final_demand-columns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3: Build final_demand columns
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4-build-exports-columns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4: Build Exports columns
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-5-build-imports-rows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5: Build Imports rows
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-6-rename-problematic-sectors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 6: Rename problematic sectors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-7-validate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 7: Validate
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#companion-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Companion Files
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Companion Files">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sector_tablecsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sector_table.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#usd_per_toncsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        usd_per_ton.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-yaml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration (YAML)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validation-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validation Checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="mrio-file-specification-for-disruptsc">MRIO File Specification for DisruptSC<a class="headerlink" href="#mrio-file-specification-for-disruptsc" title="Permanent link">&para;</a></h1>
+<p>This document specifies how to build the <code>mrio.csv</code> file consumed by the DisruptSC model. It is intended for both human and AI readers.</p>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>The MRIO (Multi-Regional Input-Output) table describes monetary flows between economic sectors across regions. In DisruptSC, it serves three purposes:</p>
+<ol>
+<li><strong>Firm creation</strong>: Each (region, sector) pair in the intermediary matrix becomes a firm agent.</li>
+<li><strong>Supply chain construction</strong>: Technical coefficients derived from the intermediary matrix determine supplier-buyer relationships.</li>
+<li><strong>External trade</strong>: Import rows and Export columns define how external trade partners (Country agents) interact with domestic firms.</li>
+</ol>
+<h2 id="architecture-internal-vs-external-regions">Architecture: Internal vs External Regions<a class="headerlink" href="#architecture-internal-vs-external-regions" title="Permanent link">&para;</a></h2>
+<p>The MRIO distinguishes two types of regions:</p>
+<ul>
+<li><strong>Internal regions</strong>: Fully modeled with firms, households, and transport networks. They appear in the <strong>intermediary matrix</strong> (both rows and columns) and in <strong>final_demand</strong> columns.</li>
+<li><strong>External regions</strong> (countries/trade blocs): Modeled as Country agents that import from and export to internal firms. They appear only in <strong>Imports</strong> rows and <strong>Exports</strong> columns.</li>
+</ul>
+<p>This separation is fundamental. A region cannot be both internal and external.</p>
+<h2 id="csv-structure">CSV Structure<a class="headerlink" href="#csv-structure" title="Permanent link">&para;</a></h2>
+<p>The file is read with <code>pd.read_csv(filepath, header=[0, 1], index_col=[0, 1])</code>, producing a DataFrame with 2-level MultiIndex for both rows and columns.</p>
+<h3 id="header-first-2-rows-of-csv">Header (first 2 rows of CSV)<a class="headerlink" href="#header-first-2-rows-of-csv" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>row 1 (level 0): region codes    →  ARE, ARE, ..., SAU, SAU, ..., IND, EUR, ..., ARE, SAU, ...
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>row 2 (level 1): sector names    →  Agriculture, Construction, ..., Agriculture, ..., Exports, Exports, ..., final_demand, final_demand, ...
+</span></code></pre></div>
+<h3 id="index-first-2-columns-of-csv">Index (first 2 columns of CSV)<a class="headerlink" href="#index-first-2-columns-of-csv" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>col 1 (level 0): region codes    →  ARE, ARE, ..., SAU, ..., IND, EUR, ...
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>col 2 (level 1): sector names    →  Agriculture, Construction, ..., ..., Imports, Imports, ...
+</span></code></pre></div>
+<h3 id="matrix-layout">Matrix Layout<a class="headerlink" href="#matrix-layout" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>                          ┌─────────────────────────┬──────────────┬────────────────┐
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>                          │   Internal Sectors       │   Exports    │  final_demand  │
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>                          │  (region, sector) cols   │  (ext, Exp)  │  (int, fd)     │
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>┌─────────────────────────┼─────────────────────────┼──────────────┼────────────────┤
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>│ Internal Sectors        │                         │              │                │
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>│ (region, sector) rows   │   INTERMEDIARY MATRIX   │  EXPORT cols │  FINAL DEMAND  │
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>│                         │   (must be square)      │              │                │
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>├─────────────────────────┼─────────────────────────┼──────────────┼────────────────┤
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>│ Imports                 │                         │              │                │
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>│ (ext_region, Imports)   │   IMPORT ROWS           │  TRANSIT     │   (ignored)    │
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>├─────────────────────────┼─────────────────────────┼──────────────┼────────────────┤
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>│ value_added (optional)  │   VALUE ADDED           │              │                │
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>├─────────────────────────┼─────────────────────────┼──────────────┼────────────────┤
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>│ tax (optional)          │   TAX                   │              │                │
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>└─────────────────────────┴─────────────────────────┴──────────────┴────────────────┘
+</span></code></pre></div>
+<h2 id="label-detection-critical">Label Detection (Critical)<a class="headerlink" href="#label-detection-critical" title="Permanent link">&para;</a></h2>
+<p>The model auto-detects special row/column labels using <strong>case-insensitive regex</strong> on the level-1 index/column values. The first match is used.</p>
+<table>
+<thead>
+<tr>
+<th>Label</th>
+<th>Axis</th>
+<th>Regex Pattern</th>
+<th>Typical Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>export_label</code></td>
+<td>columns (axis=1)</td>
+<td><code>export</code></td>
+<td><code>Exports</code></td>
+</tr>
+<tr>
+<td><code>final_demand_label</code></td>
+<td>columns (axis=1)</td>
+<td><code>final.?demand</code></td>
+<td><code>final_demand</code></td>
+</tr>
+<tr>
+<td><code>capital_label</code></td>
+<td>columns (axis=1)</td>
+<td><code>capital</code></td>
+<td><code>capital</code></td>
+</tr>
+<tr>
+<td><code>import_label</code></td>
+<td>rows (axis=0)</td>
+<td><code>import</code></td>
+<td><code>Imports</code></td>
+</tr>
+<tr>
+<td><code>value_added_label</code></td>
+<td>rows (axis=0)</td>
+<td><code>value.?added\|va</code></td>
+<td><code>value_added</code></td>
+</tr>
+<tr>
+<td><code>tax_label</code></td>
+<td>rows (axis=0)</td>
+<td><code>tax</code></td>
+<td><code>tax</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="naming-pitfalls">Naming Pitfalls<a class="headerlink" href="#naming-pitfalls" title="Permanent link">&para;</a></h3>
+<p>Because regex matching is greedy and case-insensitive, sector names must <strong>not</strong> accidentally match these patterns:</p>
+<table>
+<thead>
+<tr>
+<th>Problematic Name</th>
+<th>Matches</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Re-export &amp; Re-import</code></td>
+<td>matches <code>export</code> AND <code>import</code></td>
+<td>Rename to <code>Others</code></td>
+</tr>
+<tr>
+<td><code>Private Households</code></td>
+<td>matches <code>va</code> (in "Pri**va**te")</td>
+<td>Rename to <code>Households</code></td>
+</tr>
+<tr>
+<td><code>Taxes on products</code></td>
+<td>matches <code>tax</code></td>
+<td>Rename to <code>Product levies</code></td>
+</tr>
+<tr>
+<td><code>Value chains</code></td>
+<td>matches <code>value.?added\|va</code></td>
+<td>Rename to <code>Supply chains</code></td>
+</tr>
+<tr>
+<td><code>Excavation</code></td>
+<td>matches <code>va</code></td>
+<td>Safe (the <code>va</code> pattern requires word boundary in practice, but be cautious)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule of thumb</strong>: No sector name should contain the substrings <code>export</code>, <code>import</code>, <code>tax</code>, <code>va</code>, <code>capital</code>, or <code>final demand</code> (case-insensitive).</p>
+<h3 id="missing-labels">Missing Labels<a class="headerlink" href="#missing-labels" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Label</th>
+<th>If Missing</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Exports</code></td>
+<td><code>external_buying_countries = []</code></td>
+<td>No Country agents created as buyers. Model may still run if there are selling countries.</td>
+</tr>
+<tr>
+<td><code>final_demand</code></td>
+<td><code>region_households = []</code></td>
+<td>No household demand. Model will fail.</td>
+</tr>
+<tr>
+<td><code>Imports</code></td>
+<td><code>external_selling_countries = []</code></td>
+<td>No Country agents created as sellers.</td>
+</tr>
+<tr>
+<td><code>value_added</code></td>
+<td>Defaults to <strong>20% margin</strong> for all industries</td>
+<td>Acceptable approximation.</td>
+</tr>
+<tr>
+<td><code>tax</code></td>
+<td>Ignored</td>
+<td>No impact.</td>
+</tr>
+<tr>
+<td><code>capital</code></td>
+<td>Ignored</td>
+<td>No impact.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="required-sections">Required Sections<a class="headerlink" href="#required-sections" title="Permanent link">&para;</a></h2>
+<h3 id="1-intermediary-matrix-required">1. Intermediary Matrix (required)<a class="headerlink" href="#1-intermediary-matrix-required" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Rows</strong>: <code>(internal_region, sector)</code> tuples</li>
+<li><strong>Columns</strong>: Same <code>(internal_region, sector)</code> tuples, in the same order</li>
+<li><strong>Must be square</strong>: The set of (region, sector) pairs in rows must exactly equal the set in columns</li>
+<li><strong>Values</strong>: Monetary flows in the unit specified by <code>monetary_units_in_data</code> in the YAML config (typically <code>mUSD</code> or <code>USD</code> per year)</li>
+<li><strong>No negative values</strong></li>
+</ul>
+<h3 id="2-final-demand-columns-required">2. Final Demand Columns (required)<a class="headerlink" href="#2-final-demand-columns-required" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Column level-0</strong>: Internal region code (one per internal region)</li>
+<li><strong>Column level-1</strong>: Must match the <code>final_demand</code> regex (use <code>final_demand</code>)</li>
+<li><strong>Rows</strong>: Same as intermediary matrix rows</li>
+<li><strong>Values</strong>: Household consumption per (region, sector)</li>
+</ul>
+<h3 id="3-export-columns-required-for-external-trade">3. Export Columns (required for external trade)<a class="headerlink" href="#3-export-columns-required-for-external-trade" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Column level-0</strong>: External region/bloc code (e.g., <code>EUR</code>, <code>CHN</code>, <code>AFR</code>)</li>
+<li><strong>Column level-1</strong>: Must match the <code>export</code> regex (use <code>Exports</code>)</li>
+<li><strong>Rows</strong>: Same as intermediary matrix rows</li>
+<li><strong>Values</strong>: Total exports from each internal (region, sector) to each external bloc</li>
+<li><strong>These define <code>external_buying_countries</code></strong>: Each unique level-0 value in Export columns becomes a Country agent that buys from internal firms</li>
+</ul>
+<h3 id="4-import-rows-required-for-external-trade">4. Import Rows (required for external trade)<a class="headerlink" href="#4-import-rows-required-for-external-trade" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Row level-0</strong>: External region/bloc code (must match the ones used in Export columns if the same bloc both sells and buys)</li>
+<li><strong>Row level-1</strong>: Must match the <code>import</code> regex (use <code>Imports</code>)</li>
+<li><strong>Columns</strong>: Same as intermediary matrix columns</li>
+<li><strong>Values</strong>: Total imports from each external bloc to each internal (region, sector)</li>
+<li><strong>These define <code>external_selling_countries</code></strong>: Each unique level-0 value in Import rows becomes a Country agent that sells to internal firms</li>
+</ul>
+<h3 id="5-transit-submatrix-derived">5. Transit Submatrix (derived)<a class="headerlink" href="#5-transit-submatrix-derived" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Located at the intersection of Import rows and Export columns</li>
+<li>Represents goods that pass through the modeled region (imported then re-exported)</li>
+<li>Can be zero if transit trade is not relevant</li>
+</ul>
+<h3 id="6-value-added-row-optional">6. Value Added Row (optional)<a class="headerlink" href="#6-value-added-row-optional" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Row level-0</strong>: Empty string or <code>NaN</code></li>
+<li><strong>Row level-1</strong>: Must match <code>value.?added|va</code> (use <code>value_added</code>)</li>
+<li><strong>Values</strong>: Value added per (region, sector)</li>
+<li>Used to compute <strong>profit margins</strong> (value_added / total_output)</li>
+<li>If missing: all industries default to 20% margin</li>
+</ul>
+<h3 id="7-tax-row-optional">7. Tax Row (optional)<a class="headerlink" href="#7-tax-row-optional" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Same structure as value_added</li>
+<li>Currently unused by the model</li>
+</ul>
+<h2 id="minimal-working-example">Minimal Working Example<a class="headerlink" href="#minimal-working-example" title="Permanent link">&para;</a></h2>
+<p>A minimal MRIO with 2 internal regions (A, B), 2 sectors (Agri, Mfg), and 1 external bloc (EXT):</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>,,A,A,B,B,EXT,A,B
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>,,Agri,Mfg,Agri,Mfg,Exports,final_demand,final_demand
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>A,Agri,10,20,5,3,8,50,2
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>A,Mfg,5,15,2,10,12,30,5
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>B,Agri,3,1,8,15,4,1,40
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>B,Mfg,2,8,6,12,6,3,25
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>EXT,Imports,7,4,3,2,0,0,0
+</span></code></pre></div>
+<p>This produces:
+- 4 firms: A_Agri, A_Mfg, B_Agri, B_Mfg
+- 2 households: A, B (from final_demand)
+- 1 country: EXT (appears in both Exports and Imports)</p>
+<h2 id="building-from-eora26">Building from Eora26<a class="headerlink" href="#building-from-eora26" title="Permanent link">&para;</a></h2>
+<p>When extracting from the Eora26 MRIO database (190 countries, 26 sectors):</p>
+<h3 id="step-1-define-internal-and-external-regions">Step 1: Define internal and external regions<a class="headerlink" href="#step-1-define-internal-and-external-regions" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">INTERNAL</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ARE&#39;</span><span class="p">,</span> <span class="s1">&#39;SAU&#39;</span><span class="p">,</span> <span class="s1">&#39;QAT&#39;</span><span class="p">,</span> <span class="s1">&#39;KWT&#39;</span><span class="p">,</span> <span class="s1">&#39;BHR&#39;</span><span class="p">,</span> <span class="s1">&#39;OMN&#39;</span><span class="p">,</span> <span class="s1">&#39;IRQ&#39;</span><span class="p">]</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">EXTERNAL</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;IND&#39;</span><span class="p">,</span> <span class="s1">&#39;PAK&#39;</span><span class="p">,</span> <span class="s1">&#39;EAS&#39;</span><span class="p">,</span> <span class="s1">&#39;EUR&#39;</span><span class="p">,</span> <span class="s1">&#39;AFR&#39;</span><span class="p">,</span> <span class="s1">&#39;ROW&#39;</span><span class="p">]</span>
+</span></code></pre></div>
+<p>Some external blocs may be aggregations of multiple Eora countries (e.g., <code>EUR</code> = all EU countries, <code>EAS</code> = East/Southeast Asian countries, <code>AFR</code> = African countries).</p>
+<h3 id="step-2-extract-the-intermediary-matrix">Step 2: Extract the intermediary matrix<a class="headerlink" href="#step-2-extract-the-intermediary-matrix" title="Permanent link">&para;</a></h3>
+<p>Select only rows and columns where both region and sector belong to internal regions. Exclude Eora's special sectors:
+- <code>Private Households</code> (rename to <code>Households</code> or exclude)
+- <code>Re-export &amp; Re-import</code> (rename to <code>Others</code> or exclude)
+- <code>Others</code> (can be kept or excluded)</p>
+<h3 id="step-3-build-final_demand-columns">Step 3: Build final_demand columns<a class="headerlink" href="#step-3-build-final_demand-columns" title="Permanent link">&para;</a></h3>
+<p>For each internal region, sum the household/final demand columns from Eora.</p>
+<h3 id="step-4-build-exports-columns">Step 4: Build Exports columns<a class="headerlink" href="#step-4-build-exports-columns" title="Permanent link">&para;</a></h3>
+<p>For each external bloc, sum ALL purchases by that bloc from internal sectors:
+- Sum across all sectors of the external bloc in the original Eora intermediary
+- Optionally include the external bloc's final demand from internal sectors</p>
+<p>This gives one <code>Exports</code> column per external bloc.</p>
+<h3 id="step-5-build-imports-rows">Step 5: Build Imports rows<a class="headerlink" href="#step-5-build-imports-rows" title="Permanent link">&para;</a></h3>
+<p>For each external bloc, sum ALL sales by that bloc to internal sectors:
+- Sum across all sectors of the external bloc in the original Eora intermediary</p>
+<p>This gives one <code>Imports</code> row per external bloc.</p>
+<h3 id="step-6-rename-problematic-sectors">Step 6: Rename problematic sectors<a class="headerlink" href="#step-6-rename-problematic-sectors" title="Permanent link">&para;</a></h3>
+<p>Apply the renaming rules from the "Naming Pitfalls" section above.</p>
+<h3 id="step-7-validate">Step 7: Validate<a class="headerlink" href="#step-7-validate" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Intermediary matrix is square</li>
+<li>No negative values</li>
+<li>Row sums (total output) approximately equal column sums (total input) for each (region, sector)</li>
+<li>No sector name accidentally matches the regex patterns</li>
+</ol>
+<h2 id="companion-files">Companion Files<a class="headerlink" href="#companion-files" title="Permanent link">&para;</a></h2>
+<h3 id="sector_tablecsv">sector_table.csv<a class="headerlink" href="#sector_tablecsv" title="Permanent link">&para;</a></h3>
+<p>One row per (region, sector) pair that appears in the intermediary matrix.</p>
+<p>Required columns:
+- <code>region_sector</code>: String <code>"{region}_{sector}"</code> (e.g., <code>ARE_Agriculture</code>)
+- <code>sector</code>: Sector name (e.g., <code>Agriculture</code>)
+- <code>type</code>: Sector type, one of: <code>agriculture</code>, <code>mining</code>, <code>manufacturing</code>, <code>transport</code>, <code>trade</code>, <code>service</code>, <code>utility</code>, <code>construction</code>
+- <code>region</code>: Region code (e.g., <code>ARE</code>)
+- <code>share_exporting_firms</code>: Float 0-1, share of firms that export
+- <code>usd_per_ton</code>: Float, monetary value per physical ton (used for logistics costing)</p>
+<p>The <code>sector</code> to <code>type</code> mapping must be consistent across all regions (same sector name always maps to the same type).</p>
+<h3 id="usd_per_toncsv">usd_per_ton.csv<a class="headerlink" href="#usd_per_toncsv" title="Permanent link">&para;</a></h3>
+<p>Required columns: <code>region</code>, <code>sector</code>, <code>usd_per_ton</code></p>
+<p>One row per (region, sector). Values represent the average USD value per metric ton of output for that sector in that region.</p>
+<h2 id="configuration-yaml">Configuration (YAML)<a class="headerlink" href="#configuration-yaml" title="Permanent link">&para;</a></h2>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nt">filepaths</span><span class="p">:</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">mrio</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Economic/mrio.csv&quot;</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">sector_table</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Economic/sector_table.csv&quot;</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">usd_per_ton</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Economic/usd_per_ton.csv&quot;</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="nt">monetary_units_in_data</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;mUSD&quot;</span><span class="w">   </span><span class="c1"># or &quot;USD&quot;, &quot;kUSD&quot;</span>
+</span></code></pre></div>
+<p>The <code>monetary_units_in_data</code> parameter tells the model what unit the MRIO values are in. Eora26 uses millions of USD (<code>mUSD</code>). The model internally converts to the appropriate time resolution.</p>
+<h2 id="validation-checklist">Validation Checklist<a class="headerlink" href="#validation-checklist" title="Permanent link">&para;</a></h2>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> CSV loads correctly with <code>pd.read_csv(path, header=[0,1], index_col=[0,1])</code></li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Intermediary matrix is square (same region-sectors in rows and columns)</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> No sector name matches <code>export</code>, <code>import</code>, <code>va</code>, <code>tax</code>, <code>capital</code>, or <code>final.?demand</code> patterns</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>Exports</code> column label detected correctly</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>final_demand</code> column label detected correctly</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>Imports</code> row label detected correctly</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> All values are non-negative</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Each Export column level-0 region has a matching entry in <code>countries.geojson</code></li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Each Import row level-0 region has a matching entry in <code>countries.geojson</code></li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Each internal region has a <code>final_demand</code> column</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>monetary_units_in_data</code> in YAML matches actual units in the CSV</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>sector_table.csv</code> covers all (region, sector) pairs in the intermediary matrix</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>usd_per_ton.csv</code> covers all (region, sector) pairs in the intermediary matrix</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 Celian Colon
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/ccolon/disrupt-sc" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://pypi.org/project/disruptsc/" target="_blank" rel="noopener" title="pypi.org" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "navigation.indexes", "search.highlight", "search.share", "search.suggest", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../javascripts/mathjax.js"></script>
+      
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
