@@ -159,7 +159,7 @@ class Firm:
         self.total_order = 0.0
         for _, client, data in sc_network.out_edges(self, data=True):
             link: CommercialLink = data["object"]
-            self.order_book[client] = link.order
+            self.order_book[client.pid] = link.order
             self.total_order += link.order
         if self.reconstruction_demand > 0:
             self.total_order += self.reconstruction_demand
