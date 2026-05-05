@@ -32,8 +32,8 @@ The default `Testkistan` configuration runs the simulation type configured in
 # Run a disruption scenario
 disruptsc Testkistan --simulation_type disruption
 
-# Override duration and IO cutoff
-disruptsc Testkistan --duration 12 --io_cutoff 0.95
+# Override duration and input coverage
+disruptsc Testkistan --duration 12 --input_coverage 0.95
 
 # Reuse all cached initialization stages
 disruptsc Testkistan --cache same_logistic_routes

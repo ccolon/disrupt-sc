@@ -53,7 +53,7 @@ class SimParams:
 @dataclass(frozen=True)
 class AgentParams:
     """Parameters for agent creation and filtering."""
-    io_cutoff: float = 0.95
+    input_coverage: float = 0.95
     cutoff_sector_output: dict = field(default_factory=lambda: {"type": "absolute", "value": 1.0, "unit": "mUSD"})
     cutoff_sector_demand: dict = field(default_factory=lambda: {"type": "absolute", "value": 1.0, "unit": "mUSD"})
     cutoff_firm_output: dict = field(default_factory=lambda: {"type": "absolute", "value": 10, "unit": "kUSD"})

@@ -131,86 +131,27 @@ class Mrio(pd.DataFrame):
         rows = [t for t in self.index if t[1] == self.import_label]
         return self.loc[rows, cols]
 
-    def get_region_sectors_with_internal_flows(self, threshold: float = 0) -> list:
-        """Return region-sectors whose diagonal technical coefficient exceeds *threshold*.
+    def get_tech_coef_dict(self, coverage: float, selected=None) -> dict:
+        """Return technical coefficients as nested dict using cumulative coverage.
 
-        These are region-sectors that consume a significant share of their own
-        output (e.g. oil fields using oil as fuel).  When a region-sector has
-        only one firm, the supply-chain builder cannot create a self-loop, so
-        the firm must be duplicated so one copy can supply the other.
-
-        Returns a list of tuples, e.g. [('SAU', 'Oil'), ('QAT', 'Oil'), ...].
-        """
-        inter = self.get_intermediary()
-        output = self.get_total_output()
-        # Intermediary is guaranteed square (_check_square in __init__) with
-        # aligned row/col labels, so the diagonal maps one-to-one to output.
-        diag = pd.Series(np.diag(inter.values), index=inter.index)
-        common = output.index.intersection(diag.index)
-        out_c = output.loc[common]
-        diag_c = diag.loc[common]
-        mask = (out_c > 0) & ((diag_c / out_c.where(out_c > 0)) > threshold)
-        result = [rs for rs, keep in zip(common, mask) if keep]
-        if result:
-            logging.info(
-                f"Found {len(result)} region-sectors with internal flows "
-                f"(diagonal coef > {threshold}): "
-                + ", ".join("_".join(str(x) for x in rs) for rs in result[:10])
-                + ("..." if len(result) > 10 else "")
-            )
-        else:
-            logging.warning(
-                f"No region-sectors with internal flows above threshold={threshold} "
-                f"(checked {len(self.region_sectors)} region-sectors)"
-            )
-        return result
-
-    def get_tech_coef_dict(self, threshold=0, selected=None,
-                           coverage: float | None = None) -> dict:
-        """Return technical coefficients as nested dict.
+        For each buyer, inputs are sorted by **absolute MRIO flow** (descending)
+        and kept until their cumulative share of the buyer's total intermediate
+        input reaches *coverage*.  This preserves large absolute trade flows
+        even when the tech-coefficient is small (e.g. small-country oil
+        exports to large-economy refiners).
 
         Parameters
         ----------
-        threshold : float
-            Minimum tech-coefficient value to keep (legacy absolute cutoff).
-            Ignored when *coverage* is set.
+        coverage : float in (0, 1]
+            Cumulative input-coverage fraction.
         selected : list, optional
-            Subset of region-sectors to include.
-        coverage : float in (0, 1], optional
-            Cumulative input-coverage fraction.  For each buyer, inputs are
-            sorted by **absolute MRIO flow** (descending) and kept until their
-            cumulative share of the buyer's total intermediate input reaches
-            *coverage*.  This preserves large absolute trade flows even when
-            the tech-coefficient is small (e.g. small-country oil exports to
-            large-economy refiners).
+            Subset of region-sectors to include as buyers (and as supplier
+            candidates, alongside external selling countries).
         """
         output = self.get_total_output()
         intermediate = self.get_intermediary()
         tech = intermediate.div(output, axis="columns")
-
-        if coverage is not None:
-            return self._tech_coef_by_coverage(
-                tech, intermediate, coverage, selected,
-            )
-
-        if selected:
-            if isinstance(selected[0], str):
-                selected = [tuple(s.split("_", 1)) for s in selected]
-            return {
-                "_".join(str(x) for x in buyer): {
-                    "_".join(str(x) for x in supplier): val
-                    for supplier, val in col.items()
-                    if val > threshold and (supplier in selected or supplier[0] in self.external_selling_countries)
-                }
-                for buyer, col in tech.to_dict().items()
-                if buyer in selected
-            }
-        return {
-            "_".join(str(x) for x in rs): {
-                "_".join(str(x) for x in k): v for k, v in col.items() if v > threshold
-            }
-            for rs, col in tech.to_dict().items()
-        }
+        return self._tech_coef_by_coverage(tech, intermediate, coverage, selected)
 
     def _tech_coef_by_coverage(self, tech: pd.DataFrame,
                                intermediate: pd.DataFrame,

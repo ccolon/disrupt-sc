@@ -73,7 +73,7 @@ def create_firm_table(mrio: Mrio, sector_table: pd.DataFrame,
         ft = _integrate_spatial_firms(ft, firms_spatial_path, mrio)
 
     # Phase 3: Handle internal flows (duplicate if needed)
-    ft = _handle_internal_flows(ft, mrio, params.io_cutoff)
+    ft = _handle_internal_flows(ft, mrio, params.input_coverage)
 
     # Phase 4: Filter small firms
     ft = _filter_small_firms(ft, mrio, params.cutoff_firm_output, params.monetary_units_in_data)
@@ -146,21 +146,14 @@ def create_firms(firm_table: pd.DataFrame, params: AgentParams) -> dict[str, Fir
     return firms
 
 
-def load_tech_coefs(firms: dict[str, Firm], mrio: Mrio, io_cutoff: float):
+def load_tech_coefs(firms: dict[str, Firm], mrio: Mrio, input_coverage: float):
     """Load input_mix (technical coefficients) into each firm.
 
-    *io_cutoff* is interpreted as a cumulative input-coverage fraction
-    (e.g. 0.95 means keep enough inputs to cover 95 % of each buyer's
-    intermediate consumption, ranked by absolute MRIO flow).  Legacy
-    values below 0.5 are still treated as an absolute tech-coefficient
-    threshold for backward compatibility.
+    *input_coverage* is the cumulative input-coverage fraction in (0, 1]:
+    e.g. 0.95 means keep enough inputs to cover 95 % of each buyer's
+    intermediate consumption, ranked by absolute MRIO flow.
     """
-    if io_cutoff > 0.5:
-        # Cumulative coverage mode
-        tech_coefs = mrio.get_tech_coef_dict(coverage=io_cutoff)
-    else:
-        # Legacy absolute threshold mode
-        tech_coefs = mrio.get_tech_coef_dict(threshold=io_cutoff)
+    tech_coefs = mrio.get_tech_coef_dict(coverage=input_coverage)
 
     # Count firms per region_sector to decide whether to keep diagonal entries
     from collections import Counter
@@ -298,7 +291,13 @@ def create_household_table(mrio: Mrio, households_spatial_path: Path,
 
     # Distribute per household by population proportion in each region
     consumption = {}
-    cutoff = _get_absolute_cutoff(params.cutoff_household_demand, params.monetary_units_in_data)
+    # final_demand has been rescaled above to (model_units, time_resolution),
+    # so the cutoff must match those units, not the raw data units.
+    cutoff = _get_absolute_cutoff(
+        params.cutoff_household_demand,
+        target_units=params.monetary_units_in_model,
+        target_time_resolution=time_resolution,
+    )
 
     # Pre-aggregate: one column per region, rows = region_sectors
     region_demand = final_demand.T.groupby(level=0).sum().T
@@ -574,14 +573,18 @@ def _integrate_spatial_firms(ft: gpd.GeoDataFrame, filepath: Path, mrio: Mrio) -
     return result
 
 
-def _handle_internal_flows(ft: gpd.GeoDataFrame, mrio: Mrio, io_cutoff: float) -> gpd.GeoDataFrame:
-    """Duplicate single-firm region_sectors that have internal consumption."""
-    # Internal-flow detection always uses a fixed tech-coef threshold on the
-    # diagonal, independent of the io_cutoff coverage parameter.
-    _INTERNAL_FLOW_THRESHOLD = 0.02
-    internal_rs = mrio.get_region_sectors_with_internal_flows(threshold=_INTERNAL_FLOW_THRESHOLD)
-    internal_rs_names = {"_".join(t) for t in internal_rs} if internal_rs else set()
-    logging.info(f"Internal flows: {len(internal_rs_names)} region-sectors above threshold={_INTERNAL_FLOW_THRESHOLD}")
+def _handle_internal_flows(ft: gpd.GeoDataFrame, mrio: Mrio,
+                           input_coverage: float) -> gpd.GeoDataFrame:
+    """Duplicate single-firm region_sectors that have internal consumption.
+
+    A region-sector is flagged iff its self-supply edge survives the same
+    input-selection rule applied elsewhere — i.e. (rs, rs) is among the
+    inputs kept by the coverage filter for buyer rs.
+    """
+    tech_coefs = mrio.get_tech_coef_dict(coverage=input_coverage)
+    internal_rs_names = {buyer for buyer, inputs in tech_coefs.items() if buyer in inputs}
+    logging.info(f"Internal flows: {len(internal_rs_names)} region-sectors with self-supply "
+                 f"surviving input_coverage={input_coverage}")
 
     new_rows = []
     for rs_name in internal_rs_names:
@@ -599,8 +602,6 @@ def _handle_internal_flows(ft: gpd.GeoDataFrame, mrio: Mrio, io_cutoff: float) -
         extra = gpd.GeoDataFrame(new_rows, geometry="geometry")
         ft = pd.concat([ft, extra], ignore_index=True)
         logging.info(f"Duplicated {len(new_rows)} single-firm region_sectors for internal flows")
-    else:
-        logging.warning("No single-firm region_sectors needed duplication — check io_cutoff or MRIO diagonal")
 
     return ft
 
@@ -621,14 +622,22 @@ def _filter_small_firms(ft: gpd.GeoDataFrame, mrio: Mrio,
     return ft.loc[keep].reset_index(drop=True)
 
 
-def _get_absolute_cutoff(cutoff_dict: dict, data_units: str) -> float:
-    """Convert cutoff to absolute value in data units."""
+def _get_absolute_cutoff(cutoff_dict: dict, target_units: str,
+                         target_time_resolution: str = "year") -> float:
+    """Convert an absolute cutoff (yearly, in *unit*) to *target_units / target_time_resolution*.
+
+    Cutoffs in the YAML are always declared as yearly values in their `unit`.
+    Most call sites compare against raw MRIO aggregates (data_units/year), so
+    the default `target_time_resolution="year"` is a no-op rescale. Call sites
+    that compare against series already rescaled to model units / time-step
+    must pass the matching `target_units` and `target_time_resolution`.
+    """
     if cutoff_dict.get("type") != "absolute":
         return 0.0
     return rescale_monetary_values(
         cutoff_dict["value"],
         input_units=cutoff_dict.get("unit", "kUSD"),
-        target_units=data_units,
+        target_units=target_units,
         input_time_resolution="year",
-        target_time_resolution="year",
+        target_time_resolution=target_time_resolution,
     )

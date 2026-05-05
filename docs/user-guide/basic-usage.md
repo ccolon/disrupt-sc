@@ -29,7 +29,7 @@ disruptsc Testkistan --simulation_type disruption
 disruptsc Cambodia --cache same_transport_network_new_agents
 
 # Override selected runtime parameters
-disruptsc Cambodia --duration 90 --io_cutoff 0.5
+disruptsc Cambodia --duration 90 --input_coverage 0.9
 
 # Use a process-specific cache folder
 disruptsc Cambodia --cache_isolation
@@ -55,7 +55,7 @@ The `scope` argument identifies the case study:
 | `--simulation_type` | Override YAML `simulation_type`. Choices: `initial_state`, `disruption`, `criticality`. |
 | `--cache` | Reuse cached initialization stages. |
 | `--duration` | Override `t_final`. |
-| `--io_cutoff` | Override the input-output cutoff. |
+| `--input_coverage` | Override `input_coverage` (cumulative input-coverage fraction in (0, 1]). |
 | `--log_level` | Set logging level: `info` or `debug`. |
 | `--verbose` | Alias for `--log_level debug`. |
 | `--cache_isolation` | Use a process-private cache directory. |
