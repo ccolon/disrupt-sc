@@ -97,6 +97,17 @@ def _parse_chunk_size(logistics: dict, time_resolution: str) -> float:
     return float(raw) * time_factor
 
 
+def _validated_input_coverage(value) -> float:
+    """input_coverage is the cumulative input-coverage fraction in (0, 1]."""
+    f = float(value)
+    if not (0 < f <= 1):
+        raise ValueError(
+            f"input_coverage must be in (0, 1] (got {f}). "
+            f"Typical values are 0.7–0.99."
+        )
+    return f
+
+
 def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams, LogisticsParams]:
     """Build frozen parameter bundles from a raw config dict."""
     logistics = config.get("logistics", {})
@@ -143,7 +154,7 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
     )
 
     agent_params = AgentParams(
-        io_cutoff=config.get("io_cutoff", 0.95),
+        input_coverage=_validated_input_coverage(config.get("input_coverage", 0.95)),
         cutoff_sector_output=config.get("cutoff_sector_output", {"type": "absolute", "value": 1.0, "unit": "mUSD"}),
         cutoff_sector_demand=config.get("cutoff_sector_demand", {"type": "absolute", "value": 1.0, "unit": "mUSD"}),
         cutoff_firm_output=config.get("cutoff_firm_output", {"type": "absolute", "value": 10, "unit": "kUSD"}),

@@ -15,7 +15,6 @@ with_transport: True
 monetary_units_in_model: mUSD
 monetary_units_in_data: kUSD
 time_resolution: week
-io_cutoff: 0.01
 
 # Simple disruption scenario
 simulation_type: disruption

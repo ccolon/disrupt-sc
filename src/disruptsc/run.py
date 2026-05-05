@@ -113,8 +113,8 @@ def _main_impl():
         config["simulation_type"] = args.simulation_type
     if args.duration is not None:
         config["t_final"] = args.duration
-    if args.io_cutoff is not None:
-        config["io_cutoff"] = args.io_cutoff
+    if args.input_coverage is not None:
+        config["input_coverage"] = args.input_coverage
 
     tp, sp, ap, lp = build_params(config)
     cache_flags = parse_cache_arg(args.cache)
@@ -179,7 +179,7 @@ def _main_impl():
             transport_nodes, ap,
         )
         firms = create_firms(firm_table, ap)
-        load_tech_coefs(firms, mrio, ap.io_cutoff)
+        load_tech_coefs(firms, mrio, ap.input_coverage)
         load_inventories(firms, ap.inventory_duration_targets,
                          sp.time_resolution, sector_table)
 
@@ -539,8 +539,8 @@ def _parse_args():
                         help="Override simulation_type from the YAML configuration")
     parser.add_argument("--duration", type=int, default=None,
                         help="Override t_final")
-    parser.add_argument("--io_cutoff", type=float, default=None,
-                        help="Override IO cutoff")
+    parser.add_argument("--input_coverage", type=float, default=None,
+                        help="Override input_coverage (cumulative input-coverage fraction in (0, 1])")
     parser.add_argument("--log_level", default="info", choices=["info", "debug"])
     parser.add_argument("--verbose", action="store_true",
                         help="Alias for --log_level debug")

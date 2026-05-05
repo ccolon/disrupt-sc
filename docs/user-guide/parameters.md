@@ -11,7 +11,7 @@ DisruptSC v2 uses YAML configuration files in `config/`.
 Supported CLI overrides are:
 
 ```bash
-disruptsc Cambodia --simulation_type disruption --duration 90 --io_cutoff 0.95
+disruptsc Cambodia --simulation_type disruption --duration 90 --input_coverage 0.95
 ```
 
 ## Core Parameters
@@ -76,7 +76,7 @@ Transport networks are loaded from a GeoPackage configured by
 ## Agent And Supply Chain Parameters
 
 ```yaml
-io_cutoff: 0.95
+input_coverage: 0.95
 cutoff_sector_output:
   type: "absolute"
   value: 1.0

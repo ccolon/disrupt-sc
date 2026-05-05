@@ -20,7 +20,7 @@ The console scripts keep the same names but now point to new modules.
 
 **Impact:** If you installed v1 in editable mode and upgrade in place, reinstall with `pip install -e .` so entry points pick up the new targets.
 
-CLI flags are largely the same (`--cache`, `--simulation_type`, `--duration`, `--io_cutoff`, `--cache_isolation`, `--version`). New in v2: `--log_level`, `--verbose`, `--open`.
+CLI flags are largely the same (`--cache`, `--simulation_type`, `--duration`, `--input_coverage`, `--cache_isolation`, `--version`). New in v2: `--log_level`, `--verbose`, `--open`. v1's `--io_cutoff` is renamed `--input_coverage` and now strictly takes a coverage fraction in (0, 1].
 
 ---
 
@@ -84,9 +84,13 @@ The GeoPackages carry per-mode layers internally. v1 per-mode GeoJSONs are no lo
 - `enable_household_inventories` — households can now hold inventories
 - `firm_transport_share`, `country_transport_share` — uniform transport-share defaults
 
-### Changed defaults
+### Renamed and changed: `io_cutoff` → `input_coverage`
 
-- `io_cutoff`: **0.01 → 0.95**. v2 uses a stricter input-mix filter by default. If you want v1 behavior, set `io_cutoff: 0.01` in your scope file.
+v1's `io_cutoff` was an absolute tech-coefficient threshold (e.g. 0.01 = keep inputs with coef > 1%). v2 reframes it as a **cumulative input-coverage fraction**: for each buyer, inputs are sorted by absolute MRIO flow (descending) and kept until their cumulative share of total intermediate consumption reaches the value. Default: **0.95**.
+
+The legacy threshold mode is gone. If you had `io_cutoff: 0.01` (v1 behavior), the closest v2 equivalent is `input_coverage: 0.99` or higher; otherwise just use the default 0.95.
+
+The same rule now also drives internal-flow detection (which region-sectors get duplicated to allow self-supply), replacing v1's hidden 0.02 diagonal threshold.
 
 ### Deprecations
 
@@ -129,7 +133,7 @@ No breaking changes. `mc_repetitions`, `simulation_type` (`initial_state`, `disr
 3. Remove any `data/` submodule entry from your clone; either point `DISRUPT_SC_DATA_PATH` at your existing data folder or clone the data repo as `../disrupt-sc-data`.
 4. Rewrite your scope's `filepaths` block to use `transport.gpkg` + `multimodal.gpkg` (or re-run against a freshly prepared data folder).
 5. Update any direct Python imports per the table above.
-6. Scan your scope YAML for `io_cutoff`, `events` → `disruptions`, and removed `shipment_methods_to_transport_modes` keys.
+6. Scan your scope YAML: rename `io_cutoff` → `input_coverage` (and re-tune if you were using a legacy small-threshold value); rename `events` → `disruptions`; drop `shipment_methods_to_transport_modes` keys.
 7. Move your scope file from `config/parameters/` to `config/`, and rename to `user_defined_<scope>.local.yaml` (unless it's Testkistan).
 8. `validate-inputs <scope>` to confirm the config is still readable.
 

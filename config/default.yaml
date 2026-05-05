@@ -286,13 +286,13 @@ adaptive_supplier_weight: False
 # It applies uniformly to all firms.
 utilization_rate: 0.8
 
-# Determines which inputs will be kept in the firms' Leontief production function.
-# Values > 0.5 are interpreted as cumulative input coverage: for each buyer, inputs
-# are sorted by absolute MRIO flow (descending) and kept until their cumulative share
-# of the buyer's total intermediate input reaches this fraction.  E.g., 0.95 keeps
-# enough inputs to cover 95% of each buyer's intermediate consumption.
-# Values <= 0.5 are treated as a legacy absolute tech-coefficient threshold.
-io_cutoff: 0.95
+# Cumulative input coverage in (0, 1].  For each buyer in the MRIO, inputs are
+# sorted by absolute MRIO flow (descending) and kept until their cumulative
+# share of the buyer's total intermediate input reaches this fraction.
+# E.g., 0.95 keeps enough inputs to cover 95% of each buyer's intermediate
+# consumption.  Same rule decides which region-sectors get internal-flow
+# (self-supply) edges.
+input_coverage: 0.95
 
 # Determines the way firms ration their clients if they cannot meet all demand
 # Possible values are:

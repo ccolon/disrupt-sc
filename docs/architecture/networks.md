@@ -99,7 +99,7 @@ def create_mrio_supply_chains(self, mrio, agents):
         for supplier_sector in mrio.columns:
             coefficient = mrio.loc[buyer_sector, supplier_sector]
             
-            if coefficient > self.io_cutoff:
+            if coefficient > self.input_coverage:
                 # Find agents in these sectors
                 buyers = self.get_agents_by_sector(buyer_sector)
                 suppliers = self.get_agents_by_sector(supplier_sector)
