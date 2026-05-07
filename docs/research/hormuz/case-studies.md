@@ -2,7 +2,7 @@
 
 ## Five Cases of Supply Chain Disruptions
 
-*[Célian Colon](mailto:celian.colon@polytechnique.org), International Institute for Applied Systems Analysis (IIASA) — updated 4 May 2026*
+*[Célian Colon](mailto:celian.colon@polytechnique.org), International Institute for Applied Systems Analysis (IIASA) — updated 7 May 2026*
 
 !!! note "Brief 2 of the [Hormuz Crisis Analytics](index.md)"
     This brief is the empirical companion to [Brief 1 — Logistics Disruption & Supply-Chain Spillovers](supply-chains.md) (21 April). It has **not** yet been peer-reviewed. The case-study material is drawn from independent trade-press and industry reporting; there are no model outputs.
@@ -160,28 +160,24 @@ flowchart LR
 
 ## Case 3 — Korea: from naphtha to consumer goods and AI chips
 
-Beyond textiles, naphtha is also the primary feedstock, via its cracking into ethylene and propylene, for the resins used in packaging films, PET bottles, and a wide range of plastic parts. In Korea, naphtha arrives by two routes, both ultimately Gulf-dependent. Roughly 45% is imported directly as finished naphtha, of which about 77% comes from the Gulf. The remainder is refined at home from imported crude, most of which is also Gulf-sourced.
+Beyond textiles, naphtha is the primary feedstock—through cracking into ethylene and propylene—for the resins used in packaging films, PET bottles, and a wide range of plastic parts. In Korea, naphtha arrives by two routes, both ultimately Gulf-dependent. Roughly 45% is imported directly as finished naphtha, of which about 77% comes from the Middle East. The remainder is refined at home from imported crude, most of which is also Gulf-sourced.
 
-On 4 March, Korea's third-largest ethylene producer (Yeochun NCC) announced a *force majeure*. Other producers, LG Chem and Lotte Chemical, issued similar warnings; on 23 March, LG Chem shut down an 800,000-t/y cracker at Yeosu. On 4 April, Yeochun NCC issued a second *force majeure*, indicating the disruption was renewing rather than easing.
+On 4 March, Korea's third-largest ethylene producer (Yeochun NCC) declared force majeure as the Hormuz blockade halted Middle Eastern naphtha shipments. LG Chem, Lotte Chemical, and Hanwha Solutions issued similar warnings to customers, and on 23 March, LG Chem shut its 800,000-t/y No. 2 cracker at Yeosu. By mid-April, the disruption was deepening rather than easing: on 13 April, Hanwha TotalEnergies halted its paraxylene (PX) supply, thereby extending the cascade into the polyester and PET bottle chains.
 
-Thirteen industry organizations reported procurement disruptions in vinyl, film, and PET containers, with inventory for some items falling to roughly two weeks. Korean memory chipmakers, especially Samsung and SK Hynix, have been flagged as exposed: a specialized stream of naphtha-derived chemistry feeds the photoresist materials used in semiconductor lithography. Both companies hold roughly 70% of the global DRAM market and 80% of the high-bandwidth memory market, the latter used in Nvidia's artificial intelligence chips.
+Thirteen food-industry associations petitioned the government, reporting that inventories of packaging materials—vinyl, film, and PET containers—had fallen to roughly two weeks for some items, with domestic packaging-material prices up 20–30% within a month. Korean memory chipmakers Samsung and SK Hynix have also been flagged as exposed: a specialized stream of naphtha-derived chemistry feeds the high-purity solvents used in semiconductor production. Together, the two firms hold roughly 70% of the global DRAM market and around 80% of high-bandwidth memory (HBM), the latter of which is used in Nvidia's AI accelerators.
 
-To protect this highly critical industry, the Korean government imposed a five-month statutory ban on naphtha exports on 27 March. It included mandatory daily reporting, and the authorities are directly controlling supply to the consuming sectors.
+To stabilize supply, the Korean government imposed a five-month statutory ban on naphtha exports on 27 March, with priority allocated to healthcare, essential goods, and core industries. The decree mandates daily reporting from refiners and petrochemical firms, and allows the authorities to intervene directly in supply allocation if shortages worsen.
 
-A supplementary budget of around KRW 26 trillion (~$17 bn) was passed on 10 April, including naphtha-import subsidies and stockpile purchases from non-Gulf suppliers. LG Chem imported 27,000 tonnes of Russian naphtha — notable given Korea's previous alignment with Western sanctions toward Russia — explicitly framed as protection for the chip-input stream. Korea's Presidential Chief of Staff toured Saudi Arabia, Kazakhstan, Oman, and Qatar in April. The mission secured commitments for 273 million barrels of crude and 2.1 million tonnes of naphtha by year-end, routed through non-Hormuz supply lines — including Saudi shipments via the Red Sea port of Yanbu.
+A "war supplementary budget" of KRW 26.2 trillion (~$18 bn) passed the National Assembly on 10 April, including naphtha-import subsidies and support for procurement from non-Gulf suppliers. Around 30 March, LG Chem imported 27,000 tonnes of Russian naphtha—Korea's first such purchase since the 2022 sanctions. Presidential Chief of Staff Kang Hoon-sik toured Kazakhstan, Oman, Saudi Arabia, and Qatar between 7 and 14 April, securing commitments for 273 million barrels of crude and up to 2.1 million tonnes of naphtha through year-end. It includes Saudi crude loaded at the Red Sea port of Yanbu, which has since handled multiple Korean-flagged tankers
 
 ```mermaid
----
-config:
-  themeCSS: '.cluster-label foreignObject { text-align: center; }'
-  layout: dagre
----
-%%{init: {'flowchart': {'nodeSpacing': 20, 'rankSpacing': 20}}}%%
+%%{init: {'theme':'default', 'themeCSS': '.cluster-label foreignObject { text-align: center; }', 'flowchart': {'nodeSpacing': 20, 'rankSpacing': 15, 'padding': 5, 'curve': 'basis'}}}%%
 flowchart TB
  subgraph crackers["Crackers run short on naphtha"]
     direction LR
-        F["YNCC force majeure<br>(4 Mar, 4 Apr)"]
+        F["YNCC force majeure<br>(4 Mar)"]
         G["LG Chem hard shutdown<br>at Yeosu (23 Mar)"]
+        K["Hanwha TotalEnergies halts<br>paraxylene supply (13 Apr)"]
   end
  subgraph main[" "]
     direction LR
@@ -189,15 +185,15 @@ flowchart TB
         B["Naphtha imports tighten"]
         D["Lower crude imports;<br>domestic refineries<br>produce less naphtha"]
         A["Strait closes"]
-        H["Prices of PE &amp; PP +20-30%;<br>Food packaging stocks fall"]
-        J["Inputs to memory chips<br>tight (Samsung &amp; SK Hynix)"]
+        H["PE &amp; PP prices +20-30%;<br>packaging stocks at ~2 weeks"]
+        J["Chip-manufacturing solvents tight<br>(Samsung &amp; SK Hynix flagged)"]
   end
  subgraph policy_response["Policy response"]
     direction TB
         L["5-month naphtha<br>export ban<br>(27 Mar)"]
-        M["KRW 26 trn<br>supplementary<br>budget (10 Apr)"]
+        M["KRW 26.2 trn<br>supplementary<br>budget (10 Apr)"]
         N["LG Chem imports<br>27 kt of<br>Russian naphtha"]
-        O["Mission to the Gulf<br>&amp; Kaz. (7-14 Apr)<br>to secure alternatives"]
+        O["Mission to Kaz./Gulf<br>(7-14 Apr): 273 m barrels<br>+ 2.1 m tonnes via Yanbu"]
   end
     A --> B & D
     D --> crackers
@@ -207,6 +203,7 @@ flowchart TB
 
      F:::material
      G:::material
+     K:::material
      A:::source
      B:::energy
      D:::energy
