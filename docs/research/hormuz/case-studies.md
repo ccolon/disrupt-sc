@@ -2,7 +2,7 @@
 
 ## Five Cases of Supply Chain Disruptions
 
-*[Célian Colon](mailto:celian.colon@polytechnique.org), International Institute for Applied Systems Analysis (IIASA) — updated 7 May 2026*
+*[Célian Colon](mailto:celian.colon@polytechnique.org), International Institute for Applied Systems Analysis (IIASA) — updated 19 May 2026*
 
 !!! note "Brief 2 of the [Hormuz Crisis Analytics](index.md)"
     This brief is the empirical companion to [Brief 1 — Logistics Disruption & Supply-Chain Spillovers](supply-chains.md) (21 April). It has **not** yet been peer-reviewed. The case-study material is drawn from independent trade-press and industry reporting; there are no model outputs.
@@ -309,47 +309,55 @@ style suppliers fill:#FBF4E5,stroke:#E69F00,stroke-width:1.5px,stroke-dasharray:
 
 ## Case 5 — Gulf sulfur, Chinese sulfuric acid, and global copper production
 
-This is the longest cascade in geographical reach. The Gulf supplies roughly half of all internationally traded *sulfur* shipped by sea, a by-product of their refineries and gas-processing plants. Sulfur is the upstream input to *sulfuric acid*, which is used to extract *copper* from oxide ores. Copper is essential to electric and electronic equipment and infrastructure, and is widely considered a material bottleneck for the energy transition.
+This is the longest cascade in geographical reach. The Gulf supplies roughly half of all internationally traded sulfur shipped by sea, a by-product of their refineries and gas-processing plants. Sulfur is the upstream input to sulfuric acid, which is used to extract copper from oxide ores. Copper is essential to electric and electronic equipment and infrastructure, and is widely considered a material bottleneck for the energy transition.
 
-With Hormuz closed, sulfur could no longer be shipped out to fertilizer and chemical buyers worldwide. The benchmark sulfur price rose around 50%, reaching $630 per tonne by April. Beyond tensions in the fertilizer markets, this price surge impacted the sulfuric-acid-copper value chain. China, the world's largest exporter of sulfuric acid, responded by prioritizing domestic users, shipping none to Chile in March 2026. On 10 April, China announced it would halt sulfuric acid exports from 1 May.
+With Hormuz closed, sulfur could no longer be shipped out to fertilizer and chemical buyers worldwide. Sulfur prices have risen more than 70% since late February (Argus); the Abu Dhabi National Oil Company set its April official selling price at $600 per tonne, up $70 from March. Russia's parallel sulfur export ban, now extended through June, compounded the squeeze.
 
-As a consequence, around 200,000 tonnes of Chilean copper production are reported at risk, equivalent to about 1% of global supply. According to the financial press, BHP, one of the world's largest miners, has reportedly shifted its copper supply outlook toward its African operations and away from Chile. In parallel, the Democratic Republic of the Congo and Zambia, which together import about 2 Mt of sulfur annually for their copper mines, are reported to hold two to three months of inventory; if the squeeze persists past June, around 125,000 tonnes of copper output could be at risk.
+Beyond fertilizer markets, the price surge spread to the sulfuric acid-copper value chain. China, the world's largest sulfuric acid exporter (4.6 Mt in 2025), responded by prioritizing domestic users, shipping zero tonnes to Chile in March 2026 — the first complete monthly halt since July 2023. On 10 April, Bloomberg reported that Beijing had informed producers that it would halt sulfuric acid exports altogether from 1 May; the ban has since taken effect.
+
+The shock landed hardest where copper is extracted by acid leaching. Chile, the world's largest copper producer, imports about a third of its sulfuric acid from China; the spot benchmark for acid delivered to Chilean ports doubled from $190/mt to $380/mt in under seven weeks. Goldman Sachs models around 200,000 tonnes of Chilean copper production at risk, equivalent to roughly 1% of global supply. 
+
+In parallel, the Democratic Republic of the Congo and Zambia, which together import about 2 Mt of sulfur a year for their copper mines—roughly 90% of it from the Persian Gulf—are reported to hold two to three months of inventory; if the squeeze persists past June, around 125,000 tonnes of copper output could be at risk. Combined, the disrupted volume is large enough to absorb most of the global copper market surplus that Goldman Sachs had been forecasting for 2026 (~490 kt), pushing the market from a comfortable balance toward a potential deficit.
 
 ```mermaid
 %%{init: {'themeCSS': '.cluster-label foreignObject { text-align: center; }', 'flowchart': {'rankSpacing': 30}}}%%
 flowchart LR
     A[Strait closes]:::source
 
-    B["Sulfur cannot leave<br/>Gulf ports"]:::material
+    B["Gulf sulfur (~½ of global seaborne supply) cannot be shipped"]:::pathway
     A --> B
 
-    C["Sulfur price +50%"]:::material
+    R["Russia: sulfur export ban<br/>extended through June"]:::policy
+    R --> C
+
+    C["Sulfur price +70%<br/>since late February"]:::pathway
     B --> C
 
-    E["Fertilizer prices up"]:::material
-    C --> E
+    F["Pressure on global<br/>fertilizer markets"]:::impact
+    C --> F
 
-    subgraph sa[Tension on sulfuric acid market]
-      direction LR
-        halt["China: stop exporting<br/>Domestic market prioritization"]:::policy
+    subgraph sa[Sulfuric acid market squeeze]
+      direction TB
+        halt["China (world's #1 exporter): halt exports from 1 May"]:::policy
+        mej["Chile spot acid price<br/>doubled ($190 → $380/mt)"]:::pathway
+        halt --> mej
     end
     C --> sa
+
+    subgraph copper[Copper output at risk]
+      direction LR
+        chile["Chile: ~200 kt at risk<br/>(~1% of global supply)"]:::impact
+        afr["DRC & Zambia: ~125 kt at risk past June (~0.6% of global supply)"]:::impact
+    end
     sa --> copper
 
-    subgraph copper[Tension on copper mining]
-      direction LR
-        chile["Chile: ~200 kt copper<br/>at risk (~1% of global)"]:::material
-        afr["DRC & Zambia: limited stock;<br/>~125 kt at risks past June"]:::material
-    end
-
     classDef source   fill:#F4C9A8,stroke:#D55E00,stroke-width:1.5px,color:#3A3A3A;
-    classDef energy   fill:#DDF0FB,stroke:#0072B2,stroke-width:1px,color:#3A3A3A;
-    classDef material fill:#FAECCC,stroke:#E69F00,stroke-width:1px,color:#3A3A3A;
+    classDef pathway  fill:#FAECCC,stroke:#E69F00,stroke-width:1px,color:#3A3A3A;
+    classDef impact   fill:#DDF0FB,stroke:#0072B2,stroke-width:1px,color:#3A3A3A;
     classDef policy   fill:#E8E0F0,stroke:#7A4FB8,stroke-width:1px,color:#3A3A3A;
-    classDef default  fill:#F5F5F5,stroke:#767676,stroke-width:1px,color:#3A3A3A;
 
-    style sa fill:#E8E0F0,stroke:#7A4FB8,stroke-width:1.5px,stroke-dasharray:5 3,color:#3A3A3A
-    style copper fill:#DDF0FB,stroke:#0072B2,stroke-width:1.5px,stroke-dasharray:5 3,color:#3A3A3A
+    style sa fill:#FFFCF5,stroke:#E69F00,stroke-width:1.5px,stroke-dasharray:5 3,color:#3A3A3A
+    style copper fill:#F5FAFC,stroke:#0072B2,stroke-width:1.5px,stroke-dasharray:5 3,color:#3A3A3A
 ```
 
 *Mining cascade: Hormuz closure halts Gulf sulfur exports, driving up fertilizer prices and tensions in the sulfuric acid markets. China halts exports of this acid, affecting copper extraction in Chile and Africa. Source: author's synthesis based on trade-press reporting.*
