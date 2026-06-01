@@ -197,6 +197,7 @@ def _main_impl():
             mrio, transport_nodes, filepaths.get("countries_spatial"),
             usd_per_ton, sp.time_resolution, ap,
             transport_edges=transport_edges,
+            countries_no_transport=tp.countries_no_transport,
         )
 
         cache_agents(firms, households, countries, mrio, sector_table, firm_table, household_table)

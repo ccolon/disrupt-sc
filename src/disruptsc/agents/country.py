@@ -33,6 +33,7 @@ class Country:
     usd_per_ton: float = 2864.0
     monetary_unit_factor: float = 1.0  # multiplier to convert model monetary units to USD
     transport_share: float = 0.2
+    virtual: bool = False  # flows to/from this country bypass the transport network
 
     # --- Trade structure (set during init_pipeline) ---
     supply_importance: float | None = None
@@ -105,6 +106,8 @@ class Country:
                 continue
 
             if link.product_type in tp.sectors_no_transport:
+                deliver_without_transport(link, _after_delivery)
+            elif getattr(self, "virtual", False) or getattr(client, "virtual", False):
                 deliver_without_transport(link, _after_delivery)
             elif not tp.with_transport:
                 deliver_without_transport(link, _after_delivery)

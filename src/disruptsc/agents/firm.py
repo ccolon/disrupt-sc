@@ -233,6 +233,8 @@ class Firm:
             # Check if this link needs the transport network
             if link.product_type in tp.sectors_no_transport:
                 deliver_without_transport(link, _after_delivery, supplier_price=self.price)
+            elif getattr(client, "virtual", False):
+                deliver_without_transport(link, _after_delivery, supplier_price=self.price)
             elif not tp.with_transport:
                 deliver_without_transport(link, _after_delivery, supplier_price=self.price)
             elif client.__class__.__name__ == "Household" and not tp.transport_to_households:
@@ -257,7 +259,7 @@ class Firm:
         self.total_input = 0.0
         for supplier, _, data in sc_network.in_edges(self, data=True):
             link: CommercialLink = data["object"]
-            if link.product_type in sectors_no_transport:
+            if link.product_type in sectors_no_transport or getattr(supplier, "virtual", False):
                 qty = self._receive_service(link)
             else:
                 qty = self._receive_shipment(link, transport_network)

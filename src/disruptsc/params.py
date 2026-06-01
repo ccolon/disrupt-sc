@@ -16,6 +16,7 @@ class TransportParams:
     switching_costs: dict = field(default_factory=lambda: {"modal_switch": 0.15, "port_switch": 0.05})
     price_increase_threshold: float | None = 2.0  # None = no threshold
     sectors_no_transport: tuple = ("utility", "transport", "trade", "services", "service", "construction")
+    countries_no_transport: tuple = ()
     monetary_units: str = "mUSD"
     route_optimization_weight: str = "cost_per_ton"
     chunk_size: float = 1e9  # tons per time-step; very large = no chunking
