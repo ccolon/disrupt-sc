@@ -179,6 +179,15 @@ sectors_to_exclude: None
 # The products from those sectors do not need transport network to be transported
 sectors_no_transport_network: ['utility', 'transport', 'trade', 'services', 'service', 'construction']
 
+# Country agents listed here have their inbound and outbound flows treated as
+# "virtual" — no route is computed, no transport-network capacity is consumed,
+# and shipments bypass the network entirely (same mechanism as sectors_no_transport_network,
+# but keyed on the country pid). Use this for trade partners whose link to the
+# studied region is out of scope (e.g. extra-regional imports/exports that don't
+# touch the modelled transport infrastructure). Leave empty to keep all
+# countries on the transport network.
+countries_no_transport: []
+
 # Whether the B2C flows are transported on the transport network
 transport_to_households: True
 

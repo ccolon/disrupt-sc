@@ -90,7 +90,20 @@ class Mrio(pd.DataFrame):
         if not self.value_added_label:
             logging.warning("No VA in MRIO, defaulting to 20%")
             return {ind: 0.2 for ind in selected}
-        va = self.loc[(None, self.value_added_label), selected]
+        # The level-0 sentinel for the VA row varies by MRIO source
+        # (None, '', 'ALL', NaN). Find the row by level-1 match instead of
+        # hard-coding the level-0 value.
+        va_rows = [idx for idx in self.index if idx[1] == self.value_added_label]
+        if not va_rows:
+            logging.warning("No VA row in MRIO, defaulting to 20%")
+            return {ind: 0.2 for ind in selected}
+        if len(va_rows) > 1:
+            logging.warning(
+                f"Multiple VA rows in MRIO ({va_rows}); summing across them"
+            )
+            va = self.loc[va_rows, selected].sum(axis=0)
+        else:
+            va = self.loc[va_rows[0], selected]
         output = self.loc[selected].sum(axis=1)
         ratios = va / output
         logging.info(f"Average VA/output ratio: {ratios.mean():.2%}")

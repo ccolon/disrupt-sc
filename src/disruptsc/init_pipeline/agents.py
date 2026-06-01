@@ -356,7 +356,8 @@ def create_households(household_table: pd.DataFrame,
 def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
                      countries_spatial_path: Path, usd_per_ton: dict,
                      time_resolution: str, params: AgentParams,
-                     transport_edges: gpd.GeoDataFrame | None = None) -> dict[str, Country]:
+                     transport_edges: gpd.GeoDataFrame | None = None,
+                     countries_no_transport: tuple = ()) -> dict[str, Country]:
     """Create Country objects from MRIO trade data.
 
     Countries are assigned to the nearest **road** node so that they connect
@@ -383,8 +384,21 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
     else:
         country_nodes = transport_nodes
 
-    # Load spatial data
-    countries_gdf = gpd.read_file(countries_spatial_path)
+    # The geojson is optional: a virtual country (listed in
+    # countries_no_transport) is allowed to be absent from it. A non-virtual
+    # country missing from the geojson raises in Phase 1 below. An empty MRIO
+    # country list also works — the phases below naturally produce {}.
+    if countries_spatial_path and Path(countries_spatial_path).exists():
+        countries_gdf = gpd.read_file(countries_spatial_path)
+    else:
+        if all_countries:
+            reason = (f"file not found at {countries_spatial_path}"
+                      if countries_spatial_path else "no filepath configured")
+            logging.info(
+                f"Country geojson unavailable ({reason}); only virtual "
+                f"countries can be built without a geometry."
+            )
+        countries_gdf = gpd.GeoDataFrame({"region": [], "geometry": []}, geometry="geometry")
 
     # Extract trade matrices
     # Import table: what external countries sell TO model firms (import supply)
@@ -408,30 +422,53 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
     )
 
     # Build countries
+    # The MRIO is the source of truth for *which* countries to model. The geojson
+    # supplies a point location for each one — except for virtual countries
+    # (listed in countries_no_transport), whose flows never touch the transport
+    # network and therefore don't need a real location. Such virtual countries
+    # are allowed to be absent from the geojson; they are stamped with
+    # od_point = -1 (the sentinel _distance_between already understands).
     countries = {}
     total_imports = import_table.sum().sum() if len(import_table) > 0 else 1.0
 
-    # Collect centroids for all countries with spatial data (one KDTree query total)
-    country_centroids = []
+    # Phase 1: resolve spatial data per country.
+    # Each entry is (country_code, centroid_or_None). centroid is None when the
+    # country is virtual and missing from the geojson.
+    country_specs: list[tuple[str, "object | None"]] = []
+    geojson_name = Path(countries_spatial_path).name if countries_spatial_path else "countries.geojson"
     for country_code in all_countries:
         match = countries_gdf[countries_gdf["region"] == country_code]
         if match.empty:
-            logging.warning(f"No spatial data for country {country_code}, skipping")
-            continue
+            if country_code in countries_no_transport:
+                country_specs.append((country_code, None))
+                continue
+            raise ValueError(
+                f"Country {country_code!r} is present in the MRIO but missing "
+                f"from {geojson_name}. Add a feature for it, or list it under "
+                f"countries_no_transport (virtual countries skip the spatial lookup)."
+            )
         geom = match.iloc[0].geometry
         centroid = geom.centroid if geom.geom_type != "Point" else geom
-        country_centroids.append((country_code, centroid))
+        country_specs.append((country_code, centroid))
 
-    if country_centroids:
+    # Phase 2: batch KDTree once over countries that have a centroid.
+    sited = [(code, ctr) for code, ctr in country_specs if ctr is not None]
+    if sited:
         centroids_gdf = gpd.GeoDataFrame(
-            [{"geometry": c[1]} for c in country_centroids], geometry="geometry"
+            [{"geometry": ctr} for _, ctr in sited], geometry="geometry"
         )
-        od_points = find_nearest_node_id(country_nodes, centroids_gdf)
+        sited_od_points = find_nearest_node_id(country_nodes, centroids_gdf)
     else:
-        od_points = np.array([], dtype=int)
+        sited_od_points = np.array([], dtype=int)
+    od_point_by_pid = {
+        code: int(op) for (code, _), op in zip(sited, sited_od_points)
+    }
 
-    for (country_code, centroid), od_point in zip(country_centroids, od_points):
-        od_point = int(od_point)
+    # Phase 3: build country agents.
+    for country_code, centroid in country_specs:
+        od_point = od_point_by_pid.get(country_code, -1)
+        long_ = centroid.x if centroid is not None else None
+        lat_ = centroid.y if centroid is not None else None
 
         # Export demand: what this country BUYS from model region-sectors
         qty_purchased = {}
@@ -459,13 +496,14 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
             region=country_code,
             od_point=od_point,
             name=country_code,
-            long=centroid.x,
-            lat=centroid.y,
+            long=long_,
+            lat=lat_,
             sector=mrio.import_label or "IMP",
             region_sector=f"{country_code}_{mrio.import_label or 'IMP'}",
             usd_per_ton=country_upt,
             monetary_unit_factor=_UNITS.get(params.monetary_units_in_model, 1e6),
             transport_share=params.country_transport_share,
+            virtual=country_code in countries_no_transport,
             supply_importance=supply_importance,
             qty_purchased=qty_purchased,
         )
@@ -479,6 +517,18 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
         f"Created {len(countries)} countries — "
         f"total export demand: {total_export_demand:,.2f} {params.monetary_units_in_model}/{time_resolution}"
     )
+    virtual_pids = sorted(pid for pid, c in countries.items() if c.virtual)
+    if virtual_pids:
+        unsited = sorted(pid for pid in virtual_pids if countries[pid].od_point == -1)
+        msg = f"Virtual countries (flows bypass transport network): {virtual_pids}"
+        if unsited:
+            msg += f"; of those, {unsited} have no geojson location"
+        logging.info(msg)
+    unknown = sorted(set(countries_no_transport) - set(countries))
+    if unknown:
+        logging.warning(
+            f"countries_no_transport lists pids that are not in the MRIO: {unknown}"
+        )
     return countries
 
 

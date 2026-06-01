@@ -107,6 +107,9 @@ def _collect_link_specs(sc_network, tp: TransportParams) -> list[dict]:
         if sector_type in tp.sectors_no_transport:
             continue
 
+        if getattr(supplier, "virtual", False) or getattr(client, "virtual", False):
+            continue
+
         client_type = getattr(client, "agent_type", type(client).__name__.lower())
         if client_type == "household" and not tp.transport_to_households:
             continue
