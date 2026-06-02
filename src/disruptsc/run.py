@@ -113,8 +113,8 @@ def _main_impl():
         config["simulation_type"] = args.simulation_type
     if args.duration is not None:
         config["t_final"] = args.duration
-    if args.input_coverage is not None:
-        config["input_coverage"] = args.input_coverage
+    if args.flow_coverage is not None:
+        config["flow_coverage"] = args.flow_coverage
 
     tp, sp, ap, lp = build_params(config)
     cache_flags = parse_cache_arg(args.cache)
@@ -154,7 +154,7 @@ def _main_impl():
     # ------------------------------------------------------------------
     # Stage 2: Agents
     # ------------------------------------------------------------------
-    selected = None  # filtered MRIO sectors (set when building fresh)
+    selection = None  # flow-coverage Selection (set when building fresh)
     if cache_flags["agents"]:
         logging.info("Loading agents from cache")
         mrio, sector_table, firms, firm_table, households, household_table, countries = load_cached_agents()
@@ -165,29 +165,27 @@ def _main_impl():
         sector_table = load_sector_table(filepaths.get("sector_table"))
         usd_per_ton = load_usd_per_ton(sector_table)
 
-        # Filter sectors
-        selected = filter_sectors(
-            mrio, ap.cutoff_sector_output, ap.cutoff_sector_demand,
-            ap.combine_sector_cutoff, ap.sectors_to_include,
-            ap.sectors_to_exclude, ap.monetary_units_in_data,
+        # Filter MRIO via flow_coverage (one knob, replaces the old cutoffs)
+        selection = filter_sectors(
+            mrio, ap.flow_coverage,
+            ap.sectors_to_include, ap.sectors_to_exclude,
         )
 
         # Firms
         firm_table = create_firm_table(
             mrio, sector_table, filepaths.get("firms_spatial"),
             filepaths.get("households_spatial"), usd_per_ton,
-            transport_nodes, ap,
+            transport_nodes, ap, selection,
         )
         firms = create_firms(firm_table, ap)
-        load_tech_coefs(firms, mrio, ap.input_coverage)
+        load_tech_coefs(firms, mrio, selection)
         load_inventories(firms, ap.inventory_duration_targets,
                          sp.time_resolution, sector_table)
 
         # Households
-        present_rs = [f"{rs[0]}_{rs[1]}" for rs in selected]
         household_table, consumption = create_household_table(
             mrio, filepaths.get("households_spatial"), transport_nodes,
-            present_rs, ap, time_resolution=sp.time_resolution,
+            selection, ap, time_resolution=sp.time_resolution,
         )
         households = create_households(household_table, consumption)
         _configure_households(households)
@@ -195,7 +193,7 @@ def _main_impl():
         # Countries
         countries = create_countries(
             mrio, transport_nodes, filepaths.get("countries_spatial"),
-            usd_per_ton, sp.time_resolution, ap,
+            usd_per_ton, sp.time_resolution, ap, selection,
             transport_edges=transport_edges,
             countries_no_transport=tp.countries_no_transport,
         )
@@ -204,7 +202,8 @@ def _main_impl():
 
     # Export MRIO summary (for reporting comparison)
     if export_folder:
-        export_mrio_summary(mrio, selected, export_folder)
+        kept_rs = list(selection.region_sectors) if selection is not None else None
+        export_mrio_summary(mrio, kept_rs, export_folder)
 
     # ------------------------------------------------------------------
     # Stage 3: Supply chain network
@@ -540,8 +539,8 @@ def _parse_args():
                         help="Override simulation_type from the YAML configuration")
     parser.add_argument("--duration", type=int, default=None,
                         help="Override t_final")
-    parser.add_argument("--input_coverage", type=float, default=None,
-                        help="Override input_coverage (cumulative input-coverage fraction in (0, 1])")
+    parser.add_argument("--flow_coverage", type=float, default=None,
+                        help="Override flow_coverage (cumulative flow-coverage fraction in (0, 1])")
     parser.add_argument("--log_level", default="info", choices=["info", "debug"])
     parser.add_argument("--verbose", action="store_true",
                         help="Alias for --log_level debug")

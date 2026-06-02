@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from disruptsc.network.mrio import Mrio, rescale_monetary_values
+from disruptsc.network.mrio import Mrio, Selection, rescale_monetary_values
 
 
 def load_sector_table(filepath: Path) -> pd.DataFrame:
@@ -39,37 +39,68 @@ def load_mrio(filepath: Path, monetary_units: str) -> Mrio:
 
 
 def filter_sectors(mrio: Mrio,
-                   cutoff_sector_output: dict,
-                   cutoff_sector_demand: dict,
-                   combine: str,
+                   flow_coverage: float,
                    sectors_to_include,
-                   sectors_to_exclude: tuple,
-                   monetary_units_in_data: str) -> list:
-    """Filter MRIO industries by output and/or demand cutoffs."""
-    # Filter by output
-    out_cutoff = cutoff_sector_output
-    industries_by_output = mrio.filter_by_output(
-        out_cutoff["value"], out_cutoff["type"], out_cutoff.get("unit", "mUSD"), monetary_units_in_data
+                   sectors_to_exclude: tuple) -> Selection:
+    """Compute the agent + cell selection from the MRIO via flow coverage.
+
+    A single quantile-style knob (`flow_coverage` ∈ (0, 1]) decides which
+    region_sectors, external countries, and bilateral cells survive.
+    The rule is symmetric: per-buyer top inputs and per-supplier top
+    buyers are unioned (see ``Mrio.filter_by_flow_coverage``).
+
+    `sectors_to_include` / `sectors_to_exclude` are then applied as
+    explicit overrides on the kept region_sectors, and the kept cells
+    are restricted to whatever remains.
+    """
+    selection = mrio.filter_by_flow_coverage(flow_coverage)
+
+    # Apply explicit include/exclude overrides on kept region_sectors
+    include_active = (sectors_to_include != "all"
+                      and isinstance(sectors_to_include, (list, tuple)))
+    if not include_active and not sectors_to_exclude:
+        return selection
+
+    def _sector_ok(rs):
+        if include_active and rs[1] not in sectors_to_include:
+            return False
+        if sectors_to_exclude and rs[1] in sectors_to_exclude:
+            return False
+        return True
+
+    kept_rs = tuple(rs for rs in selection.region_sectors if _sector_ok(rs))
+    kept_rs_set = set(kept_rs)
+    # Drop cells whose model-side endpoint is no longer kept. External
+    # buyer/seller endpoints are always retained.
+    kept_cells = frozenset(
+        (row, col) for (row, col) in selection.kept_cells
+        if (row not in set(mrio.region_sectors) or row in kept_rs_set)
+        and (col not in set(mrio.region_sectors) or col in kept_rs_set)
     )
 
-    # Filter by demand
-    dem_cutoff = cutoff_sector_demand
-    industries_by_demand = mrio.filter_by_final_demand(
-        dem_cutoff["value"], dem_cutoff["type"], dem_cutoff.get("unit", "mUSD"), monetary_units_in_data
+    # Re-derive kept external countries after the include/exclude filter
+    cols_present = {col for (_, col) in kept_cells}
+    rows_present = {row for (row, _) in kept_cells}
+    kept_ext_buying = tuple(
+        c for c in selection.external_buying_countries
+        if any(col[0] == c and col[1] == mrio.export_label for col in cols_present)
+    )
+    kept_ext_selling = tuple(
+        c for c in selection.external_selling_countries
+        if any(row[0] == c and row[1] == mrio.import_label for row in rows_present)
     )
 
-    # Combine
-    if combine == "and":
-        filtered = list(set(industries_by_output) & set(industries_by_demand))
-    else:
-        filtered = list(set(industries_by_output) | set(industries_by_demand))
+    dropped_rs = len(selection.region_sectors) - len(kept_rs)
+    if dropped_rs:
+        logging.info(
+            f"sectors_to_include/exclude dropped {dropped_rs} region_sectors "
+            f"and {len(selection.kept_cells) - len(kept_cells)} cells"
+        )
 
-    # Apply include/exclude
-    if sectors_to_include != "all" and isinstance(sectors_to_include, list):
-        filtered = [rs for rs in filtered if rs[1] in sectors_to_include]
-
-    if sectors_to_exclude:
-        filtered = [rs for rs in filtered if rs[1] not in sectors_to_exclude]
-
-    logging.info(f"Filtered to {len(filtered)} industries")
-    return sorted(filtered, key=lambda x: "_".join(x))
+    return Selection(
+        flow_coverage=selection.flow_coverage,
+        region_sectors=kept_rs,
+        external_buying_countries=kept_ext_buying,
+        external_selling_countries=kept_ext_selling,
+        kept_cells=kept_cells,
+    )

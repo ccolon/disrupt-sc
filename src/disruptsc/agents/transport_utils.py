@@ -315,8 +315,18 @@ def deliver_without_transport(link: CommercialLink,
 def collect_shipment_from_node(od_point: int, link: CommercialLink,
                                transport_network: TransportNetwork,
                                sectors_no_transport: tuple) -> None:
-    """Pop a shipment from the destination node (if present)."""
-    if link.product_type not in sectors_no_transport:
-        available = transport_network._node[od_point].get("shipments", {})
-        if link.pid in available:
-            available.pop(link.pid)
+    """Pop a shipment from the destination node (if present).
+
+    Skips:
+      - service products (no shipment was placed on the network),
+      - unsited receivers with od_point == -1 (e.g. virtual countries
+        without a geojson location — no shipment can have been placed
+        there since the node doesn't exist on the network).
+    """
+    if link.product_type in sectors_no_transport:
+        return
+    if od_point == -1:
+        return
+    available = transport_network._node[od_point].get("shipments", {})
+    if link.pid in available:
+        available.pop(link.pid)

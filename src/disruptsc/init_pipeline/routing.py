@@ -57,10 +57,14 @@ def setup_logistic_routes(
         logging.info("No routable links found")
         return _build_commercial_link_table(sc_network)
 
-    modeled_regions = sorted({firm.region for firm in firms.values() if getattr(firm, "region", None)})
-    _export_trade_capacity_diagnostic(
-        link_specs, transport_network, export_folder, modeled_regions,
-    )
+    # Trade-capacity diagnostic only makes sense when capacity constraints
+    # are enforced — otherwise edge capacities are unbounded and "over
+    # capacity" warnings are noise.
+    if tp.capacity_constraint_enabled:
+        modeled_regions = sorted({firm.region for firm in firms.values() if getattr(firm, "region", None)})
+        _export_trade_capacity_diagnostic(
+            link_specs, transport_network, export_folder, modeled_regions,
+        )
 
     # 2. Pre-compute routes and assign (with capacity iterations if needed)
     if tp.capacity_constraint_enabled:

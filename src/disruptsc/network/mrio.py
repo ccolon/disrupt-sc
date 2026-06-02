@@ -3,10 +3,54 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+
+@dataclass(frozen=True)
+class Selection:
+    """Result of MRIO flow-coverage filtering.
+
+    Encodes which agents (region_sectors, external countries) and which
+    bilateral MRIO cells survive the cutoff. Downstream stages (firm
+    creation, tech-coef loading, household & country building) read from
+    this object instead of separate cutoff params.
+
+    Attributes
+    ----------
+    flow_coverage : float
+        The coverage fraction used to derive this selection.
+    region_sectors : list[tuple[str, str]]
+        Kept (region, sector) tuples, sorted.
+    external_buying_countries : list[str]
+        External countries that retain at least one kept buy-side cell
+        (i.e. an export column with at least one kept supplier).
+    external_selling_countries : list[str]
+        External countries that retain at least one kept sell-side cell.
+    kept_cells : frozenset[tuple[tuple, tuple]]
+        The bilateral cells (row_tuple, col_tuple) kept under the
+        per-buyer ∪ per-supplier union rule. Includes intermediate,
+        final-demand, export and import cells.
+    """
+    flow_coverage: float
+    region_sectors: tuple = field(default_factory=tuple)
+    external_buying_countries: tuple = field(default_factory=tuple)
+    external_selling_countries: tuple = field(default_factory=tuple)
+    kept_cells: frozenset = field(default_factory=frozenset)
+
+    def has_cell(self, row, col) -> bool:
+        return (row, col) in self.kept_cells
+
+    def kept_inputs_of(self, buyer_col) -> list:
+        """Return the list of supplier rows kept for *buyer_col*."""
+        return [row for (row, col) in self.kept_cells if col == buyer_col]
+
+    def kept_buyers_of(self, supplier_row) -> list:
+        """Return the list of buyer cols kept for *supplier_row*."""
+        return [col for (row, col) in self.kept_cells if row == supplier_row]
 
 
 EPSILON = 1e-6
@@ -144,6 +188,53 @@ class Mrio(pd.DataFrame):
         rows = [t for t in self.index if t[1] == self.import_label]
         return self.loc[rows, cols]
 
+    def get_tech_coef_dict_for_selection(self, selection: "Selection") -> dict:
+        """Tech-coefficient dict restricted to *selection.kept_cells*.
+
+        For each kept (region_sector) buyer column, return
+        ``{supplier_key: tech_coef}`` where the supplier set is exactly
+        the kept input cells in that column. Coefficients are computed
+        as ``intermediate / total_output`` of the buyer (same as the
+        legacy `get_tech_coef_dict`). Self-supply (diagonal) is preserved
+        when present in kept_cells.
+
+        Returns
+        -------
+        dict[str, dict[str, float]]
+            Keyed by buyer region_sector_name ("REG_SECTOR").
+        """
+        intermediate = self.get_intermediary()
+        output = self.get_total_output()
+        kept_rs_set = set(selection.region_sectors)
+
+        # Bucket kept cells by buyer column (only intermediate cells matter
+        # for tech coefficients; cells whose buyer column is a final-demand
+        # or export column are not tech coefs).
+        inputs_per_buyer: dict = {}
+        inter_col_set = set(intermediate.columns)
+        inter_row_set = set(intermediate.index)
+        for (row, col) in selection.kept_cells:
+            if col in inter_col_set and row in inter_row_set:
+                inputs_per_buyer.setdefault(col, []).append(row)
+
+        result: dict[str, dict[str, float]] = {}
+        for buyer, suppliers in inputs_per_buyer.items():
+            if buyer not in kept_rs_set:
+                continue
+            output_val = float(output.loc[buyer])
+            if output_val <= 0:
+                result["_".join(str(x) for x in buyer)] = {}
+                continue
+            buyer_key = "_".join(str(x) for x in buyer)
+            entry: dict[str, float] = {}
+            for sup in suppliers:
+                value = float(intermediate.at[sup, buyer])
+                if value <= 0:
+                    continue
+                entry["_".join(str(x) for x in sup)] = value / output_val
+            result[buyer_key] = entry
+        return result
+
     def get_tech_coef_dict(self, coverage: float, selected=None) -> dict:
         """Return technical coefficients as nested dict using cumulative coverage.
 
@@ -242,13 +333,95 @@ class Mrio(pd.DataFrame):
     # Filtering
     # ------------------------------------------------------------------
 
-    def filter_by_output(self, cutoff_value, cutoff_type, cutoff_units, data_units) -> list:
-        output = self.get_total_output().loc[self.region_sectors]
-        return self._filter(output, cutoff_value, cutoff_type, cutoff_units, data_units)
+    def filter_by_flow_coverage(self, coverage: float) -> Selection:
+        """Filter the MRIO by approach-B flow coverage.
 
-    def filter_by_final_demand(self, cutoff_value, cutoff_type, cutoff_units, data_units) -> list:
-        fd = self.get_final_demand().sum(axis=1).loc[self.region_sectors]
-        return self._filter(fd, cutoff_value, cutoff_type, cutoff_units, data_units)
+        For each buyer column (region_sector, final-demand, or export
+        column) keep the largest cells, sorted by absolute MRIO value
+        descending, until their cumulative share of the column total
+        reaches *coverage*. Repeat symmetrically per supplier row (every
+        region_sector row and every import row). Return the **union** of
+        the two kept-cell sets — every kept agent thereby retains
+        ≥coverage of its in-flows and ≥coverage of its out-flows.
+
+        Meta rows/cols (value-added, tax, capital) are excluded from the
+        scan: they aren't bilateral trade flows.
+
+        Parameters
+        ----------
+        coverage : float in (0, 1]
+            Fraction of each row/column total preserved.
+
+        Returns
+        -------
+        Selection
+            Kept region_sectors, external countries, and the cell set.
+        """
+        if not (0 < coverage <= 1):
+            raise ValueError(f"flow_coverage must be in (0, 1] (got {coverage})")
+
+        # Submatrix of all bilateral flows. Drops VA / tax rows and the
+        # capital column (none of these are real trade flows to model).
+        meta_row_labels = {self.value_added_label, self.tax_label} - {""}
+        meta_col_labels = {self.capital_label} - {""}
+        flow_rows = [t for t in self.index if t[1] not in meta_row_labels]
+        flow_cols = [t for t in self.columns if t[1] not in meta_col_labels]
+        flows = self.loc[flow_rows, flow_cols]
+        abs_flows = flows.abs().values  # numpy view
+
+        kept_mask = (
+            _top_cells_per_axis(abs_flows, coverage, axis=0)  # per column
+            | _top_cells_per_axis(abs_flows, coverage, axis=1)  # per row
+        )
+
+        # Map back to MRIO tuples
+        rows_arr = np.array(flow_rows, dtype=object)
+        cols_arr = np.array(flow_cols, dtype=object)
+        kept_row_idx, kept_col_idx = np.where(kept_mask)
+        kept_cells = frozenset(
+            (tuple(rows_arr[i]), tuple(cols_arr[j]))
+            for i, j in zip(kept_row_idx, kept_col_idx)
+        )
+
+        # Derive kept agents
+        rs_set = set(self.region_sectors)
+        ext_buy_set = set(self.external_buying_countries)
+        ext_sell_set = set(self.external_selling_countries)
+
+        kept_rows_tuples = {tuple(rows_arr[i]) for i in np.unique(kept_row_idx)}
+        kept_cols_tuples = {tuple(cols_arr[j]) for j in np.unique(kept_col_idx)}
+
+        kept_region_sectors = sorted(rs_set & (kept_rows_tuples | kept_cols_tuples))
+
+        kept_ext_buying = sorted(
+            c for c in ext_buy_set
+            if any(col[0] == c and col[1] == self.export_label for col in kept_cols_tuples)
+        )
+        kept_ext_selling = sorted(
+            c for c in ext_sell_set
+            if any(row[0] == c and row[1] == self.import_label for row in kept_rows_tuples)
+        )
+
+        n_total = abs_flows.size
+        n_kept = int(kept_mask.sum())
+        total_value = float(abs_flows.sum())
+        kept_value = float(abs_flows[kept_mask].sum())
+        coverage_actual = (kept_value / total_value) if total_value > 0 else 0.0
+        logging.info(
+            f"Flow coverage q={coverage}: kept {n_kept:,}/{n_total:,} cells "
+            f"({100*n_kept/n_total:.1f}% of cells, {100*coverage_actual:.2f}% of value) "
+            f"→ {len(kept_region_sectors)}/{len(self.region_sectors)} region_sectors, "
+            f"{len(kept_ext_buying)}/{len(self.external_buying_countries)} buying countries, "
+            f"{len(kept_ext_selling)}/{len(self.external_selling_countries)} selling countries"
+        )
+
+        return Selection(
+            flow_coverage=coverage,
+            region_sectors=tuple(kept_region_sectors),
+            external_buying_countries=tuple(kept_ext_buying),
+            external_selling_countries=tuple(kept_ext_selling),
+            kept_cells=kept_cells,
+        )
 
     # ------------------------------------------------------------------
     # Private
@@ -281,18 +454,47 @@ class Mrio(pd.DataFrame):
                 self.loc[unbalanced, export_cols].add(deltas, axis=0)
             )
 
-    @staticmethod
-    def _filter(series, cutoff_value, cutoff_type, cutoff_units, data_units) -> list:
-        if cutoff_type == "percentage":
-            rel = series / series.sum()
-            return rel.index[rel > cutoff_value].tolist()
-        elif cutoff_type == "absolute":
-            adjusted = rescale_monetary_values(
-                cutoff_value, input_units=cutoff_units, target_units=data_units,
-                input_time_resolution="year", target_time_resolution="year",
-            )
-            return series.index[series > adjusted].tolist()
-        elif cutoff_type == "relative_to_average":
-            cutoff = cutoff_value * series.sum() / series.shape[0]
-            return series.index[series > cutoff].tolist()
-        raise ValueError(f"Unknown cutoff type: {cutoff_type}")
+
+
+def _top_cells_per_axis(abs_matrix: np.ndarray, coverage: float, axis: int) -> np.ndarray:
+    """Per-column (axis=0) or per-row (axis=1) "top cells until cumulative ≥ coverage" mask.
+
+    For each slice along *axis*, sort cells by absolute value descending,
+    accumulate, and keep cells up to and including the first one whose
+    cumulative reaches `coverage * total`. A slice with zero total
+    contributes no kept cells.
+
+    Returns a boolean mask with the same shape as *abs_matrix*.
+    """
+    if axis == 1:
+        # Transpose, run the column algorithm, transpose back.
+        return _top_cells_per_axis(abs_matrix.T, coverage, axis=0).T
+
+    n_rows, n_cols = abs_matrix.shape
+    if n_rows == 0 or n_cols == 0:
+        return np.zeros_like(abs_matrix, dtype=bool)
+
+    # Sort each column descending. Argsort gives indices in ascending order;
+    # negate to invert (stable sort preserves ties in original order).
+    order = np.argsort(-abs_matrix, axis=0, kind="stable")  # (n_rows, n_cols)
+    sorted_vals = np.take_along_axis(abs_matrix, order, axis=0)
+    cumsum = np.cumsum(sorted_vals, axis=0)
+    totals = cumsum[-1, :]  # (n_cols,)
+
+    target = coverage * totals  # (n_cols,)
+    reached = cumsum >= target[None, :]  # (n_rows, n_cols) bool
+
+    # First-True row index per column. argmax on a bool returns the first
+    # True position (or 0 if no True). We later zero out columns whose total
+    # is non-positive, so the spurious 0 there is harmless.
+    first_true_per_col = reached.argmax(axis=0)  # (n_cols,)
+
+    # In sorted space, keep rows 0..first_true_per_col[col] inclusive.
+    row_idx = np.arange(n_rows)[:, None]
+    sorted_keep = row_idx <= first_true_per_col[None, :]
+    sorted_keep[:, totals <= 0] = False  # nothing to keep when slice is empty
+
+    # Scatter the sorted mask back to original positions.
+    kept = np.zeros_like(abs_matrix, dtype=bool)
+    np.put_along_axis(kept, order, sorted_keep, axis=0)
+    return kept

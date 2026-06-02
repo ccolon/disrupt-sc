@@ -191,59 +191,18 @@ countries_no_transport: []
 # Whether the B2C flows are transported on the transport network
 transport_to_households: True
 
-# Filter out sectors whose output is below that cutoff value
-# - if 'type' is 'percentage', test cutoff against the sector's relative output
-# - if 'type' is 'absolute', test cutoff against the sector's absolute output
-# - if 'type' is 'relative_to_average', the cutoff is (cutoff value) * (country's total output) / (nb sectors)
-cutoff_sector_output:
-  'type': 'absolute'
-  'value': 1.0
-  'unit': 'mUSD'
-
-# Filter out sectors whose final demand is below that cutoff value
-# - if 'type' is 'percentage', test cutoff against the sector's relative output
-# - if 'type' is 'absolute', test cutoff against the sector's absolute output, in yearly term
-# - if 'type' is 'relative_to_average', the cutoff is set to (cutoff value) * (country's total demand) / (nb sectors)
-cutoff_sector_demand:
-  'type': 'absolute'
-  'value': 1.0
-  'unit': 'mUSD'
-
-# Filter out sectors firms output is below that cutoff value
-cutoff_firm_output:
-  'type': 'absolute'
-  'value': 10
-  "unit": "kUSD"
-
-# Filter out region_sector to households links if purchase is below that cutoff value
-cutoff_household_demand:
-  'type': 'absolute'  # only absolute works
-  'value': 10
-  "unit": "kUSD"
-
-# How much firms of filtered sectors should at least be modeled
-min_nb_firms_per_sector: 5
-
-# How to combine the output and demand sector cutoffs
-combine_sector_cutoff: "and"
-
-
-# Population density cutoff, in capita / km2
-# Adminunit below this cutoff are eliminated for demand od_point
-# If set to 0, deactivate this filter
-pop_density_cutoff: 0
-
-# Population cutoff
-# Adminunit below this cutoff are eliminated for demand od_point
-# If set to 0, deactivate this filter
-pop_cutoff: 0
-
-# Local demand cutoff
-# When generating the households, if, at an OD point, an household has a demand below this value for one sector
-# then this demand is ignored
-# unit is that of monetary_units_inputed
-# If set to 0, deactivate this filter
-local_demand_cutoff: 0
+# Single quantile-style knob controlling agent and link filtering.
+# For each MRIO buyer column AND each MRIO supplier row, cells are sorted
+# by absolute value (descending) and kept until their cumulative share
+# of the buyer's (resp. supplier's) total reaches `flow_coverage`. The
+# union of the two kept-cell sets defines which region_sectors, external
+# countries, and bilateral trade flows are modeled. Each kept agent
+# therefore retains ≥flow_coverage of both its in-flows and its
+# out-flows. Replaces the legacy cutoff_sector_output / cutoff_sector_demand
+# / combine_sector_cutoff / cutoff_firm_output / cutoff_household_demand /
+# input_coverage knobs.
+# Range: (0, 1]. Typical values: 0.7 (sparser, faster) – 0.99 (denser, slower).
+flow_coverage: 0.95
 
 # Which countries to include. Possible values:
 # - 'all': all the districts are kept
@@ -294,14 +253,6 @@ adaptive_supplier_weight: False
 # E.g., if a firm produces 80 and has a 0.8 utilization rate, then its production capacity is set to 100.
 # It applies uniformly to all firms.
 utilization_rate: 0.8
-
-# Cumulative input coverage in (0, 1].  For each buyer in the MRIO, inputs are
-# sorted by absolute MRIO flow (descending) and kept until their cumulative
-# share of the buyer's total intermediate input reaches this fraction.
-# E.g., 0.95 keeps enough inputs to cover 95% of each buyer's intermediate
-# consumption.  Same rule decides which region-sectors get internal-flow
-# (self-supply) edges.
-input_coverage: 0.95
 
 # Determines the way firms ration their clients if they cannot meet all demand
 # Possible values are:
