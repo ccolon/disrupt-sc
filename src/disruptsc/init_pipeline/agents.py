@@ -13,7 +13,7 @@ from scipy.spatial import cKDTree
 from disruptsc.agents.firm import Firm
 from disruptsc.agents.household import Household
 from disruptsc.agents.country import Country
-from disruptsc.network.mrio import Mrio, rescale_monetary_values, _UNITS
+from disruptsc.network.mrio import Mrio, Selection, rescale_monetary_values, _UNITS
 from disruptsc.params import AgentParams
 
 
@@ -46,18 +46,23 @@ def create_firm_table(mrio: Mrio, sector_table: pd.DataFrame,
                       firms_spatial_path: Path | None,
                       households_spatial_path: Path | None,
                       usd_per_ton: dict, transport_nodes: gpd.GeoDataFrame,
-                      params: AgentParams) -> pd.DataFrame:
-    """Build firm_table DataFrame from MRIO + spatial data."""
+                      params: AgentParams,
+                      selection: Selection) -> pd.DataFrame:
+    """Build firm_table DataFrame from MRIO + spatial data.
+
+    Only region_sectors kept by *selection* (i.e. those surviving the
+    flow-coverage filter) get firms.
+    """
     if params.firm_data_type == "transaction_based":
         raise NotImplementedError("Transaction-based firm creation not yet implemented in v2")
 
-    # Phase 1: Base table from MRIO (one firm per region_sector)
+    # Phase 1: Base table from kept region_sectors
     total_output = mrio.get_total_output()
     region_centroids = _load_region_centroids(households_spatial_path)
     from shapely.geometry import Point
     default_centroid = Point(0, 0)
     rows = []
-    for rs in mrio.region_sectors:
+    for rs in selection.region_sectors:
         region, sector = rs
         rows.append({
             "region": region,
@@ -71,20 +76,28 @@ def create_firm_table(mrio: Mrio, sector_table: pd.DataFrame,
     # Phase 2: Integrate disaggregated spatial data if available
     if firms_spatial_path and Path(firms_spatial_path).exists():
         ft = _integrate_spatial_firms(ft, firms_spatial_path, mrio)
+        # Spatial integration may add firms for region_sectors that were
+        # dropped by the selection; strip them so the firm set matches.
+        kept_names = {f"{r}_{s}" for r, s in selection.region_sectors}
+        before = len(ft)
+        ft = ft[ft["region_sector"].isin(kept_names)].reset_index(drop=True)
+        dropped = before - len(ft)
+        if dropped:
+            logging.info(
+                f"Dropped {dropped} spatially-disaggregated firms whose "
+                f"region_sector failed the flow_coverage filter"
+            )
 
     # Phase 3: Handle internal flows (duplicate if needed)
-    ft = _handle_internal_flows(ft, mrio, params.input_coverage)
+    ft = _handle_internal_flows(ft, selection)
 
-    # Phase 4: Filter small firms
-    ft = _filter_small_firms(ft, mrio, params.cutoff_firm_output, params.monetary_units_in_data)
-
-    # Phase 5: Assign transport nodes
+    # Phase 4: Assign transport nodes
     ft["od_point"] = find_nearest_node_id(transport_nodes, ft)
     coords = _get_long_lat(ft["od_point"], transport_nodes)
     ft["long"] = coords["long"].values
     ft["lat"] = coords["lat"].values
 
-    # Phase 6: Enrich with sector metadata
+    # Phase 5: Enrich with sector metadata
     if sector_table is not None:
         sector_type_map = (sector_table.drop_duplicates("sector")
                                        .set_index("sector")["type"].to_dict())
@@ -146,14 +159,17 @@ def create_firms(firm_table: pd.DataFrame, params: AgentParams) -> dict[str, Fir
     return firms
 
 
-def load_tech_coefs(firms: dict[str, Firm], mrio: Mrio, input_coverage: float):
+def load_tech_coefs(firms: dict[str, Firm], mrio: Mrio, selection: Selection):
     """Load input_mix (technical coefficients) into each firm.
 
-    *input_coverage* is the cumulative input-coverage fraction in (0, 1]:
-    e.g. 0.95 means keep enough inputs to cover 95 % of each buyer's
-    intermediate consumption, ranked by absolute MRIO flow.
+    Inputs are restricted to the cells kept by *selection* — i.e. the
+    union of per-buyer top inputs and per-supplier top buyers under the
+    flow-coverage rule. Buyers thereby retain at least
+    ``selection.flow_coverage`` of their intermediate consumption, plus
+    any cells added by the supplier-side rule (small inputs that are
+    nonetheless large flows for the supplier).
     """
-    tech_coefs = mrio.get_tech_coef_dict(coverage=input_coverage)
+    tech_coefs = mrio.get_tech_coef_dict_for_selection(selection)
 
     # Count firms per region_sector to decide whether to keep diagonal entries
     from collections import Counter
@@ -243,24 +259,27 @@ def configure_household_inventories(households: dict[str, Household],
 
 def create_household_table(mrio: Mrio, households_spatial_path: Path,
                            transport_nodes: gpd.GeoDataFrame,
-                           present_region_sectors: list[str],
+                           selection: Selection,
                            params: AgentParams,
                            time_resolution: str = "week") -> tuple[pd.DataFrame, dict]:
-    """Build household_table and consumption patterns."""
-    # Load spatial data
-    ht = gpd.read_file(households_spatial_path)
+    """Build household_table and consumption patterns.
 
-    # Filter to regions in MRIO
-    mrio_regions = mrio.regions
+    A household consumes from supplier *S* iff the MRIO cell
+    ``(S, (region, FinalDemand))`` is in ``selection.kept_cells`` for
+    the household's region. The cell-level filter (already symmetric
+    per-buyer + per-supplier under flow_coverage) replaces the old
+    per-household monetary cutoff.
+    """
+    # Load spatial data and assign transport / IDs
+    ht = gpd.read_file(households_spatial_path)
+    mrio_regions = set(mrio.regions)
     ht = ht[ht["region"].isin(mrio_regions)].copy()
 
-    # Assign transport nodes
     ht["od_point"] = find_nearest_node_id(transport_nodes, ht)
     coords = _get_long_lat(ht["od_point"], transport_nodes)
     ht["long"] = coords["long"].values
     ht["lat"] = coords["lat"].values
 
-    # Assign IDs
     ht = ht.reset_index(drop=True)
     ht["id"] = range(len(ht))
     ht["household"] = "hh_" + ht["id"].astype(str)
@@ -270,58 +289,63 @@ def create_household_table(mrio: Mrio, households_spatial_path: Path,
     else:
         ht["population"] = ht["population"].fillna(1.0)
 
-    # Calculate consumption patterns
-    final_demand = mrio.get_final_demand(
-        [tuple(rs.split("_", 1)) if isinstance(rs, str) else rs for rs in present_region_sectors]
-    )
-    # Include import rows
-    import_fd = mrio.get_final_demand()
-    import_rows = [idx for idx in import_fd.index if idx[1] == mrio.import_label]
-    if import_rows:
-        final_demand = pd.concat([final_demand, import_fd.loc[import_rows]])
+    # Group kept cells by their FD-column → set of kept supplier rows.
+    fd_label = mrio.final_demand_label
+    kept_suppliers_by_fd_col: dict = {}
+    for (row, col) in selection.kept_cells:
+        if col[1] == fd_label:
+            kept_suppliers_by_fd_col.setdefault(col, set()).add(row)
 
-    # Rescale to model time resolution and units
-    final_demand = rescale_monetary_values(
-        final_demand,
-        input_units=params.monetary_units_in_data,
-        input_time_resolution="year",
-        target_units=params.monetary_units_in_model,
-        target_time_resolution=time_resolution,
-    )
+    # Build a (supplier_row × fd_col) frame with the kept values only, in
+    # model units / time resolution. Cells outside kept_cells are zero.
+    all_suppliers = sorted({s for sups in kept_suppliers_by_fd_col.values() for s in sups})
+    all_fd_cols = sorted(kept_suppliers_by_fd_col.keys())
+    if all_suppliers and all_fd_cols:
+        fd_raw = mrio.loc[all_suppliers, all_fd_cols]
+        fd_scaled = rescale_monetary_values(
+            fd_raw,
+            input_units=params.monetary_units_in_data,
+            input_time_resolution="year",
+            target_units=params.monetary_units_in_model,
+            target_time_resolution=time_resolution,
+        )
+        # Zero out cells that didn't make the cut
+        for col in all_fd_cols:
+            keep_rows = kept_suppliers_by_fd_col[col]
+            drop_mask = [s not in keep_rows for s in all_suppliers]
+            fd_scaled.loc[drop_mask, col] = 0.0
+        # Aggregate across FD columns belonging to the same region
+        region_demand = fd_scaled.T.groupby(level=0).sum().T  # cols = regions, rows = suppliers
+    else:
+        region_demand = pd.DataFrame()
 
-    # Distribute per household by population proportion in each region
+    # Distribute per household by population proportion within each region
     consumption = {}
-    # final_demand has been rescaled above to (model_units, time_resolution),
-    # so the cutoff must match those units, not the raw data units.
-    cutoff = _get_absolute_cutoff(
-        params.cutoff_household_demand,
-        target_units=params.monetary_units_in_model,
-        target_time_resolution=time_resolution,
+    if not region_demand.empty:
+        total_pop_per_region = ht.groupby("region")["population"].transform("sum")
+        proportion_per_hh = (ht["population"] / total_pop_per_region).fillna(0.0)
+
+        for hh in ht.itertuples():
+            region = hh.region
+            if region not in region_demand.columns:
+                continue
+            proportion = proportion_per_hh.iloc[hh.Index]
+            if proportion <= 0:
+                continue
+            series = region_demand[region] * proportion
+            hh_consumption = {
+                f"{r}_{s}": float(v)
+                for (r, s), v in series.items()
+                if v > 0
+            }
+            if hh_consumption:
+                consumption[hh.Index] = hh_consumption
+
+    logging.info(
+        f"Created household table with {len(ht)} households, "
+        f"{len(consumption)} with non-empty consumption "
+        f"(flow_coverage={selection.flow_coverage})"
     )
-
-    # Pre-aggregate: one column per region, rows = region_sectors
-    region_demand = final_demand.T.groupby(level=0).sum().T
-    total_pop_per_region = ht.groupby("region")["population"].transform("sum")
-    proportion_per_hh = (ht["population"] / total_pop_per_region).fillna(0.0)
-
-    for hh in ht.itertuples():
-        region = hh.region
-        if region not in region_demand.columns:
-            continue
-        proportion = proportion_per_hh.iloc[hh.Index]
-        if proportion <= 0:
-            continue
-        series = region_demand[region] * proportion
-        hh_consumption = {
-            f"{r}_{s}": float(v)
-            for (r, s), v in series.items()
-            if v > cutoff
-        }
-        if hh_consumption:
-            consumption[hh.Index] = hh_consumption
-
-    logging.info(f"Created household table with {len(ht)} households, "
-                 f"{len(consumption)} with demand above cutoff")
     return ht, consumption
 
 
@@ -356,18 +380,25 @@ def create_households(household_table: pd.DataFrame,
 def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
                      countries_spatial_path: Path, usd_per_ton: dict,
                      time_resolution: str, params: AgentParams,
+                     selection: Selection,
                      transport_edges: gpd.GeoDataFrame | None = None,
                      countries_no_transport: tuple = ()) -> dict[str, Country]:
     """Create Country objects from MRIO trade data.
+
+    Only countries kept by *selection* (i.e. those that retain at least
+    one bilateral cell under flow_coverage) are created. Per-country
+    ``qty_purchased`` is built from the kept cells of the country's
+    export column, and ``supply_importance`` is computed from the kept
+    cells of its import row.
 
     Countries are assigned to the nearest **road** node so that they connect
     to the road network and reach other modes via multimodal edges.
     If *transport_edges* is provided, only nodes that are endpoints of road
     edges are considered; otherwise all transport nodes are used.
     """
-    # Identify countries
-    buying = set(mrio.external_buying_countries)
-    selling = set(mrio.external_selling_countries)
+    # Identify countries kept by the flow-coverage selection
+    buying = set(selection.external_buying_countries)
+    selling = set(selection.external_selling_countries)
     all_countries = sorted(buying | selling)
 
     # Filter transport nodes to road-only for country placement
@@ -400,26 +431,47 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
             )
         countries_gdf = gpd.GeoDataFrame({"region": [], "geometry": []}, geometry="geometry")
 
-    # Extract trade matrices
-    # Import table: what external countries sell TO model firms (import supply)
-    import_table = mrio.get_import_rows()
-    import_table = rescale_monetary_values(
-        import_table, input_units=params.monetary_units_in_data,
-        input_time_resolution="year",
-        target_units=params.monetary_units_in_model,
-        target_time_resolution=time_resolution,
-    )
+    # Aggregate kept-cell trade per country, in model units / time_resolution.
+    exp_label = mrio.export_label
+    imp_label = mrio.import_label
 
-    # Export table: what external countries buy FROM model firms (export demand)
-    export_label = mrio.export_label
-    export_cols = [t for t in mrio.columns if t[1] == export_label]
-    export_table = mrio.loc[mrio.region_sectors, export_cols]
-    export_table = rescale_monetary_values(
-        export_table, input_units=params.monetary_units_in_data,
-        input_time_resolution="year",
-        target_units=params.monetary_units_in_model,
-        target_time_resolution=time_resolution,
-    )
+    def _rescale(df):
+        return rescale_monetary_values(
+            df, input_units=params.monetary_units_in_data,
+            input_time_resolution="year",
+            target_units=params.monetary_units_in_model,
+            target_time_resolution=time_resolution,
+        )
+
+    # Per-country export demand from kept cells (buyer = external country)
+    exports_by_country: dict[str, dict[str, float]] = {}
+    kept_export_cells = [
+        (row, col) for (row, col) in selection.kept_cells
+        if col[1] == exp_label
+    ]
+    if kept_export_cells:
+        exp_rows = sorted({row for row, _ in kept_export_cells})
+        exp_cols = sorted({col for _, col in kept_export_cells})
+        exp_sub = _rescale(mrio.loc[exp_rows, exp_cols])
+        for row, col in kept_export_cells:
+            val = float(exp_sub.at[row, col])
+            if val > 0:
+                exports_by_country.setdefault(col[0], {})[f"{row[0]}_{row[1]}"] = val
+
+    # Per-country imports (supply) from kept cells (supplier = external country)
+    imports_per_country: dict[str, float] = {}
+    kept_import_cells = [
+        (row, col) for (row, col) in selection.kept_cells
+        if row[1] == imp_label
+    ]
+    if kept_import_cells:
+        imp_rows = sorted({row for row, _ in kept_import_cells})
+        imp_cols = sorted({col for _, col in kept_import_cells})
+        imp_sub = _rescale(mrio.loc[imp_rows, imp_cols])
+        for row, col in kept_import_cells:
+            val = float(imp_sub.at[row, col])
+            imports_per_country[row[0]] = imports_per_country.get(row[0], 0.0) + val
+    total_imports = sum(imports_per_country.values()) or 1.0
 
     # Build countries
     # The MRIO is the source of truth for *which* countries to model. The geojson
@@ -429,7 +481,6 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
     # are allowed to be absent from the geojson; they are stamped with
     # od_point = -1 (the sentinel _distance_between already understands).
     countries = {}
-    total_imports = import_table.sum().sum() if len(import_table) > 0 else 1.0
 
     # Phase 1: resolve spatial data per country.
     # Each entry is (country_code, centroid_or_None). centroid is None when the
@@ -471,18 +522,14 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
         lat_ = centroid.y if centroid is not None else None
 
         # Export demand: what this country BUYS from model region-sectors
-        qty_purchased = {}
-        if country_code in buying and (country_code, export_label) in export_table.columns:
-            exp_col = export_table[(country_code, export_label)]
-            for rs_tuple, val in exp_col.items():
-                if val > 0:
-                    qty_purchased[f"{rs_tuple[0]}_{rs_tuple[1]}"] = val
+        # (already restricted to kept cells)
+        qty_purchased = dict(exports_by_country.get(country_code, {}))
 
-        # Supply importance based on import volumes (what country sells to model)
-        supply_importance = 0.0
-        if country_code in selling:
-            imp_row = import_table.loc[(country_code, mrio.import_label)]
-            supply_importance = imp_row.sum() / total_imports if total_imports > 0 else 0
+        # Supply importance: share of kept-cell imports originating here
+        supply_importance = (
+            imports_per_country.get(country_code, 0.0) / total_imports
+            if total_imports > 0 else 0.0
+        )
 
         # USD per ton — look for country-specific or default
         country_upt = 2864.0
@@ -623,18 +670,22 @@ def _integrate_spatial_firms(ft: gpd.GeoDataFrame, filepath: Path, mrio: Mrio) -
     return result
 
 
-def _handle_internal_flows(ft: gpd.GeoDataFrame, mrio: Mrio,
-                           input_coverage: float) -> gpd.GeoDataFrame:
+def _handle_internal_flows(ft: gpd.GeoDataFrame,
+                           selection: Selection) -> gpd.GeoDataFrame:
     """Duplicate single-firm region_sectors that have internal consumption.
 
-    A region-sector is flagged iff its self-supply edge survives the same
-    input-selection rule applied elsewhere — i.e. (rs, rs) is among the
-    inputs kept by the coverage filter for buyer rs.
+    A region_sector needs an intra-sector duplicate firm iff its
+    self-supply diagonal cell ``(rs, rs)`` survived the flow-coverage
+    filter — that is the cell is in ``selection.kept_cells``.
     """
-    tech_coefs = mrio.get_tech_coef_dict(coverage=input_coverage)
-    internal_rs_names = {buyer for buyer, inputs in tech_coefs.items() if buyer in inputs}
-    logging.info(f"Internal flows: {len(internal_rs_names)} region-sectors with self-supply "
-                 f"surviving input_coverage={input_coverage}")
+    internal_rs_tuples = {
+        row for (row, col) in selection.kept_cells if row == col
+    }
+    internal_rs_names = {f"{r}_{s}" for (r, s) in internal_rs_tuples}
+    logging.info(
+        f"Internal flows: {len(internal_rs_names)} region-sectors with self-supply "
+        f"surviving flow_coverage={selection.flow_coverage}"
+    )
 
     new_rows = []
     for rs_name in internal_rs_names:
@@ -656,38 +707,3 @@ def _handle_internal_flows(ft: gpd.GeoDataFrame, mrio: Mrio,
     return ft
 
 
-def _filter_small_firms(ft: gpd.GeoDataFrame, mrio: Mrio,
-                        cutoff: dict, data_units: str) -> gpd.GeoDataFrame:
-    """Filter out small firms, keeping at least 2 per region_sector."""
-    threshold = _get_absolute_cutoff(cutoff, data_units)
-
-    # Keep top 2 by importance per region_sector, plus any above threshold
-    rank = ft.groupby("region_sector")["importance"].rank(method="first", ascending=False)
-    keep = (rank <= 2) | (ft["importance"] > threshold)
-
-    n_removed = int((~keep).sum())
-    if n_removed:
-        logging.info(f"Filtered out {n_removed} small firms (threshold={threshold:.2f})")
-
-    return ft.loc[keep].reset_index(drop=True)
-
-
-def _get_absolute_cutoff(cutoff_dict: dict, target_units: str,
-                         target_time_resolution: str = "year") -> float:
-    """Convert an absolute cutoff (yearly, in *unit*) to *target_units / target_time_resolution*.
-
-    Cutoffs in the YAML are always declared as yearly values in their `unit`.
-    Most call sites compare against raw MRIO aggregates (data_units/year), so
-    the default `target_time_resolution="year"` is a no-op rescale. Call sites
-    that compare against series already rescaled to model units / time-step
-    must pass the matching `target_units` and `target_time_resolution`.
-    """
-    if cutoff_dict.get("type") != "absolute":
-        return 0.0
-    return rescale_monetary_values(
-        cutoff_dict["value"],
-        input_units=cutoff_dict.get("unit", "kUSD"),
-        target_units=target_units,
-        input_time_resolution="year",
-        target_time_resolution=target_time_resolution,
-    )

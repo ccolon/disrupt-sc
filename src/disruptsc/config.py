@@ -97,12 +97,52 @@ def _parse_chunk_size(logistics: dict, time_resolution: str) -> float:
     return float(raw) * time_factor
 
 
-def _validated_input_coverage(value) -> float:
-    """input_coverage is the cumulative input-coverage fraction in (0, 1]."""
-    f = float(value)
+_REMOVED_CUTOFFS = (
+    "cutoff_sector_output", "cutoff_sector_demand", "combine_sector_cutoff",
+    "cutoff_firm_output", "cutoff_household_demand",
+    "min_nb_firms_per_sector", "pop_density_cutoff", "pop_cutoff",
+    "local_demand_cutoff", "io_cutoff",
+)
+
+
+def _warn_removed_cutoff_params(config: dict) -> None:
+    """Surface old cutoff keys that are silently ignored under flow_coverage."""
+    present = [k for k in _REMOVED_CUTOFFS if k in config]
+    if present:
+        logging.warning(
+            f"The following config keys are no longer used (replaced by "
+            f"flow_coverage): {present}. Remove them from your YAML."
+        )
+
+
+def _validated_flow_coverage(config: dict) -> float:
+    """flow_coverage is the cumulative flow-coverage fraction in (0, 1].
+
+    A single quantile knob: per-buyer and per-supplier top cells are
+    kept until cumulative share ≥ flow_coverage; the union defines the
+    agent and link sets. Replaces input_coverage / cutoff_sector_output /
+    cutoff_sector_demand / cutoff_firm_output / cutoff_household_demand /
+    combine_sector_cutoff.
+
+    For backward compatibility, falls back to `input_coverage` if
+    `flow_coverage` is absent — that lets old configs keep running while
+    they get migrated.
+    """
+    raw = config.get("flow_coverage")
+    if raw is None:
+        legacy = config.get("input_coverage")
+        if legacy is not None:
+            logging.warning(
+                "`input_coverage` is deprecated; rename it to `flow_coverage`. "
+                "Using the old value for now."
+            )
+            raw = legacy
+        else:
+            raw = 0.95
+    f = float(raw)
     if not (0 < f <= 1):
         raise ValueError(
-            f"input_coverage must be in (0, 1] (got {f}). "
+            f"flow_coverage must be in (0, 1] (got {f}). "
             f"Typical values are 0.7–0.99."
         )
     return f
@@ -154,13 +194,11 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
         sensitivity=config.get("sensitivity") or {},
     )
 
+    # Warn loudly about removed legacy params so existing configs surface them.
+    _warn_removed_cutoff_params(config)
+
     agent_params = AgentParams(
-        input_coverage=_validated_input_coverage(config.get("input_coverage", 0.95)),
-        cutoff_sector_output=config.get("cutoff_sector_output", {"type": "absolute", "value": 1.0, "unit": "mUSD"}),
-        cutoff_sector_demand=config.get("cutoff_sector_demand", {"type": "absolute", "value": 1.0, "unit": "mUSD"}),
-        cutoff_firm_output=config.get("cutoff_firm_output", {"type": "absolute", "value": 10, "unit": "kUSD"}),
-        cutoff_household_demand=config.get("cutoff_household_demand", {"type": "absolute", "value": 10, "unit": "kUSD"}),
-        combine_sector_cutoff=config.get("combine_sector_cutoff", "and"),
+        flow_coverage=_validated_flow_coverage(config),
         nb_suppliers_per_input=config.get("nb_suppliers_per_input", 1),
         weight_localization_firm=config.get("weight_localization_firm", 1.0),
         weight_localization_household=config.get("weight_localization_household", 4.0),
@@ -172,10 +210,6 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
         sectors_to_include=config.get("sectors_to_include", "all"),
         sectors_to_exclude=tuple(config.get("sectors_to_exclude") or []),
         countries_to_include=config.get("countries_to_include", "all"),
-        min_nb_firms_per_sector=config.get("min_nb_firms_per_sector", 5),
-        pop_density_cutoff=config.get("pop_density_cutoff", 0.0),
-        pop_cutoff=config.get("pop_cutoff", 0.0),
-        local_demand_cutoff=config.get("local_demand_cutoff", 0.0),
         explicit_service_firm=config.get("explicit_service_firm", True),
         monetary_units_in_model=config.get("monetary_units_in_model", "mUSD"),
         monetary_units_in_data=config.get("monetary_units_in_data", "mUSD"),

@@ -54,12 +54,12 @@ class SimParams:
 @dataclass(frozen=True)
 class AgentParams:
     """Parameters for agent creation and filtering."""
-    input_coverage: float = 0.95
-    cutoff_sector_output: dict = field(default_factory=lambda: {"type": "absolute", "value": 1.0, "unit": "mUSD"})
-    cutoff_sector_demand: dict = field(default_factory=lambda: {"type": "absolute", "value": 1.0, "unit": "mUSD"})
-    cutoff_firm_output: dict = field(default_factory=lambda: {"type": "absolute", "value": 10, "unit": "kUSD"})
-    cutoff_household_demand: dict = field(default_factory=lambda: {"type": "absolute", "value": 10, "unit": "kUSD"})
-    combine_sector_cutoff: str = "and"
+    # Cumulative flow-coverage fraction in (0, 1]. A single quantile-style
+    # knob that decides which agents and bilateral trade cells are kept.
+    # Per-buyer top inputs and per-supplier top buyers are unioned; every
+    # kept agent retains at least this fraction of its in-flows and
+    # out-flows. Replaces the legacy cutoff_*/input_coverage knobs.
+    flow_coverage: float = 0.95
     nb_suppliers_per_input: float = 1
     weight_localization_firm: float = 1.0
     weight_localization_household: float = 4.0
@@ -77,10 +77,6 @@ class AgentParams:
     sectors_to_include: str = "all"
     sectors_to_exclude: tuple = ()
     countries_to_include: str = "all"
-    min_nb_firms_per_sector: int = 5
-    pop_density_cutoff: float = 0.0
-    pop_cutoff: float = 0.0
-    local_demand_cutoff: float = 0.0
     explicit_service_firm: bool = True
     monetary_units_in_model: str = "mUSD"
     monetary_units_in_data: str = "mUSD"
