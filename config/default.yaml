@@ -188,6 +188,15 @@ sectors_no_transport_network: ['utility', 'transport', 'trade', 'services', 'ser
 # countries on the transport network.
 countries_no_transport: []
 
+# When True (default), each shipment is tagged with a cargo type (container,
+# dry_bulk, liquid_bulk, …) derived from sector_to_cargo_type, and the routing
+# pipeline runs once per cargo type. When False, every shipment uses a single
+# "any" cargo type and Dijkstra/LP runs once instead of N times.
+# Set this to False for studies that have no pipelines or other per-cargo-type
+# infrastructure — it can roughly N× speed up the routing build, with no loss
+# of fidelity in that case.
+use_cargo_types: True
+
 # Whether the B2C flows are transported on the transport network
 transport_to_households: True
 

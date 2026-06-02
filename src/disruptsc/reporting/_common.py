@@ -79,12 +79,18 @@ MODE_COLORS = {
 
 
 def detect_cargo_types(gdf: gpd.GeoDataFrame) -> list[str]:
-    """Return cargo types present as columns in the GeoDataFrame."""
-    cargo_types = []
-    for ct in ["container", "dry_bulk", "liquid_bulk"]:
-        if f"tons_{ct}" in gdf.columns:
-            cargo_types.append(ct)
-    return cargo_types
+    """Return cargo types present as columns in the GeoDataFrame.
+
+    Scans for `tons_<cargo_type>` columns dynamically — works with the
+    standard {container, dry_bulk, liquid_bulk} set and with single
+    "any" bucket (when use_cargo_types is disabled). Excludes columns
+    like `tons_pct` that share the prefix but aren't cargo-type buckets.
+    """
+    skip = {"tons_pct"}
+    return sorted(
+        col[len("tons_"):] for col in gdf.columns
+        if col.startswith("tons_") and col not in skip
+    )
 
 
 def add_flow_traces(fig, gdf, value_col, lon_range, lat_range,

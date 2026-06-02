@@ -16,7 +16,8 @@ from disruptsc.network.transport_network import TransportNetwork
 def build_transport_network(transport_modes: list, filepaths: dict,
                             logistics_params: dict, time_resolution: str,
                             capacity_overrides: dict = None,
-                            default_transport_capacity: dict = None) -> tuple[TransportNetwork, gpd.GeoDataFrame, gpd.GeoDataFrame]:
+                            default_transport_capacity: dict = None,
+                            use_cargo_types: bool = True) -> tuple[TransportNetwork, gpd.GeoDataFrame, gpd.GeoDataFrame]:
     """Build transport network from a GeoPackage file.
 
     Expects *filepaths["transport"]* to point to a ``.gpkg`` file with one
@@ -107,11 +108,16 @@ def build_transport_network(transport_modes: list, filepaths: dict,
             **({"name": row["name"]} if "name" in nodes_gdf.columns else {}),
         })
 
-    # Determine cargo types from logistics config
-    cargo_types = list(logistics_params.get("sector_to_cargo_type", {}).values())
-    cargo_types = sorted(set(ct for ct in cargo_types if ct != "default"))
-    if not cargo_types:
-        cargo_types = ["container", "dry_bulk", "liquid_bulk"]
+    # Determine cargo types. Single "any" bucket when cargo types are
+    # disabled — Dijkstra/LP will run once instead of once per type.
+    if use_cargo_types:
+        cargo_types = list(logistics_params.get("sector_to_cargo_type", {}).values())
+        cargo_types = sorted(set(ct for ct in cargo_types if ct != "default"))
+        if not cargo_types:
+            cargo_types = ["container", "dry_bulk", "liquid_bulk"]
+    else:
+        cargo_types = ["any"]
+        logging.info("Cargo types disabled — using a single 'any' bucket")
 
     for _, row in edges_gdf.iterrows():
         u, v = int(row["end1"]), int(row["end2"])
@@ -131,7 +137,8 @@ def build_transport_network(transport_modes: list, filepaths: dict,
         _apply_capacity_overrides(tn, capacity_overrides, cargo_types, time_resolution)
 
     # Ingest logistics cost parameters
-    tn.ingest_logistic_data(logistics_params, time_resolution)
+    tn.ingest_logistic_data(logistics_params, time_resolution,
+                            use_cargo_types=use_cargo_types)
 
     # Set min cost for heuristic
     min_costs = [v for v in logistics_params["basic_cost"].values() if isinstance(v, (int, float))]
