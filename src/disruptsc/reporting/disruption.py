@@ -639,12 +639,37 @@ def _section_price_by_sector(df_link: pd.DataFrame, mu: str) -> str:
     ).reset_index()
     agg["avg_price_increase"] = agg["weighted_dp"] / agg["total_order"].replace(0, np.nan)
 
-    # Build facet grid: columns = buyer type, rows = buyer region
+    # Build facet grid: columns = buyer type, rows = buyer region.
+    # Cap rows to the TOP_N regions by total order value to keep the figure
+    # readable on large scopes (e.g. World has 80+ regions). Smaller regions
+    # are aggregated into a summary count rendered below the figure.
+    TOP_N_REGIONS = 10
     buyer_types = sorted(agg["buyer_type_label"].unique())
-    buyer_regions = sorted(agg["buyer_region_label"].unique())
     sectors = sorted(agg["seller_sector"].unique())
     sector_color = {s: _SECTOR_COLORS[i % len(_SECTOR_COLORS)]
                     for i, s in enumerate(sectors)}
+
+    region_order_value = (
+        agg.groupby("buyer_region_label")["total_order"].sum()
+        .sort_values(ascending=False)
+    )
+    n_regions_total = len(region_order_value)
+    top_regions = region_order_value.head(TOP_N_REGIONS).index.tolist()
+    buyer_regions = sorted(top_regions)
+    dropped_regions = n_regions_total - len(buyer_regions)
+    if dropped_regions > 0:
+        dropped_share = (
+            region_order_value.iloc[len(buyer_regions):].sum()
+            / region_order_value.sum() if region_order_value.sum() > 0 else 0.0
+        )
+        html.append(
+            f'<p class="section-note">Showing the top {len(buyer_regions)} '
+            f'regions by total order value ({100*(1-dropped_share):.1f}% of '
+            f'flow). {dropped_regions} smaller regions '
+            f'({100*dropped_share:.1f}% of flow) omitted for readability.</p>'
+        )
+
+    agg = agg[agg["buyer_region_label"].isin(buyer_regions)]
 
     n_rows = len(buyer_regions)
     n_cols = len(buyer_types)
@@ -652,11 +677,16 @@ def _section_price_by_sector(df_link: pd.DataFrame, mu: str) -> str:
         html.append("<p>No data for price facets.</p>")
         return "\n".join(html)
 
+    # Plotly requires vertical_spacing ≤ 1/(rows-1) and horizontal_spacing
+    # ≤ 1/(cols-1). Clamp defensively just below the geometric limit.
+    v_space = min(0.04, 0.95 / (n_rows - 1)) if n_rows > 1 else 0.04
+    h_space = min(0.04, 0.95 / (n_cols - 1)) if n_cols > 1 else 0.04
+
     fig = make_subplots(
         rows=n_rows, cols=n_cols,
         subplot_titles=[f"{bt} — {br}" for br in buyer_regions for bt in buyer_types],
         shared_xaxes=True, shared_yaxes=True,
-        vertical_spacing=0.04, horizontal_spacing=0.04,
+        vertical_spacing=v_space, horizontal_spacing=h_space,
     )
 
     # Track which sectors already have a legend entry

@@ -8,6 +8,7 @@ DisruptSC is designed to be flexible and configurable for different use cases. T
 
 - **[Basic Usage](basic-usage.md)** - Command-line interface and simulation types
 - **[Parameters](parameters.md)** - Configuration options and settings
+- **[Criticality Analysis](criticality.md)** - Scenario list vs flow-ranked loop, watermark + resume, caching
 - **[Data Modes](data-modes.md)** - Current MRIO data mode
 - **[Input Data](input-data.md)** - Required data files and formats
 - **[Output Files](output-files.md)** - Understanding and interpreting results

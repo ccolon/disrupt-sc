@@ -24,15 +24,24 @@ def _ensure_crs(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
 # ------------------------------------------------------------------
 
 class CsvWriter:
-    """Append rows to a CSV file incrementally (no in-memory accumulation)."""
+    """Append rows to a CSV file incrementally (no in-memory accumulation).
 
-    def __init__(self, path: Path, columns: list[str], flush_each_write: bool = False):
+    With ``append=True`` the file is opened in append mode and the header
+    is only written if the file is empty or doesn't exist yet — letting
+    callers resume partial output safely.
+    """
+
+    def __init__(self, path: Path, columns: list[str], flush_each_write: bool = False,
+                 append: bool = False):
         self.path = path
         self.columns = columns
         self.flush_each_write = flush_each_write
-        self._fp = open(path, "w", newline="")
+        mode = "a" if append else "w"
+        write_header = not append or not (Path(path).exists() and Path(path).stat().st_size > 0)
+        self._fp = open(path, mode, newline="")
         self._writer = csv.DictWriter(self._fp, fieldnames=columns, extrasaction="ignore")
-        self._writer.writeheader()
+        if write_header:
+            self._writer.writeheader()
         if self.flush_each_write:
             self._fp.flush()
             os.fsync(self._fp.fileno())

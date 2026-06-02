@@ -311,6 +311,13 @@ disruptions: null
 # Possible values are: 'day', 'week', 'month', 'year'
 time_resolution: 'week'
 
+# Seed for Python's `random` and numpy.random. Applied just before the
+# supply-chain build (the only RNG-driven stage). Leave null for legacy
+# non-reproducible behavior; set an integer to get a deterministic agent
+# set + supply chain across runs (essential for resuming a partial
+# criticality sweep).
+seed: null
+
 # Defines the criticality loop
 criticality:
     # New scenario-list mode:
@@ -329,6 +336,21 @@ criticality:
     edges: []
     attribute: null
     duration: 1
+
+    # Skip edges carrying zero tons in the baseline (no point testing them).
+    # Applied after the attribute filter and before top_n.
+    skip_zero_flow: true
+
+    # Restrict the legacy loop to the top-N edges by baseline tons flow
+    # (descending). Null = test every surviving edge.
+    top_n: null
+
+    # Subfolder name under output/<scope>/criticality/. When null, the
+    # name defaults to the first 8 hex chars of the fingerprint hash, so
+    # different parameter sets (e.g. duration=4 vs duration=8) automatically
+    # land in distinct folders and resume independently. Set to a string
+    # to name a run explicitly, e.g. "baseline" or "duration8_seed42".
+    run_id: null
 
 
 # Value of the household extra spending and consumption loss under which we stop the simulation

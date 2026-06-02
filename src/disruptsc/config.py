@@ -193,6 +193,7 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
         adaptive_inventories=config.get("adaptive_inventories", False),
         adaptive_supplier_weight=config.get("adaptive_supplier_weight", False),
         sensitivity=config.get("sensitivity") or {},
+        seed=(int(config["seed"]) if config.get("seed") is not None else None),
     )
 
     # Warn loudly about removed legacy params so existing configs surface them.
