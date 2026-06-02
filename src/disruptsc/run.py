@@ -148,6 +148,7 @@ def _main_impl():
             transport_modes, filepaths, logistics_raw, sp.time_resolution,
             capacity_overrides=config.get("transport_capacity_overrides"),
             default_transport_capacity=config.get("default_transport_capacity"),
+            use_cargo_types=tp.use_cargo_types,
         )
         cache_transport_network(transport_network, transport_edges, transport_nodes)
 
@@ -214,13 +215,31 @@ def _main_impl():
         _configure_households(households)
     else:
         logging.info("Building supply chain network")
+        # When cargo types are disabled, force every commercial link to use
+        # the single "any" bucket — so the routing pipeline runs Dijkstra/LP
+        # once instead of once per cargo type.
+        effective_cargo_mapping = (
+            lp.sector_to_cargo_type if tp.use_cargo_types else {"default": "any"}
+        )
         sc_network = build_supply_chain_network(
             firms, households, countries, mrio, sector_table,
             ap.nb_suppliers_per_input, ap.weight_localization_firm,
             ap.weight_localization_household,
-            lp.sector_to_cargo_type, transport_network,
+            effective_cargo_mapping, transport_network,
         )
         cache_sc_network(sc_network, firms, households, countries)
+
+    # Auto-shrink: prune transport-network cargo types to those actually used
+    # by the supply chain. No-op when only one cargo type is present. Done
+    # before the logistic-route stage so Dijkstra/LP runs N× fewer times.
+    used_cargo = {
+        getattr(data["object"], "cargo_type", None)
+        for _, _, data in sc_network.edges(data=True)
+    }
+    used_cargo.discard(None)
+    used_cargo.discard("")
+    if used_cargo:
+        transport_network.shrink_cargo_types_to(used_cargo)
 
     # ------------------------------------------------------------------
     # Stage 3b: Set initial conditions (before routing, so links have

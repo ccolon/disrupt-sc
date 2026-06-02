@@ -17,6 +17,12 @@ class TransportParams:
     price_increase_threshold: float | None = 2.0  # None = no threshold
     sectors_no_transport: tuple = ("utility", "transport", "trade", "services", "service", "construction")
     countries_no_transport: tuple = ()
+    # When False, all shipments are tagged with a single cargo type
+    # ("any") and the routing pipeline runs Dijkstra/LP once instead of
+    # once per cargo type. Useful for studies without pipelines or other
+    # per-cargo-type infrastructure. When True, cargo types are derived
+    # from sector_to_cargo_type as before.
+    use_cargo_types: bool = True
     monetary_units: str = "mUSD"
     route_optimization_weight: str = "cost_per_ton"
     chunk_size: float = 1e9  # tons per time-step; very large = no chunking

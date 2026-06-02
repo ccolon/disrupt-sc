@@ -103,12 +103,17 @@ class TransportNetwork(nx.Graph):
     # Logistic cost setup
     # ------------------------------------------------------------------
 
-    def ingest_logistic_data(self, logistic_parameters: dict, time_resolution: str):
-        # Derive cargo types from sector_to_cargo_type mapping
-        cargo_type_values = list(logistic_parameters.get("sector_to_cargo_type", {}).values())
-        self.cargo_types = sorted(set(ct for ct in cargo_type_values if ct != "default"))
-        if not self.cargo_types:
-            self.cargo_types = ["container", "dry_bulk", "liquid_bulk"]
+    def ingest_logistic_data(self, logistic_parameters: dict, time_resolution: str,
+                             use_cargo_types: bool = True):
+        # Derive cargo types from sector_to_cargo_type mapping, or fall
+        # back to a single "any" bucket when the feature is disabled.
+        if use_cargo_types:
+            cargo_type_values = list(logistic_parameters.get("sector_to_cargo_type", {}).values())
+            self.cargo_types = sorted(set(ct for ct in cargo_type_values if ct != "default"))
+            if not self.cargo_types:
+                self.cargo_types = ["container", "dry_bulk", "liquid_bulk"]
+        else:
+            self.cargo_types = ["any"]
         self.shortest_path_library = {
             "normal": {m: {} for m in self.cargo_types},
             "alternative": {m: {} for m in self.cargo_types},
@@ -116,6 +121,47 @@ class TransportNetwork(nx.Graph):
         for _, attr in self.edges.items():
             _calculate_cost_per_ton(attr, logistic_parameters, self.cargo_types, time_resolution)
         self.capture_base_capacity_state()
+
+    def shrink_cargo_types_to(self, used: set[str]) -> None:
+        """Prune cargo_types to only those listed in *used*.
+
+        Removes per-cargo-type labels (cost_per_ton_, current_load_,
+        capacity_, base_capacity_, cost_per_ton_with_capacity_) for the
+        dropped types, and resets shortest_path_library. Safe to call after
+        ingest_logistic_data — useful when the actual supply chain uses
+        fewer cargo types than the network was set up for, so Dijkstra/LP
+        runs N× fewer times.
+        """
+        if not self.cargo_types:
+            return
+        used = {ct for ct in used if ct in self.cargo_types}
+        if not used:
+            logging.warning("shrink_cargo_types_to: no overlap with current cargo_types; keeping all")
+            return
+        dropped = set(self.cargo_types) - used
+        if not dropped:
+            return
+        kept = sorted(used)
+        logging.info(
+            f"Pruning unused cargo types {sorted(dropped)} "
+            f"({len(self.cargo_types)} → {len(kept)}); routing will run "
+            f"{len(kept)}× instead of {len(self.cargo_types)}×"
+        )
+        # Strip per-cargo-type labels from every edge
+        prefixes = (
+            "cost_per_ton_", "cost_per_ton_with_capacity_",
+            "current_load_", "capacity_", "base_capacity_",
+        )
+        for _, attr in self.edges.items():
+            for ct in dropped:
+                for prefix in prefixes:
+                    attr.pop(f"{prefix}{ct}", None)
+        # Reset routing state for the new cargo type set
+        self.cargo_types = kept
+        self.shortest_path_library = {
+            "normal": {m: {} for m in kept},
+            "alternative": {m: {} for m in kept},
+        }
 
     def capture_base_capacity_state(self):
         """Snapshot the edge capacities that represent the undisrupted network."""
