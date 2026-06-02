@@ -51,6 +51,10 @@ class SimParams:
     adaptive_inventories: bool = False
     adaptive_supplier_weight: bool = False
     sensitivity: dict = field(default_factory=dict)
+    # Seed both Python's `random` and `numpy.random` before stochastic
+    # stages (currently: supply-chain build, Monte-Carlo disruption arrival).
+    # None ⇒ no seeding (legacy non-reproducible behavior).
+    seed: int | None = None
 
     @property
     def is_monte_carlo(self) -> bool:

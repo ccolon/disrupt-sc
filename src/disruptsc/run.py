@@ -8,6 +8,8 @@ import sys
 import threading
 from pathlib import Path
 
+import numpy as np
+
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -63,7 +65,7 @@ from disruptsc.run_pipeline.export import (
     export_initial_state, export_static_tables, export_mrio_summary,
     MCWriter, CsvWriter, summarize_criticality_losses,
     create_criticality_results_writer, criticality_result_to_row,
-    export_criticality_geojson,
+    export_criticality_geojson, CRITICALITY_RESULT_COLUMNS,
 )
 
 
@@ -215,6 +217,16 @@ def _main_impl():
         _configure_households(households)
     else:
         logging.info("Building supply chain network")
+        # Seed Python's `random` and numpy.random for reproducible
+        # supplier-selection draws. This is the *only* RNG-driven stage
+        # in the model (besides Monte-Carlo disruption arrival). When
+        # sp.seed is None we leave the global RNGs alone (legacy
+        # non-reproducible behavior).
+        if sp.seed is not None:
+            import random as _random
+            _random.seed(sp.seed)
+            np.random.seed(sp.seed)
+            logging.info(f"Seeded RNGs with seed={sp.seed} before supply-chain build")
         # When cargo types are disabled, force every commercial link to use
         # the single "any" bucket — so the routing pipeline runs Dijkstra/LP
         # once instead of once per cargo type.
@@ -311,43 +323,117 @@ def _main_impl():
 
     elif sim_type == "criticality":
         import copy
+        from disruptsc.run_pipeline.fingerprint import (
+            build_fingerprint, fingerprint_hash, save_fingerprint,
+            load_fingerprint, diff_fingerprints,
+        )
         crit_cfg = config.get("criticality", {})
         duration = crit_cfg.get("duration", 4)
         t_final = sp.t_final if sp.t_final else duration + 2
+        skip_zero_flow = bool(crit_cfg.get("skip_zero_flow", True))
+        top_n = crit_cfg.get("top_n")
+        if top_n is not None:
+            top_n = int(top_n)
         crit_sp = _replace_frozen(sp, epsilon_stop=0.0)
         scenarios = crit_cfg.get("scenarios")
 
+        # --- Fingerprint + per-run subfolder + resume detection ---------------
+        fp_payload = build_fingerprint(config, criticality_duration=duration)
+        current_hash = fingerprint_hash(fp_payload)
+        subfolder = _resolve_criticality_subfolder(crit_cfg, current_hash)
+        run_id_explicit = bool(crit_cfg.get("run_id"))
+        csv_path, geojson_path, sidecar_path = _get_criticality_output_paths(scope, subfolder)
+        logging.info(
+            f"Criticality output → {csv_path.parent} "
+            f"(subfolder='{subfolder}', "
+            f"{'user-supplied run_id' if run_id_explicit else 'auto from fingerprint'})"
+        )
+
+        prev_fp = load_fingerprint(sidecar_path)
+        resume = False
+        done_keys: set = set()
+        if prev_fp is not None and csv_path.exists():
+            if prev_fp.get("hash") != current_hash:
+                # This can only happen with a user-supplied run_id that
+                # collides between different parameter sets (auto subfolders
+                # are hash-derived, so they can't collide).
+                raise RuntimeError(
+                    f"Cannot resume criticality results at {csv_path}: the "
+                    f"current run's fingerprint differs from the previous one "
+                    f"in subfolder '{subfolder}'.\n"
+                    f"Either pick a different criticality.run_id, delete "
+                    f"{csv_path.parent} to start fresh, or revert config/data "
+                    f"to match. Changed keys:\n"
+                    f"{diff_fingerprints(prev_fp, fp_payload)}"
+                )
+            done_keys = _load_done_criticality_keys(csv_path, is_scenario_mode=bool(scenarios))
+            if done_keys:
+                resume = True
+                logging.info(
+                    f"Resuming criticality from {csv_path.name}: "
+                    f"{len(done_keys)} scenario(s) already complete"
+                )
+        # Always (re)write the sidecar so it reflects the current run, and
+        # append/update a row in the top-level runs.csv index.
+        save_fingerprint(fp_payload, sidecar_path)
+        _update_criticality_index(
+            scope, subfolder, fp_payload, current_hash,
+            mode=("scenarios" if scenarios else "edges"),
+            top_n=top_n, run_id_explicit=run_id_explicit,
+        )
+
+        # --- Baseline pass: produces per-edge flow for ranking/filtering ------
+        logging.info("Running baseline (no disruption) to rank edges by flow")
+        baseline_all_data, baseline_logistics, baseline_routing = prepare_disruption_baseline(
+            sc_network, transport_network, firms, households, countries,
+            tp, crit_sp, writers=None, monitored_edges=None,
+        )
+        baseline_flows = {
+            row["id"]: float(row.get("flow_total_tons") or 0.0)
+            for row in baseline_all_data["transport_flow"]
+            if row.get("time_step") == 0
+        }
+
         if scenarios:
             logging.info(f"Running scenario-based criticality for {len(scenarios)} scenario(s)")
-            csv_path, geojson_path = _get_criticality_output_paths(scope)
-            with create_criticality_results_writer(csv_path) as csv_writer:
+            baseline_snapshot = {
+                "sc": sc_network, "tn": transport_network,
+                "firms": firms, "hh": households, "countries": countries,
+                "all_data": baseline_all_data,
+                "logistics_reports": baseline_logistics,
+                "routing_summaries": baseline_routing,
+            }
+            with CsvWriter(
+                csv_path, CRITICALITY_RESULT_COLUMNS,
+                flush_each_write=True, append=resume,
+            ) as csv_writer:
                 scenario_results = _run_criticality_scenarios(
-                    scenarios, sc_network, transport_network, firms, households, countries,
-                    tp, crit_sp, transport_edges, firm_table, duration, t_final,
-                    csv_writer=csv_writer,
+                    scenarios, transport_edges, firm_table,
+                    baseline_snapshot, tp, crit_sp, duration, t_final,
+                    done_keys=done_keys, csv_writer=csv_writer,
                 )
             export_criticality_geojson(scenario_results, transport_edges, geojson_path)
             logging.info(f"Criticality results saved to {csv_path}")
             logging.info(f"Criticality geodata saved to {geojson_path}")
         else:
-            # Filter edges to test
-            attr_filter = crit_cfg.get("attribute")
-            edge_values = crit_cfg.get("edges", [])
-            if attr_filter and edge_values:
-                mask = transport_edges[attr_filter].isin(edge_values)
-                edges_to_test = transport_edges.loc[mask, "id"].tolist()
-            else:
-                edges_to_test = transport_edges["id"].tolist()
-
-            logging.info(f"Running criticality for {len(edges_to_test)} edges")
-            all_results = []
-            csv_path, _ = _get_criticality_output_paths(scope)
+            edges_to_test = _select_legacy_criticality_edges(
+                transport_edges, crit_cfg, baseline_flows,
+                skip_zero_flow=skip_zero_flow, top_n=top_n,
+            )
+            remaining = [e for e in edges_to_test if e not in done_keys]
+            logging.info(
+                f"Running criticality for {len(remaining)} edge(s) "
+                f"(of {len(edges_to_test)} selected, {len(done_keys)} already done)"
+            )
             with CsvWriter(
-                csv_path, ["household_loss", "country_loss", "edge_id"], flush_each_write=True,
+                csv_path, ["household_loss", "country_loss", "edge_id"],
+                flush_each_write=True, append=resume,
             ) as csv_writer:
-                for i, edge_id in enumerate(edges_to_test):
-                    logging.info(f"Criticality edge {i+1}/{len(edges_to_test)}: {edge_id}")
-                    # Deep-copy everything together so internal references are preserved
+                for i, edge_id in enumerate(remaining, start=1):
+                    logging.info(
+                        f"Criticality edge {i}/{len(remaining)}: id={edge_id} "
+                        f"(baseline tons={baseline_flows.get(edge_id, 0):,.1f})"
+                    )
                     state = copy.deepcopy({
                         "sc": sc_network, "tn": transport_network,
                         "firms": firms, "hh": households, "countries": countries,
@@ -361,11 +447,8 @@ def _main_impl():
                         monetary_units=tp.monetary_units,
                     )
                     losses["edge_id"] = edge_id
-                    all_results.append(losses)
                     csv_writer.write_row(losses)
-
-            if all_results:
-                logging.info(f"Criticality results saved to {csv_path}")
+            logging.info(f"Criticality results saved to {csv_path}")
 
     else:
         raise ValueError(f"Unknown simulation_type: {sim_type}")
@@ -449,28 +532,24 @@ def _run_monte_carlo(sc_network, transport_network, firms, households, countries
 # ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------
-def _run_criticality_scenarios(scenarios, sc_network, transport_network, firms,
-                               households, countries, tp, sp, transport_edges,
-                               firm_table, duration, t_final, csv_writer=None):
+def _run_criticality_scenarios(scenarios, transport_edges, firm_table,
+                               baseline_snapshot, tp, sp, duration, t_final,
+                               *, done_keys: set | None = None, csv_writer=None):
+    """Run scenario-mode criticality. Caller supplies a baseline snapshot
+    (already advanced through ``prepare_disruption_baseline``) so we never
+    re-run the baseline and can resume cheaply via *done_keys*.
+    """
     import copy
 
     normalized_scenarios = _normalize_criticality_scenarios(scenarios, transport_edges)
-    baseline_all_data, baseline_logistics_reports, baseline_routing_summaries = prepare_disruption_baseline(
-        sc_network, transport_network, firms, households, countries,
-        tp, sp, writers=None, monitored_edges=None,
-    )
-    baseline_snapshot = {
-        "sc": sc_network,
-        "tn": transport_network,
-        "firms": firms,
-        "hh": households,
-        "countries": countries,
-        "all_data": baseline_all_data,
-        "logistics_reports": baseline_logistics_reports,
-        "routing_summaries": baseline_routing_summaries,
-    }
+    done_keys = done_keys or set()
     results = []
+    skipped = 0
     for i, edge_names in enumerate(normalized_scenarios, start=1):
+        key = _scenario_key(edge_names)
+        if key in done_keys:
+            skipped += 1
+            continue
         logging.info(
             "Criticality scenario %s/%s: %s",
             i, len(normalized_scenarios), ", ".join(edge_names),
@@ -505,6 +584,8 @@ def _run_criticality_scenarios(scenarios, sc_network, transport_network, firms,
         results.append(losses)
         if csv_writer is not None:
             csv_writer.write_row(criticality_result_to_row(losses))
+    if skipped:
+        logging.info(f"Skipped {skipped} scenario(s) already present in the CSV")
     return results
 
 
@@ -529,14 +610,167 @@ def _normalize_criticality_scenarios(scenarios, transport_edges):
     return normalized
 
 
-def _get_criticality_output_paths(scope: str):
-    from datetime import datetime
+_EPSILON_TONS = 1e-6
 
-    scope_dir = paths.OUTPUT_FOLDER / scope
-    scope_dir.mkdir(parents=True, exist_ok=True)
-    run_dir = scope_dir / f"criticality_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
-    run_dir.mkdir(parents=True, exist_ok=False)
-    return run_dir / "criticality_results.csv", run_dir / "criticality_results.geojson"
+
+def _scenario_key(edge_names) -> str:
+    """Order-independent key for a multi-edge scenario."""
+    return "|".join(sorted(str(n) for n in edge_names))
+
+
+def _select_legacy_criticality_edges(transport_edges, crit_cfg, baseline_flows,
+                                     *, skip_zero_flow: bool, top_n: int | None):
+    """Pick which edges to test in legacy (one-edge-at-a-time) criticality mode.
+
+    Order of operations:
+      1. Apply ``criticality.attribute`` + ``criticality.edges`` filter (if set).
+      2. Drop edges whose baseline tons flow is ≤ ε (when *skip_zero_flow*).
+      3. Sort by descending baseline flow.
+      4. Truncate to *top_n* (when set).
+    """
+    attr_filter = crit_cfg.get("attribute")
+    edge_values = crit_cfg.get("edges", []) or []
+    if attr_filter and edge_values:
+        mask = transport_edges[attr_filter].isin(edge_values)
+        edge_ids = transport_edges.loc[mask, "id"].tolist()
+        logging.info(
+            f"Criticality attribute filter ({attr_filter}∈{edge_values}): "
+            f"{len(edge_ids)} edges"
+        )
+    else:
+        edge_ids = transport_edges["id"].tolist()
+
+    if skip_zero_flow:
+        before = len(edge_ids)
+        edge_ids = [e for e in edge_ids if baseline_flows.get(e, 0.0) > _EPSILON_TONS]
+        if before > len(edge_ids):
+            logging.info(f"Skipped {before - len(edge_ids)} zero-flow edges")
+
+    edge_ids.sort(key=lambda e: baseline_flows.get(e, 0.0), reverse=True)
+
+    if top_n is not None and top_n > 0 and top_n < len(edge_ids):
+        edge_ids = edge_ids[:top_n]
+        logging.info(f"Restricted to top {top_n} edges by baseline flow")
+    return edge_ids
+
+
+def _load_done_criticality_keys(csv_path, *, is_scenario_mode: bool) -> set:
+    """Read an existing criticality_results.csv and return the set of
+    scenario keys already present. Scenario mode keys are
+    ``|``-joined-sorted edge-name strings; legacy mode keys are integer
+    edge ids."""
+    import csv as _csv
+    import json as _json
+    keys: set = set()
+    if not Path(csv_path).exists():
+        return keys
+    with open(csv_path, newline="") as f:
+        reader = _csv.DictReader(f)
+        for row in reader:
+            if is_scenario_mode:
+                raw = row.get("edge") or "[]"
+                try:
+                    names = _json.loads(raw)
+                except _json.JSONDecodeError:
+                    continue
+                keys.add(_scenario_key(names))
+            else:
+                eid = row.get("edge_id")
+                if eid is None or eid == "":
+                    continue
+                try:
+                    keys.add(int(eid))
+                except ValueError:
+                    continue
+    return keys
+
+
+def _get_criticality_output_paths(scope: str, subfolder: str):
+    """Return (csv, geojson, fingerprint) paths inside a per-run subfolder.
+
+    Each unique parameter combination lands in its own subfolder under
+    ``output/<scope>/criticality/`` so distinct sweeps coexist without
+    collision. The subfolder is either the user's ``criticality.run_id``
+    or the first eight hex chars of the fingerprint hash (see
+    ``_resolve_criticality_subfolder``).
+    """
+    run_dir = paths.OUTPUT_FOLDER / scope / "criticality" / subfolder
+    run_dir.mkdir(parents=True, exist_ok=True)
+    return (
+        run_dir / "criticality_results.csv",
+        run_dir / "criticality_results.geojson",
+        run_dir / "criticality_results.fingerprint.json",
+    )
+
+
+def _resolve_criticality_subfolder(crit_cfg: dict, fingerprint_hash: str) -> str:
+    """Pick the per-run subfolder name.
+
+    User-supplied ``criticality.run_id`` wins (sanitized for filesystem
+    safety). Otherwise we use the first eight hex chars of the
+    fingerprint — distinct parameter combos automatically land in
+    distinct folders.
+    """
+    raw = crit_cfg.get("run_id")
+    if raw:
+        # Keep only filename-safe characters
+        safe = "".join(c if (c.isalnum() or c in "-_.") else "_"
+                       for c in str(raw).strip())
+        if safe:
+            return safe
+    return fingerprint_hash[:8]
+
+
+def _update_criticality_index(scope: str, subfolder: str, fp_payload: dict,
+                              fp_hash: str, mode: str, top_n, run_id_explicit: bool):
+    """Upsert one row in ``output/<scope>/criticality/runs.csv``.
+
+    Lightweight directory of all criticality runs in this scope so the
+    user can browse hash-named subfolders without opening each sidecar.
+    """
+    import csv as _csv
+    from datetime import datetime as _dt
+
+    index_path = paths.OUTPUT_FOLDER / scope / "criticality" / "runs.csv"
+    index_path.parent.mkdir(parents=True, exist_ok=True)
+    cfg = fp_payload.get("config") or {}
+    now = _dt.now().isoformat(timespec="seconds")
+    columns = [
+        "subfolder", "run_id_explicit", "fingerprint", "mode",
+        "duration", "top_n", "seed",
+        "flow_coverage", "use_cargo_types",
+        "version", "git_sha", "first_seen", "last_run",
+    ]
+    new_row = {
+        "subfolder": subfolder,
+        "run_id_explicit": "yes" if run_id_explicit else "",
+        "fingerprint": fp_hash,
+        "mode": mode,
+        "duration": fp_payload.get("criticality_duration"),
+        "top_n": top_n if top_n is not None else "",
+        "seed": cfg.get("seed") if cfg.get("seed") is not None else "",
+        "flow_coverage": cfg.get("flow_coverage"),
+        "use_cargo_types": cfg.get("use_cargo_types"),
+        "version": fp_payload.get("version"),
+        "git_sha": (fp_payload.get("git_sha") or "")[:12],
+        "first_seen": now,
+        "last_run": now,
+    }
+    rows = []
+    if index_path.exists():
+        with open(index_path, newline="", encoding="utf-8") as f:
+            for r in _csv.DictReader(f):
+                if r.get("subfolder") == subfolder:
+                    # Preserve original first_seen, update last_run
+                    new_row["first_seen"] = r.get("first_seen") or now
+                    continue
+                rows.append(r)
+    rows.append(new_row)
+    with open(index_path, "w", newline="", encoding="utf-8") as f:
+        w = _csv.DictWriter(f, fieldnames=columns)
+        w.writeheader()
+        for r in rows:
+            w.writerow({k: r.get(k, "") for k in columns})
 
 
 def _replace_frozen(dc, **overrides):

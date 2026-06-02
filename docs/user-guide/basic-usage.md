@@ -124,16 +124,30 @@ configuration should use `disruptions`.
 
 ### `criticality`
 
-Runs infrastructure criticality scenarios configured under `criticality`:
+Runs infrastructure criticality scenarios. Two modes are supported: an
+**explicit scenario list** (test specific edge groups), or a
+**flow-ranked edge loop** (auto-pick edges by baseline flow with
+filters for zero-flow and top-N).
 
 ```yaml
 simulation_type: "criticality"
+t_final: 12
+seed: 42
 criticality:
   duration: 4
+  # Option A — explicit scenarios:
   scenarios:
-    - name: bridge_1
-      edges: ["bridge_1"]
+    - ["bridge_1"]
+    - ["bridge_1", "road_42"]   # both shut simultaneously
+  # Option B — flow-ranked loop (when scenarios is empty):
+  # skip_zero_flow: true
+  # top_n: 100
 ```
+
+See [**Criticality Analysis**](criticality.md) for the full reference:
+parameters, the watermark / fingerprint system that makes runs
+resumable, how caching interacts with criticality, and how `t_final`
+relates to scenario duration.
 
 ## Validation
 
