@@ -135,6 +135,7 @@ t_final: 12
 seed: 42
 criticality:
   duration: 4
+  # run_id: "baseline"        # optional named subfolder; else auto-named by fingerprint
   # Option A — explicit scenarios:
   scenarios:
     - ["bridge_1"]
@@ -144,10 +145,15 @@ criticality:
   # top_n: 100
 ```
 
+Each parameter combination lands in its own subfolder under
+`output/<scope>/criticality/`, so you can sweep `duration`, `seed`,
+`top_n`, etc. without manual cleanup.
+
 See [**Criticality Analysis**](criticality.md) for the full reference:
 parameters, the watermark / fingerprint system that makes runs
-resumable, how caching interacts with criticality, and how `t_final`
-relates to scenario duration.
+resumable, the per-run subfolder layout with `run_id`, how caching
+interacts with criticality, and how `t_final` relates to scenario
+duration.
 
 ## Validation
 

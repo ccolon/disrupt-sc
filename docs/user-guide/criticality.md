@@ -28,6 +28,7 @@ criticality:
   scenarios: []          # leave empty for flow-ranked mode
   skip_zero_flow: true   # drop edges with no baseline traffic
   top_n: 50              # null = all surviving edges
+  run_id: null           # subfolder name; null = auto from fingerprint
 
 seed: 42                 # optional but recommended (see below)
 ```
@@ -124,16 +125,45 @@ with long inventory targets).
 
 ## Output files
 
-Results are written to a **stable** per-scope folder (no timestamp):
+Each unique parameter combination lands in **its own subfolder** under
+`output/<scope>/criticality/`. The subfolder name is either:
+
+- the first eight hex chars of the [fingerprint](#fingerprint-watermark) hash (default), or
+- whatever you set in `criticality.run_id`.
+
+A top-level `runs.csv` index lists every subfolder with its key parameters.
 
 ```
 output/<scope>/criticality/
-├── criticality_results.csv             # one row per scenario / edge
-├── criticality_results.geojson         # scenario mode only: edges with loss attributes
-└── criticality_results.fingerprint.json  # state watermark for resume
+├── 218bbba6/                              # auto-named from fingerprint
+│   ├── criticality_results.csv
+│   ├── criticality_results.geojson        # scenario mode only
+│   └── criticality_results.fingerprint.json
+├── 5c1a8f70/                              # different duration → different subfolder
+│   └── …
+├── baseline/                              # user-named via run_id: "baseline"
+│   └── …
+└── runs.csv                               # index of all runs in this scope
 ```
 
-**CSV schema (scenario mode):**
+**Why this layout matters:** changing `duration` (or any other key
+parameter — see the [fingerprint section](#fingerprint-watermark))
+automatically lands in a fresh subfolder. You can sweep parameters
+side-by-side without renaming folders or hitting fingerprint errors.
+
+**`runs.csv` columns**
+
+| Column | Meaning |
+|---|---|
+| `subfolder` | Folder name inside `criticality/` |
+| `run_id_explicit` | `yes` if the user supplied `criticality.run_id`, blank otherwise |
+| `fingerprint` | Full sha256 of the state fingerprint |
+| `mode` | `scenarios` or `edges` |
+| `duration`, `top_n`, `seed`, `flow_coverage`, `use_cargo_types` | Key parameters at a glance |
+| `version`, `git_sha` | Code version that produced the run |
+| `first_seen`, `last_run` | Timestamps of first creation and most recent invocation |
+
+**CSV schema (scenario mode)** — `<subfolder>/criticality_results.csv`:
 
 | Column | Meaning |
 |---|---|
@@ -141,7 +171,7 @@ output/<scope>/criticality/
 | `total_household_loss` | Sum of household extra-spending + consumption-loss (mUSD) |
 | `household_loss_per_region` | JSON dict of region → loss |
 
-**CSV schema (flow-ranked mode):**
+**CSV schema (flow-ranked mode)** — `<subfolder>/criticality_results.csv`:
 
 | Column | Meaning |
 |---|---|
@@ -149,9 +179,37 @@ output/<scope>/criticality/
 | `household_loss` | Cumulated household loss (mUSD) |
 | `country_loss` | Cumulated country loss (mUSD) |
 
-To archive a finished study, **rename or copy the folder** before the
-next launch (e.g. `mv criticality criticality_2026-06-baseline`). The
-next run will then start fresh in `criticality/`.
+### Naming a run explicitly
+
+Use `criticality.run_id` when you want a human-readable subfolder
+name — typically for labelled comparisons:
+
+```yaml
+criticality:
+  duration: 4
+  run_id: "baseline"
+```
+
+```yaml
+criticality:
+  duration: 8
+  run_id: "longer_disruption"
+```
+
+These two configs produce `output/<scope>/criticality/baseline/` and
+`output/<scope>/criticality/longer_disruption/`. The `runs.csv` index
+shows both.
+
+!!! warning "Don't reuse `run_id` across different parameter sets"
+    If you set `run_id: "experiment"` and change `duration` between
+    runs, the second invocation will fail with a fingerprint mismatch
+    (the subfolder already has data with the *old* duration). Either
+    pick a new `run_id` or delete the old subfolder. Auto-named
+    subfolders never collide because the hash is parameter-derived.
+
+To archive a finished study, copy or rename the **subfolder** (not the
+whole `criticality/` parent). The `runs.csv` row for that subfolder will
+become stale; you can edit it manually or just let it dangle.
 
 ## Reproducibility — seed + fingerprint
 
@@ -177,29 +235,36 @@ relaunch with the same config — the model:
 
 1. Computes the current **fingerprint** (a hash of code version, seed,
    filepaths, and the config keys that affect model state).
-2. Compares it against `criticality_results.fingerprint.json` from the
-   prior run.
-3. **If the fingerprints match**, reads the existing CSV, builds the
-   set of already-completed scenarios, skips those, and appends new
-   rows for the rest:
+2. Resolves the subfolder name (either `criticality.run_id` if set, or
+   the first 8 hex chars of the fingerprint).
+3. Compares the fingerprint against
+   `<subfolder>/criticality_results.fingerprint.json` from any prior run.
+4. **If the fingerprints match**, reads the existing CSV inside that
+   subfolder, builds the set of already-completed scenarios, skips those,
+   and appends new rows for the rest:
    ```
+   Criticality output → output/World/criticality/218bbba6 (subfolder='218bbba6', auto from fingerprint)
    Resuming criticality from criticality_results.csv: 47 scenario(s) already complete
    Running criticality for 53 edge(s) (of 100 selected, 47 already done)
    ```
-4. **If they don't match**, the run aborts with a hard error and a
-   precise diff:
+5. **If they don't match** (only possible with a user-supplied `run_id`
+   that's been reused across parameter sets), the run aborts with a
+   hard error and a precise diff:
    ```
-   RuntimeError: Cannot resume criticality results at .../criticality_results.csv:
-   the current run's fingerprint differs from the previous one.
-   Either delete .../criticality to start fresh, or revert config/data to match.
+   RuntimeError: Cannot resume criticality results at .../baseline/criticality_results.csv:
+   the current run's fingerprint differs from the previous one in subfolder 'baseline'.
+   Either pick a different criticality.run_id, delete .../baseline to start fresh,
+   or revert config/data to match.
    Changed keys:
-     config.seed: was=42  now=43
+     config.criticality_duration: was=4  now=8
    ```
-   Two ways to recover:
+   Three ways to recover:
+     - Set `criticality.run_id` to a fresh name.
      - Revert the config/data change.
-     - Delete the `criticality/` folder to start over.
+     - Delete the conflicting subfolder.
 
 ### What's in the fingerprint?
+<a id="fingerprint-watermark"></a>
 
 The fingerprint hashes:
 
@@ -280,8 +345,64 @@ disruptsc World --simulation_type criticality --cache same_logistic_routes
 ```
 
 Final outputs live at
-`output/World/criticality/criticality_results.csv` — one row per edge,
-sorted descending by baseline tonnage.
+`output/World/criticality/<fp_hash>/criticality_results.csv` — one row
+per edge, sorted descending by baseline tonnage. The `<fp_hash>`
+subfolder is created automatically from the fingerprint.
+
+## Parameter sweep: comparing multiple durations
+
+Want to compare `duration=2`, `4`, and `8` side-by-side? Just change
+the YAML and relaunch — each run lands in its own subfolder
+automatically, no manual cleanup:
+
+```yaml
+# Run 1
+criticality:
+  duration: 2
+  top_n: 100
+```
+```yaml
+# Run 2 — change duration only
+criticality:
+  duration: 4
+  top_n: 100
+```
+```yaml
+# Run 3
+criticality:
+  duration: 8
+  top_n: 100
+```
+
+After three runs, you'll see:
+
+```
+output/World/criticality/
+├── 12ab3c45/                # duration=2
+├── 6789d0ef/                # duration=4
+├── fe98ba76/                # duration=8
+└── runs.csv                 # tells you which hash is which
+```
+
+`runs.csv` has one row per subfolder with `duration`, `seed`, `top_n`,
+`flow_coverage`, `git_sha`, `first_seen`, `last_run` — enough to
+identify the sweep without opening the sidecar JSONs.
+
+If you prefer named folders, set `run_id` per run:
+
+```yaml
+criticality:
+  duration: 2
+  run_id: "short"
+```
+
+```
+output/World/criticality/
+├── short/
+├── medium/
+├── long/
+└── runs.csv
+```
 
 ## Troubleshooting
 
@@ -291,4 +412,6 @@ sorted descending by baseline tonnage.
 | `criticality.scenarios[i] contains unknown edge name(s): [...]` | Typo in an edge name, or the transport gpkg doesn't carry the `name` column for that edge. |
 | Every scenario shows `household_loss = 0` | Your `duration` is too short or `t_final - duration` leaves no time for downstream effects. Try `duration: 4, t_final: 12`. |
 | `Skipped N zero-flow edges` where N is huge | The baseline routing decided most edges carry no flow. Sanity-check your transport network for disconnected components or wrong capacities. |
-| Resume isn't kicking in | Check that `output/<scope>/criticality/criticality_results.fingerprint.json` exists. If absent, the prior run died before writing it. |
+| Resume isn't kicking in | Check that `output/<scope>/criticality/<subfolder>/criticality_results.fingerprint.json` exists. If absent, the prior run died before writing it. Also confirm the subfolder name is what you expect — `runs.csv` lists every subfolder this scope has produced. |
+| Hash-named subfolders are hard to read | Set `criticality.run_id: "your_label"` to use a friendly name. Or look at `runs.csv` to map hashes → parameters. |
+| Same params, two subfolders with same hash | Can't happen — auto-named subfolders are derived from the fingerprint, so identical params always pick the same name. If you see two, one must have a user-supplied `run_id`. |

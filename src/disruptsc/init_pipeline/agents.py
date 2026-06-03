@@ -97,25 +97,45 @@ def create_firm_table(mrio: Mrio, sector_table: pd.DataFrame,
     ft["long"] = coords["long"].values
     ft["lat"] = coords["lat"].values
 
-    # Phase 5: Enrich with sector metadata
+    # Phase 5: Enrich with sector metadata. Build the sector_name → type map
+    # once and reuse it for the firm's own `sector_type` attribute and for
+    # transport-industry detection in `get_transport_input_share`.
     if sector_table is not None:
         sector_type_map = (sector_table.drop_duplicates("sector")
                                        .set_index("sector")["type"].to_dict())
-        ft["sector_type"] = ft["sector"].map(sector_type_map).fillna("manufacturing")
     else:
-        ft["sector_type"] = "manufacturing"
+        sector_type_map = {}
+    ft["sector_type"] = ft["sector"].map(sector_type_map).fillna("manufacturing")
+
+    # Surface MRIO sectors missing from the type map — they won't be detected
+    # as transport for transport_share purposes, which is usually a data bug
+    # rather than an intent.
+    missing_types = sorted({rs[1] for rs in mrio.region_sectors
+                            if rs[1] not in sector_type_map})
+    if missing_types:
+        preview = ", ".join(missing_types[:5])
+        suffix = f" (+{len(missing_types) - 5} more)" if len(missing_types) > 5 else ""
+        logging.warning(
+            f"sector_table is missing the 'type' entry for "
+            f"{len(missing_types)} MRIO sector(s): {preview}{suffix}. "
+            f"They won't be classified as 'transport' for transport_share."
+        )
 
     # USD per ton
     ft["usd_per_ton"] = ft["region_sector"].map(usd_per_ton).fillna(2864.0)
 
-    # Margins and transport share from MRIO
+    # Margins and transport share from MRIO. Both ratios are computed against
+    # the *full* MRIO (no flow_coverage filter) so that pricing reflects the
+    # true economic intensity of each sector regardless of which cells were
+    # pruned for graph construction. `firm_transport_share` is the fallback
+    # used when a firm's region_sector is missing from the MRIO ratio dict.
     margins = mrio.get_margin_per_industry()
-    transport_shares = mrio.get_transport_input_share(
-        (sector_table.drop_duplicates("sector").set_index("sector")["type"]
-         if sector_table is not None else {}),
-    )
+    transport_shares = mrio.get_transport_input_share(sector_type_map)
     ft["target_margin"] = [margins.get(k, 0.2) for k in zip(ft["region"], ft["sector"])]
-    ft["transport_share"] = params.firm_transport_share  # uniform transport share from YAML
+    ft["transport_share"] = [
+        transport_shares.get((r, s), params.firm_transport_share)
+        for r, s in zip(ft["region"], ft["sector"])
+    ]
 
     # Assign IDs
     ft = ft.reset_index(drop=True)
