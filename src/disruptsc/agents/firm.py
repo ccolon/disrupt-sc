@@ -288,10 +288,23 @@ class Firm:
     # Disruption
     # ------------------------------------------------------------------
 
-    def disrupt_production_capacity(self, duration: int, reduction: float):
+    def disrupt_production_capacity(self, duration: float, reduction: float):
+        """Apply a timed productivity/capacity disruption.
+
+        ``reduction`` is the fractional loss of productive capability
+        (negative ⇒ a productivity gain). The cap is taken relative to
+        *equilibrium output* (bounded above by the physical ceiling
+        ``production_capacity``) so that reductions smaller than the
+        ``1/utilization_rate`` head-room still constrain output instead of
+        being silently absorbed by spare capacity. The disruption lasts
+        ``duration`` time steps (``float('inf')`` ⇒ permanent) and is lifted
+        by :meth:`update_disrupted_production_capacity`.
+        """
         self.production_capacity_reduction = reduction
         self.remaining_disrupted_time = duration
-        self.current_production_capacity = self.production_capacity * (1 - reduction)
+        self.current_production_capacity = min(
+            self.production_capacity, self.eq_production * (1.0 - reduction)
+        )
 
     def update_disrupted_production_capacity(self):
         if self.remaining_disrupted_time > 0:

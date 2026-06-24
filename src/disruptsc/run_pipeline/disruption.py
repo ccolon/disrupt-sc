@@ -99,12 +99,10 @@ class CapitalDestruction:
     capital_input_mix: dict = field(default_factory=dict)
 
     def implement(self, firms):
+        duration = self.recovery.duration if self.recovery else float("inf")
         for pid, fraction in self.description.items():
             if pid in firms:
-                firm = firms[pid]
-                firm.disruption_duration = self.recovery.duration if self.recovery else float("inf")
-                firm.disruption_reduction = fraction
-                firm.current_production_capacity *= (1 - fraction)
+                firms[pid].disrupt_production_capacity(duration, fraction)
                 logging.debug(f"Capital destruction: firm {pid} lost {fraction:.0%}")
 
     def log_info(self):
@@ -148,12 +146,10 @@ class ProductivityShock:
     start_time: int = 1
 
     def implement(self, firms):
+        duration = self.recovery.duration if self.recovery else float("inf")
         for pid, fraction in self.description.items():
             if pid in firms:
-                firm = firms[pid]
-                firm.disruption_duration = self.recovery.duration if self.recovery else float("inf")
-                firm.disruption_reduction = fraction
-                firm.current_production_capacity *= (1 - fraction)
+                firms[pid].disrupt_production_capacity(duration, fraction)
 
     def log_info(self):
         rec = f"{self.recovery.shape} recovery over {self.recovery.duration}" if self.recovery else "no recovery"
