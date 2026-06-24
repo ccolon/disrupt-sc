@@ -254,12 +254,24 @@ class Firm:
     def receive_products(self, sc_network: ScNetwork,
                          transport_network: TransportNetwork,
                          sectors_no_transport: tuple,
-                         transport_to_households: bool):
-        """Receive all shipments from suppliers."""
+                         with_transport: bool = True):
+        """Receive all shipments from suppliers.
+
+        Mirrors the routing in :meth:`deliver`: a link is received as a
+        direct (no-transport) delivery when transport is globally off
+        (``with_transport`` False), when the product is a non-transported
+        sector, or when the supplier is virtual; otherwise it is collected
+        from the transport network. Without the ``with_transport`` guard,
+        transportable inputs delivered via ``deliver_without_transport``
+        would be looked up as transport-network shipments that were never
+        placed, and silently received as zero.
+        """
         self.total_input = 0.0
         for supplier, _, data in sc_network.in_edges(self, data=True):
             link: CommercialLink = data["object"]
-            if link.product_type in sectors_no_transport or getattr(supplier, "virtual", False):
+            if (not with_transport
+                    or link.product_type in sectors_no_transport
+                    or getattr(supplier, "virtual", False)):
                 qty = self._receive_service(link)
             else:
                 qty = self._receive_shipment(link, transport_network)

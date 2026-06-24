@@ -401,7 +401,7 @@ def _run_one_time_step(time_step, sc_network, transport_network,
                            tp.transport_to_households)
     for firm in firms.values():
         firm.receive_products(sc_network, transport_network, tp.sectors_no_transport,
-                              tp.transport_to_households)
+                              tp.with_transport)
     for hh in households.values():
         hh.consume()
 
