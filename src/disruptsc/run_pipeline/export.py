@@ -81,11 +81,13 @@ FIRM_COLUMNS = [
 
 HOUSEHOLD_COLUMNS = [
     "time_step", "household", "region",
+    "tot_consumption", "tot_spending",
     "consumption_loss", "extra_spending",
 ]
 
 HOUSEHOLD_BY_SECTOR_COLUMNS = [
     "time_step", "household", "sector",
+    "consumption", "spending",
     "consumption_loss", "extra_spending",
 ]
 
@@ -109,6 +111,14 @@ LINK_COLUMNS = [
     "eq_price", "price",
 ]
 
+# Per-country cross-border trade, aggregated from commercial links each step.
+# A compact alternative to parsing the full per-link link_data when only
+# country-level imports/exports are needed (e.g. the macroMIP adapter).
+TRADE_COLUMNS = [
+    "time_step", "country",
+    "exports", "exports_value", "imports", "imports_value",
+]
+
 
 class AgentWriters:
     """Manage the set of CSV writers for agent time-series data."""
@@ -122,6 +132,7 @@ class AgentWriters:
         self.country = CsvWriter(export_folder / "country_data.csv", COUNTRY_COLUMNS)
         self.inventory = CsvWriter(export_folder / "inventory_data.csv", INVENTORY_COLUMNS)
         self.link = CsvWriter(export_folder / "link_data.csv", LINK_COLUMNS)
+        self.trade = CsvWriter(export_folder / "trade_data.csv", TRADE_COLUMNS)
         self._days_per_timestep = days_per_timestep
 
     def write_step(self, firms: dict, households: dict, countries: dict, time_step: int):
@@ -135,14 +146,18 @@ class AgentWriters:
             data = hh.collect_data(time_step)
             self.household.write_row(data)
 
+            c_per_sector = data.get("consumption_per_sector", {})
+            s_per_sector = data.get("spending_per_sector", {})
             cl_per_sector = data.get("consumption_loss_per_sector", {})
             es_per_sector = data.get("extra_spending_per_sector", {})
-            sectors = set(list(cl_per_sector.keys()) + list(es_per_sector.keys()))
+            sectors = set(c_per_sector) | set(s_per_sector) | set(cl_per_sector) | set(es_per_sector)
             for sector in sectors:
                 self.household_by_sector.write_row({
                     "time_step": time_step,
                     "household": data["household"],
                     "sector": sector,
+                    "consumption": c_per_sector.get(sector, 0),
+                    "spending": s_per_sector.get(sector, 0),
                     "consumption_loss": cl_per_sector.get(sector, 0),
                     "extra_spending": es_per_sector.get(sector, 0),
                 })
@@ -195,6 +210,40 @@ class AgentWriters:
                 "price": link.price,
             })
 
+    def write_trade(self, sc_network, time_step: int):
+        """Aggregate per-country cross-border trade for this time step.
+
+        A commercial link is international when its seller and buyer sit in
+        different regions/countries (firm/household ``region`` is the country
+        code; the virtual ROW country's region is ``ROW``). The seller's
+        country books an export, the buyer's an import. Quantity is realized
+        delivery; value uses the current link price.
+        """
+        from collections import defaultdict
+        exp_q = defaultdict(float); exp_v = defaultdict(float)
+        imp_q = defaultdict(float); imp_v = defaultdict(float)
+        for u, v, data in sc_network.edges(data=True):
+            sr = getattr(u, "region", None)
+            br = getattr(v, "region", None)
+            if sr is None or br is None or sr == br:
+                continue
+            link = data["object"]
+            qty = link.realized_delivery
+            if qty <= 0:
+                continue
+            val = qty * link.price
+            exp_q[sr] += qty; exp_v[sr] += val
+            imp_q[br] += qty; imp_v[br] += val
+        for country in sorted(set(exp_q) | set(imp_q)):
+            self.trade.write_row({
+                "time_step": time_step,
+                "country": country,
+                "exports": exp_q.get(country, 0.0),
+                "exports_value": exp_v.get(country, 0.0),
+                "imports": imp_q.get(country, 0.0),
+                "imports_value": imp_v.get(country, 0.0),
+            })
+
     def close(self):
         self.firm.close()
         self.household.close()
@@ -202,6 +251,7 @@ class AgentWriters:
         self.country.close()
         self.inventory.close()
         self.link.close()
+        self.trade.close()
 
     def __enter__(self):
         return self

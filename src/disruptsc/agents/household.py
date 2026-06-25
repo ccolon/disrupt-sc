@@ -197,8 +197,12 @@ class Household:
             "time_step": time_step,
             "household": self.pid,
             "region": self.region,
+            "tot_consumption": self.tot_consumption,
+            "tot_spending": self.tot_spending,
             "consumption_loss": self.consumption_loss,
             "extra_spending": self.extra_spending,
+            "consumption_per_sector": dict(self.consumption_per_sector),
+            "spending_per_sector": dict(self.spending_per_sector),
             "consumption_loss_per_sector": dict(self.consumption_loss_per_sector),
             "extra_spending_per_sector": dict(self.extra_spending_per_sector),
         }
