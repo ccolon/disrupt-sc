@@ -1,0 +1,52 @@
+from,to,aggregate_to
+A01,agriculture - crops,Agriculture
+A02,agriculture - forestry and fishing,Agriculture
+A03,agriculture - forestry and fishing,Agriculture
+B05,energy - coal,Mining
+B06,energy - crude oil and gas,Mining
+B07,mining,Mining
+B08,mining,Mining
+B09,mining,Mining
+C10T12,food processing,Food processing
+C13T15,manufacturing,Manufacturing
+C16,manufacturing,Manufacturing
+C17_18,manufacturing,Manufacturing
+C19,energy - petroleum products,Manufacturing
+C20,manufacturing,Manufacturing
+C21,manufacturing,Manufacturing
+C22,manufacturing,Manufacturing
+C23,manufacturing,Manufacturing
+C24A,manufacturing,Manufacturing
+C24B,manufacturing,Manufacturing
+C25,manufacturing,Manufacturing
+C26,manufacturing,Manufacturing
+C27,manufacturing,Manufacturing
+C28,manufacturing,Manufacturing
+C29,manufacturing,Manufacturing
+C301,manufacturing,Manufacturing
+C302T309,manufacturing,Manufacturing
+C31T33,manufacturing,Manufacturing
+D,utilities - electricity,Utilities
+E,utilities - water,Utilities
+F,construction,Construction
+G,trade,Trade and services
+H49,transport,Transport
+H50,transport,Transport
+H51,transport,Transport
+H52,transport,Transport
+H53,transport,Transport
+I,accommodation and food services,Trade and services
+J58T60,information and communication,Trade and services
+J61,information and communication,Trade and services
+J62_63,information and communication,Trade and services
+K,finance and real estate,Trade and services
+L,finance and real estate,Trade and services
+M,other services,Trade and services
+N,other services,Trade and services
+O,public services,Public services
+P,public services - education,Public services
+Q,public services - health,Public services
+R,other services,Trade and services
+S,other services,Trade and services
+T,other services,Trade and services
+TOTAL,whole economy,Whole economy
