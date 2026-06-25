@@ -1,0 +1,87 @@
+# Processing spec: DisruptSC raw output -> macroMIP harmonized results.
+#
+# Consumed by the MacroMIP team's resultsProcessing/process_generic.py. It renames
+# the adapter's columns to the common macroMIP variable names, then remaps the
+# Region/Sector values to the common taxonomy (with EU27 and mid-sector aggregates).
+#
+# Submission layout (drop into the team's processing tree):
+#   processingSpecs/mappings-DisruptSC.yaml          <- this file
+#   processingSpecs/mappings-DisruptSC-space.csv     <- built by build_mappings.py
+#   processingSpecs/mappings-DisruptSC-sector.csv    <- built by build_mappings.py
+#   <rawResultsDir>/DisruptSC/<id>-DisruptSC.csv     <- one per experiment, from
+#       `python -m disruptsc.reporting.macromip --run-dir runs/macromip/<exp>`
+
+input_glob: "*.csv"
+
+# Rename the adapter's columns to the harmonized names (the unsuffixed variable is
+# the real/quantity effect; *_val is the monetary equivalent at 2017 prices).
+columns:
+  experiment:                {from: Experiment}
+  time:                      {from: Time}     # 0 = last unforced year (2017)
+  year:                      {from: Year}     # calendar year (2017 + time)
+  space:                     {from: Region}
+  sector:                    {from: Sector}
+  sector_orig:               {from: Sector}
+  ensemble_id:               {from: Ensemble}
+
+  gdp_qty:                   {from: GDP_quantity}
+  gdp_val:                   {from: GDP_monetary}
+  output:                    {from: Output_quantity}
+  output_val:                {from: Output_monetary}
+  value_added:               {from: ValueAdded_quantity}
+  value_added_val:           {from: ValueAdded_monetary}
+  imports:                   {from: Imports_quantity}
+  imports_val:               {from: Imports_monetary}
+  exports:                   {from: Exports_quantity}
+  exports_val:               {from: Exports_monetary}
+  household_consumption:     {from: HouseholdConsumption_quantity}
+  household_consumption_val: {from: HouseholdConsumption_monetary}
+  investment:                {from: Investment_quantity}
+  investment_val:            {from: Investment_monetary}
+  consumer_price_index:      {from: CPI}
+  producer_price_index:      {from: PPI}
+
+identifier_columns:
+  - experiment
+  - time
+  - year
+  - space
+  - sector
+  - sector_orig
+  - ensemble_id
+
+sort_output: true
+
+remappings:
+  # OECD ICIO codes -> harmonized sectors, with mid-level groups (Agriculture,
+  # Manufacturing, ...). The adapter's whole-economy rows (Sector=TOTAL) carry the
+  # country-level variables and map straight to "whole economy".
+  - column: sector
+    mapping_csv: mappings-DisruptSC-sector.csv
+    aggregate_to_col:
+      - aggregate_to
+    collapse_op: sum
+    identifier_columns:
+      - experiment
+      - time
+      - year
+      - space
+      - ensemble_id
+
+  # ISO-3 country codes (kept as-is) + EU27 aggregate.
+  # NOTE: collapse_op sums all value columns, which is correct for the flow
+  # variables but not for the index columns (consumer_price_index /
+  # producer_price_index) — the summed EU27 index is meaningless and should be
+  # ignored or recomputed weighted. Country-level indices are unaffected.
+  - column: space
+    mapping_csv: mappings-DisruptSC-space.csv
+    aggregate_to_col:
+      - aggregate_to
+    collapse_op: sum
+    identifier_columns:
+      - experiment
+      - time
+      - year
+      - sector
+      - sector_orig
+      - ensemble_id
