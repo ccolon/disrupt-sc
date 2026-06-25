@@ -8,14 +8,15 @@ seed, and runs the pipeline into runs/earthquake/<variant>/seed_<seed>/.
 Variants (paper's 2x2):
     V1  substitution off, reconstruction off
     V2  substitution on,  reconstruction off
-    V3  substitution off, reconstruction on    [needs reconstruction mechanism]
-    V4  substitution on,  reconstruction on    [needs reconstruction mechanism]
+    V3  substitution off, reconstruction on
+    V4  substitution on,  reconstruction on
 
-Reconstruction is NOT yet implemented in the model core, so V3/V4 raise until it
-is. Phase 1 (smoke test) uses V1 with one seed.
+Pass --cache-isolation so each run uses a private cache dir (tmp/<scope>_pid_...);
+the shared tmp/ cache is NOT scope-namespaced, so a concurrent run of another
+scope can otherwise clobber the Ecuador build and silently break the shock match.
 
 Examples:
-    python scripts/run_earthquake.py --variant V1 --seed 0 --t-final 365
+    python scripts/run_earthquake.py --variant V1 --seed 0 --t-final 365 --cache-isolation
     python scripts/run_earthquake.py --variant V1 --seeds 0-49        # Phase 2 (V1)
 """
 from __future__ import annotations
@@ -56,14 +57,9 @@ RECONSTRUCTION_TARGET_TIME = 365
 RECONSTRUCTION_INPUT_MIX = {"CON": 0.7, "MAN": 0.2, "IMP": 0.1}
 
 
-def build_config(variant: str, seed: int, t_final: int, shock_file: Path) -> dict:
+def build_config(variant: str, seed: int, t_final: int, shock_file: Path,
+                 with_transport: bool = False, baseline: bool = False) -> dict:
     spec = VARIANTS[variant]
-    if spec["reconstruction"] and not RECONSTRUCTION_IMPLEMENTED:
-        raise NotImplementedError(
-            f"{variant} needs reconstruction, which is not yet implemented in the model "
-            f"(reconstruction_market/reconstruction_demand are parsed but never driven by "
-            f"the simulation loop). Run V1/V2 for now."
-        )
     config = load_config(SCOPE)
     config["simulation_type"] = "disruption"
     config["t_final"] = t_final
@@ -71,6 +67,12 @@ def build_config(variant: str, seed: int, t_final: int, shock_file: Path) -> dic
     config["mc_repetitions"] = 0
     config["seed"] = seed
     config["epsilon_stop_condition"] = 0  # always run the full horizon
+
+    # Transport OFF by default for the earthquake ensemble (chosen for speed):
+    # the shock propagates through supply chains, not the physical network.
+    config["with_transport"] = with_transport
+    if not with_transport:
+        config["use_cargo_types"] = False  # routing skipped; avoid per-cargo overhead
 
     # Supplier substitution: multi-sourcing + adaptive reweighting toward suppliers
     # that covered prior orders. Off = single-source (no substitution).
@@ -93,18 +95,22 @@ def build_config(variant: str, seed: int, t_final: int, shock_file: Path) -> dic
     if spec["reconstruction"]:
         disruption["reconstruction_target_time"] = RECONSTRUCTION_TARGET_TIME
         disruption["capital_input_mix"] = dict(RECONSTRUCTION_INPUT_MIX)
-    config["disruptions"] = [disruption]
+    config["disruptions"] = [] if baseline else [disruption]
     return config
 
 
-def run_one(variant: str, seed: int, t_final: int, shock_file: Path, cache: str | None) -> Path:
-    out = RUNS_ROOT / variant / f"seed_{seed}"
+def run_one(variant: str, seed: int, t_final: int, shock_file: Path,
+            cache: str | None, cache_isolation: bool = False,
+            with_transport: bool = False, baseline: bool = False) -> Path:
+    label = f"{variant}_baseline" if baseline else variant
+    out = RUNS_ROOT / label / f"seed_{seed}"
     out.mkdir(parents=True, exist_ok=True)
-    config = build_config(variant, seed, t_final, shock_file)
+    config = build_config(variant, seed, t_final, shock_file,
+                          with_transport=with_transport, baseline=baseline)
 
     logging.info(f"=== Earthquake run: {variant} seed={seed} t_final={t_final} -> {out} ===")
     t0 = time.time()
-    execute(config, export_folder=out, cache=cache)
+    execute(config, export_folder=out, cache=cache, cache_isolation=cache_isolation)
     runtime = time.time() - t0
 
     meta = {
@@ -113,6 +119,8 @@ def run_one(variant: str, seed: int, t_final: int, shock_file: Path, cache: str 
         "t_final": t_final,
         "substitution": VARIANTS[variant]["substitution"],
         "reconstruction": VARIANTS[variant]["reconstruction"],
+        "baseline": baseline,
+        "with_transport": config["with_transport"],
         "nb_suppliers_per_input": config["nb_suppliers_per_input"],
         "adaptive_supplier_weight": config["adaptive_supplier_weight"],
         "shock_file": str(shock_file),
@@ -146,6 +154,12 @@ def main():
     p.add_argument("--t-final", type=int, default=365, help="horizon in days (365 / 730)")
     p.add_argument("--shock-file", type=Path, default=DEFAULT_SHOCK)
     p.add_argument("--cache", default=None, help="cache preset passthrough (see run_pipeline.cache)")
+    p.add_argument("--cache-isolation", action="store_true",
+                   help="use a private per-process cache dir (avoids cross-scope clobbering)")
+    p.add_argument("--transport", action="store_true",
+                   help="enable the transport network (default OFF for the ensemble)")
+    p.add_argument("--baseline", action="store_true",
+                   help="no shock (disruptions=[]); used to verify the equilibrium holds")
     p.add_argument("--log-level", default="info", choices=["info", "debug"])
     args = p.parse_args()
 
@@ -155,7 +169,9 @@ def main():
                          f"Run: python runs/earthquake/build_model_shock.py")
 
     for seed in _parse_seeds(args):
-        run_one(args.variant, seed, args.t_final, args.shock_file, args.cache)
+        run_one(args.variant, seed, args.t_final, args.shock_file, args.cache,
+                cache_isolation=args.cache_isolation,
+                with_transport=args.transport, baseline=args.baseline)
 
 
 if __name__ == "__main__":
