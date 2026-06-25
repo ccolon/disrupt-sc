@@ -83,7 +83,9 @@ class Firm:
     eq_total_order: float = 0.0
     total_input: float = 0.0  # sum of realized deliveries from all suppliers
     rationing: float = 1.0
-    reconstruction_demand: float = 0.0
+    reconstruction_demand: float = 0.0       # capital-good output requested for rebuilding this step
+    reconstruction_produced: float = 0.0     # output actually allocated to rebuilding this step
+    capital_demanded: float = 0.0            # own capital the firm wants rebuilt this step
 
     # --- Supplier / client maps (set during init_pipeline) ---
     suppliers: dict = field(default_factory=dict)
@@ -126,8 +128,13 @@ class Firm:
             for input_id, need in self.eq_needs.items()
         }
 
-    def initialize_finance(self, eq_input_cost: float, eq_transport_cost: float, eq_other_cost: float):
-        """Set up financial state from equilibrium values."""
+    def initialize_finance(self, eq_input_cost: float, eq_transport_cost: float, eq_other_cost: float,
+                           periods_per_year: float = 1.0):
+        """Set up financial state from equilibrium values.
+
+        ``periods_per_year`` annualizes the per-time-step value added when sizing
+        the capital stock (see ``capital_initial`` below).
+        """
         eq_sales = self.eq_production
         self.eq_finance = {
             "sales": eq_sales,
@@ -147,7 +154,12 @@ class Firm:
         }
         self.eq_profit = eq_sales - eq_input_cost - eq_transport_cost - eq_other_cost
         self.profit = self.eq_profit
-        self.capital_initial = self.capital_to_value_added_ratio * (eq_sales - eq_input_cost - eq_transport_cost)
+        # Capital is a *stock*: the capital-to-value-added ratio is an annual ratio,
+        # but value added here is a per-time-step flow. Annualize VA so capital_initial
+        # is a realistic stock comparable to absolute capital-destruction shocks
+        # (e.g. with daily steps, periods_per_year=365).
+        annual_value_added = (eq_sales - eq_input_cost - eq_transport_cost) * periods_per_year
+        self.capital_initial = self.capital_to_value_added_ratio * annual_value_added
 
     # ------------------------------------------------------------------
     # Simulation loop — Phase 1: Retrieve orders & plan
@@ -326,9 +338,38 @@ class Firm:
                 self.current_production_capacity = self.production_capacity
 
     def incur_capital_destruction(self, amount: float):
+        """Destroy ``amount`` (model monetary units) of built capital.
+
+        Cumulative: repeated calls add up. The loss is permanent (no timed
+        recovery); reconstruction, when modeled, restores it via
+        :meth:`rebuild_capital`.
+        """
         self.capital_destroyed += amount
+        self._update_capacity_from_capital()
+
+    def rebuild_capital(self, amount: float):
+        """Restore ``amount`` of destroyed capital (reconstruction), lifting capacity.
+
+        The stock of destroyed capital cannot go below zero.
+        """
+        if amount <= 0:
+            return
+        self.capital_destroyed = max(0.0, self.capital_destroyed - amount)
+        self._update_capacity_from_capital()
+
+    def _update_capacity_from_capital(self):
+        """Recompute current capacity from the share of capital destroyed.
+
+        Capacity binds against *equilibrium output* (bounded by the physical
+        ceiling), mirroring :meth:`disrupt_production_capacity` so that capital
+        losses smaller than the ``1/utilization_rate`` head-room still constrain
+        output.
+        """
         reduction = min(self.capital_destroyed / self.capital_initial, 1.0) if self.capital_initial > 0 else 0.0
-        self.current_production_capacity = self.production_capacity * (1 - reduction)
+        self.production_capacity_reduction = reduction
+        self.current_production_capacity = min(
+            self.production_capacity, self.eq_production * (1.0 - reduction)
+        )
 
     # ------------------------------------------------------------------
     # Data collection

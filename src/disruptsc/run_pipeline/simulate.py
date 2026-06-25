@@ -15,6 +15,8 @@ from disruptsc.params import TransportParams, SimParams
 from disruptsc.run_pipeline.disruption import (
     parse_disruptions, apply_disruptions,
     TransportDisruption, CapitalDestruction, Recovery,
+    place_reconstruction_demand, rebuild_from_reconstruction,
+    DEFAULT_CAPITAL_INPUT_MIX,
 )
 from disruptsc.run_pipeline.export import (
     collect_firm_data, collect_household_data, collect_country_data,
@@ -267,7 +269,9 @@ def set_initial_conditions(sc_network, firms, households, countries,
     margins = np.array([f.target_margin for f in firm_list]).reshape((n, 1))
     other_cost = np.multiply(eq_production, (1 - margins)) - input_cost - transport_cost
 
-    # Initialize firms
+    # Initialize firms. Capital is sized on *annual* value added, so convert the
+    # per-time-step VA to annual using the run's time resolution.
+    periods_per_year = 365.0 / _days_per_timestep(sp.time_resolution)
     for firm in firm_list:
         i = pid_to_idx[firm.pid]
         eq_prod = float(eq_production[i, 0])
@@ -277,6 +281,7 @@ def set_initial_conditions(sc_network, firms, households, countries,
             eq_input_cost=float(input_cost[i, 0]),
             eq_transport_cost=float(transport_cost[i, 0]),
             eq_other_cost=float(other_cost[i, 0]),
+            periods_per_year=periods_per_year,
         )
 
     # Initialize households
@@ -346,6 +351,13 @@ def _run_one_time_step(time_step, sc_network, transport_network,
             disruptions, time_step, transport_network, firms,
         )
 
+    # Reconstruction demand (ARIO-style): when a reconstruction-enabled capital
+    # destruction is active, firms request capital-good output to rebuild. Set
+    # before retrieve_orders so it enters total_order and propagates to inputs.
+    recon = _active_reconstruction(disruptions, time_step)
+    if recon is not None:
+        place_reconstruction_demand(firms, recon[0], recon[1])
+
     # 1. Firms retrieve orders from previous step
     for firm in firms.values():
         firm.retrieve_orders(sc_network)
@@ -378,6 +390,11 @@ def _run_one_time_step(time_step, sc_network, transport_network,
     # 7. Firms deliver
     for firm in firms.values():
         firm.deliver(sc_network, transport_network, available_transport_network, tp)
+
+    # 7r. Reconstruction: convert capital-good output that competed for delivery
+    # into restored capital, lifting capacity for subsequent steps (the V-shape).
+    if recon is not None:
+        rebuild_from_reconstruction(firms, recon[1])
 
     # 7b. Collect routing summary from commercial links
     routing_summary = _collect_routing_summary(sc_network, time_step)
@@ -438,6 +455,7 @@ def _accumulate_and_write(all_data, firms, households, countries, time_step,
         writers.write_step(firms, households, countries, time_step)
         if sc_network is not None:
             writers.write_links(sc_network, time_step)
+            writers.write_trade(sc_network, time_step)
 
 
 def _is_back_to_equilibrium(households, countries, epsilon):
@@ -446,6 +464,18 @@ def _is_back_to_equilibrium(households, countries, epsilon):
     c_extra = sum(c.extra_spending for c in countries.values())
     c_loss = sum(c.consumption_loss for c in countries.values())
     return all(v <= epsilon for v in (hh_extra, hh_loss, c_extra, c_loss))
+
+
+def _active_reconstruction(disruptions, time_step):
+    """Return ``(reconstruction_target_time, capital_input_mix)`` if a
+    reconstruction-enabled capital destruction has started by *time_step*,
+    else ``None``."""
+    for d in disruptions or []:
+        if (isinstance(d, CapitalDestruction)
+                and getattr(d, "reconstruction_market", False)
+                and d.start_time <= time_step):
+            return d.reconstruction_target_time, (d.capital_input_mix or DEFAULT_CAPITAL_INPUT_MIX)
+    return None
 
 
 def _report_timesteps() -> set[int]:

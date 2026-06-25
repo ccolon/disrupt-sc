@@ -9,6 +9,7 @@ import threading
 from pathlib import Path
 
 import numpy as np
+import yaml
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -107,9 +108,8 @@ def _main_impl():
     scope = args.scope
 
     setup_logging(args.log_level)
-    logging.info(f"DisruptSC v2 — scope={scope}")
 
-    # Load config, apply CLI overrides, then build params.
+    # Load config, apply CLI overrides, then hand off to execute().
     config = load_config(scope)
     if args.simulation_type:
         config["simulation_type"] = args.simulation_type
@@ -118,11 +118,35 @@ def _main_impl():
     if args.flow_coverage is not None:
         config["flow_coverage"] = args.flow_coverage
 
+    return execute(config, cache=args.cache,
+                   cache_isolation=args.cache_isolation, open_report=args.open)
+
+
+def execute(config: dict, *, cache: str | None = None,
+            cache_isolation: bool = False, open_report: bool = False,
+            export_folder: Path | str | None = None):
+    """Run the full pipeline for a (already-loaded, already-overridden) config.
+
+    Shared by the CLI (``_main_impl``) and programmatic drivers (e.g. the
+    earthquake ensemble). When *export_folder* is given, it is used verbatim
+    (created if needed, with a parameters.yaml snapshot) instead of the
+    timestamped folder ``setup_output`` would create — this is how a driver
+    routes each (variant, seed) run to ``runs/earthquake/<variant>/<seed>/``.
+    """
+    scope = config["scope"]
+    logging.info(f"DisruptSC v2 — scope={scope}")
+
     tp, sp, ap, lp = build_params(config)
-    cache_flags = parse_cache_arg(args.cache)
-    if args.cache_isolation:
+    cache_flags = parse_cache_arg(cache)
+    if cache_isolation:
         setup_cache_isolation(scope)
-    export_folder = setup_output(config, sp)
+    if export_folder is None:
+        export_folder = setup_output(config, sp)
+    else:
+        export_folder = Path(export_folder)
+        export_folder.mkdir(parents=True, exist_ok=True)
+        with open(export_folder / "parameters.yaml", "w") as f:
+            yaml.dump(config, f, default_flow_style=False)
 
     filepaths = config.get("filepaths", {})
     transport_modes = config.get("transport_modes", ["roads"])
@@ -463,10 +487,11 @@ def _main_impl():
     # ------------------------------------------------------------------
     # Stage 7: Generate report (optional)
     # ------------------------------------------------------------------
-    if export_folder and args.open:
+    if export_folder and open_report:
         _generate_and_open_report(sim_type, export_folder)
 
     logging.info("Done.")
+    return export_folder
 
 
 # ------------------------------------------------------------------
