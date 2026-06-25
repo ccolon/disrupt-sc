@@ -50,7 +50,7 @@ On SLURM (one task per experiment, ~2.7 h each, isolated builds):
 
 ```bash
 export DISRUPT_SC_DATA_PATH=/path/to/disrupt-sc-data
-sbatch runs/macromip/slurm/run_array.sbatch
+sbatch studies/macromip/slurm/run_array.sbatch
 ```
 
 Edit the `module load` / `source activate` lines in the sbatch for your cluster.

@@ -20,9 +20,9 @@
 #   -> ~80 s/step => ~2.7 h/experiment at t_final=120 (10 years monthly).
 #
 # Submit from the repo root:
-#     sbatch runs/macromip/slurm/run_array.sbatch
+#     sbatch studies/macromip/slurm/run_array.sbatch
 # Run a subset (e.g. just the required temporary set):
-#     sbatch --array=0,2,4,6 runs/macromip/slurm/run_array.sbatch
+#     sbatch --array=0,2,4,6 studies/macromip/slurm/run_array.sbatch
 
 set -euo pipefail
 
