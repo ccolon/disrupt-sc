@@ -1,0 +1,131 @@
+{
+  "grand_total_mUSD": 2438.4,
+  "canton_mapped_mUSD": 2425.25,
+  "canton_mapped_pct": 99.46,
+  "firm_cell_available_mUSD": 2273.99,
+  "firm_cell_available_pct": 93.26,
+  "n_model_ready_rows": 8272,
+  "n_cantones_mapped": 188,
+  "sectors_in_shock_not_in_model": [],
+  "unmapped_canton_total_mUSD": 13.15,
+  "unmapped_top": {
+    "24 DE MAYO (MANABI)": 12.62,
+    "RUMIÃ‘AHUI (PICHINCHA)": 0.15,
+    "PUJILI (COTOPAXI)": 0.11,
+    "SAN MIGUEL (BOLIVAR)": 0.04,
+    "PIÃ‘AS (EL ORO)": 0.04,
+    "PALTAS (LOJA)": 0.04,
+    "BAÃ‘OS (TUNGURAHUA)": 0.03,
+    "SAN JOSE DE CHIMBO (BOLIVAR)": 0.03
+  },
+  "mapped_no_firm_cell_total_mUSD": 151.26,
+  "mapped_no_firm_cell_top_sectors": {
+    "ELE": 97.88,
+    "AGU": 10.98,
+    "FRT": 6.03,
+    "CAR": 4.13,
+    "QU2": 3.3,
+    "AYG": 2.69,
+    "CAN": 2.36,
+    "PAP": 2.3
+  },
+  "non_exact_canton_matches": {
+    "2301": {
+      "canton": [
+        "SANTO DOMINGO",
+        "SANTO DOMINGO DE LOS TSACHILAS"
+      ],
+      "method": "prefix",
+      "matched_to": "PICHINCHA - SANTO DOMINGO"
+    },
+    "2302": {
+      "canton": [
+        "SANTO DOMINGO",
+        "LA CONCORDIA"
+      ],
+      "method": "canton_only",
+      "matched_to": "ESMERALDAS - LA CONCORDIA"
+    },
+    "2401": {
+      "canton": [
+        "SANTA ELENA",
+        "SANTA ELENA"
+      ],
+      "method": "canton_only",
+      "matched_to": "GUAYAS - SANTA ELENA"
+    },
+    "2403": {
+      "canton": [
+        "SANTA ELENA",
+        "SALINAS"
+      ],
+      "method": "canton_only",
+      "matched_to": "GUAYAS - SALINAS"
+    },
+    "921": {
+      "canton": [
+        "GUAYAS",
+        "PLAYAS"
+      ],
+      "method": "prefix",
+      "matched_to": "GUAYAS - PLAYAS (GENERAL VILLAMIL)"
+    },
+    "301": {
+      "canton": [
+        "CAÃ‘AR",
+        "AZOGUES"
+      ],
+      "method": "canton_only",
+      "matched_to": "CAÑAR - AZOGUES"
+    },
+    "304": {
+      "canton": [
+        "CAÃ‘AR",
+        "LA TRONCAL"
+      ],
+      "method": "canton_only",
+      "matched_to": "CAÑAR - LA TRONCAL"
+    },
+    "302": {
+      "canton": [
+        "CAÃ‘AR",
+        "BIBLIAN"
+      ],
+      "method": "canton_only",
+      "matched_to": "CAÑAR - BIBLIAN"
+    },
+    "305": {
+      "canton": [
+        "CAÃ‘AR",
+        "EL TAMBO"
+      ],
+      "method": "canton_only",
+      "matched_to": "CAÑAR - EL TAMBO"
+    },
+    "306": {
+      "canton": [
+        "CAÃ‘AR",
+        "DELEG"
+      ],
+      "method": "canton_only",
+      "matched_to": "CAÑAR - DELEG"
+    },
+    "307": {
+      "canton": [
+        "CAÃ‘AR",
+        "SUSCAL"
+      ],
+      "method": "canton_only",
+      "matched_to": "CAÑAR - SUSCAL"
+    },
+    "1509": {
+      "canton": [
+        "NAPO",
+        "CARLOS JULIO AROSEMENA"
+      ],
+      "method": "prefix",
+      "matched_to": "NAPO - CARLOS JULIO AROSEMENA TOLA"
+    }
+  },
+  "output_csv": "C:\\Users\\Celian\\OneDrive\\DisruptSC\\disrupt-sc\\runs\\earthquake\\_shock\\earthquake_shock_modelready.csv"
+}
