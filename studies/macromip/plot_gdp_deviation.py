@@ -24,6 +24,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use("Agg")          # headless (cluster-friendly)
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -89,6 +90,7 @@ def main():
                 ax.text(0.5, 0.5, "no data", ha="center", va="center",
                         transform=ax.transAxes, color="0.6", fontsize=8)
             ax.grid(True, alpha=0.25)
+            ax.yaxis.set_major_formatter(mtick.PercentFormatter(xmax=100))   # y ticks as %
             if i == 0:
                 ax.set_title(country, fontsize=11, fontweight="bold")
             if j == 0:
