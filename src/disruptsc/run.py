@@ -481,7 +481,11 @@ def execute(config: dict, *, cache: str | None = None,
     # Stage 6: Export static tables
     # ------------------------------------------------------------------
     if export_folder:
-        export_static_tables(firm_table, household_table, transport_edges, transport_nodes, export_folder)
+        export_static_tables(
+            firm_table, household_table, transport_edges, transport_nodes,
+            export_folder,
+            countries_spatial_path=filepaths.get("countries_spatial"),
+        )
         logging.info(f"Results exported to {export_folder}")
 
     # ------------------------------------------------------------------
@@ -590,6 +594,7 @@ def _run_criticality_scenarios(scenarios, transport_edges, firm_table,
         state = copy.deepcopy(baseline_snapshot)
         parsed_disruptions = parse_disruptions(
             disruptions, transport_edges, firm_table, state["firms"], tp.monetary_units,
+            time_resolution=sp.time_resolution,
         )
         for disruption in parsed_disruptions:
             disruption.log_info()

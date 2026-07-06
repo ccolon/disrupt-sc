@@ -55,9 +55,13 @@ def generate_report(output_folder: Path) -> Path:
     firm_data = load_csv(output_folder / "firm_data.csv")
     mrio_by_sector = load_csv(output_folder / "mrio_by_sector.csv")
     mrio_by_region = load_csv(output_folder / "mrio_by_region.csv")
+    mrio_by_country = load_csv(output_folder / "mrio_by_country.csv")
+    trade_data = load_csv(output_folder / "trade_data.csv")
+    country_table = load_geodata(output_folder / "country_table.geojson")
     if firm_data is not None:
         sections.append(_section_mrio_comparison(
-            firm_data, mrio_by_sector, mrio_by_region, params))
+            firm_data, mrio_by_sector, mrio_by_region,
+            mrio_by_country, trade_data, country_table, params))
 
     # 4. Agent summary
     firm_table = load_geodata(output_folder / "firm_table.geojson")
@@ -241,6 +245,9 @@ def _section_capacity_table(logistics_report: pd.DataFrame,
 def _section_mrio_comparison(firm_data: pd.DataFrame,
                              mrio_by_sector: pd.DataFrame | None,
                              mrio_by_region: pd.DataFrame | None,
+                             mrio_by_country: pd.DataFrame | None,
+                             trade_data: pd.DataFrame | None,
+                             country_table: gpd.GeoDataFrame | None,
                              params: dict) -> str:
     html = ["<h2>3. Model vs. MRIO Comparison</h2>"]
 
@@ -267,40 +274,44 @@ def _section_mrio_comparison(firm_data: pd.DataFrame,
     ).reset_index()
     model_by_sector["total_output_annual"] = model_by_sector["total_output"] * scale
 
+    def _scatter(fig, merged, label_col, col_idx, color,
+                 x_col, y_col, x_title, y_title, row=1):
+        plot_df = merged.dropna(subset=[x_col, y_col])
+        if plot_df.empty:
+            return
+        fig.add_trace(go.Scatter(
+            x=plot_df[x_col], y=plot_df[y_col],
+            mode="markers+text", text=plot_df[label_col],
+            textposition="top center", textfont_size=9,
+            marker=dict(size=10, color=color),
+            hovertemplate="%{text}<br>MRIO: %{x:,.1f}<br>Model: %{y:,.1f}<extra></extra>",
+            showlegend=False,
+        ), row=row, col=col_idx)
+        mx = max(plot_df[y_col].max(), plot_df[x_col].max()) * 1.1
+        fig.add_trace(go.Scatter(
+            x=[0, mx], y=[0, mx],
+            mode="lines", line=dict(dash="dash", color="gray"),
+            showlegend=False,
+        ), row=row, col=col_idx)
+        fig.update_xaxes(title_text=x_title, row=row, col=col_idx)
+        fig.update_yaxes(title_text=y_title, row=row, col=col_idx)
+
+    # ── Output by sector / region ──
     fig = make_subplots(
         rows=1, cols=2,
         subplot_titles=["Total output by sector", "Total output by region"],
         horizontal_spacing=0.12,
     )
 
-    def _scatter(merged, label_col, col_idx, color):
-        plot_df = merged.dropna(subset=["total_output_annual", "mrio_output"])
-        if plot_df.empty:
-            return
-        fig.add_trace(go.Scatter(
-            x=plot_df["mrio_output"], y=plot_df["total_output_annual"],
-            mode="markers+text", text=plot_df[label_col],
-            textposition="top center", textfont_size=9,
-            marker=dict(size=10, color=color),
-            hovertemplate="%{text}<br>MRIO: %{x:,.1f}<br>Model: %{y:,.1f}<extra></extra>",
-            showlegend=False,
-        ), row=1, col=col_idx)
-        mx = max(plot_df["total_output_annual"].max(),
-                 plot_df["mrio_output"].max()) * 1.1
-        fig.add_trace(go.Scatter(
-            x=[0, mx], y=[0, mx],
-            mode="lines", line=dict(dash="dash", color="gray"),
-            showlegend=False,
-        ), row=1, col=col_idx)
-        fig.update_xaxes(title_text=f"MRIO output ({mu}/yr)", row=1, col=col_idx)
-        fig.update_yaxes(title_text=f"Model output ({mu}/yr)", row=1, col=col_idx)
-
     if mrio_by_sector is not None and "mrio_output" in mrio_by_sector.columns:
         ms = mrio_by_sector.copy()
         ms["mrio_output"] = ms["mrio_output"] * mrio_conv
         merged_s = model_by_sector.merge(ms[["sector", "mrio_output"]],
                                          on="sector", how="outer")
-        _scatter(merged_s, "sector", 1, "#2c3e50")
+        _scatter(fig, merged_s, "sector", 1, "#2c3e50",
+                 x_col="mrio_output", y_col="total_output_annual",
+                 x_title=f"MRIO output ({mu}/yr)",
+                 y_title=f"Model output ({mu}/yr)")
     else:
         html.append("<p><em>mrio_by_sector.csv not found — sector scatter unavailable.</em></p>")
 
@@ -309,14 +320,166 @@ def _section_mrio_comparison(firm_data: pd.DataFrame,
         mr["mrio_output"] = mr["mrio_output"] * mrio_conv
         merged_r = model_by_region.merge(mr[["region", "mrio_output"]],
                                          on="region", how="outer")
-        _scatter(merged_r, "region", 2, "#00CC96")
+        _scatter(fig, merged_r, "region", 2, "#00CC96",
+                 x_col="mrio_output", y_col="total_output_annual",
+                 x_title=f"MRIO output ({mu}/yr)",
+                 y_title=f"Model output ({mu}/yr)")
     else:
         html.append("<p><em>mrio_by_region.csv not found — region scatter unavailable.</em></p>")
 
     fig.update_layout(height=450, margin=dict(l=60, r=20, t=60, b=60))
     html.append(fig_to_div(fig))
 
+    # ── Imports / exports per country ──
+    # Model side comes from trade_data.csv aggregated at t=0.
+    # A foreign country's `exports_value` (in the trade log it is the seller)
+    # = model IMPORTS from that country (country plays exporter role).
+    # A foreign country's `imports_value` = model EXPORTS to that country
+    # (country plays importer role).
+    if mrio_by_country is None:
+        html.append("<p><em>mrio_by_country.csv not found — country scatter unavailable.</em></p>")
+        return "\n".join(html)
+    if trade_data is None:
+        html.append("<p><em>trade_data.csv not found — country scatter unavailable.</em></p>")
+        return "\n".join(html)
+
+    trade0 = trade_data[trade_data["time_step"] == 0]
+    model_by_country = trade0.groupby("country").agg(
+        model_imports=("exports_value", "sum"),
+        model_exports=("imports_value", "sum"),
+    ).reset_index()
+    model_by_country["model_imports_annual"] = model_by_country["model_imports"] * scale
+    model_by_country["model_exports_annual"] = model_by_country["model_exports"] * scale
+
+    mc = mrio_by_country.copy()
+    mc["mrio_imports"] = mc["mrio_imports"] * mrio_conv
+    mc["mrio_exports"] = mc["mrio_exports"] * mrio_conv
+    # Restrict the join to the countries listed in the MRIO summary — the
+    # trade log also carries region-region rows that aren't external trade.
+    merged_c = mc.merge(model_by_country, on="country", how="left").fillna(
+        {"model_imports_annual": 0.0, "model_exports_annual": 0.0}
+    )
+
+    has_maps = (
+        country_table is not None
+        and not country_table.empty
+        and "country" in country_table.columns
+    )
+    if has_maps:
+        pts = country_table[country_table.geometry.notna()].copy()
+        pts["geometry"] = pts.geometry.representative_point()
+        pts["lon"] = pts.geometry.x
+        pts["lat"] = pts.geometry.y
+        merged_c = merged_c.merge(
+            pts[["country", "lon", "lat"]], on="country", how="left",
+        )
+        has_maps = merged_c[["lon", "lat"]].notna().any().all()
+
+    n_rows = 2 if has_maps else 1
+    subplot_titles = [
+        "Total imports by country (country as exporter)",
+        "Total exports by country (country as importer)",
+    ]
+    specs = [[{"type": "xy"}, {"type": "xy"}]]
+    if has_maps:
+        subplot_titles += [
+            f"Model imports by country — bubble ∝ value ({mu}/yr)",
+            f"Model exports by country — bubble ∝ value ({mu}/yr)",
+        ]
+        specs.append([{"type": "scattergeo"}, {"type": "scattergeo"}])
+
+    fig_c = make_subplots(
+        rows=n_rows, cols=2,
+        subplot_titles=subplot_titles,
+        specs=specs,
+        horizontal_spacing=0.12,
+        vertical_spacing=0.12,
+        row_heights=[0.45, 0.55] if has_maps else None,
+    )
+    _scatter(fig_c, merged_c, "country", 1, "#FF7F0E",
+             x_col="mrio_imports", y_col="model_imports_annual",
+             x_title=f"MRIO imports ({mu}/yr)",
+             y_title=f"Model imports ({mu}/yr)", row=1)
+    _scatter(fig_c, merged_c, "country", 2, "#AB63FA",
+             x_col="mrio_exports", y_col="model_exports_annual",
+             x_title=f"MRIO exports ({mu}/yr)",
+             y_title=f"Model exports ({mu}/yr)", row=1)
+
+    if has_maps:
+        _add_country_bubbles(fig_c, merged_c, "model_imports_annual",
+                             row=2, col=1, color="#FF7F0E")
+        _add_country_bubbles(fig_c, merged_c, "model_exports_annual",
+                             row=2, col=2, color="#AB63FA")
+        _apply_country_geo(fig_c, merged_c, n_maps=2, first_geo_index=1)
+
+    fig_c.update_layout(
+        height=850 if has_maps else 450,
+        margin=dict(l=60, r=20, t=60, b=60),
+    )
+    html.append(fig_to_div(fig_c, height=850 if has_maps else 450))
+
     return "\n".join(html)
+
+
+def _add_country_bubbles(fig, df: pd.DataFrame, value_col: str,
+                         row: int, col: int, color: str) -> None:
+    """Add a scattergeo bubble trace where marker area ∝ value_col."""
+    plot_df = df.dropna(subset=["lon", "lat", value_col]).copy()
+    plot_df = plot_df[plot_df[value_col] > 0]
+    if plot_df.empty:
+        return
+    values = plot_df[value_col].astype(float).values
+    max_marker = 40.0
+    sizeref = 2.0 * float(values.max()) / (max_marker ** 2) if values.max() > 0 else 1.0
+    fig.add_trace(
+        go.Scattergeo(
+            lon=plot_df["lon"], lat=plot_df["lat"],
+            text=plot_df["country"],
+            customdata=values,
+            mode="markers+text",
+            textposition="top center", textfont_size=9,
+            marker=dict(
+                size=values,
+                sizemode="area",
+                sizeref=sizeref,
+                sizemin=3,
+                color=color,
+                opacity=0.7,
+                line=dict(width=0.5, color="rgb(60,60,60)"),
+            ),
+            hovertemplate="%{text}<br>value: %{customdata:,.1f}<extra></extra>",
+            showlegend=False,
+        ),
+        row=row, col=col,
+    )
+
+
+def _apply_country_geo(fig, df: pd.DataFrame, n_maps: int,
+                       first_geo_index: int) -> None:
+    """Apply a shared world-scope layout to the trailing scattergeo subplots."""
+    pts = df.dropna(subset=["lon", "lat"])
+    if pts.empty:
+        lon_range = [-180, 180]
+        lat_range = [-60, 80]
+    else:
+        pad = 5
+        lon_range = [float(pts["lon"].min()) - pad, float(pts["lon"].max()) + pad]
+        lat_range = [float(pts["lat"].min()) - pad, float(pts["lat"].max()) + pad]
+    for i in range(n_maps):
+        idx = first_geo_index + i
+        geo_key = "geo" if idx == 1 else f"geo{idx}"
+        fig.update_layout(**{
+            geo_key: dict(
+                scope="world",
+                projection_type="natural earth",
+                lonaxis_range=lon_range,
+                lataxis_range=lat_range,
+                showland=True, landcolor="rgb(243, 243, 243)",
+                showocean=True, oceancolor="rgb(220, 230, 242)",
+                showcountries=True, countrycolor="rgb(180, 180, 180)",
+                showcoastlines=True, coastlinecolor="rgb(180, 180, 180)",
+            )
+        })
 
 
 # ======================================================================

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -112,8 +113,14 @@ class CapitalDestruction:
     start_time: int = 1
     absolute: bool = False
     reconstruction_market: bool = False
-    reconstruction_target_time: int = 52
+    reconstruction_target_time: float = 52  # in time steps (config supplies days, converted at parse)
     capital_input_mix: dict = field(default_factory=dict)
+    # Localized reconstruction: route rebuild demand toward capital-good firms
+    # near the damage. locality in [0,1] (scalar or per-sector dict) blends the
+    # national-by-size split (0) with a damage-proximity split (1).
+    reconstruction_locality: float | dict = 0.0
+    reconstruction_region_key: str = "subregion_province"
+    damage_by_region: dict = field(default_factory=dict)
     # diagnostics populated by from_subregion_file (model monetary units)
     applied_capital: float = 0.0
     unmatched_capital: float = 0.0
@@ -180,8 +187,6 @@ class CapitalDestruction:
 
         Must be called after ``set_initial_conditions`` so ``capital_initial`` is set.
         """
-        from collections import defaultdict
-
         df = pd.read_csv(path)
         required = {"subregion_canton", "sector", "destroyed_capital_mUSD"}
         missing = required - set(df.columns)
@@ -252,14 +257,27 @@ DEFAULT_CAPITAL_INPUT_MIX = {"CON": 0.7, "MAN": 0.2, "IMP": 0.1}
 
 
 def place_reconstruction_demand(firms: dict, reconstruction_target_time: float,
-                                capital_input_mix: dict) -> float:
+                                capital_input_mix: dict,
+                                locality: float | dict = 0.0,
+                                damage_by_region: dict | None = None,
+                                region_key: str = "subregion_province") -> float:
     """Set per-firm ``reconstruction_demand`` for one time step.
 
     Each damaged firm wants ``capital_destroyed / reconstruction_target_time`` of
     its capital rebuilt. The aggregate is split across capital-good sectors by
-    ``capital_input_mix`` and, within each sector, across firms in proportion to
-    baseline output (``eq_production``). Sectors in the mix with no modeled firm
-    (imports) place no order — they are supplied externally in the rebuild step.
+    ``capital_input_mix`` and, within each sector, across firms by a blend of two
+    rules controlled by ``locality`` (lambda in [0,1], scalar or per-sector dict):
+
+        share = (1-lambda) * eq_production-share        (national, by size)
+              +    lambda  * (eq_production * local_damage)-share  (damage-proximity)
+
+    where ``local_damage`` is the destroyed capital in the firm's region
+    (``damage_by_region[firm.subregions[region_key]]``). lambda=0 reproduces the
+    pure national-by-size split; lambda=1 routes the sector's rebuild demand only
+    to firms in damaged regions (the local construction boom). If a sector has no
+    capacity in any damaged region, it falls back to national so the Leontief
+    rebuild is never starved. Sectors in the mix with no modeled firm (imports)
+    place no order — they are supplied externally in the rebuild step.
 
     Call BEFORE ``firm.retrieve_orders`` so the demand enters ``total_order`` and
     propagates to inputs. Returns the aggregate capital demand (model units).
@@ -272,6 +290,12 @@ def place_reconstruction_demand(firms: dict, reconstruction_target_time: float,
     if aggregate <= 0:
         return 0.0
 
+    damage_by_region = damage_by_region or {}
+
+    def _lambda_for(sector: str) -> float:
+        lam = locality.get(sector, 0.0) if isinstance(locality, dict) else locality
+        return max(0.0, min(1.0, float(lam)))
+
     firms_by_sector: dict = {}
     for f in firms.values():
         firms_by_sector.setdefault(f.sector, []).append(f)
@@ -282,12 +306,22 @@ def place_reconstruction_demand(firms: dict, reconstruction_target_time: float,
         sector_firms = firms_by_sector.get(sector)
         if not sector_firms:
             continue  # imported / not modeled -> met externally in rebuild step
-        total_out = sum(f.eq_production for f in sector_firms)
-        if total_out <= 0:
+        nat = {f.pid: max(f.eq_production, 0.0) for f in sector_firms}
+        nat_tot = sum(nat.values())
+        if nat_tot <= 0:
             continue
+        loc = {f.pid: max(f.eq_production, 0.0)
+               * damage_by_region.get((f.subregions or {}).get(region_key), 0.0)
+               for f in sector_firms}
+        loc_tot = sum(loc.values())
+        lam = _lambda_for(sector)
+        if loc_tot <= 0:
+            lam = 0.0  # no local supply in damaged regions -> fall back to national
         sector_demand = weight * aggregate
         for f in sector_firms:
-            f.reconstruction_demand += sector_demand * f.eq_production / total_out
+            s_nat = nat[f.pid] / nat_tot
+            s_loc = (loc[f.pid] / loc_tot) if loc_tot > 0 else 0.0
+            f.reconstruction_demand += sector_demand * ((1.0 - lam) * s_nat + lam * s_loc)
     return aggregate
 
 
@@ -376,7 +410,8 @@ def parse_disruptions(config_list: list | None,
                       transport_edges: gpd.GeoDataFrame,
                       firm_table: pd.DataFrame | None,
                       firms: dict,
-                      monetary_units: str) -> list:
+                      monetary_units: str,
+                      time_resolution: str = "day") -> list:
     """Parse the ``disruptions`` key from YAML into disruption objects.
 
     Returns a flat list of disruption objects (TransportDisruption, CapitalDestruction, etc.).
@@ -445,8 +480,25 @@ def parse_disruptions(config_list: list | None,
                     rate=cfg.get("recovery_rate", 1.0),
                 )
             d.reconstruction_market = cfg.get("reconstruction_market", False)
-            d.reconstruction_target_time = cfg.get("reconstruction_target_time", 52)
+            # reconstruction_target_time is given in DAYS in config; convert to time steps.
+            from disruptsc.config import days_per_timestep
+            d.reconstruction_target_time = (
+                cfg.get("reconstruction_target_time", 365) / days_per_timestep(time_resolution)
+            )
             d.capital_input_mix = cfg.get("capital_input_mix", {})
+            # Localized reconstruction: route rebuild demand toward firms near the
+            # damage. Precompute destroyed capital per region from the shock itself.
+            d.reconstruction_locality = cfg.get("reconstruction_locality", 0.0)
+            d.reconstruction_region_key = cfg.get("reconstruction_region_key", "subregion_province")
+            damage_by_region: dict = defaultdict(float)
+            for pid, amount in d.description.items():
+                firm = firms.get(pid)
+                if firm is None:
+                    continue
+                region = (getattr(firm, "subregions", None) or {}).get(d.reconstruction_region_key)
+                if region is not None:
+                    damage_by_region[region] += amount
+            d.damage_by_region = dict(damage_by_region)
             disruptions.append(d)
 
         elif dtype == "productivity_shock":

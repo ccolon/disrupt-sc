@@ -243,10 +243,11 @@ inventory_duration_targets:
     transport: 5
   unit: day
 
-# Determines the speed at which firms try to reach their inventory duration target
-# See Henriet, Hallegatte, and Tabourier 2011 for the formulas
-# A too large value leads to dynamic instabilities, called Bullwhip effect
-inventory_restoration_time: 4
+# Number of DAYS over which firms close the gap to their inventory target each
+# step (extra order = inventory_gap / restoration_time_in_steps; converted from
+# days to time steps internally via time_resolution). A SMALLER value = more
+# aggressive restocking. See Henriet, Hallegatte, and Tabourier 2011.
+inventory_restoration_time: 30
 
 # Whether households should use inventory buffers.
 # When enabled, households reuse the same `inventory_duration_targets`
@@ -261,7 +262,16 @@ adaptive_supplier_weight: False
 # It is used to determine, based on the production of the input-output equilibrium, the production capacity of the firms
 # E.g., if a firm produces 80 and has a 0.8 utilization rate, then its production capacity is set to 100.
 # It applies uniformly to all firms.
+# Capital is split active:idle = utilization_rate:(1-utilization_rate). Firms rest
+# at eq output (active capital) and can mobilize idle capital up to production
+# capacity to meet surge demand (see time_to_activate_idle_capital).
 utilization_rate: 0.8
+
+# Characteristic time (DAYS) for a firm to bring idle capital online (or mothball
+# active capital) when its production target exceeds/falls short of current
+# capacity. Per step at most min(1, days_per_step/tau) of the source stock moves,
+# so full mobilization takes ~tau. Smaller = faster capacity response.
+time_to_activate_idle_capital: 30
 
 # Determines the way firms ration their clients if they cannot meet all demand
 # Possible values are:

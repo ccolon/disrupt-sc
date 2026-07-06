@@ -75,6 +75,7 @@ class CsvWriter:
 FIRM_COLUMNS = [
     "time_step", "firm", "region", "sector",
     "production", "production_target", "production_capacity",
+    "active_capital", "idle_capital",
     "product_stock", "total_order", "total_input", "rationing",
     "profit", "price", "delta_price_input",
 ]
@@ -536,9 +537,11 @@ def export_initial_state(sc_network, export_folder: Path):
 def export_mrio_summary(mrio, selected, export_folder: Path):
     """Export MRIO reference summaries for reporting comparison.
 
-    Writes two CSVs:
-      - mrio_by_sector.csv   — output, input, VA, final_demand, export per sector
-      - mrio_by_region.csv   — output, input, VA per region
+    Writes three CSVs:
+      - mrio_by_sector.csv    — output, input, VA, final_demand, export per sector
+      - mrio_by_region.csv    — output, input, VA per region
+      - mrio_by_country.csv   — imports (country as exporter) and
+                                exports (country as importer) per external country
 
     Values are in MRIO's native monetary units (annual).  The report
     applies time-resolution scaling when comparing to model values.
@@ -586,12 +589,38 @@ def export_mrio_summary(mrio, selected, export_folder: Path):
     ].sum().reset_index()
     by_region.to_csv(export_folder / "mrio_by_region.csv", index=False)
 
+    # --- By country (external buying / selling countries) ---
+    # imports:  country appears as an EXPORTER — supply flowing into `selected`
+    #           columns from the country's import row.
+    # exports:  country appears as an IMPORTER — demand from the country's
+    #           export column drawing from `selected` rows.
+    import_label = mrio.import_label
+    export_label = mrio.export_label
+    countries = sorted(
+        set(mrio.external_selling_countries) | set(mrio.external_buying_countries)
+    )
+    imports_per_country = {}
+    exports_per_country = {}
+    for c in countries:
+        if import_label and (c, import_label) in mrio.index:
+            imports_per_country[c] = float(mrio.loc[(c, import_label), selected].sum())
+        if export_label and (c, export_label) in mrio.columns:
+            exports_per_country[c] = float(mrio.loc[selected, (c, export_label)].sum())
+    by_country = pd.DataFrame({
+        "country": countries,
+        "mrio_imports": [imports_per_country.get(c, 0.0) for c in countries],
+        "mrio_exports": [exports_per_country.get(c, 0.0) for c in countries],
+    })
+    by_country.to_csv(export_folder / "mrio_by_country.csv", index=False)
+
     logging.info(f"Exported MRIO summaries ({len(by_sector)} sectors, "
-                 f"{len(by_region)} regions) to {export_folder}")
+                 f"{len(by_region)} regions, {len(by_country)} countries) "
+                 f"to {export_folder}")
 
 
 def export_static_tables(firm_table, household_table, transport_edges,
-                         transport_nodes, export_folder: Path):
+                         transport_nodes, export_folder: Path,
+                         countries_spatial_path: Path | None = None):
     """Export GeoJSON tables for visualization."""
     if firm_table is not None and hasattr(firm_table, "to_file"):
         _ensure_crs(firm_table).to_file(export_folder / "firm_table.geojson", driver="GeoJSON")
@@ -605,6 +634,14 @@ def export_static_tables(firm_table, household_table, transport_edges,
     if transport_nodes is not None:
         _ensure_crs(transport_nodes).to_file(
             export_folder / "transport_nodes.geojson", driver="GeoJSON",
+        )
+    if countries_spatial_path and Path(countries_spatial_path).exists():
+        cgdf = gpd.read_file(countries_spatial_path)
+        if "region" in cgdf.columns:
+            cgdf = cgdf.rename(columns={"region": "country"})
+        keep = [c for c in ["country", "geometry"] if c in cgdf.columns]
+        _ensure_crs(cgdf[keep]).to_file(
+            export_folder / "country_table.geojson", driver="GeoJSON",
         )
 
 

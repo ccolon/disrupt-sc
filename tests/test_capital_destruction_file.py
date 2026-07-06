@@ -25,6 +25,7 @@ def _make_firm(pid, canton, sector, eq=100.0, capital=300.0):
     f.utilization_rate = 1.0
     f.initialize_production(eq)            # production_capacity = eq (utilization 1)
     f.capital_initial = capital
+    f.initialize_capital()                 # active = capital, idle = 0 (utilization 1)
     return f
 
 
@@ -183,3 +184,205 @@ def test_reconstruction_leontief_bottleneck_and_import_unconstrained():
     # ratios: CON 7/0.7=10, MAN 1/0.2=5, IMP unconstrained=agg=10 -> min = 5
     assert math.isclose(new_cap, 5.0)
     assert math.isclose(a.capital_destroyed, 95.0)             # 100 - 5
+
+
+# ---------------------------------------------------------------------------
+# Active / idle capital — mobilizable spare capacity (utilization < 1)
+# ---------------------------------------------------------------------------
+
+def _make_firm_util(util, eq=100.0, capital=1000.0):
+    f = Firm(pid="f", region="ECU", sector="CON", sector_type="construction",
+             region_sector="ECU_CON", subregions={"subregion_canton": "D"})
+    f.utilization_rate = util
+    f.initialize_production(eq)
+    f.capital_initial = capital
+    f.initialize_capital()
+    return f
+
+
+def test_capital_split_and_resting_capacity():
+    f = _make_firm_util(0.8, eq=100.0, capital=1000.0)
+    assert math.isclose(f.active_capital, 800.0)          # utilization * capital
+    assert math.isclose(f.idle_capital, 200.0)
+    assert math.isclose(f.production_capacity, 125.0)     # eq / utilization (physical max)
+    assert math.isclose(f.current_production_capacity, 100.0)  # rests at eq, not the ceiling
+
+
+def test_mobilize_idle_capital_booms_to_ceiling():
+    f = _make_firm_util(0.8, eq=100.0, capital=1000.0)
+    f.production_target = 125.0                            # demand at the physical ceiling
+    f.adjust_active_capital(activation_fraction=1.0)       # tau <= step -> full mobilization
+    assert math.isclose(f.active_capital, 1000.0)
+    assert math.isclose(f.idle_capital, 0.0)
+    assert math.isclose(f.current_production_capacity, 125.0)   # boomed +25% above eq
+
+
+def test_mobilize_is_rate_limited_and_geometric():
+    f = _make_firm_util(0.8, eq=100.0, capital=1000.0)
+    f.production_target = 125.0
+    f.adjust_active_capital(activation_fraction=0.5)       # only half the idle per step
+    assert math.isclose(f.active_capital, 900.0)           # 800 + 0.5*200
+    assert math.isclose(f.current_production_capacity, 112.5)
+    f.adjust_active_capital(activation_fraction=0.5)       # 0.5 of the *remaining* idle
+    assert math.isclose(f.active_capital, 950.0)           # 900 + 0.5*100
+    assert math.isclose(f.current_production_capacity, 118.75)
+
+
+def test_mobilize_capped_by_demand_not_overshooting():
+    f = _make_firm_util(0.8, eq=100.0, capital=1000.0)
+    f.production_target = 110.0                            # modest surge, below the ceiling
+    f.adjust_active_capital(activation_fraction=1.0)
+    assert math.isclose(f.current_production_capacity, 110.0)   # exactly meets target
+    assert math.isclose(f.idle_capital, 120.0)            # only 80 of idle mobilized
+
+
+def test_deactivate_when_target_falls_below_capacity():
+    f = _make_firm_util(0.8, eq=100.0, capital=1000.0)
+    f.production_target = 110.0
+    f.adjust_active_capital(activation_fraction=1.0)       # active 880, idle 120
+    f.production_target = 100.0                            # demand back to normal
+    f.adjust_active_capital(activation_fraction=1.0)       # mothball the surplus
+    assert math.isclose(f.active_capital, 800.0)
+    assert math.isclose(f.idle_capital, 200.0)
+    assert math.isclose(f.current_production_capacity, 100.0)
+
+
+def test_destruction_hits_active_and_idle_alike():
+    f = _make_firm_util(0.8, eq=100.0, capital=1000.0)
+    f.incur_capital_destruction(100.0)                    # destroy 10% of total capital
+    assert math.isclose(f.active_capital, 720.0)          # 800 * 0.9
+    assert math.isclose(f.idle_capital, 180.0)            # 200 * 0.9
+    assert math.isclose(f.current_production_capacity, 90.0)    # eq * (1 - 0.1)
+    assert math.isclose(f.capital_destroyed, 100.0)       # derived property
+
+
+def test_rebuild_restores_active_first_then_idle():
+    f = _make_firm_util(0.8, eq=100.0, capital=1000.0)
+    f.incur_capital_destruction(100.0)                    # active 720, idle 180, missing 100
+    f.rebuild_capital(50.0)                               # active-first up to active_0 = 800
+    assert math.isclose(f.active_capital, 770.0)
+    assert math.isclose(f.idle_capital, 180.0)
+    assert math.isclose(f.capital_destroyed, 50.0)
+    f.rebuild_capital(100.0)                              # tops active to 800, spills 20 into idle
+    assert math.isclose(f.active_capital, 800.0)
+    assert math.isclose(f.idle_capital, 200.0)
+    assert math.isclose(f.capital_destroyed, 0.0, abs_tol=1e-9)  # fully restored to the split
+    assert math.isclose(f.current_production_capacity, 100.0)
+
+
+# ---------------------------------------------------------------------------
+# Localized reconstruction — route rebuild demand toward firms near the damage
+# ---------------------------------------------------------------------------
+
+def test_localized_reconstruction_routes_demand_to_damaged_regions():
+    a = _make_firm("a", "D", "INM", eq=100.0, capital=300.0)
+    a.incur_capital_destruction(30.0)                      # capital_demanded = 30/10 = 3
+    con_d = _make_firm("cd", "D", "CON", eq=50.0, capital=10.0)   # in damaged region D
+    con_u = _make_firm("cu", "U", "CON", eq=50.0, capital=10.0)   # in undamaged region U
+    firms = {"a": a, "cd": con_d, "cu": con_u}
+    damage = {"D": 30.0}                                   # only region D was damaged
+
+    # locality 0 -> national by size -> equal split (con firms are the same size)
+    place_reconstruction_demand(firms, 10, {"CON": 1.0}, locality=0.0,
+                                damage_by_region=damage, region_key="subregion_canton")
+    assert math.isclose(con_d.reconstruction_demand, 1.5)
+    assert math.isclose(con_u.reconstruction_demand, 1.5)
+
+    # locality 1 -> all rebuild demand to the firm in the damaged region
+    place_reconstruction_demand(firms, 10, {"CON": 1.0}, locality=1.0,
+                                damage_by_region=damage, region_key="subregion_canton")
+    assert math.isclose(con_d.reconstruction_demand, 3.0)
+    assert math.isclose(con_u.reconstruction_demand, 0.0)
+
+    # locality 0.5 -> blend: 0.5*1.5 + 0.5*3.0 and 0.5*1.5 + 0.5*0.0
+    place_reconstruction_demand(firms, 10, {"CON": 1.0}, locality=0.5,
+                                damage_by_region=damage, region_key="subregion_canton")
+    assert math.isclose(con_d.reconstruction_demand, 2.25)
+    assert math.isclose(con_u.reconstruction_demand, 0.75)
+
+
+def test_localized_reconstruction_is_per_sector():
+    a = _make_firm("a", "D", "INM", eq=100.0, capital=300.0)
+    a.incur_capital_destruction(100.0)                     # capital_demanded = 10
+    con_d = _make_firm("cd", "D", "CON", eq=50.0, capital=10.0)
+    con_u = _make_firm("cu", "U", "CON", eq=50.0, capital=10.0)
+    man_d = _make_firm("md", "D", "MAN", eq=50.0, capital=10.0)
+    man_u = _make_firm("mu", "U", "MAN", eq=50.0, capital=10.0)
+    firms = {"a": a, "cd": con_d, "cu": con_u, "md": man_d, "mu": man_u}
+    damage = {"D": 100.0}
+
+    # CON fully local, MAN national -> CON concentrates, MAN stays split by size
+    place_reconstruction_demand(firms, 10, {"CON": 0.7, "MAN": 0.3},
+                                locality={"CON": 1.0, "MAN": 0.0},
+                                damage_by_region=damage, region_key="subregion_canton")
+    assert math.isclose(con_d.reconstruction_demand, 7.0)  # all CON (0.7*10) to damaged region
+    assert math.isclose(con_u.reconstruction_demand, 0.0)
+    assert math.isclose(man_d.reconstruction_demand, 1.5)  # MAN (0.3*10) split 50:50 nationally
+    assert math.isclose(man_u.reconstruction_demand, 1.5)
+
+
+def test_localized_reconstruction_falls_back_to_national_without_local_supply():
+    a = _make_firm("a", "D", "INM", eq=100.0, capital=300.0)
+    a.incur_capital_destruction(30.0)
+    con_u = _make_firm("cu", "U", "CON", eq=50.0, capital=10.0)
+    con_v = _make_firm("cv", "V", "CON", eq=50.0, capital=10.0)  # both CON firms outside damage
+    firms = {"a": a, "cu": con_u, "cv": con_v}
+    damage = {"D": 30.0}                                   # damaged region has NO capital-good firm
+
+    place_reconstruction_demand(firms, 10, {"CON": 1.0}, locality=1.0,
+                                damage_by_region=damage, region_key="subregion_canton")
+    # no local supply -> fall back to national split rather than starving the sector
+    assert math.isclose(con_u.reconstruction_demand, 1.5)
+    assert math.isclose(con_v.reconstruction_demand, 1.5)
+
+
+def test_parse_disruptions_precomputes_damage_by_region_and_locality(tmp_path):
+    firms = {
+        "f1": _make_firm("f1", "MANABI - PORTOVIEJO", "INM", capital=300.0),
+        "f2": _make_firm("f2", "MANABI - MANTA", "COM", capital=300.0),
+        "f3": _make_firm("f3", "ESMERALDAS - ATACAMES", "COM", capital=300.0),
+    }
+    for pid, prov in (("f1", "MANABI"), ("f2", "MANABI"), ("f3", "ESMERALDAS")):
+        firms[pid].subregions["subregion_province"] = prov
+    csv = _write_csv(tmp_path, [
+        ["MANABI - PORTOVIEJO", "INM", 30.0],
+        ["MANABI - MANTA", "COM", 20.0],
+        ["ESMERALDAS - ATACAMES", "COM", 5.0],
+    ])
+    cfg = [{
+        "type": "capital_destruction", "description_type": "subregion_file",
+        "file": str(csv), "unit": "mUSD", "start_time": 1,
+        "reconstruction_market": True, "reconstruction_locality": {"CON": 0.8},
+    }]
+    d = parse_disruptions(cfg, None, None, firms, "mUSD")[0]
+    assert d.reconstruction_locality == {"CON": 0.8}
+    assert d.reconstruction_region_key == "subregion_province"          # default
+    assert math.isclose(d.damage_by_region["MANABI"], 50.0)             # 30 + 20
+    assert math.isclose(d.damage_by_region["ESMERALDAS"], 5.0)
+
+
+# ---------------------------------------------------------------------------
+# Day -> time-step unit conversion (config gives DAYS; code converts to steps)
+# ---------------------------------------------------------------------------
+
+def test_reconstruction_target_time_days_to_steps(tmp_path):
+    firms = {"f1": _make_firm("f1", "MANABI - PORTOVIEJO", "INM")}
+    csv = _write_csv(tmp_path, [["MANABI - PORTOVIEJO", "INM", 30.0]])
+    cfg = [{
+        "type": "capital_destruction", "description_type": "subregion_file",
+        "file": str(csv), "unit": "mUSD", "start_time": 1,
+        "reconstruction_market": True, "reconstruction_target_time": 70,  # DAYS
+    }]
+    d_week = parse_disruptions(cfg, None, None, firms, "mUSD", time_resolution="week")[0]
+    assert math.isclose(d_week.reconstruction_target_time, 70 / 7)         # 70 days -> 10 weeks
+    d_day = parse_disruptions(cfg, None, None, firms, "mUSD", time_resolution="day")[0]
+    assert math.isclose(d_day.reconstruction_target_time, 70.0)            # identity at daily
+
+
+def test_inventory_restoration_time_days_to_steps():
+    from disruptsc.config import build_params
+    base = {"flow_coverage": 0.9, "inventory_restoration_time": 90}        # DAYS
+    _, _, ap_week, _ = build_params({**base, "time_resolution": "week"})
+    assert math.isclose(ap_week.inventory_restoration_time, 90 / 7)
+    _, _, ap_day, _ = build_params({**base, "time_resolution": "day"})
+    assert math.isclose(ap_day.inventory_restoration_time, 90.0)

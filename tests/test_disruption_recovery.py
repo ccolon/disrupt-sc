@@ -52,7 +52,10 @@ def test_temporary_shock_reverts_after_duration():
         assert f.current_production_capacity < f.production_capacity
         f.update_disrupted_production_capacity()
 
-    assert math.isclose(f.current_production_capacity, f.production_capacity)
+    # Reverts to resting capacity = eq_production (100), not the physical ceiling
+    # (125): the 25% head-room is now idle capital, reachable only by mobilizing
+    # it over tau (adjust_active_capital), not free after a shock lifts.
+    assert math.isclose(f.current_production_capacity, f.eq_production)
     assert f.production_capacity_reduction == 0.0
 
 

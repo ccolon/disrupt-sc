@@ -90,11 +90,18 @@ def _parse_capacity_constraint(raw) -> tuple[bool, str]:
     return True, "gradual"
 
 
+_DAYS_PER_TIMESTEP = {"day": 1, "week": 7, "month": 30, "year": 365}
+
+
+def days_per_timestep(time_resolution: str) -> float:
+    """Calendar days in one model time step (for day<->step unit conversion)."""
+    return float(_DAYS_PER_TIMESTEP.get(time_resolution, 7))
+
+
 def _parse_chunk_size(logistics: dict, time_resolution: str) -> float:
     """Convert chunk_size from tons/day (YAML) to tons/time-step."""
     raw = logistics.get("chunk_size", 1e9)
-    time_factor = {"day": 1, "week": 7, "month": 30, "year": 365}.get(time_resolution, 7)
-    return float(raw) * time_factor
+    return float(raw) * days_per_timestep(time_resolution)
 
 
 _REMOVED_CUTOFFS = (
@@ -153,13 +160,19 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
     logistics = config.get("logistics", {})
     cap_enabled, cap_mode = _parse_capacity_constraint(config.get("capacity_constraint", "off"))
 
+    rationing_mode = config.get("rationing_mode", "equal")
+    if rationing_mode not in ("equal", "household_first"):
+        raise ValueError(
+            f"rationing_mode must be 'equal' or 'household_first' (got {rationing_mode!r})"
+        )
+
     transport_params = TransportParams(
         with_transport=config.get("with_transport", True),
         transport_to_households=config.get("transport_to_households", True),
         capacity_constraint_enabled=cap_enabled,
         capacity_constraint_mode=cap_mode,
         initial_route_assignment=logistics.get("initial_route_assignment", "heuristic"),
-        rationing_mode=config.get("rationing_mode", "equal"),
+        rationing_mode=rationing_mode,
         use_route_cache=config.get("use_route_cache", True),
         switching_costs=logistics.get("switching_costs", {"modal_switch": 0.15, "port_switch": 0.05}),
         price_increase_threshold=config.get("price_increase_threshold", 2.0),
@@ -192,6 +205,7 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
         propagate_input_price_change=config.get("propagate_input_price_change", True),
         adaptive_inventories=config.get("adaptive_inventories", False),
         adaptive_supplier_weight=config.get("adaptive_supplier_weight", False),
+        time_to_activate_idle_capital=config.get("time_to_activate_idle_capital", 30.0),
         sensitivity=config.get("sensitivity") or {},
         seed=(int(config["seed"]) if config.get("seed") is not None else None),
     )
@@ -206,7 +220,9 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
         weight_localization_household=config.get("weight_localization_household", 4.0),
         utilization_rate=config.get("utilization_rate", 0.8),
         inventory_duration_targets=config.get("inventory_duration_targets", {}),
-        inventory_restoration_time=config.get("inventory_restoration_time", 4.0),
+        # inventory_restoration_time is given in DAYS in config; convert to time steps.
+        inventory_restoration_time=config.get("inventory_restoration_time", 30.0)
+        / days_per_timestep(config.get("time_resolution", "week")),
         enable_household_inventories=config.get("enable_household_inventories", False),
         firm_data_type=config.get("firm_data_type", "mrio"),
         sectors_to_include=config.get("sectors_to_include", "all"),
