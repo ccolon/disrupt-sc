@@ -50,6 +50,10 @@ class SimParams:
     propagate_input_price_change: bool = True
     adaptive_inventories: bool = False
     adaptive_supplier_weight: bool = False
+    # Characteristic time (DAYS) to mobilize idle capital into active capacity.
+    # Per step at most min(1, days_per_step/tau) of idle can be activated (or
+    # active mothballed), so a firm reaches full mobilization in ~tau.
+    time_to_activate_idle_capital: float = 30.0
     sensitivity: dict = field(default_factory=dict)
     # Seed both Python's `random` and `numpy.random` before stochastic
     # stages (currently: supply-chain build, Monte-Carlo disruption arrival).

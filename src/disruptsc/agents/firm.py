@@ -70,7 +70,8 @@ class Firm:
     transport_share: float = 0.2
     capital_to_value_added_ratio: float = 4.0
     capital_initial: float = 0.0
-    capital_destroyed: float = 0.0
+    active_capital: float = 0.0      # utilized capital -> supports current output
+    idle_capital: float = 0.0        # spare capital -> mobilizable (over tau) to boom above eq
     eq_finance: dict = field(default_factory=dict)
     finance: dict = field(default_factory=dict)
     eq_profit: float = 0.0
@@ -109,7 +110,11 @@ class Firm:
         self.production_target = eq_production
         self.product_stock = 0.0
         self.production_capacity = eq_production / self.utilization_rate if self.utilization_rate > 0 else eq_production
-        self.current_production_capacity = self.production_capacity
+        # Rest at operating capacity (eq). The spare head-room up to
+        # production_capacity is held as idle_capital and only reachable by
+        # mobilizing it over tau (see adjust_active_capital). The active/idle
+        # split is sized in initialize_capital once capital_initial is known.
+        self.current_production_capacity = eq_production
         self.eq_production_capacity = self.production_capacity
 
     def initialize_inventory(self, time_resolution: str):
@@ -160,6 +165,23 @@ class Firm:
         # (e.g. with daily steps, periods_per_year=365).
         annual_value_added = (eq_sales - eq_input_cost - eq_transport_cost) * periods_per_year
         self.capital_initial = self.capital_to_value_added_ratio * annual_value_added
+        self.initialize_capital()
+
+    def initialize_capital(self):
+        """Split capital_initial into active (utilized) and idle (spare) stocks.
+
+        active/idle = utilization_rate : (1 - utilization_rate), so at rest
+        current_production_capacity = (active/capital_initial)*production_capacity
+        = eq_production. Firms with no modeled capital keep an inert split.
+        """
+        u = self.utilization_rate
+        if self.capital_initial > 0:
+            self.active_capital = u * self.capital_initial
+            self.idle_capital = (1.0 - u) * self.capital_initial
+        else:
+            self.active_capital = 0.0
+            self.idle_capital = 0.0
+        self._recompute_capacity_from_active()
 
     # ------------------------------------------------------------------
     # Simulation loop — Phase 1: Retrieve orders & plan
@@ -313,63 +335,107 @@ class Firm:
     # ------------------------------------------------------------------
 
     def disrupt_production_capacity(self, duration: float, reduction: float):
-        """Apply a timed productivity/capacity disruption.
+        """Apply a timed productivity/capacity shock.
 
-        ``reduction`` is the fractional loss of productive capability
-        (negative ⇒ a productivity gain). The cap is taken relative to
-        *equilibrium output* (bounded above by the physical ceiling
-        ``production_capacity``) so that reductions smaller than the
-        ``1/utilization_rate`` head-room still constrain output instead of
-        being silently absorbed by spare capacity. The disruption lasts
-        ``duration`` time steps (``float('inf')`` ⇒ permanent) and is lifted
-        by :meth:`update_disrupted_production_capacity`.
+        ``reduction`` is a temporary multiplicative hit (negative ⇒ a gain) to the
+        capacity that active capital yields — a TFP-style shock affecting active
+        and idle capital alike, so it scales the whole capacity curve:
+        ``current = (active/capital_initial)*production_capacity*(1-reduction)``.
+        It lasts ``duration`` time steps (``float('inf')`` ⇒ permanent) and is
+        lifted by :meth:`update_disrupted_production_capacity`.
         """
         self.production_capacity_reduction = reduction
         self.remaining_disrupted_time = duration
-        self.current_production_capacity = min(
-            self.production_capacity, self.eq_production * (1.0 - reduction)
-        )
+        self._recompute_capacity_from_active()
 
     def update_disrupted_production_capacity(self):
         if self.remaining_disrupted_time > 0:
             self.remaining_disrupted_time -= 1
             if self.remaining_disrupted_time <= 0:
                 self.production_capacity_reduction = 0.0
-                self.current_production_capacity = self.production_capacity
+                self._recompute_capacity_from_active()
+
+    @property
+    def capital_destroyed(self) -> float:
+        """Capital still missing (destroyed and not yet rebuilt), model units.
+
+        Derived from the stocks: ``capital_initial - active - idle``. Drives
+        reconstruction demand, which stops once the stocks are fully restored.
+        """
+        return max(0.0, self.capital_initial - self.active_capital - self.idle_capital)
 
     def incur_capital_destruction(self, amount: float):
         """Destroy ``amount`` (model monetary units) of built capital.
 
-        Cumulative: repeated calls add up. The loss is permanent (no timed
-        recovery); reconstruction, when modeled, restores it via
-        :meth:`rebuild_capital`.
+        The quake hits active and idle capital alike: both stocks are scaled by
+        ``(1 - amount/capital_initial)``. On impact this reproduces
+        ``current = eq*(1-destruction_rate)``. The loss is permanent until
+        :meth:`rebuild_capital` restores it.
         """
-        self.capital_destroyed += amount
-        self._update_capacity_from_capital()
+        if amount <= 0 or self.capital_initial <= 0:
+            return
+        survival = max(0.0, 1.0 - amount / self.capital_initial)
+        self.active_capital *= survival
+        self.idle_capital *= survival
+        self._recompute_capacity_from_active()
 
     def rebuild_capital(self, amount: float):
         """Restore ``amount`` of destroyed capital (reconstruction), lifting capacity.
 
-        The stock of destroyed capital cannot go below zero.
+        New capital refills the *original* split: active up to
+        ``utilization_rate*capital_initial`` first (restoring operating
+        capacity), then idle up to the remainder (rebuilding the spare buffer).
+        A fully-rebuilt firm rests back at eq with its idle head-room intact.
         """
-        if amount <= 0:
+        if amount <= 0 or self.capital_initial <= 0:
             return
-        self.capital_destroyed = max(0.0, self.capital_destroyed - amount)
-        self._update_capacity_from_capital()
+        u = self.utilization_rate
+        add_active = min(amount, max(0.0, u * self.capital_initial - self.active_capital))
+        self.active_capital += add_active
+        amount -= add_active
+        if amount > 0:
+            add_idle = min(amount, max(0.0, (1.0 - u) * self.capital_initial - self.idle_capital))
+            self.idle_capital += add_idle
+        self._recompute_capacity_from_active()
 
-    def _update_capacity_from_capital(self):
-        """Recompute current capacity from the share of capital destroyed.
+    def adjust_active_capital(self, activation_fraction: float):
+        """Move capital between idle and active to track the production target.
 
-        Capacity binds against *equilibrium output* (bounded by the physical
-        ceiling), mirroring :meth:`disrupt_production_capacity` so that capital
-        losses smaller than the ``1/utilization_rate`` head-room still constrain
-        output.
+        If the target needs more capacity than active capital yields, mobilize
+        idle -> active; if it needs less, mothball active -> idle. Each step at
+        most ``activation_fraction`` (= min(1, days_per_step/tau)) of the source
+        stock moves, so full mobilization takes ~tau (geometric approach). Total
+        capital is conserved here (only destruction/rebuild change it).
         """
-        reduction = min(self.capital_destroyed / self.capital_initial, 1.0) if self.capital_initial > 0 else 0.0
-        self.production_capacity_reduction = reduction
-        self.current_production_capacity = min(
-            self.production_capacity, self.eq_production * (1.0 - reduction)
-        )
+        if self.capital_initial <= 0 or self.production_capacity <= 0:
+            return
+        effective_max = self.production_capacity * (1.0 - self.production_capacity_reduction)
+        if effective_max <= 0:
+            return
+        active_need = min(self.capital_initial,
+                          self.production_target / effective_max * self.capital_initial)
+        gap = active_need - self.active_capital
+        if gap > 0:                                   # bring idle capacity online
+            move = min(gap, activation_fraction * self.idle_capital)
+        elif gap < 0:                                 # mothball unused capacity
+            move = -min(-gap, activation_fraction * self.active_capital)
+        else:
+            return
+        if move == 0.0:
+            return
+        self.active_capital += move
+        self.idle_capital -= move
+        self._recompute_capacity_from_active()
+
+    def _recompute_capacity_from_active(self):
+        """Current capacity = active share of the physical ceiling, net of any
+        temporary productivity shock. At rest (active = u*capital_initial) this is
+        eq_production; fully mobilizing idle reaches production_capacity."""
+        if self.capital_initial > 0:
+            base = self.active_capital / self.capital_initial * self.production_capacity
+        else:
+            base = self.eq_production
+        self.current_production_capacity = max(0.0, base * (1.0 - self.production_capacity_reduction))
 
     # ------------------------------------------------------------------
     # Data collection
@@ -384,6 +450,8 @@ class Firm:
             "production": self.production,
             "production_target": self.production_target,
             "production_capacity": self.current_production_capacity,
+            "active_capital": self.active_capital,
+            "idle_capital": self.idle_capital,
             "product_stock": self.product_stock,
             "total_order": self.total_order,
             "total_input": self.total_input,
@@ -480,7 +548,34 @@ class Firm:
                     link: CommercialLink = data["object"]
                     link.delivery = link.order * self.rationing
                     link.delivery_in_tons = link.delivery * self.monetary_unit_factor / self.usd_per_ton if self.usd_per_ton > 0 else 0.0
-            # household_first could be added here
+            elif rationing_mode == "household_first":
+                # Serve household clients first, then ration firm/country clients
+                # with the remainder. Any stock left after the graph clients flows
+                # to the reconstruction pseudo-client downstream (rebuilt capital is
+                # taken from leftover product_stock), so reconstruction is served last.
+                hh_links, other_links = [], []
+                hh_demand = other_demand = 0.0
+                for _, client, data in sc_network.out_edges(self, data=True):
+                    link: CommercialLink = data["object"]
+                    if client.__class__.__name__ == "Household":
+                        hh_links.append(link)
+                        hh_demand += link.order
+                    else:
+                        other_links.append(link)
+                        other_demand += link.order
+                hh_ration = min(1.0, available / hh_demand) if hh_demand > EPSILON else 1.0
+                remainder = max(0.0, available - hh_demand * hh_ration)
+                other_ration = min(1.0, remainder / other_demand) if other_demand > EPSILON else 1.0
+                for link in hh_links:
+                    link.delivery = link.order * hh_ration
+                    link.delivery_in_tons = link.delivery * self.monetary_unit_factor / self.usd_per_ton if self.usd_per_ton > 0 else 0.0
+                for link in other_links:
+                    link.delivery = link.order * other_ration
+                    link.delivery_in_tons = link.delivery * self.monetary_unit_factor / self.usd_per_ton if self.usd_per_ton > 0 else 0.0
+            else:
+                raise ValueError(
+                    f"Unknown rationing_mode {rationing_mode!r}; expected 'equal' or 'household_first'"
+                )
 
     def _receive_shipment(self, link: CommercialLink, transport_network: TransportNetwork) -> float:
         """Receive a shipment from the transport network. Returns quantity received."""

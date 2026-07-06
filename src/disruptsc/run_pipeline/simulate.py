@@ -46,6 +46,7 @@ def run_initial_state(sc_network, transport_network, firms, households, countrie
     if export_folder:
         with AgentWriters(export_folder, _days_per_timestep(sp.time_resolution)) as writers:
             writers.write_step(firms, households, countries, 0)
+            writers.write_trade(sc_network, 0)
 
     # Still return in-memory data for callers that need it
     result = {
@@ -78,6 +79,7 @@ def run_disruption(sc_network, transport_network, firms, households, countries,
         # Parse disruptions
         disruptions = parse_disruptions(
             disruption_config, transport_edges, firm_table, firms, tp.monetary_units,
+            time_resolution=sp.time_resolution,
         )
         if not disruptions:
             logging.info("No disruptions — running one baseline step and returning")
@@ -356,7 +358,13 @@ def _run_one_time_step(time_step, sc_network, transport_network,
     # before retrieve_orders so it enters total_order and propagates to inputs.
     recon = _active_reconstruction(disruptions, time_step)
     if recon is not None:
-        place_reconstruction_demand(firms, recon[0], recon[1])
+        place_reconstruction_demand(
+            firms, recon.reconstruction_target_time,
+            recon.capital_input_mix or DEFAULT_CAPITAL_INPUT_MIX,
+            locality=recon.reconstruction_locality,
+            damage_by_region=recon.damage_by_region,
+            region_key=recon.reconstruction_region_key,
+        )
 
     # 1. Firms retrieve orders from previous step
     for firm in firms.values():
@@ -365,6 +373,14 @@ def _run_one_time_step(time_step, sc_network, transport_network,
     # 2. Production planning
     for firm in firms.values():
         firm.plan_production(sc_network, sp.propagate_input_price_change)
+
+    # 2b. Mobilize idle capital toward the production target (rate-limited by tau):
+    # firms bring spare capacity online to meet surge demand (e.g. reconstruction
+    # orders) or mothball it when demand falls, converging over ~tau.
+    tau = sp.time_to_activate_idle_capital
+    activation_fraction = min(1.0, _days_per_timestep(sp.time_resolution) / tau) if tau and tau > 0 else 1.0
+    for firm in firms.values():
+        firm.adjust_active_capital(activation_fraction)
 
     # 3. Purchase planning
     for firm in firms.values():
@@ -394,7 +410,7 @@ def _run_one_time_step(time_step, sc_network, transport_network,
     # 7r. Reconstruction: convert capital-good output that competed for delivery
     # into restored capital, lifting capacity for subsequent steps (the V-shape).
     if recon is not None:
-        rebuild_from_reconstruction(firms, recon[1])
+        rebuild_from_reconstruction(firms, recon.capital_input_mix or DEFAULT_CAPITAL_INPUT_MIX)
 
     # 7b. Collect routing summary from commercial links
     routing_summary = _collect_routing_summary(sc_network, time_step)
@@ -467,14 +483,14 @@ def _is_back_to_equilibrium(households, countries, epsilon):
 
 
 def _active_reconstruction(disruptions, time_step):
-    """Return ``(reconstruction_target_time, capital_input_mix)`` if a
-    reconstruction-enabled capital destruction has started by *time_step*,
+    """Return the reconstruction-enabled ``CapitalDestruction`` that has started
+    by *time_step* (carrying target time, input mix, and locality settings),
     else ``None``."""
     for d in disruptions or []:
         if (isinstance(d, CapitalDestruction)
                 and getattr(d, "reconstruction_market", False)
                 and d.start_time <= time_step):
-            return d.reconstruction_target_time, (d.capital_input_mix or DEFAULT_CAPITAL_INPUT_MIX)
+            return d
     return None
 
 
