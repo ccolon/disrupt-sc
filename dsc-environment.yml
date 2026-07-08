@@ -2,20 +2,24 @@ name: dsc
 channels:
   - conda-forge
 dependencies:
-  - python=3.10
+  - python=3.11
   # Core data processing
-  - pandas>=1.3.0
-  - numpy>=1.20.0
-  # Geospatial processing  
-  - geopandas>=0.11.1
-  - shapely>=1.8.0
+  - pandas>=2.0
+  - numpy>=1.24
+  - pyarrow>=10.0          # Parquet I/O (MRIO tables)
+  - openpyxl>=3.0          # Excel (.xlsx) I/O
+  # Geospatial processing
+  - geopandas>=1.0
+  - shapely>=2.0
+  - pyogrio>=0.7           # Fast GeoJSON read/write backend for geopandas
   # Network analysis
-  - networkx>=2.8.0
+  - networkx>=3.0
   # Scientific computing
-  - scipy>=1.7.0
+  - scipy>=1.10
   # Configuration and utilities
-  - pyyaml>=5.3.0
-  - tqdm>=4.60.0
-  # Development tools
-  - jupyterlab
-  - pytest
+  - pyyaml>=6.0
+  - tqdm>=4.60
+  # Reporting (interactive HTML figures)
+  - plotly>=5.0
+  # Testing
+  - pytest>=6.0

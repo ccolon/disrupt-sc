@@ -18,11 +18,15 @@ import dataclasses, logging
 ap = argparse.ArgumentParser()
 ap.add_argument("--xlsx", required=True)
 ap.add_argument("--n", type=int, default=3, help="how many top-exposed events to run")
+ap.add_argument("--snapshot", default=str(SNAPSHOT_DEFAULT))
+ap.add_argument("--flow-coverage", type=float, default=None)
 args = ap.parse_args()
 setup_logging("info")
 
 config = load_config("TENT"); config["time_resolution"] = "day"; config["simulation_type"] = "disruption"
-snap = build_or_load_snapshot(config, SNAPSHOT_DEFAULT)
+if args.flow_coverage is not None:
+    config["flow_coverage"] = args.flow_coverage
+snap = build_or_load_snapshot(config, Path(args.snapshot))
 tp = snap["tp"]; sp = dataclasses.replace(snap["sp"], epsilon_stop=0.0)
 
 events = load_events(args.xlsx, days_per_step=1.0)

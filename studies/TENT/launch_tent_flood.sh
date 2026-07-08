@@ -28,13 +28,17 @@ set -e
 
 # ===================== EDIT THESE FOR YOUR CLUSTER =========================
 SCRIPT_DIR="/projects/disruptsc/disrupt-sc"                       # repo root on the cluster
-PYTHON_ENV="/projects/disruptsc/miniforge3/envs/disruptsc"        # conda env with pyarrow+openpyxl
+PYTHON_ENV="/projects/disruptsc/miniforge3/envs/dsc"        # conda env with pyarrow+openpyxl
 DATA_PATH="/projects/disruptsc/disrupt-sc-data"                   # DISRUPT_SC_DATA_PATH root
 OUTPUT_DIR="${SCRIPT_DIR}/output/TENT/flood_sweep"                # shard CSVs + snapshot land here
 SLURM_LOG_DIR="${SCRIPT_DIR}/slurm_logs/tent_flood"
 # ===========================================================================
 
-FLOW_COVERAGE=0.8
+# flow_coverage=1.0 is the model's configured/validated value for TENT. Lowering
+# it changes losses by orders of magnitude (0.8 gave ~2500x smaller losses in
+# testing) — it is NOT just a speed knob. Sharding on SLURM makes 1.0 tractable
+# (~7 h/shard at NUM_SHARDS=24), so we keep full fidelity.
+FLOW_COVERAGE=1.0
 NUM_SHARDS=24
 TIME_LIMIT_BUILD="01:00:00"
 TIME_LIMIT_WORKER="12:00:00"
