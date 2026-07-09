@@ -39,13 +39,20 @@ def build_supply_chain_network(
     for f in firms.values():
         rs_to_firms.setdefault(f.region_sector, []).append(f.pid)
 
+    # Precompute per-region-sector candidate arrays (pids, importance, coords)
+    # once, so supplier selection can vectorize the distance computation
+    # instead of looping in Python over every candidate for every buyer.
+    rs_cache, node_lon, node_lat = _build_rs_cache(firms, rs_to_firms, transport_network)
+    use_tn = transport_network is not None
+
     # 1. Households select retailers (domestic B2C + import B2C)
     logging.info("Households selecting retailers")
     for hh in progress(households.values(), "Households", total=len(households)):
         _household_select_suppliers(
-            hh, sc, firms, countries, rs_to_firms,
+            hh, sc, firms, countries, rs_cache,
             nb_suppliers_per_input, weight_localization_household,
             sector_to_cargo_type, import_label, transport_network,
+            node_lon, node_lat, use_tn,
         )
 
     # 2. Countries select exporters and create transit links
@@ -64,9 +71,10 @@ def build_supply_chain_network(
     logging.info("Firms selecting suppliers")
     for firm in progress(firms.values(), "Firms", total=len(firms)):
         _firm_select_suppliers(
-            firm, sc, firms, countries, rs_to_firms,
+            firm, sc, firms, countries, rs_cache,
             nb_suppliers_per_input, weight_localization_firm,
             sector_to_cargo_type, import_label, transport_network,
+            node_lon, node_lat, use_tn,
         )
 
     # 4. Cleanup: remove disconnected agents
@@ -99,16 +107,17 @@ def build_supply_chain_network(
 # Household supplier selection
 # ------------------------------------------------------------------
 
-def _household_select_suppliers(hh, sc, firms, countries, rs_to_firms,
+def _household_select_suppliers(hh, sc, firms, countries, rs_cache,
                                 nb_suppliers_per_input, weight_loc,
                                 sector_to_cargo_type, import_label,
-                                transport_network):
+                                transport_network, node_lon, node_lat, use_tn):
     hh.purchase_plan = {}
     hh.retailers = {}
     for region_sector, amount in hh.sector_consumption.items():
         supplier_type, ids, weights, distances = _identify_suppliers(
-            hh, region_sector, firms, rs_to_firms,
-            nb_suppliers_per_input, weight_loc, import_label, transport_network,
+            hh, region_sector, rs_cache,
+            nb_suppliers_per_input, weight_loc, import_label,
+            node_lon, node_lat, use_tn,
         )
         for sid, w in zip(ids, weights):
             if supplier_type == "country":
@@ -200,14 +209,15 @@ def _country_select_suppliers(country, sc, firms, countries, rs_to_firms,
 # Firm supplier selection
 # ------------------------------------------------------------------
 
-def _firm_select_suppliers(firm, sc, firms, countries, rs_to_firms,
+def _firm_select_suppliers(firm, sc, firms, countries, rs_cache,
                            nb_suppliers_per_input, weight_loc,
                            sector_to_cargo_type, import_label,
-                           transport_network):
+                           transport_network, node_lon, node_lat, use_tn):
     for sector_id, sector_weight in firm.input_mix.items():
         supplier_type, ids, weights, distances = _identify_suppliers(
-            firm, sector_id, firms, rs_to_firms,
-            nb_suppliers_per_input, weight_loc, import_label, transport_network,
+            firm, sector_id, rs_cache,
+            nb_suppliers_per_input, weight_loc, import_label,
+            node_lon, node_lat, use_tn,
         )
         for sid, w in zip(ids, weights):
             if supplier_type == "country":
@@ -238,30 +248,47 @@ def _firm_select_suppliers(firm, sc, firms, countries, rs_to_firms,
 # Core supplier identification (shared by firms + households)
 # ------------------------------------------------------------------
 
-def _identify_suppliers(buyer, region_sector, firms, rs_to_firms,
+def _identify_suppliers(buyer, region_sector, rs_cache,
                         nb_suppliers_per_input, weight_loc, import_label,
-                        transport_network):
-    """Return (supplier_type, selected_ids, weights, distances|None)."""
+                        node_lon, node_lat, use_tn):
+    """Return (supplier_type, selected_ids, weights, distances|None).
+
+    Vectorized over candidate suppliers: importance and candidate coordinates
+    are read from the precomputed per-region-sector cache, and the buyer→
+    candidate distances are computed in one numpy op. This is arithmetically
+    identical to the old per-candidate Python loop (same candidate order, same
+    distance formula), so the ``np.random.choice`` draw is unchanged for a
+    given seed.
+    """
 
     # Import case
     if import_label and import_label in region_sector:
         country_code = region_sector.split("_")[0]
         return "country", [country_code], [1.0], None
 
-    # Firm selection
-    potential = list(rs_to_firms.get(region_sector, []))
-    # Remove self
-    buyer_pid = buyer.pid
-    if hasattr(buyer, "region_sector") and buyer.region_sector == region_sector:
-        potential = [p for p in potential if p != buyer_pid]
-
-    if not potential:
+    entry = rs_cache.get(region_sector)
+    if entry is None:
         raise ValueError(f"{buyer.pid}: no supplier for {region_sector}")
 
-    n = len(potential)
-    importances = np.array([firms[p].importance for p in potential], dtype=float)
-    raw_dists = np.array([_distance_between(buyer, firms[p], transport_network)
-                          for p in potential], dtype=float)
+    pids = entry["pids"]
+    importances = entry["importance"]
+    cand_lon, cand_lat, cand_od = entry["lon"], entry["lat"], entry["od"]
+
+    # Remove self (a firm buying from its own region_sector). Households have
+    # no region_sector attribute, so this is a no-op for them.
+    if getattr(buyer, "region_sector", None) == region_sector:
+        keep = entry["pid_arr"] != buyer.pid
+        if not keep.all():
+            pids = [p for p, m in zip(pids, keep) if m]
+            importances = importances[keep]
+            cand_lon, cand_lat, cand_od = cand_lon[keep], cand_lat[keep], cand_od[keep]
+
+    n = len(pids)
+    if n == 0:
+        raise ValueError(f"{buyer.pid}: no supplier for {region_sector}")
+
+    raw_dists = _distances_from_buyer(buyer, cand_lon, cand_lat, cand_od,
+                                      node_lon, node_lat, use_tn)
     dists = _rescale(raw_dists)
     weighted = importances / (dists ** weight_loc)
 
@@ -269,7 +296,7 @@ def _identify_suppliers(buyer, region_sector, firms, rs_to_firms,
     nb = _draw_nb_suppliers(nb_suppliers_per_input, n)
     probs = weighted / weighted.sum()
     chosen_idx = np.random.choice(n, size=nb, p=probs, replace=False)
-    chosen_ids = [potential[i] for i in chosen_idx]
+    chosen_ids = [pids[i] for i in chosen_idx]
     chosen_w = probs[chosen_idx]
     chosen_w = chosen_w / chosen_w.sum()
 
@@ -280,6 +307,79 @@ def _identify_suppliers(buyer, region_sector, firms, rs_to_firms,
 # ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------
+
+def _build_rs_cache(firms, rs_to_firms, transport_network):
+    """Precompute per-region-sector candidate arrays for fast supplier draws.
+
+    Returns (rs_cache, node_lon, node_lat) where rs_cache[region_sector] holds
+    the candidate pids (in ``rs_to_firms`` order) plus numpy arrays of their
+    importance, transport-node coordinates, and od_points.
+    """
+    node_lon, node_lat = {}, {}
+    if transport_network is not None:
+        for nid, data in transport_network.nodes(data=True):
+            node_lon[nid] = data["long"]
+            node_lat[nid] = data["lat"]
+
+    rs_cache = {}
+    for rs, pid_list in rs_to_firms.items():
+        n = len(pid_list)
+        imp = np.empty(n, dtype=float)
+        lon = np.empty(n, dtype=float)
+        lat = np.empty(n, dtype=float)
+        od = np.empty(n, dtype=np.int64)
+        for i, p in enumerate(pid_list):
+            f = firms[p]
+            imp[i] = f.importance
+            o = getattr(f, "od_point", -1)
+            od[i] = o
+            if transport_network is not None:
+                lon[i] = node_lon.get(o, np.nan)
+                lat[i] = node_lat.get(o, np.nan)
+            else:
+                lon[i] = getattr(f, "long", 0.0)
+                lat[i] = getattr(f, "lat", 0.0)
+        rs_cache[rs] = {
+            "pids": list(pid_list),
+            "pid_arr": np.array(pid_list, dtype=object),
+            "importance": imp,
+            "lon": lon, "lat": lat, "od": od,
+        }
+    return rs_cache, node_lon, node_lat
+
+
+def _distances_from_buyer(buyer, cand_lon, cand_lat, cand_od,
+                          node_lon, node_lat, use_tn):
+    """Vectorized buyer→candidate distances, matching ``_distance_between``.
+
+    Reproduces the scalar path exactly: od_point == -1 on either side -> 1.0;
+    with a transport network, ``degrees_to_km`` between transport-node coords
+    (same-node -> 0.0); without one, the euclidean lon/lat fallback (0 -> 1.0).
+    """
+    buyer_od = getattr(buyer, "od_point", -1)
+    n = len(cand_od)
+    if buyer_od == -1:
+        return np.ones(n, dtype=float)
+
+    if use_tn:
+        blon = node_lon.get(buyer_od)
+        blat = node_lat.get(buyer_od)
+        if blon is None:  # buyer node absent from network (shouldn't happen)
+            blon, blat = getattr(buyer, "long", 0.0), getattr(buyer, "lat", 0.0)
+        lat_km = 111.0 * np.abs(cand_lat - blat)
+        lon_km = 111.0 * np.abs(cand_lon - blon) * np.cos(np.radians((blat + cand_lat) / 2.0))
+        d = np.sqrt(lat_km ** 2 + lon_km ** 2)
+        d = np.where(cand_od == buyer_od, 0.0, d)
+    else:
+        blon, blat = getattr(buyer, "long", 0.0), getattr(buyer, "lat", 0.0)
+        ew = (cand_lon - blon) * 112.5
+        ns = (cand_lat - blat) * 111.0
+        d = np.sqrt(ew ** 2 + ns ** 2)
+        d = np.where(d == 0.0, 1.0, d)  # matches `... or 1.0`
+
+    d = np.where(cand_od == -1, 1.0, d)
+    return d
+
 
 def _distance_between(a, b, transport_network=None):
     if getattr(a, "od_point", -1) == -1 or getattr(b, "od_point", -1) == -1:

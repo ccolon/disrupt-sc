@@ -117,6 +117,8 @@ def _main_impl():
         config["t_final"] = args.duration
     if args.flow_coverage is not None:
         config["flow_coverage"] = args.flow_coverage
+    if args.seed is not None:
+        config["seed"] = args.seed
 
     return execute(config, cache=args.cache,
                    cache_isolation=args.cache_isolation, open_report=args.open)
@@ -824,6 +826,8 @@ def _parse_args():
                         help="Override t_final")
     parser.add_argument("--flow_coverage", type=float, default=None,
                         help="Override flow_coverage (cumulative flow-coverage fraction in (0, 1])")
+    parser.add_argument("--seed", type=int, default=None,
+                        help="Override the RNG seed for reproducible supplier selection")
     parser.add_argument("--log_level", default="info", choices=["info", "debug"])
     parser.add_argument("--verbose", action="store_true",
                         help="Alias for --log_level debug")

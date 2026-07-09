@@ -121,6 +121,8 @@ class CapitalDestruction:
     reconstruction_locality: float | dict = 0.0
     reconstruction_region_key: str = "subregion_province"
     damage_by_region: dict = field(default_factory=dict)
+    # Fraction of reconstruction met publicly (rebuilt directly, no B2B trace).
+    reconstruction_public_share: float = 0.0
     # diagnostics populated by from_subregion_file (model monetary units)
     applied_capital: float = 0.0
     unmatched_capital: float = 0.0
@@ -260,11 +262,15 @@ def place_reconstruction_demand(firms: dict, reconstruction_target_time: float,
                                 capital_input_mix: dict,
                                 locality: float | dict = 0.0,
                                 damage_by_region: dict | None = None,
-                                region_key: str = "subregion_province") -> float:
+                                region_key: str = "subregion_province",
+                                public_share: float = 0.0) -> float:
     """Set per-firm ``reconstruction_demand`` for one time step.
 
     Each damaged firm wants ``capital_destroyed / reconstruction_target_time`` of
-    its capital rebuilt. The aggregate is split across capital-good sectors by
+    its capital rebuilt. A ``public_share`` fraction is rebuilt publicly (directly,
+    outside the modeled firm network — see ``rebuild_public_capital``) and leaves
+    no B2B trace; only the private remainder ``(1-public_share)`` becomes B2B
+    demand here. The private aggregate is split across capital-good sectors by
     ``capital_input_mix`` and, within each sector, across firms by a blend of two
     rules controlled by ``locality`` (lambda in [0,1], scalar or per-sector dict):
 
@@ -282,10 +288,13 @@ def place_reconstruction_demand(firms: dict, reconstruction_target_time: float,
     Call BEFORE ``firm.retrieve_orders`` so the demand enters ``total_order`` and
     propagates to inputs. Returns the aggregate capital demand (model units).
     """
+    public_share = max(0.0, min(1.0, float(public_share)))
     for f in firms.values():
         f.reconstruction_demand = 0.0
-        f.capital_demanded = (f.capital_destroyed / reconstruction_target_time
-                              if reconstruction_target_time > 0 else 0.0)
+        total_rate = (f.capital_destroyed / reconstruction_target_time
+                      if reconstruction_target_time > 0 else 0.0)
+        f.public_capital_demanded = public_share * total_rate          # rebuilt directly (external)
+        f.capital_demanded = (1.0 - public_share) * total_rate         # drives private B2B rebuild
     aggregate = sum(f.capital_demanded for f in firms.values())
     if aggregate <= 0:
         return 0.0
@@ -369,6 +378,22 @@ def rebuild_from_reconstruction(firms: dict, capital_input_mix: dict) -> float:
         if f.capital_demanded > 0:
             f.rebuild_capital(f.capital_demanded / aggregate * new_capital)
     return new_capital
+
+
+def rebuild_public_capital(firms: dict) -> float:
+    """Publicly-funded reconstruction: restore each firm's ``public_capital_demanded``
+    directly (government / external supply), bypassing the private firm network so it
+    lifts capacity without leaving any B2B trace in firm sales. This is the invisible
+    (public-sector) share of reconstruction. Call once per step, alongside the private
+    :func:`rebuild_from_reconstruction`. Returns the total capital rebuilt publicly.
+    """
+    total = 0.0
+    for f in firms.values():
+        amount = getattr(f, "public_capital_demanded", 0.0)
+        if amount > 0:
+            f.rebuild_capital(amount)
+            total += amount
+    return total
 
 
 # ------------------------------------------------------------------
@@ -490,6 +515,7 @@ def parse_disruptions(config_list: list | None,
             # damage. Precompute destroyed capital per region from the shock itself.
             d.reconstruction_locality = cfg.get("reconstruction_locality", 0.0)
             d.reconstruction_region_key = cfg.get("reconstruction_region_key", "subregion_province")
+            d.reconstruction_public_share = cfg.get("reconstruction_public_share", 0.0)
             damage_by_region: dict = defaultdict(float)
             for pid, amount in d.description.items():
                 firm = firms.get(pid)
