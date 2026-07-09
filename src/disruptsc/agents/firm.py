@@ -86,7 +86,8 @@ class Firm:
     rationing: float = 1.0
     reconstruction_demand: float = 0.0       # capital-good output requested for rebuilding this step
     reconstruction_produced: float = 0.0     # output actually allocated to rebuilding this step
-    capital_demanded: float = 0.0            # own capital the firm wants rebuilt this step
+    capital_demanded: float = 0.0            # own capital the firm wants rebuilt (privately) this step
+    public_capital_demanded: float = 0.0     # own capital rebuilt publicly (directly) this step
 
     # --- Supplier / client maps (set during init_pipeline) ---
     suppliers: dict = field(default_factory=dict)

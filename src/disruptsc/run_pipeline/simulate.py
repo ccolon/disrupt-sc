@@ -15,7 +15,7 @@ from disruptsc.params import TransportParams, SimParams
 from disruptsc.run_pipeline.disruption import (
     parse_disruptions, apply_disruptions,
     TransportDisruption, CapitalDestruction, Recovery,
-    place_reconstruction_demand, rebuild_from_reconstruction,
+    place_reconstruction_demand, rebuild_from_reconstruction, rebuild_public_capital,
     DEFAULT_CAPITAL_INPUT_MIX,
 )
 from disruptsc.run_pipeline.export import (
@@ -364,6 +364,7 @@ def _run_one_time_step(time_step, sc_network, transport_network,
             locality=recon.reconstruction_locality,
             damage_by_region=recon.damage_by_region,
             region_key=recon.reconstruction_region_key,
+            public_share=recon.reconstruction_public_share,
         )
 
     # 1. Firms retrieve orders from previous step
@@ -411,6 +412,7 @@ def _run_one_time_step(time_step, sc_network, transport_network,
     # into restored capital, lifting capacity for subsequent steps (the V-shape).
     if recon is not None:
         rebuild_from_reconstruction(firms, recon.capital_input_mix or DEFAULT_CAPITAL_INPUT_MIX)
+        rebuild_public_capital(firms)   # public (invisible) share: rebuild capital directly
 
     # 7b. Collect routing summary from commercial links
     routing_summary = _collect_routing_summary(sc_network, time_step)
