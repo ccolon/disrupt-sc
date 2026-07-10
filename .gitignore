@@ -11,6 +11,8 @@ input/*
 # Local-only scratch files and scripts
 /local/
 
+/runs/
+
 # Local parameter overrides (not tracked)
 *.local.yaml
 
