@@ -14,8 +14,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 
-PARAMS = ["flow_coverage", "utilization_rate", "nb_suppliers_per_input",
-          "reconstruction_market", "reconstruction_public_share", "reconstruction_target_time"]
+PARAMS = ["flow_coverage", "utilization_rate", "nb_suppliers_per_input", "reconstruction_market",
+          "reconstruction_public_share", "reconstruction_target_time", "reconstruction_lag"]
 
 
 def main():
@@ -26,7 +26,11 @@ def main():
     args = ap.parse_args()
 
     df = pd.read_csv(args.csv)
-    swept = [p for p in PARAMS if p in df.columns and df[p].nunique() > 1]
+    is_oat = "oat_param" in df.columns                     # OAT: each panel = baseline + that param's variations
+    if is_oat:
+        swept = [p for p in PARAMS if p in df.columns and (df.oat_param == p).any()]
+    else:
+        swept = [p for p in PARAMS if p in df.columns and df[p].nunique() > 1]
     if not swept:
         raise SystemExit("no parameter varies in the sweep")
 
@@ -34,10 +38,11 @@ def main():
     n = len(swept)
     fig, axes = plt.subplots(1, n, figsize=(3.3 * n, 4.2), squeeze=False, sharey=True)
     for ax, p in zip(axes[0], swept):
-        ax.scatter(df[p], df[args.metric], color="steelblue", alpha=0.4, s=25, zorder=3,
+        sub = df[df.oat_param.isin(["baseline", p])] if is_oat else df
+        ax.scatter(sub[p], sub[args.metric], color="steelblue", alpha=0.4, s=25, zorder=3,
                    label=f"runs ({n_seeds} seeds)")
-        gp = df.groupby(p)[args.metric]
-        levels = sorted(df[p].unique())
+        gp = sub.groupby(p)[args.metric]
+        levels = sorted(sub[p].unique())
         mean = gp.mean().reindex(levels)
         lo, hi = gp.min().reindex(levels), gp.max().reindex(levels)
         ax.fill_between(levels, lo.values, hi.values, color="firebrick", alpha=0.15, zorder=2,

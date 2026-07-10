@@ -85,18 +85,50 @@ def main():
     ap = argparse.ArgumentParser(description="Earthquake sensitivity + Monte-Carlo sweep")
     ap.add_argument("--flow-coverage", type=float, default=0.6)
     ap.add_argument("--nb-suppliers", type=int, default=2)
-    ap.add_argument("--t-final", type=int, default=6)
+    ap.add_argument("--t-final", type=int, default=13)
     ap.add_argument("--seeds", type=_seeds, default=None, help="explicit seeds, e.g. 0-9 or 0,1,2")
     ap.add_argument("--n-seeds", type=int, default=None, help="convenience: seeds 0..n-1 (e.g. 10)")
+    # swept levels
     ap.add_argument("--utils", type=_floats, default=[0.6, 0.8, 1.0])
-    ap.add_argument("--recon", type=_bools, default=[True], help="reconstruction_market on/off, e.g. true,false")
+    ap.add_argument("--recon", type=_bools, default=[True, False], help="reconstruction on/off, e.g. true,false")
     ap.add_argument("--public-shares", type=_floats, default=[0.0, 0.8])
-    ap.add_argument("--target-times", type=_floats, default=[730.0])
+    ap.add_argument("--target-times", type=_floats, default=[365.0, 730.0])
+    ap.add_argument("--recon-lags", type=_floats, default=[30.0, 60.0, 90.0], help="reconstruction lag (DAYS)")
+    # strategy: OAT (one-at-a-time vs baseline) or full factorial
+    ap.add_argument("--oat", action="store_true", help="one-at-a-time from baseline (default: full factorial)")
+    ap.add_argument("--oat-tag", default="", help="oat_param label for these rows (build-param variation jobs)")
+    ap.add_argument("--util-base", type=float, default=0.8)
+    ap.add_argument("--recon-base", type=lambda s: str(s).lower() in ("true", "1", "yes", "on"), default=True)
+    ap.add_argument("--public-base", type=float, default=0.8)
+    ap.add_argument("--target-base", type=float, default=730.0)
+    ap.add_argument("--lag-base", type=float, default=60.0)
     ap.add_argument("--out", type=Path, required=True)
     args = ap.parse_args()
 
     seeds = args.seeds if args.seeds is not None else (
         list(range(args.n_seeds)) if args.n_seeds is not None else [0])
+
+    # runtime configs to run within each build: (oat_param_label, {util,recon,public,target,lag})
+    base = dict(util=args.util_base, recon=args.recon_base, public=args.public_base,
+                target=args.target_base, lag=args.lag_base)
+    RT = [("utilization_rate", "util", args.utils), ("reconstruction_market", "recon", args.recon),
+          ("reconstruction_public_share", "public", args.public_shares),
+          ("reconstruction_target_time", "target", args.target_times),
+          ("reconstruction_lag", "lag", args.recon_lags)]
+    if args.oat:
+        run_configs = [("baseline", dict(base))]
+        for name, key, levels in RT:
+            for v in levels:
+                if v != base[key]:
+                    c = dict(base); c[key] = v; run_configs.append((name, c))
+    else:                                                  # full factorial (dedupe recon=False)
+        run_configs = []
+        for u in args.utils:
+            for r in args.recon:
+                inner = ([(p, t, lg) for p in args.public_shares for t in args.target_times for lg in args.recon_lags]
+                         if r else [(args.public_base, args.target_base, args.lag_base)])
+                for p, t, lg in inner:
+                    run_configs.append((args.oat_tag, dict(util=u, recon=r, public=p, target=t, lag=lg)))
 
     setup_logging("info")
     cfg = load_config("EcuadorEQ")
@@ -147,35 +179,31 @@ def main():
         print(f"[seed {seed}] building ...")
         sc, firms, households, countries, firm_va = build_agents(common, ap_, sp, tp, lp, seed)
         state["firm_va"] = firm_va
-        for util in args.utils:
+        for oat_param, rc in run_configs:
             for f in firms.values():
-                f.utilization_rate = util
-            for recon in args.recon:
-                # reconstruction OFF -> public_share/target_time are irrelevant, run once
-                combos = ([(p, t) for p in args.public_shares for t in args.target_times]
-                          if recon else [(0.0, args.target_times[0])])
-                for pshare, target in combos:
-                    TRACE_VA.clear(); TRACE_HH.clear()
-                    d = dict(disr)
-                    d.update(reconstruction_market=recon, reconstruction_public_share=pshare,
-                             reconstruction_target_time=target,
-                             capital_input_mix={"CON": 0.7, "MAN": 0.2, "IMP": 0.1})
-                    logging.disable(logging.INFO)
-                    run_disruption(sc, tn, firms, households, countries, tp, sp, [d], te, firm_table, sp.t_final,
-                                   export_folder=None)
-                    logging.disable(logging.NOTSET)
-                    annual_gdp = TRACE_VA[0] * ppy
-                    gdp_loss = float(sum(TRACE_VA[0] - v for v in TRACE_VA[1:]))
-                    hh_loss = float(sum(TRACE_HH))
-                    rows.append({"seed": seed, "flow_coverage": args.flow_coverage,
-                                 "nb_suppliers_per_input": args.nb_suppliers, "utilization_rate": util,
-                                 "reconstruction_market": recon, "reconstruction_public_share": pshare,
-                                 "reconstruction_target_time": target,
-                                 "household_loss_pct_annual_gdp": round(100.0 * hh_loss / annual_gdp, 4),
-                                 "household_loss_mUSD": round(hh_loss, 2),
-                                 "gdp_loss_pct_annual_gdp": round(100.0 * gdp_loss / annual_gdp, 4)})
-                    print(f"    seed={seed} util={util} recon={recon} public={pshare} target={target}: "
-                          f"hh {rows[-1]['household_loss_pct_annual_gdp']:.2f}% of GDP")
+                f.utilization_rate = rc["util"]
+            TRACE_VA.clear(); TRACE_HH.clear()
+            d = dict(disr)
+            d.update(reconstruction_market=rc["recon"], reconstruction_public_share=rc["public"],
+                     reconstruction_target_time=rc["target"], reconstruction_lag=rc["lag"],
+                     capital_input_mix={"CON": 0.7, "MAN": 0.2, "IMP": 0.1})
+            logging.disable(logging.INFO)
+            run_disruption(sc, tn, firms, households, countries, tp, sp, [d], te, firm_table, sp.t_final,
+                           export_folder=None)
+            logging.disable(logging.NOTSET)
+            annual_gdp = TRACE_VA[0] * ppy
+            gdp_loss = float(sum(TRACE_VA[0] - v for v in TRACE_VA[1:]))
+            hh_loss = float(sum(TRACE_HH))
+            rows.append({"seed": seed, "oat_param": oat_param, "flow_coverage": args.flow_coverage,
+                         "nb_suppliers_per_input": args.nb_suppliers, "utilization_rate": rc["util"],
+                         "reconstruction_market": rc["recon"], "reconstruction_public_share": rc["public"],
+                         "reconstruction_target_time": rc["target"], "reconstruction_lag": rc["lag"],
+                         "household_loss_pct_annual_gdp": round(100.0 * hh_loss / annual_gdp, 4),
+                         "household_loss_mUSD": round(hh_loss, 2),
+                         "gdp_loss_pct_annual_gdp": round(100.0 * gdp_loss / annual_gdp, 4)})
+            print(f"    seed={seed} [{oat_param or 'grid'}] util={rc['util']} recon={rc['recon']} "
+                  f"public={rc['public']} target={rc['target']} lag={rc['lag']}: "
+                  f"hh {rows[-1]['household_loss_pct_annual_gdp']:.2f}% of GDP")
 
     df = pd.DataFrame(rows)
     args.out.parent.mkdir(parents=True, exist_ok=True)
