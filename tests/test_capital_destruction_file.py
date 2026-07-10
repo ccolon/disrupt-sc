@@ -416,6 +416,24 @@ def test_reconstruction_target_time_days_to_steps(tmp_path):
     assert math.isclose(d_day.reconstruction_target_time, 70.0)            # identity at daily
 
 
+def test_reconstruction_lag_days_to_steps_and_gating(tmp_path):
+    from disruptsc.run_pipeline.simulate import _active_reconstruction
+    firms = {"f1": _make_firm("f1", "MANABI - PORTOVIEJO", "INM")}
+    csv = _write_csv(tmp_path, [["MANABI - PORTOVIEJO", "INM", 30.0]])
+    cfg = [{
+        "type": "capital_destruction", "description_type": "subregion_file",
+        "file": str(csv), "unit": "mUSD", "start_time": 1,
+        "reconstruction_market": True, "reconstruction_target_time": 180,
+        "reconstruction_lag": 60,                              # DAYS
+    }]
+    d = parse_disruptions(cfg, None, None, firms, "mUSD", time_resolution="month")[0]
+    assert math.isclose(d.reconstruction_lag, 60 / 30)         # 60 days -> 2 months
+    # reconstruction begins at start_time + lag = 1 + 2 = 3; inactive during the lag
+    assert _active_reconstruction([d], 1) is None
+    assert _active_reconstruction([d], 2) is None
+    assert _active_reconstruction([d], 3) is d
+
+
 def test_inventory_restoration_time_days_to_steps():
     from disruptsc.config import build_params
     base = {"flow_coverage": 0.9, "inventory_restoration_time": 90}        # DAYS
