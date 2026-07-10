@@ -114,6 +114,7 @@ class CapitalDestruction:
     absolute: bool = False
     reconstruction_market: bool = False
     reconstruction_target_time: float = 52  # in time steps (config supplies days, converted at parse)
+    reconstruction_lag: float = 0.0         # steps after start_time before reconstruction begins (days at parse)
     capital_input_mix: dict = field(default_factory=dict)
     # Localized reconstruction: route rebuild demand toward capital-good firms
     # near the damage. locality in [0,1] (scalar or per-sector dict) blends the
@@ -509,6 +510,10 @@ def parse_disruptions(config_list: list | None,
             from disruptsc.config import days_per_timestep
             d.reconstruction_target_time = (
                 cfg.get("reconstruction_target_time", 365) / days_per_timestep(time_resolution)
+            )
+            # reconstruction_lag is given in DAYS in config; convert to time steps.
+            d.reconstruction_lag = (
+                cfg.get("reconstruction_lag", 0) / days_per_timestep(time_resolution)
             )
             d.capital_input_mix = cfg.get("capital_input_mix", {})
             # Localized reconstruction: route rebuild demand toward firms near the
