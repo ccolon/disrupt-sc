@@ -15,7 +15,7 @@ import pandas as pd
 from disruptsc.agents.firm import Firm
 from disruptsc.run_pipeline.disruption import (
     CapitalDestruction, parse_disruptions,
-    place_reconstruction_demand, rebuild_from_reconstruction,
+    place_reconstruction_demand, rebuild_from_reconstruction, rebuild_public_capital,
 )
 
 
@@ -268,6 +268,43 @@ def test_rebuild_restores_active_first_then_idle():
     assert math.isclose(f.idle_capital, 200.0)
     assert math.isclose(f.capital_destroyed, 0.0, abs_tol=1e-9)  # fully restored to the split
     assert math.isclose(f.current_production_capacity, 100.0)
+
+
+# ---------------------------------------------------------------------------
+# Public reconstruction share — rebuilt directly, no private B2B trace
+# ---------------------------------------------------------------------------
+
+def test_public_share_splits_private_b2b_and_direct_rebuild():
+    a = _make_firm("a", "MANABI - PORTOVIEJO", "INM", eq=100.0, capital=300.0)
+    a.incur_capital_destruction(30.0)                         # capital_destroyed = 30
+    con = _make_firm("c", "X - Y", "CON", eq=100.0, capital=10.0)
+    firms = {"a": a, "c": con}
+
+    # 80% public: private B2B demand is only 20% of the 30/10 = 3.0 rebuild rate
+    place_reconstruction_demand(firms, 10, {"CON": 1.0}, public_share=0.8)
+    assert math.isclose(a.capital_demanded, 0.6)              # 0.2 * 3.0 -> private
+    assert math.isclose(a.public_capital_demanded, 2.4)      # 0.8 * 3.0 -> public
+    assert math.isclose(con.reconstruction_demand, 0.6)      # only the private share hits CON firms
+
+    # public rebuild restores capital directly, no firm output consumed
+    con.product_stock = 0.0                                   # no private output available
+    rebuild_from_reconstruction(firms, {"CON": 1.0})         # private rebuild = 0 (no stock)
+    built = rebuild_public_capital(firms)
+    assert math.isclose(built, 2.4)
+    assert math.isclose(a.capital_destroyed, 27.6)           # 30 - 2.4 rebuilt publicly
+
+
+def test_public_share_one_places_no_b2b_demand():
+    a = _make_firm("a", "MANABI - PORTOVIEJO", "INM", eq=100.0, capital=300.0)
+    a.incur_capital_destruction(30.0)
+    con = _make_firm("c", "X - Y", "CON", eq=100.0, capital=10.0)
+    firms = {"a": a, "c": con}
+    agg = place_reconstruction_demand(firms, 10, {"CON": 1.0}, public_share=1.0)
+    assert math.isclose(agg, 0.0)                             # no private aggregate
+    assert math.isclose(con.reconstruction_demand, 0.0)      # nothing on the firm network
+    assert math.isclose(a.public_capital_demanded, 3.0)      # all public
+    rebuild_public_capital(firms)
+    assert math.isclose(a.capital_destroyed, 27.0)           # 30 - 3.0
 
 
 # ---------------------------------------------------------------------------
