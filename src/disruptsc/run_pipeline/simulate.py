@@ -485,13 +485,14 @@ def _is_back_to_equilibrium(households, countries, epsilon):
 
 
 def _active_reconstruction(disruptions, time_step):
-    """Return the reconstruction-enabled ``CapitalDestruction`` that has started
-    by *time_step* (carrying target time, input mix, and locality settings),
-    else ``None``."""
+    """Return the reconstruction-enabled ``CapitalDestruction`` active at
+    *time_step* (carrying target time, input mix, and locality settings),
+    else ``None``. Reconstruction begins ``reconstruction_lag`` steps after the
+    shock (``start_time``), so nothing is rebuilt during the lag window."""
     for d in disruptions or []:
         if (isinstance(d, CapitalDestruction)
                 and getattr(d, "reconstruction_market", False)
-                and d.start_time <= time_step):
+                and d.start_time + getattr(d, "reconstruction_lag", 0.0) <= time_step):
             return d
     return None
 
