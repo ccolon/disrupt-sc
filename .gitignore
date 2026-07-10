@@ -160,3 +160,8 @@ dmypy.json
 
 # Simulation campaign run outputs (drivers write runs/<campaign>/...; study code lives in studies/)
 runs/
+
+# Earthquake paper scratch outputs (figures/CSVs/logs)
+studies/earthquake/paper/_out/
+studies/earthquake/**/_*.out
+studies/earthquake/**/_*.log
