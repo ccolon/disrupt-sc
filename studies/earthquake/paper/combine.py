@@ -24,6 +24,8 @@ def main():
     ap = argparse.ArgumentParser(description="Aggregate sweep across Monte-Carlo seeds")
     ap.add_argument("--in", dest="inp", type=Path, required=True, help="CSV file or dir of shard CSVs")
     ap.add_argument("--out", type=Path, required=True)
+    ap.add_argument("--raw-out", type=Path, default=None,
+                    help="also write the clean concatenated rows here (default: <out dir>/sensitivity_all.csv)")
     ap.add_argument("--metric", default="household_loss_pct_annual_gdp")
     args = ap.parse_args()
 
@@ -34,6 +36,11 @@ def main():
         df = pd.concat([pd.read_csv(f) for f in files], ignore_index=True)
     else:
         df = pd.read_csv(args.inp)
+
+    # clean concatenated rows (single header) for the sensitivity plot
+    raw_out = args.raw_out or (args.out.parent / "sensitivity_all.csv")
+    raw_out.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(raw_out, index=False)
 
     cfg = [c for c in CONFIG if c in df.columns]
     g = df.groupby(cfg, dropna=False)[args.metric]

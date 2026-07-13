@@ -113,9 +113,8 @@ done
 CENTRAL="flow_coverage=${FLOW_BASE} nb_suppliers_per_input=${NB_BASE} utilization_rate=${UTIL_BASE} \
 reconstruction_market=True reconstruction_public_share=${PUBLIC_BASE} \
 reconstruction_target_time=${TARGET_BASE} reconstruction_lag=${LAG_BASE}"
-CP="python ${PAPER}/combine.py --in ${SHARD_DIR} --out ${SUMMARY} && \
-    cat ${SHARD_DIR}/*.csv > ${OUTPUT_DIR}/sensitivity_all.csv 2>/dev/null; \
-    python ${PAPER}/plot/plot_sensitivity.py ${SHARD_DIR}/oat_base_s0.csv --fig ${FIG_DIR}/fig_sensitivity.png || true; \
+CP="python ${PAPER}/combine.py --in ${SHARD_DIR} --out ${SUMMARY} --raw-out ${OUTPUT_DIR}/sensitivity_all.csv && \
+    python ${PAPER}/plot/plot_sensitivity.py ${OUTPUT_DIR}/sensitivity_all.csv --fig ${FIG_DIR}/fig_sensitivity.png && \
     python ${PAPER}/plot/plot_model_table.py --summary ${SUMMARY} --out ${OUTPUT_DIR}/models_table.csv --central ${CENTRAL}"
 CID=$(submit "sens_combine" "$TIME_POST" "$MEM_POST" "$WORKER_IDS" "$CP")
 
