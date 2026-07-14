@@ -85,7 +85,10 @@ submit() {  # echoes the job id (or a fake one under --dry-run)
 }
 
 # ---- (1) BUILD: cache the pre-disruption snapshot once --------------------
-BUILD_PAYLOAD="python ${SWEEP} --build-only --flow-coverage ${FLOW_COVERAGE} --snapshot ${SNAPSHOT}"
+# --rebuild forces a fresh build: the fingerprint keys off config + git SHA, NOT
+# the transport.gpkg contents, so a changed network would otherwise be masked by
+# a stale cache. The build job runs once (~2 min), so always rebuilding is cheap.
+BUILD_PAYLOAD="python ${SWEEP} --build-only --rebuild --flow-coverage ${FLOW_COVERAGE} --snapshot ${SNAPSHOT}"
 BUILD_ID=$(submit "tent_build" "$TIME_LIMIT_BUILD" "$MEM_BUILD" "" "$BUILD_PAYLOAD")
 echo "[build] job ${BUILD_ID}"
 

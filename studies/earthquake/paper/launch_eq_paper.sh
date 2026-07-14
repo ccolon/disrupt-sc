@@ -64,6 +64,11 @@ SHARD_DIR="${OUTPUT_DIR}/sensitivity_shards"
 REF_ROOT="${OUTPUT_DIR}/reference"
 FIG_DIR="${OUTPUT_DIR}/figures"
 SUMMARY="${OUTPUT_DIR}/sensitivity_summary.csv"
+# Data files (committed in the repo) passed explicitly so runs don't depend on the
+# gitignored cluster config's data paths.
+CRIT_CSV="${SCRIPT_DIR}/studies/earthquake/additional_data/input_criticality.csv"
+SHOCK_CSV="${SCRIPT_DIR}/studies/earthquake/additional_data/earthquake_shock_modelready.csv"
+DATA_OVERRIDES="--criticality ${CRIT_CSV} --shock ${SHOCK_CSV}"
 ACTIVATE="source $(dirname "$(dirname "${PYTHON_ENV}")")/bin/activate ${PYTHON_ENV}"
 EXPORTS="export DISRUPT_SC_DATA_PATH=${DATA_PATH} && export PYTHONHASHSEED=0"
 BASE_RT="--util-base ${UTIL_BASE} --recon-base ${RECON_BASE} --public-base ${PUBLIC_BASE} --target-base ${TARGET_BASE} --lag-base ${LAG_BASE} --crit-base ${CRIT_BASE}"
@@ -87,7 +92,7 @@ for (( s=0; s<N_SEEDS; s++ )); do
   P="python ${PAPER}/run_grid.py --oat --flow-coverage ${FLOW_BASE} --nb-suppliers ${NB_BASE} \
      --t-final ${T_FINAL} --seeds ${s} --utils ${UTILS} --recon ${RECON} \
      --public-shares ${PUBLIC_SHARES} --target-times ${TARGET_TIMES} --recon-lags ${RECON_LAGS} \
-     --crit-thresholds ${CRIT_THRESHOLDS} ${BASE_RT} --out ${SHARD_DIR}/oat_base_s${s}.csv"
+     --crit-thresholds ${CRIT_THRESHOLDS} ${BASE_RT} ${DATA_OVERRIDES} --out ${SHARD_DIR}/oat_base_s${s}.csv"
   WID=$(submit "oat_base_s${s}" "$TIME_WORKER" "$MEM_WORKER" "" "$P")
   WORKER_IDS="${WORKER_IDS}${WORKER_IDS:+:}${WID}"
   # flow_coverage variations (build param) -> baseline runtime, tagged flow_coverage
@@ -96,7 +101,7 @@ for (( s=0; s<N_SEEDS; s++ )); do
     P="python ${PAPER}/run_grid.py --oat-tag flow_coverage --flow-coverage ${flow} --nb-suppliers ${NB_BASE} \
        --t-final ${T_FINAL} --seeds ${s} --utils ${UTIL_BASE} --recon ${RECON_BASE} \
        --public-shares ${PUBLIC_BASE} --target-times ${TARGET_BASE} --recon-lags ${LAG_BASE} \
-       ${BASE_RT} --out ${SHARD_DIR}/oat_flow${flow}_s${s}.csv"
+       ${BASE_RT} ${DATA_OVERRIDES} --out ${SHARD_DIR}/oat_flow${flow}_s${s}.csv"
     WID=$(submit "oat_flow${flow}_s${s}" "$TIME_WORKER" "$MEM_WORKER" "" "$P")
     WORKER_IDS="${WORKER_IDS}:${WID}"
   done
@@ -106,7 +111,7 @@ for (( s=0; s<N_SEEDS; s++ )); do
     P="python ${PAPER}/run_grid.py --oat-tag nb_suppliers_per_input --flow-coverage ${FLOW_BASE} --nb-suppliers ${nb} \
        --t-final ${T_FINAL} --seeds ${s} --utils ${UTIL_BASE} --recon ${RECON_BASE} \
        --public-shares ${PUBLIC_BASE} --target-times ${TARGET_BASE} --recon-lags ${LAG_BASE} \
-       ${BASE_RT} --out ${SHARD_DIR}/oat_nb${nb}_s${s}.csv"
+       ${BASE_RT} ${DATA_OVERRIDES} --out ${SHARD_DIR}/oat_nb${nb}_s${s}.csv"
     WID=$(submit "oat_nb${nb}_s${s}" "$TIME_WORKER" "$MEM_WORKER" "" "$P")
     WORKER_IDS="${WORKER_IDS}:${WID}"
   done
@@ -125,7 +130,7 @@ CID=$(submit "sens_combine" "$TIME_POST" "$MEM_POST" "$WORKER_IDS" "$CP")
 # ---- (B) reference runs + postprocess (analyze -> average -> plot) ---------
 REF_IDS=""
 for (( s=0; s<N_SEEDS; s++ )); do
-  RP="python ${PAPER}/run_reference.py --seed ${s} --t-final ${T_FINAL} --out-root ${REF_ROOT} --cache-isolation"
+  RP="python ${PAPER}/run_reference.py --seed ${s} --t-final ${T_FINAL} --out-root ${REF_ROOT} --cache-isolation ${DATA_OVERRIDES}"
   RID=$(submit "ref_s${s}" "$TIME_REF" "$MEM_REF" "" "$RP")
   REF_IDS="${REF_IDS}${REF_IDS:+:}${RID}"
 done

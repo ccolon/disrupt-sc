@@ -197,12 +197,39 @@ def build_or_load_snapshot(config: dict, snapshot_path: Path, rebuild: bool = Fa
     return snap
 
 
+# Column on transport_edges carrying the stable flood-scenario id (== xlsx edge_id).
+DISRUPTION_ID_COL = "disruption_id"
+
+
+def build_disruption_id_map(transport_edges) -> dict[int, int] | None:
+    """Map flood ``disruption_id`` -> the model's internal edge ``id``.
+
+    The flood table's ``edge_id`` refers to ``disruption_id`` (preserved from the
+    gpkg ``fid``), but ``TransportDisruption`` targets the model's row-order
+    ``id``. Returns the mapping, or None if the network predates the
+    ``disruption_id`` column (then callers fall back to treating edge_id as the
+    model id directly).
+    """
+    if DISRUPTION_ID_COL not in transport_edges.columns:
+        return None
+    te = transport_edges[[DISRUPTION_ID_COL, "id"]].dropna(subset=[DISRUPTION_ID_COL])
+    return {int(d): int(i) for d, i in zip(te[DISRUPTION_ID_COL], te["id"])}
+
+
 # ---------------------------------------------------------------------------
-def run_one_event(snapshot, event, tp, sp):
-    """Deep-copy the baseline, close flooded edges, run 2 x duration steps."""
+def run_one_event(snapshot, event, tp, sp, id_map: dict[int, int] | None):
+    """Deep-copy the baseline, close flooded edges, run 2 x duration steps.
+
+    *id_map* translates flood disruption_ids to model edge ids. When None (old
+    network without a disruption_id column), edge_ids are used as model ids.
+    """
+    if id_map is None:
+        model_ids = list(event.edge_ids)
+    else:
+        model_ids = [id_map[e] for e in event.edge_ids if e in id_map]
     state = copy.deepcopy(snapshot)
     disruption = TransportDisruption(
-        description={eid: 1.0 for eid in event.edge_ids},
+        description={eid: 1.0 for eid in model_ids},
         recovery=Recovery(duration=event.duration_steps, shape="threshold"),
         start_time=1)
     t_final = 2 * event.duration_steps          # run exactly twice the recovery time
@@ -257,7 +284,16 @@ def main():
     # No epsilon early-stop: run the full 2 x duration horizon.
     tp = snapshot["tp"]
     sp = dataclasses.replace(snapshot["sp"], epsilon_stop=0.0)
-    valid_ids = set(snapshot["transport_edges"]["id"].tolist())
+
+    # Flood edge_id targets the stable disruption_id; map it to the model's id.
+    id_map = build_disruption_id_map(snapshot["transport_edges"])
+    if id_map is None:
+        logging.warning(f"transport_edges has no '{DISRUPTION_ID_COL}' column — "
+                        f"treating flood edge_id as the model's row-order id "
+                        f"(rebuild the snapshot from the updated transport.gpkg).")
+        valid_ids = set(snapshot["transport_edges"]["id"].tolist())
+    else:
+        valid_ids = set(id_map)
 
     if args.build_only:
         logging.info("Snapshot ready (build-only). Exiting.")
@@ -266,8 +302,8 @@ def main():
     events = load_events(args.xlsx, days_per_step=1.0, return_periods=args.return_periods)
     missing = sorted(all_flooded_edge_ids(args.xlsx) - valid_ids)
     if missing:
-        logging.warning(f"{len(missing)} flooded edge_id(s) absent from built network "
-                        f"(e.g. {missing[:10]}) — verify edge_id provenance!")
+        logging.warning(f"{len(missing)} flooded {DISRUPTION_ID_COL}(s) absent from the "
+                        f"network (e.g. {missing[:10]}) — those edges will be skipped.")
 
     # Per-shard output so parallel workers never contend on one CSV.
     out_path = Path(args.out)
@@ -290,7 +326,7 @@ def main():
         for i, ev in enumerate(pending, 1):
             logging.disable(logging.INFO)
             t_ev = time.time()
-            losses, t_final = run_one_event(snapshot, ev, tp, sp)
+            losses, t_final = run_one_event(snapshot, ev, tp, sp, id_map)
             dt = time.time() - t_ev
             logging.disable(logging.NOTSET)
             writer.writerow({

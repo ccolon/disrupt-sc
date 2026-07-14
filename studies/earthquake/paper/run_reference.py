@@ -29,6 +29,10 @@ def main():
     ap.add_argument("--out-root", type=Path, default=ROOT / "output" / "earthquake_paper" / "reference")
     ap.add_argument("--cache-isolation", action="store_true",
                     help="private per-process cache dir (avoids cross-scope clobbering on a cluster)")
+    ap.add_argument("--shock", type=Path, default=None,
+                    help="override disruptions[0].file (capital-destruction shock CSV)")
+    ap.add_argument("--criticality", type=Path, default=None,
+                    help="override filepaths.input_criticality (criticality matrix CSV)")
     args = ap.parse_args()
 
     setup_logging("info")
@@ -38,6 +42,10 @@ def main():
     cfg["rationing_mode"] = "equal"
     cfg["export_files"] = True
     cfg["mc_repetitions"] = 0
+    if args.shock:                         # keep data paths independent of the (cluster) config
+        cfg["disruptions"][0]["file"] = str(args.shock)
+    if args.criticality:
+        cfg["filepaths"]["input_criticality"] = str(args.criticality)
 
     out = args.out_root / f"seed_{args.seed}"
     out.mkdir(parents=True, exist_ok=True)

@@ -54,6 +54,7 @@ done
 
 PAPER="${SCRIPT_DIR}/studies/earthquake/paper"
 CRIT_CSV="${SCRIPT_DIR}/studies/earthquake/additional_data/input_criticality.csv"
+SHOCK_CSV="${SCRIPT_DIR}/studies/earthquake/additional_data/earthquake_shock_modelready.csv"
 SHARD_DIR="${OUTPUT_DIR}/shards"
 FIG="${OUTPUT_DIR}/fig_saturation.png"
 SUMMARY="${OUTPUT_DIR}/saturation_summary.csv"
@@ -61,11 +62,13 @@ RAW="${OUTPUT_DIR}/saturation_all.csv"
 ACTIVATE="source $(dirname "$(dirname "${PYTHON_ENV}")")/bin/activate ${PYTHON_ENV}"
 EXPORTS="export DISRUPT_SC_DATA_PATH=${DATA_PATH} && export PYTHONHASHSEED=0"
 
-if [[ ! -f "$CRIT_CSV" ]]; then
-    echo "ERROR: criticality matrix not found at ${CRIT_CSV}" >&2
-    echo "  build it with: python ${PAPER}/../build_criticality.py --pichler <covid19inputoutput>" >&2
+for f in "$CRIT_CSV" "$SHOCK_CSV"; do
+  if [[ ! -f "$f" ]]; then
+    echo "ERROR: required data file not found at ${f}" >&2
+    echo "  (both live in studies/earthquake/additional_data/ and are committed in the repo)" >&2
     exit 1
-fi
+  fi
+done
 $DRY_RUN || mkdir -p "$SHARD_DIR" "$SLURM_LOG_DIR"
 
 submit() {  # echoes the job id (or a fake one under --dry-run); deps are ':'-joined
@@ -83,7 +86,7 @@ WORKER_IDS=""
 for flow in "${FLOW_LEVELS[@]}"; do
   for (( s=0; s<N_SEEDS; s++ )); do
     P="python ${PAPER}/run_grid.py --oat --flow-coverage ${flow} --nb-suppliers ${NB} \
-       --t-final ${T_FINAL} --seeds ${s} --criticality ${CRIT_CSV} \
+       --t-final ${T_FINAL} --seeds ${s} --criticality ${CRIT_CSV} --shock ${SHOCK_CSV} \
        --utils ${UTIL_BASE} --recon ${RECON_BASE} --public-shares ${PUBLIC_BASE} \
        --target-times ${TARGET_BASE} --recon-lags ${LAG_BASE} --crit-thresholds ${CRIT_FLOORS} \
        --util-base ${UTIL_BASE} --recon-base ${RECON_BASE} --public-base ${PUBLIC_BASE} \

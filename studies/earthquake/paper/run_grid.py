@@ -110,6 +110,8 @@ def main():
     ap.add_argument("--crit-base", type=float, default=0.02, help="baseline materiality floor")
     ap.add_argument("--criticality", type=Path, default=None,
                     help="path to the input-criticality matrix CSV (overrides config filepaths.input_criticality)")
+    ap.add_argument("--shock", type=Path, default=None,
+                    help="path to the capital-destruction shock CSV (overrides config disruptions[0].file)")
     ap.add_argument("--out", type=Path, required=True)
     args = ap.parse_args()
 
@@ -149,6 +151,10 @@ def main():
     tp, sp, ap_, lp = build_params(cfg)
     fp = cfg["filepaths"]
     disr = cfg["disruptions"][0]
+    if args.shock:                                          # override config's disruptions[0].file
+        if not Path(args.shock).exists():
+            raise SystemExit(f"--shock file not found: {args.shock}")
+        disr = dict(disr, file=str(args.shock))
     ppy = 365.0 / DAYS_PER_STEP.get(sp.time_resolution, 30)
     print(f"flow_coverage={args.flow_coverage} nb_suppliers={args.nb_suppliers} t_final={sp.t_final} "
           f"seeds={seeds} recon={args.recon}")
