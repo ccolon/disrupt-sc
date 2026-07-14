@@ -24,9 +24,12 @@ PYTHON_ENV="/projects/disruptsc/miniforge3/envs/dsc"
 DATA_PATH="/projects/disruptsc/disrupt-sc-data"
 OUTPUT_DIR="${SCRIPT_DIR}/output/earthquake_paper"
 SLURM_LOG_DIR="${SCRIPT_DIR}/slurm_logs/eq_paper"
-GADM="/projects/disruptsc/WorldBank/Ecuador/Admin/gadm41_ECU_1.json"
+# GADM province polygons, UQ TWFE event-study coefs, and canton→MMI map are all
+# committed in the repo (studies/earthquake/additional_data/), so no WorldBank data
+# path is needed on the cluster.
+GADM="${SCRIPT_DIR}/studies/earthquake/additional_data/gadm41_ECU_1.json"
 CANTON_MMI="${SCRIPT_DIR}/studies/earthquake/additional_data/canton_mmi_bin.csv"
-UQ_TWFE="/projects/disruptsc/WorldBank/Ecuador/Johannes/twfe_event_study_coefs.csv"
+UQ_TWFE="${SCRIPT_DIR}/studies/earthquake/additional_data/twfe_event_study_coefs.csv"
 
 # ========================= SWEEP DESIGN ====================================
 N_SEEDS=10                          # <<< Monte-Carlo seeds (first batch: 10)
