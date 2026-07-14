@@ -14,7 +14,7 @@
 #   (B) REFERENCE: one full-export run per seed at t_final=13; postprocess analyzes each
 #       seed, averages across seeds, and renders the distribution + UQ figures.
 #
-# Usage:  bash studies/earthquake/paper/launch_eq_paper.sh [--dry-run] [--n-seeds 10]
+# Usage:  bash studies/earthquake/paper/launch_eq_paper.sh [--dry-run] [--n-seeds 50] [--ref-seeds 10]
 #
 set -e
 
@@ -32,7 +32,10 @@ CANTON_MMI="${SCRIPT_DIR}/studies/earthquake/additional_data/canton_mmi_bin.csv"
 UQ_TWFE="${SCRIPT_DIR}/studies/earthquake/additional_data/twfe_event_study_coefs.csv"
 
 # ========================= SWEEP DESIGN ====================================
-N_SEEDS=10                          # <<< Monte-Carlo seeds (first batch: 10)
+N_SEEDS=10                          # <<< (A) sensitivity Monte-Carlo seeds (tight MC bands)
+REF_SEEDS=10                        # <<< (B) reference full-export seeds — averaged into the
+                                    #      distribution/UQ figures, so 10-15 is plenty (heavy disk).
+                                    #      Independent of N_SEEDS; override with --ref-seeds.
 T_FINAL=13                          # horizon (months); 13 covers UQ tau 0-12
 
 # baseline (central) config + per-parameter levels swept around it (OAT)
@@ -45,7 +48,7 @@ TARGET_BASE=730; TARGET_TIMES="365,730"
 LAG_BASE=60;     RECON_LAGS="30,60,90"
 # Adapted-Leontief production: IHS Markit criticality matrix gated by a materiality
 # floor. 0.0 = pure matrix (does NOT saturate in flow_coverage); 0.02 = gated baseline.
-CRIT_BASE=0.02;  CRIT_THRESHOLDS="0.0,0.02,0.05"
+CRIT_BASE=0.02;  CRIT_THRESHOLDS="0.0,0.01,0.02,0.05"   # 0.01 = the "too-low" (non-saturating) point
 
 # ------------------------- SLURM resources --------------------------------
 TIME_WORKER="04:00:00"; MEM_WORKER="6G"
@@ -56,8 +59,9 @@ TIME_POST="00:30:00";   MEM_POST="4G"
 DRY_RUN=false
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --dry-run)  DRY_RUN=true; shift ;;
-        --n-seeds)  N_SEEDS=$2; shift 2 ;;
+        --dry-run)   DRY_RUN=true; shift ;;
+        --n-seeds)   N_SEEDS=$2; shift 2 ;;
+        --ref-seeds) REF_SEEDS=$2; shift 2 ;;
         *) shift ;;
     esac
 done
@@ -132,7 +136,7 @@ CID=$(submit "sens_combine" "$TIME_POST" "$MEM_POST" "$WORKER_IDS" "$CP")
 
 # ---- (B) reference runs + postprocess (analyze -> average -> plot) ---------
 REF_IDS=""
-for (( s=0; s<N_SEEDS; s++ )); do
+for (( s=0; s<REF_SEEDS; s++ )); do
   RP="python ${PAPER}/run_reference.py --seed ${s} --t-final ${T_FINAL} --out-root ${REF_ROOT} --cache-isolation ${DATA_OVERRIDES}"
   RID=$(submit "ref_s${s}" "$TIME_REF" "$MEM_REF" "" "$RP")
   REF_IDS="${REF_IDS}${REF_IDS:+:}${RID}"
@@ -150,7 +154,7 @@ n_workers=$(( N_SEEDS * (1 + (${#FLOW_LEVELS[@]}-1) + (${#NB_LEVELS[@]}-1)) ))
 echo
 echo "Submitted paper campaign (OAT sensitivity + MC):"
 echo "  (A) ${n_workers} sweep jobs (${N_SEEDS} seeds x [1 baseline + flow/nb variations]) + combine ${CID}"
-echo "  (B) ${N_SEEDS} reference runs + postprocess ${PID}"
-echo "  baseline: flow=${FLOW_BASE} nb=${NB_BASE} util=${UTIL_BASE} recon=${RECON_BASE} public=${PUBLIC_BASE} target=${TARGET_BASE} lag=${LAG_BASE}"
+echo "  (B) ${REF_SEEDS} reference runs + postprocess ${PID}"
+echo "  baseline: flow=${FLOW_BASE} nb=${NB_BASE} util=${UTIL_BASE} recon=${RECON_BASE} public=${PUBLIC_BASE} target=${TARGET_BASE} lag=${LAG_BASE} crit=${CRIT_BASE}"
 echo "  outputs: ${OUTPUT_DIR}  (sensitivity_summary, models_table, figures/)"
-echo "  change the batch size by editing N_SEEDS at the top."
+echo "  seeds: sensitivity=${N_SEEDS} (--n-seeds), reference=${REF_SEEDS} (--ref-seeds)."
