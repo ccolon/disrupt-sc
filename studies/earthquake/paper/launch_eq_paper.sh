@@ -25,7 +25,7 @@ DATA_PATH="/projects/disruptsc/disrupt-sc-data"
 OUTPUT_DIR="${SCRIPT_DIR}/output/earthquake_paper"
 SLURM_LOG_DIR="${SCRIPT_DIR}/slurm_logs/eq_paper"
 GADM="/projects/disruptsc/WorldBank/Ecuador/Admin/gadm41_ECU_1.json"
-CANTON_MMI="${SCRIPT_DIR}/studies/earthquake/_shock/canton_mmi_bin.csv"
+CANTON_MMI="${SCRIPT_DIR}/studies/earthquake/additional_data/canton_mmi_bin.csv"
 UQ_TWFE="/projects/disruptsc/WorldBank/Ecuador/Johannes/twfe_event_study_coefs.csv"
 
 # ========================= SWEEP DESIGN ====================================

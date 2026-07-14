@@ -56,7 +56,7 @@ def isic(sec): return SEC2ISIC.get(sec, "J-U")
 EXCLUDED = {"FIN", "SEG", "ADP"}                       # ISIC K + O, dropped from metrics (as in UQ)
 
 # real canton -> MMI bin
-cbin = pd.read_csv(ROOT / "studies/earthquake/_shock/canton_mmi_bin.csv")
+cbin = pd.read_csv(ROOT / "studies/earthquake/additional_data/canton_mmi_bin.csv")
 CANTON_BIN = dict(zip(cbin.subregion_canton, cbin.mmi_bin))
 
 # ---- build once -----------------------------------------------------------

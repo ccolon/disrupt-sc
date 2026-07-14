@@ -29,7 +29,7 @@ import pandas as pd
 # --- Paths (edit if the machine layout changes) -----------------------------
 DAMAGES = Path(r"C:\Users\Celian\OneDrive\WorldBank\Ecuador\Analysis\Earthquake\Damages")
 DATA = Path(r"C:\Users\Celian\OneDrive\DisruptSC\disrupt-sc-data\Ecuador")
-OUT_DIR = Path(__file__).resolve().parent / "_shock"
+OUT_DIR = Path(__file__).resolve().parent / "additional_data"
 
 SHOCK_CSV = DAMAGES / "canton_io_destroyed_capital.csv"      # region(code), io_sector, destroyed_capital_M_USD
 CANTON_TOTALS = DAMAGES / "canton_totals.csv"                # region(code), canton_name, province

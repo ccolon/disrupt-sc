@@ -39,7 +39,7 @@ STUDY_DIR = Path(__file__).resolve().parent       # studies/earthquake (study co
 REPO_ROOT = STUDY_DIR.parents[1]                  # repo root
 RUNS_ROOT = REPO_ROOT / "runs" / "earthquake"     # run OUTPUTS live here (the driver writes them)
 # Optional UQ input: region (model subregion_canton or canton code), mmi_bin.
-CANTON_MMI = STUDY_DIR / "_shock" / "canton_mmi_bin.csv"
+CANTON_MMI = STUDY_DIR / "additional_data" / "canton_mmi_bin.csv"
 
 SHOCK_DAY = 1
 ACUTE = (1, 60)

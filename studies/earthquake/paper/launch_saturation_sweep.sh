@@ -13,7 +13,7 @@
 #   -> combine.py aggregates across seeds; plot_saturation.py draws loss-vs-flow_coverage,
 #      one line per floor (flat line = saturated).
 #
-# The criticality matrix (studies/earthquake/_criticality/criticality.csv) is committed
+# The criticality matrix (studies/earthquake/additional_data/input_criticality.csv) is committed
 # in the repo and passed explicitly with --criticality, so this needs no data-repo or
 # config changes on the cluster.
 #
@@ -53,7 +53,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 PAPER="${SCRIPT_DIR}/studies/earthquake/paper"
-CRIT_CSV="${SCRIPT_DIR}/studies/earthquake/_criticality/criticality.csv"
+CRIT_CSV="${SCRIPT_DIR}/studies/earthquake/additional_data/input_criticality.csv"
 SHARD_DIR="${OUTPUT_DIR}/shards"
 FIG="${OUTPUT_DIR}/fig_saturation.png"
 SUMMARY="${OUTPUT_DIR}/saturation_summary.csv"

@@ -7,9 +7,10 @@ Their matrix `crit[i, j]` = criticality of input sector i to producing sector j:
   0   = non-critical  -> never constrains output
 
 We crosswalk each Ecuador trigram sector to one WIOD-54 industry, then look up
-crit[wiod(i), wiod(j)]. Output: `_criticality/criticality.csv` (index = input
-trigram, columns = buyer trigram) committed in the code repo (small, derived, so
-it travels with git to the cluster), plus `_criticality/crosswalk.csv` (audit).
+crit[wiod(i), wiod(j)]. Output: `additional_data/input_criticality.csv` (index =
+input trigram, columns = buyer trigram) committed in the code repo (small, derived,
+so it travels with git to the cluster), plus `additional_data/wiod_correspondance.csv`
+(the ECU→WIOD crosswalk, audit only — not read at run time).
 
 IMP (imports, RoW) is set NON-CRITICAL: imports are globally sourced, not hit by
 the domestic capital shock, and absent from the survey — so imported inputs never
@@ -31,9 +32,9 @@ import pandas as pd
 # or $PICHLER_DIR (the covid19inputoutput root) when running off this machine.
 _PICHLER_DEFAULT = Path(os.environ.get(
     "PICHLER_DIR", r"C:\Users\Celian\OneDrive\DisruptSC\covid19inputoutput"))
-# criticality.csv lives IN the code repo (small, derived, committed) so it travels
-# with git to the cluster. Override with --out-dir.
-_OUT_DEFAULT = Path(__file__).resolve().parent / "_criticality"
+# input_criticality.csv lives IN the code repo (small, derived, committed) so it
+# travels with git to the cluster. Override with --out-dir.
+_OUT_DEFAULT = Path(__file__).resolve().parent / "additional_data"
 
 IMP_CRITICALITY = 0.0  # imports as an input: 0 non-critical / 0.5 important / 1 critical
 
@@ -107,7 +108,7 @@ def main():
     ap.add_argument("--pichler", type=Path, default=_PICHLER_DEFAULT,
                     help="covid19inputoutput root (or set $PICHLER_DIR)")
     ap.add_argument("--out-dir", type=Path, default=_OUT_DEFAULT,
-                    help="where to write criticality.csv + crosswalk.csv")
+                    help="where to write input_criticality.csv + wiod_correspondance.csv")
     args = ap.parse_args()
 
     pichler_csv = args.pichler / "data" / "IHS_matrices_processed" / "IHS_Markit_results_compact.csv"
@@ -137,10 +138,10 @@ def main():
             M.loc[i, j] = float(crit.loc[ECU_TO_WIOD[i], ECU_TO_WIOD[j]])
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
-    out = args.out_dir / "criticality.csv"
+    out = args.out_dir / "input_criticality.csv"
     M.to_csv(out)
     pd.Series(ECU_TO_WIOD, name="wiod_isic").rename_axis("ecu_sector").to_csv(
-        args.out_dir / "crosswalk.csv")
+        args.out_dir / "wiod_correspondance.csv")
 
     # Summary
     vals = M.values
