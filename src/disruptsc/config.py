@@ -219,6 +219,7 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
         weight_localization_firm=config.get("weight_localization_firm", 1.0),
         weight_localization_household=config.get("weight_localization_household", 4.0),
         utilization_rate=config.get("utilization_rate", 0.8),
+        critical_input_threshold=config.get("critical_input_threshold", 0.0),
         inventory_duration_targets=config.get("inventory_duration_targets", {}),
         # inventory_restoration_time is given in DAYS in config; convert to time steps.
         inventory_restoration_time=config.get("inventory_restoration_time", 30.0)

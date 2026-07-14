@@ -16,8 +16,9 @@ from pathlib import Path
 
 import pandas as pd
 
-CONFIG = ["flow_coverage", "nb_suppliers_per_input", "utilization_rate", "reconstruction_market",
-          "reconstruction_public_share", "reconstruction_target_time", "reconstruction_lag"]
+CONFIG = ["flow_coverage", "nb_suppliers_per_input", "utilization_rate", "critical_input_threshold",
+          "reconstruction_market", "reconstruction_public_share", "reconstruction_target_time",
+          "reconstruction_lag"]
 
 
 def main():

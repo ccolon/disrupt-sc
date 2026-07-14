@@ -170,6 +170,7 @@ def create_firms(firm_table: pd.DataFrame, params: AgentParams) -> dict[str, Fir
             target_margin=row.get("target_margin", 0.2),
             transport_share=row.get("transport_share", 0.2),
             utilization_rate=params.utilization_rate,
+            critical_input_threshold=params.critical_input_threshold,
             inventory_restoration_time=params.inventory_restoration_time,
             capital_to_value_added_ratio=params.capital_to_value_added_ratio,
             subregions=subregion_kwargs,
@@ -204,6 +205,52 @@ def load_tech_coefs(firms: dict[str, Firm], mrio: Mrio, selection: Selection):
         if rs_counts[firm.region_sector] < 2:
             coefs.pop(firm.region_sector, None)
         firm.input_mix = coefs
+
+
+def load_input_criticality(firms: dict[str, Firm], criticality: pd.DataFrame):
+    """Attach per-input criticality weights (Pichler adapted Leontief) to firms.
+
+    ``criticality`` is a sector-by-sector matrix (index = input sector, columns =
+    buyer sector) of weights in {0, 0.5, 1}. For each firm (buyer) and each input in
+    its input_mix we look up ``criticality.loc[input_sector, buyer_sector]``. Sectors
+    absent from the matrix default to 1.0 (critical) so coverage gaps stay
+    conservative (strict-Leontief behaviour), never silently non-binding.
+    """
+    # (input_sector, buyer_sector) -> weight, for O(1) lookups
+    lookup = {(i, j): float(criticality.at[i, j])
+              for i in criticality.index for j in criticality.columns}
+
+    def _sector(region_sector: str) -> str:
+        return region_sector.split("_", 1)[-1] if "_" in region_sector else region_sector
+
+    missing_sectors = set()
+    for firm in firms.values():
+        buyer = _sector(firm.region_sector)
+        weights = {}
+        for input_id in firm.input_mix:
+            inp = _sector(input_id)
+            key = (inp, buyer)
+            if key in lookup:
+                weights[input_id] = lookup[key]
+            else:
+                weights[input_id] = 1.0  # conservative default: critical
+                if inp not in criticality.index or buyer not in criticality.columns:
+                    missing_sectors.add(inp if inp not in criticality.index else buyer)
+        firm.input_criticality = weights
+
+    if missing_sectors:
+        logging.warning(
+            f"input_criticality: {len(missing_sectors)} sector(s) absent from the "
+            f"criticality matrix, defaulted to critical: {sorted(missing_sectors)[:10]}"
+        )
+    n_crit = sum(sum(1 for w in f.input_criticality.values() if w >= 1.0) for f in firms.values())
+    n_imp = sum(sum(1 for w in f.input_criticality.values() if 0.5 <= w < 1.0) for f in firms.values())
+    n_non = sum(sum(1 for w in f.input_criticality.values() if w < 0.5) for f in firms.values())
+    tot = max(1, n_crit + n_imp + n_non)
+    logging.info(
+        f"Loaded input criticality: {n_crit} critical / {n_imp} important / {n_non} "
+        f"non-critical input links ({100*n_crit/tot:.0f}/{100*n_imp/tot:.0f}/"
+        f"{100*n_non/tot:.0f}%)")
 
 
 def load_inventories(firms: dict[str, Firm], inventory_targets: dict,

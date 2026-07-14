@@ -14,8 +14,9 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 
-PARAMS = ["flow_coverage", "utilization_rate", "nb_suppliers_per_input", "reconstruction_market",
-          "reconstruction_public_share", "reconstruction_target_time", "reconstruction_lag"]
+PARAMS = ["flow_coverage", "critical_input_threshold", "utilization_rate", "nb_suppliers_per_input",
+          "reconstruction_market", "reconstruction_public_share", "reconstruction_target_time",
+          "reconstruction_lag"]
 
 
 def main():

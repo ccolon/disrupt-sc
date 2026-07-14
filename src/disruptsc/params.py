@@ -78,6 +78,9 @@ class AgentParams:
     weight_localization_firm: float = 1.0
     weight_localization_household: float = 4.0
     utilization_rate: float = 0.8
+    # Partially-Binding Leontief: inputs below this share of a firm's intermediate
+    # cost are non-critical (don't constrain output). 0.0 = strict Leontief.
+    critical_input_threshold: float = 0.0
     inventory_duration_targets: dict = field(default_factory=lambda: {
         "definition": "per_input_type",
         "values": {"default": 30, "utility": 3, "agriculture": 15,

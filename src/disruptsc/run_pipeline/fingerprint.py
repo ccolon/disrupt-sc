@@ -59,6 +59,7 @@ WATERMARKED_CONFIG_KEYS = (
     "country_transport_share",
     "firm_transport_share",
     "utilization_rate",
+    "critical_input_threshold",
     "capital_to_value_added_ratio",
     "inventory_duration_targets",
     "inventory_restoration_time",
@@ -84,6 +85,7 @@ WATERMARKED_FILEPATH_KEYS = (
     "households_spatial",
     "firms_spatial",
     "countries_spatial",
+    "input_criticality",
 )
 
 

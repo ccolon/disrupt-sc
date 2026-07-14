@@ -40,6 +40,9 @@ RECON_BASE=true; RECON="true,false"
 PUBLIC_BASE=0.8; PUBLIC_SHARES="0.0,0.8"
 TARGET_BASE=730; TARGET_TIMES="365,730"
 LAG_BASE=60;     RECON_LAGS="30,60,90"
+# Adapted-Leontief production: IHS Markit criticality matrix gated by a materiality
+# floor. 0.0 = pure matrix (does NOT saturate in flow_coverage); 0.02 = gated baseline.
+CRIT_BASE=0.02;  CRIT_THRESHOLDS="0.0,0.02,0.05"
 
 # ------------------------- SLURM resources --------------------------------
 TIME_WORKER="04:00:00"; MEM_WORKER="6G"
@@ -63,7 +66,7 @@ FIG_DIR="${OUTPUT_DIR}/figures"
 SUMMARY="${OUTPUT_DIR}/sensitivity_summary.csv"
 ACTIVATE="source $(dirname "$(dirname "${PYTHON_ENV}")")/bin/activate ${PYTHON_ENV}"
 EXPORTS="export DISRUPT_SC_DATA_PATH=${DATA_PATH} && export PYTHONHASHSEED=0"
-BASE_RT="--util-base ${UTIL_BASE} --recon-base ${RECON_BASE} --public-base ${PUBLIC_BASE} --target-base ${TARGET_BASE} --lag-base ${LAG_BASE}"
+BASE_RT="--util-base ${UTIL_BASE} --recon-base ${RECON_BASE} --public-base ${PUBLIC_BASE} --target-base ${TARGET_BASE} --lag-base ${LAG_BASE} --crit-base ${CRIT_BASE}"
 
 $DRY_RUN || mkdir -p "$SHARD_DIR" "$REF_ROOT" "$FIG_DIR" "$SLURM_LOG_DIR"
 
@@ -84,7 +87,7 @@ for (( s=0; s<N_SEEDS; s++ )); do
   P="python ${PAPER}/run_grid.py --oat --flow-coverage ${FLOW_BASE} --nb-suppliers ${NB_BASE} \
      --t-final ${T_FINAL} --seeds ${s} --utils ${UTILS} --recon ${RECON} \
      --public-shares ${PUBLIC_SHARES} --target-times ${TARGET_TIMES} --recon-lags ${RECON_LAGS} \
-     ${BASE_RT} --out ${SHARD_DIR}/oat_base_s${s}.csv"
+     --crit-thresholds ${CRIT_THRESHOLDS} ${BASE_RT} --out ${SHARD_DIR}/oat_base_s${s}.csv"
   WID=$(submit "oat_base_s${s}" "$TIME_WORKER" "$MEM_WORKER" "" "$P")
   WORKER_IDS="${WORKER_IDS}${WORKER_IDS:+:}${WID}"
   # flow_coverage variations (build param) -> baseline runtime, tagged flow_coverage
@@ -112,7 +115,8 @@ done
 # ---- (A) combine -> summary + sensitivity figure + model table ------------
 CENTRAL="flow_coverage=${FLOW_BASE} nb_suppliers_per_input=${NB_BASE} utilization_rate=${UTIL_BASE} \
 reconstruction_market=True reconstruction_public_share=${PUBLIC_BASE} \
-reconstruction_target_time=${TARGET_BASE} reconstruction_lag=${LAG_BASE}"
+reconstruction_target_time=${TARGET_BASE} reconstruction_lag=${LAG_BASE} \
+critical_input_threshold=${CRIT_BASE}"
 CP="python ${PAPER}/combine.py --in ${SHARD_DIR} --out ${SUMMARY} --raw-out ${OUTPUT_DIR}/sensitivity_all.csv && \
     python ${PAPER}/plot/plot_sensitivity.py ${OUTPUT_DIR}/sensitivity_all.csv --fig ${FIG_DIR}/fig_sensitivity.png && \
     python ${PAPER}/plot/plot_model_table.py --summary ${SUMMARY} --out ${OUTPUT_DIR}/models_table.csv --central ${CENTRAL}"

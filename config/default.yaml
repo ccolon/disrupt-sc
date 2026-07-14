@@ -273,6 +273,15 @@ utilization_rate: 0.8
 # so full mobilization takes ~tau. Smaller = faster capacity response.
 time_to_activate_idle_capital: 30
 
+# Partially-Binding Leontief production (Pichler et al. 2022). An input constrains
+# a firm's output only if its share of the firm's total intermediate requirement is
+# >= critical_input_threshold; below-threshold inputs are "non-critical" and never
+# cap production (they are still consumed while available). This prevents a tiny
+# supplier link from transmitting a full cascade, and makes results saturate in
+# flow_coverage. 0.0 = strict Leontief (every input binds); 0.05-0.10 keeps only
+# economically important inputs binding.
+critical_input_threshold: 0.0
+
 # Determines the way firms ration their clients if they cannot meet all demand
 # Possible values are:
 # - 'equal': all clients are equally rationned in proportion of their order

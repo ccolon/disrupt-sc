@@ -9,6 +9,7 @@ import threading
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import yaml
 
 if __package__ in (None, ""):
@@ -41,8 +42,8 @@ from disruptsc.init_pipeline.load_data import (
 )
 from disruptsc.init_pipeline.transport import build_transport_network
 from disruptsc.init_pipeline.agents import (
-    create_firm_table, create_firms, load_tech_coefs, load_inventories,
-    configure_household_inventories,
+    create_firm_table, create_firms, load_tech_coefs, load_input_criticality,
+    load_inventories, configure_household_inventories,
     create_household_table, create_households, create_countries,
 )
 from disruptsc.init_pipeline.supply_chain import build_supply_chain_network
@@ -208,6 +209,9 @@ def execute(config: dict, *, cache: str | None = None,
         )
         firms = create_firms(firm_table, ap)
         load_tech_coefs(firms, mrio, selection)
+        crit_path = filepaths.get("input_criticality")
+        if crit_path and Path(crit_path).exists():
+            load_input_criticality(firms, pd.read_csv(crit_path, index_col=0))
         load_inventories(firms, ap.inventory_duration_targets,
                          sp.time_resolution, sector_table)
 

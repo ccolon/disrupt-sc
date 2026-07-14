@@ -45,6 +45,16 @@ class Firm:
     current_production_capacity: float = 0.0
     eq_production_capacity: float = 0.0
     utilization_rate: float = 0.8
+    # Partially-Binding Leontief: inputs whose share of the firm's total intermediate
+    # cost is below this threshold are non-critical and do NOT constrain production
+    # (they are still consumed if available). 0.0 = strict Leontief (all inputs bind).
+    # Ignored when input_criticality is populated (the survey matrix takes over).
+    critical_input_threshold: float = 0.0
+    # Per-input criticality weight (Pichler et al. 2022 adapted Leontief), keyed by
+    # input_id: 1.0 = critical (hard Leontief bind), 0.5 = important (soft floor at
+    # half of eq output), 0.0 = non-critical (never binds). Empty ⇒ fall back to
+    # critical_input_threshold / strict Leontief. Missing key defaults to 1.0.
+    input_criticality: dict[str, float] = field(default_factory=dict)
     production: float = 0.0
     production_target: float = 0.0
     product_stock: float = 0.0
@@ -221,17 +231,50 @@ class Firm:
     # ------------------------------------------------------------------
 
     def produce(self):
-        """Leontief production: consume inputs, add output to stock."""
+        """Partially-Binding ("adapted") Leontief production (Pichler et al. 2022).
+
+        Each input gets a criticality weight that decides how it constrains output:
+          * critical (>=1.0): hard Leontief bind — output ≤ inventory/coef;
+          * important (0.5): soft floor — output ≤ 0.5·(inventory/coef) + 0.5·eq,
+            so a fully depleted important input caps output at half of eq, not zero;
+          * non-critical (<0.5): never constrains output (still consumed if present).
+
+        The weight comes from two composable knobs:
+          * ``input_criticality`` — the IHS Markit survey weight per input (if set);
+          * ``critical_input_threshold`` — a *materiality floor*: any input whose
+            cost share is below it is forced non-critical. This makes the binding
+            set invariant to tiny links, so results saturate in flow_coverage.
+
+        Combinations: matrix only ⇒ survey weights (can over-bind on tiny links);
+        matrix + threshold ⇒ survey weights among material inputs only (saturates);
+        threshold only ⇒ cost-share proxy (material ⇒ critical); neither ⇒ strict
+        Leontief (every input binds). Inputs are consumed in proportion to output."""
         if self.production_target < EPSILON:
             self.production = 0.0
             return
 
-        # Find binding constraint
         max_production = self.current_production_capacity
+        use_matrix = bool(self.input_criticality)
+        thr = self.critical_input_threshold
+        need_share = thr > 0.0
+        total_coef = (sum(c for c in self.input_mix.values() if c > EPSILON)
+                      if need_share else 0.0)
         for input_id, coef in self.input_mix.items():
-            if coef > EPSILON:
-                available = self.inventory.get(input_id, 0.0)
+            if coef <= EPSILON:
+                continue
+            if need_share and (coef / total_coef if total_coef > 0 else 1.0) < thr:
+                weight = 0.0                                   # immaterial ⇒ non-critical
+            elif use_matrix:
+                weight = self.input_criticality.get(input_id, 1.0)
+            else:
+                weight = 1.0                                   # material (or strict): binds
+            available = self.inventory.get(input_id, 0.0)
+            if weight >= 1.0:                                  # critical: hard bind
                 max_production = min(max_production, available / coef)
+            elif weight >= 0.5:                                # important: soft floor
+                soft = 0.5 * (available / coef) + 0.5 * self.eq_production
+                max_production = min(max_production, soft)
+            # else non-critical: no production constraint
 
         self.production = max(0.0, min(self.production_target, max_production))
 

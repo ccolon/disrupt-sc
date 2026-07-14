@@ -33,9 +33,9 @@ from disruptsc.init_pipeline.transport import build_transport_network          #
 from disruptsc.init_pipeline.load_data import (                                # noqa: E402
     load_mrio, load_sector_table, load_usd_per_ton, filter_sectors)
 from disruptsc.init_pipeline.agents import (                                   # noqa: E402
-    create_firm_table, create_firms, load_tech_coefs, load_inventories,
-    configure_household_inventories, create_household_table, create_households,
-    create_countries)
+    create_firm_table, create_firms, load_tech_coefs, load_input_criticality,
+    load_inventories, configure_household_inventories, create_household_table,
+    create_households, create_countries)
 from disruptsc.init_pipeline.supply_chain import build_supply_chain_network    # noqa: E402
 import disruptsc.run_pipeline.simulate as S                                    # noqa: E402
 from disruptsc.run_pipeline.simulate import run_disruption, set_initial_conditions  # noqa: E402
@@ -60,6 +60,8 @@ def build_agents(common, ap_, sp, tp, lp, seed):
     """Fresh agents + seeded supply-chain network for one Monte-Carlo seed."""
     firms = create_firms(common["firm_table"], ap_)
     load_tech_coefs(firms, common["mrio"], common["selection"])
+    if common.get("crit_df") is not None:
+        load_input_criticality(firms, common["crit_df"])
     load_inventories(firms, ap_.inventory_duration_targets, sp.time_resolution, common["sector_table"])
     households = create_households(common["household_table"], common["consumption"])
     configure_household_inventories(households, ap_.enable_household_inventories, ap_.inventory_duration_targets,
@@ -94,6 +96,9 @@ def main():
     ap.add_argument("--public-shares", type=_floats, default=[0.0, 0.8])
     ap.add_argument("--target-times", type=_floats, default=[365.0, 730.0])
     ap.add_argument("--recon-lags", type=_floats, default=[30.0, 60.0, 90.0], help="reconstruction lag (DAYS)")
+    ap.add_argument("--crit-thresholds", type=_floats, default=[0.0, 0.02, 0.05],
+                    help="critical_input_threshold: materiality floor gating the IHS matrix "
+                         "(0 = pure matrix, does not saturate)")
     # strategy: OAT (one-at-a-time vs baseline) or full factorial
     ap.add_argument("--oat", action="store_true", help="one-at-a-time from baseline (default: full factorial)")
     ap.add_argument("--oat-tag", default="", help="oat_param label for these rows (build-param variation jobs)")
@@ -102,6 +107,9 @@ def main():
     ap.add_argument("--public-base", type=float, default=0.8)
     ap.add_argument("--target-base", type=float, default=730.0)
     ap.add_argument("--lag-base", type=float, default=60.0)
+    ap.add_argument("--crit-base", type=float, default=0.02, help="baseline materiality floor")
+    ap.add_argument("--criticality", type=Path, default=None,
+                    help="path to the input-criticality matrix CSV (overrides config filepaths.input_criticality)")
     ap.add_argument("--out", type=Path, required=True)
     args = ap.parse_args()
 
@@ -110,11 +118,12 @@ def main():
 
     # runtime configs to run within each build: (oat_param_label, {util,recon,public,target,lag})
     base = dict(util=args.util_base, recon=args.recon_base, public=args.public_base,
-                target=args.target_base, lag=args.lag_base)
+                target=args.target_base, lag=args.lag_base, crit=args.crit_base)
     RT = [("utilization_rate", "util", args.utils), ("reconstruction_market", "recon", args.recon),
           ("reconstruction_public_share", "public", args.public_shares),
           ("reconstruction_target_time", "target", args.target_times),
-          ("reconstruction_lag", "lag", args.recon_lags)]
+          ("reconstruction_lag", "lag", args.recon_lags),
+          ("critical_input_threshold", "crit", args.crit_thresholds)]
     if args.oat:
         run_configs = [("baseline", dict(base))]
         for name, key, levels in RT:
@@ -128,7 +137,8 @@ def main():
                 inner = ([(p, t, lg) for p in args.public_shares for t in args.target_times for lg in args.recon_lags]
                          if r else [(args.public_base, args.target_base, args.lag_base)])
                 for p, t, lg in inner:
-                    run_configs.append((args.oat_tag, dict(util=u, recon=r, public=p, target=t, lag=lg)))
+                    run_configs.append((args.oat_tag, dict(util=u, recon=r, public=p, target=t, lag=lg,
+                                                           crit=args.crit_base)))
 
     setup_logging("info")
     cfg = load_config("EcuadorEQ")
@@ -157,9 +167,14 @@ def main():
     household_table, consumption = create_household_table(mrio, fp.get("households_spatial"), tnodes, selection, ap_,
                                                           time_resolution=sp.time_resolution)
     cargo_map = lp.sector_to_cargo_type if tp.use_cargo_types else {"default": "any"}
+    crit_path = args.criticality or fp.get("input_criticality")
+    crit_df = pd.read_csv(crit_path, index_col=0) if crit_path and Path(crit_path).exists() else None
+    if crit_df is None:
+        print(f"WARNING: no criticality matrix at {crit_path} — running strict/proxy Leontief")
     common = dict(tn=tn, te=te, tnodes=tnodes, mrio=mrio, sector_table=sector_table, usd_per_ton=usd_per_ton,
                   selection=selection, firm_table=firm_table, household_table=household_table,
-                  consumption=consumption, cargo_map=cargo_map, countries_path=fp.get("countries_spatial"))
+                  consumption=consumption, cargo_map=cargo_map, countries_path=fp.get("countries_spatial"),
+                  crit_df=crit_df)
 
     # ---- one global trace (reads the current seed's firm_va) ----
     state = {"firm_va": {}}
@@ -182,6 +197,7 @@ def main():
         for oat_param, rc in run_configs:
             for f in firms.values():
                 f.utilization_rate = rc["util"]
+                f.critical_input_threshold = rc["crit"]
             TRACE_VA.clear(); TRACE_HH.clear()
             d = dict(disr)
             d.update(reconstruction_market=rc["recon"], reconstruction_public_share=rc["public"],
@@ -198,6 +214,7 @@ def main():
                          "nb_suppliers_per_input": args.nb_suppliers, "utilization_rate": rc["util"],
                          "reconstruction_market": rc["recon"], "reconstruction_public_share": rc["public"],
                          "reconstruction_target_time": rc["target"], "reconstruction_lag": rc["lag"],
+                         "critical_input_threshold": rc["crit"],
                          "household_loss_pct_annual_gdp": round(100.0 * hh_loss / annual_gdp, 4),
                          "household_loss_mUSD": round(hh_loss, 2),
                          "gdp_loss_pct_annual_gdp": round(100.0 * gdp_loss / annual_gdp, 4)})
@@ -208,7 +225,7 @@ def main():
     df = pd.DataFrame(rows)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(args.out, mode="a", header=not args.out.exists(), index=False)
-    print(f"\n-> appended {len(df)} rows ({len(args.seeds)} seeds) to {args.out}")
+    print(f"\n-> appended {len(df)} rows ({len(seeds)} seeds) to {args.out}")
 
 
 if __name__ == "__main__":
