@@ -24,10 +24,10 @@ PYTHON_ENV="/projects/disruptsc/miniforge3/envs/dsc"
 DATA_PATH="/projects/disruptsc/disrupt-sc-data"
 OUTPUT_DIR="${SCRIPT_DIR}/output/earthquake_paper"
 SLURM_LOG_DIR="${SCRIPT_DIR}/slurm_logs/eq_paper"
-# GADM province polygons, UQ TWFE event-study coefs, and canton→MMI map are all
-# committed in the repo (studies/earthquake/additional_data/), so no WorldBank data
-# path is needed on the cluster.
-GADM="${SCRIPT_DIR}/studies/earthquake/additional_data/gadm41_ECU_1.json"
+# GADM canton polygons (level-2), UQ TWFE event-study coefs, and canton→MMI map are
+# all committed in the repo (studies/earthquake/additional_data/), so no WorldBank
+# data path is needed on the cluster.
+GADM="${SCRIPT_DIR}/studies/earthquake/additional_data/gadm41_ECU_2.json"
 CANTON_MMI="${SCRIPT_DIR}/studies/earthquake/additional_data/canton_mmi_bin.csv"
 UQ_TWFE="${SCRIPT_DIR}/studies/earthquake/additional_data/twfe_event_study_coefs.csv"
 
@@ -43,7 +43,7 @@ FLOW_BASE=0.8;   FLOW_LEVELS=(0.6 0.8 1.0)
 NB_BASE=2;       NB_LEVELS=(1 2 4)
 UTIL_BASE=0.8;   UTILS="0.6,0.8,1.0"
 RECON_BASE=true; RECON="true,false"
-PUBLIC_BASE=0.8; PUBLIC_SHARES="0.0,0.8"
+PUBLIC_BASE=0.8; PUBLIC_SHARES="0.0,0.5,0.8,1.0"   # reconstruction funded externally (aid) share
 TARGET_BASE=730; TARGET_TIMES="365,730"
 LAG_BASE=60;     RECON_LAGS="30,60,90"
 # Adapted-Leontief production: IHS Markit criticality matrix gated by a materiality

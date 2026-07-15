@@ -93,7 +93,7 @@ def main():
     # swept levels
     ap.add_argument("--utils", type=_floats, default=[0.6, 0.8, 1.0])
     ap.add_argument("--recon", type=_bools, default=[True, False], help="reconstruction on/off, e.g. true,false")
-    ap.add_argument("--public-shares", type=_floats, default=[0.0, 0.8])
+    ap.add_argument("--public-shares", type=_floats, default=[0.0, 0.5, 0.8, 1.0])
     ap.add_argument("--target-times", type=_floats, default=[365.0, 730.0])
     ap.add_argument("--recon-lags", type=_floats, default=[30.0, 60.0, 90.0], help="reconstruction lag (DAYS)")
     ap.add_argument("--crit-thresholds", type=_floats, default=[0.0, 0.02, 0.05],
