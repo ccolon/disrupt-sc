@@ -14,7 +14,13 @@
 #   (B) REFERENCE: one full-export run per seed at t_final=13; postprocess analyzes each
 #       seed, averages across seeds, and renders the distribution + UQ figures.
 #
-# Usage:  bash studies/earthquake/paper/launch_eq_paper.sh [--dry-run] [--n-seeds 50] [--ref-seeds 10]
+# Usage:  bash studies/earthquake/paper/launch_eq_paper.sh [--dry-run] [--n-seeds 50] [--ref-seeds 10] [--skip-existing]
+#
+# --skip-existing: don't re-run any worker whose shard (sensitivity_shards/oat_*.csv) or
+#   reference run (reference/seed_*/household_data.csv) already exists. combine + postprocess
+#   still run, refreshing the summary/figures/table from all shards. To refresh just one axis
+#   (e.g. after changing public_share levels), delete the affected shards and re-run with this
+#   flag:  rm ${OUTPUT_DIR}/sensitivity_shards/oat_base_s*.csv && bash ... --skip-existing
 #
 set -e
 
@@ -57,11 +63,13 @@ TIME_POST="00:30:00";   MEM_POST="4G"
 # ===========================================================================
 
 DRY_RUN=false
+SKIP_EXISTING=false          # skip jobs whose output shard / reference dir already exists
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --dry-run)   DRY_RUN=true; shift ;;
-        --n-seeds)   N_SEEDS=$2; shift 2 ;;
-        --ref-seeds) REF_SEEDS=$2; shift 2 ;;
+        --dry-run)       DRY_RUN=true; shift ;;
+        --skip-existing) SKIP_EXISTING=true; shift ;;
+        --n-seeds)       N_SEEDS=$2; shift 2 ;;
+        --ref-seeds)     REF_SEEDS=$2; shift 2 ;;
         *) shift ;;
     esac
 done
@@ -92,6 +100,21 @@ submit() {  # echoes the job id (or a fake one under --dry-run); deps are ':'-jo
     else eval "$cmd"; fi
 }
 
+add_id() {  # append a (possibly empty) job id to a ':'-joined list variable, safely
+    [[ -z "$2" ]] && return
+    local cur="${!1}"
+    printf -v "$1" '%s' "${cur}${cur:+:}$2"
+}
+
+# submit a worker unless --skip-existing and its output shard already exists (non-empty).
+# echoes the job id, or nothing when skipped.
+submit_if_missing() {  # $1=output_path $2=job $3=time $4=mem $5=payload
+    if [[ "$SKIP_EXISTING" == true && -s "$1" ]]; then
+        echo "  skip ${2} (output exists: $1)" >&2; return
+    fi
+    submit "$2" "$3" "$4" "" "$5"
+}
+
 # ---- (A) OAT + MC workers -------------------------------------------------
 WORKER_IDS=""
 for (( s=0; s<N_SEEDS; s++ )); do
@@ -100,8 +123,7 @@ for (( s=0; s<N_SEEDS; s++ )); do
      --t-final ${T_FINAL} --seeds ${s} --utils ${UTILS} --recon ${RECON} \
      --public-shares ${PUBLIC_SHARES} --target-times ${TARGET_TIMES} --recon-lags ${RECON_LAGS} \
      --crit-thresholds ${CRIT_THRESHOLDS} ${BASE_RT} ${DATA_OVERRIDES} --out ${SHARD_DIR}/oat_base_s${s}.csv"
-  WID=$(submit "oat_base_s${s}" "$TIME_WORKER" "$MEM_WORKER" "" "$P")
-  WORKER_IDS="${WORKER_IDS}${WORKER_IDS:+:}${WID}"
+  add_id WORKER_IDS "$(submit_if_missing "${SHARD_DIR}/oat_base_s${s}.csv" "oat_base_s${s}" "$TIME_WORKER" "$MEM_WORKER" "$P")"
   # flow_coverage variations (build param) -> baseline runtime, tagged flow_coverage
   for flow in "${FLOW_LEVELS[@]}"; do
     [[ "$flow" == "$FLOW_BASE" ]] && continue
@@ -109,8 +131,7 @@ for (( s=0; s<N_SEEDS; s++ )); do
        --t-final ${T_FINAL} --seeds ${s} --utils ${UTIL_BASE} --recon ${RECON_BASE} \
        --public-shares ${PUBLIC_BASE} --target-times ${TARGET_BASE} --recon-lags ${LAG_BASE} \
        ${BASE_RT} ${DATA_OVERRIDES} --out ${SHARD_DIR}/oat_flow${flow}_s${s}.csv"
-    WID=$(submit "oat_flow${flow}_s${s}" "$TIME_WORKER" "$MEM_WORKER" "" "$P")
-    WORKER_IDS="${WORKER_IDS}:${WID}"
+    add_id WORKER_IDS "$(submit_if_missing "${SHARD_DIR}/oat_flow${flow}_s${s}.csv" "oat_flow${flow}_s${s}" "$TIME_WORKER" "$MEM_WORKER" "$P")"
   done
   # nb_suppliers variations
   for nb in "${NB_LEVELS[@]}"; do
@@ -119,8 +140,7 @@ for (( s=0; s<N_SEEDS; s++ )); do
        --t-final ${T_FINAL} --seeds ${s} --utils ${UTIL_BASE} --recon ${RECON_BASE} \
        --public-shares ${PUBLIC_BASE} --target-times ${TARGET_BASE} --recon-lags ${LAG_BASE} \
        ${BASE_RT} ${DATA_OVERRIDES} --out ${SHARD_DIR}/oat_nb${nb}_s${s}.csv"
-    WID=$(submit "oat_nb${nb}_s${s}" "$TIME_WORKER" "$MEM_WORKER" "" "$P")
-    WORKER_IDS="${WORKER_IDS}:${WID}"
+    add_id WORKER_IDS "$(submit_if_missing "${SHARD_DIR}/oat_nb${nb}_s${s}.csv" "oat_nb${nb}_s${s}" "$TIME_WORKER" "$MEM_WORKER" "$P")"
   done
 done
 
@@ -138,8 +158,7 @@ CID=$(submit "sens_combine" "$TIME_POST" "$MEM_POST" "$WORKER_IDS" "$CP")
 REF_IDS=""
 for (( s=0; s<REF_SEEDS; s++ )); do
   RP="python ${PAPER}/run_reference.py --seed ${s} --t-final ${T_FINAL} --out-root ${REF_ROOT} --cache-isolation ${DATA_OVERRIDES}"
-  RID=$(submit "ref_s${s}" "$TIME_REF" "$MEM_REF" "" "$RP")
-  REF_IDS="${REF_IDS}${REF_IDS:+:}${RID}"
+  add_id REF_IDS "$(submit_if_missing "${REF_ROOT}/seed_${s}/household_data.csv" "ref_s${s}" "$TIME_REF" "$MEM_REF" "$RP")"
 done
 PP="for d in ${REF_ROOT}/seed_*; do \
       python ${PAPER}/analyze/distribution.py \$d --out-dir \$d; \
@@ -158,3 +177,4 @@ echo "  (B) ${REF_SEEDS} reference runs + postprocess ${PID}"
 echo "  baseline: flow=${FLOW_BASE} nb=${NB_BASE} util=${UTIL_BASE} recon=${RECON_BASE} public=${PUBLIC_BASE} target=${TARGET_BASE} lag=${LAG_BASE} crit=${CRIT_BASE}"
 echo "  outputs: ${OUTPUT_DIR}  (sensitivity_summary, models_table, figures/)"
 echo "  seeds: sensitivity=${N_SEEDS} (--n-seeds), reference=${REF_SEEDS} (--ref-seeds)."
+$SKIP_EXISTING && echo "  --skip-existing ON: only missing shards/reference runs submitted; combine+postprocess always refresh."
