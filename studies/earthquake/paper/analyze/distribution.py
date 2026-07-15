@@ -76,22 +76,37 @@ def main():
     st["sector_label"] = st.isic.map(ISIC_LABEL).fillna(st.isic)
     st.to_csv(out_dir / "loss_by_sector_time.csv", index=False)
 
-    # --- MAP: household loss by province (cumulative) ---
+    # --- MAP: household loss by province AND canton (cumulative) ---
+    # The model is one household per canton, so canton is the native resolution and
+    # province is an aggregation up. We emit both; plot_distribution uses the canton one.
     hd = pd.read_csv(args.run_dir / "household_data.csv", usecols=["time_step", "household", "consumption_loss"])
     hd = hd.loc[hd.time_step >= 1]
-    ht = gpd.read_file(args.run_dir / "household_table.geojson")[["household", "subregion_province"]]
-    prov = hd.merge(ht, on="household", how="left")
-    pv = (prov.groupby("subregion_province").consumption_loss.sum().reset_index()
+    ht = gpd.read_file(args.run_dir / "household_table.geojson")[
+        ["household", "subregion_province", "subregion_canton", "canton_name"]]
+    geo = hd.merge(ht, on="household", how="left")
+
+    pv = (geo.groupby("subregion_province").consumption_loss.sum().reset_index()
               .rename(columns={"subregion_province": "province", "consumption_loss": "household_loss_mUSD"})
               .sort_values("household_loss_mUSD", ascending=False))
     pv["pct_gdp"] = 100.0 * pv.household_loss_mUSD / G
     pv["share_pct"] = 100.0 * pv.household_loss_mUSD / pv.household_loss_mUSD.sum()
     pv.to_csv(out_dir / "loss_by_province_year.csv", index=False)
 
+    # canton: keep province + canton_name so the map can join on (province, canton).
+    cv = (geo.groupby(["subregion_canton", "subregion_province", "canton_name"]).consumption_loss.sum()
+             .reset_index()
+             .rename(columns={"subregion_canton": "canton", "subregion_province": "province",
+                              "consumption_loss": "household_loss_mUSD"})
+             .sort_values("household_loss_mUSD", ascending=False))
+    cv["pct_gdp"] = 100.0 * cv.household_loss_mUSD / G
+    cv["share_pct"] = 100.0 * cv.household_loss_mUSD / cv.household_loss_mUSD.sum()
+    cv.to_csv(out_dir / "loss_by_canton_year.csv", index=False)
+
     print(f"annual GDP: {G:,.0f} mUSD")
     print(f"total household loss: {pv.household_loss_mUSD.sum():,.1f} mUSD = {100*pv.household_loss_mUSD.sum()/G:.2f}% of GDP")
-    print(f"top provinces:\n{pv.head(6).to_string(index=False)}")
-    print(f"\n-> {out_dir/'loss_by_sector_time.csv'}\n-> {out_dir/'loss_by_province_year.csv'}")
+    print(f"top cantons:\n{cv.head(6)[['canton','pct_gdp','share_pct']].to_string(index=False)}")
+    print(f"\n-> {out_dir/'loss_by_sector_time.csv'}\n-> {out_dir/'loss_by_province_year.csv'}"
+          f"\n-> {out_dir/'loss_by_canton_year.csv'}")
 
 
 if __name__ == "__main__":
