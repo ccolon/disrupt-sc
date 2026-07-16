@@ -385,7 +385,8 @@ def _run_one_time_step(time_step, sc_network, transport_network,
 
     # 3. Purchase planning
     for firm in firms.values():
-        firm.plan_purchase(sp.adaptive_inventories, sp.adaptive_supplier_weight)
+        firm.plan_purchase(sp.adaptive_inventories, sp.adaptive_supplier_weight,
+                           sp.capacity_constrained_orders)
 
     # 4. All agents send purchase orders
     for hh in households.values():
@@ -413,6 +414,14 @@ def _run_one_time_step(time_step, sc_network, transport_network,
     if recon is not None:
         rebuild_from_reconstruction(firms, recon.capital_input_mix or DEFAULT_CAPITAL_INPUT_MIX)
         rebuild_public_capital(firms)   # public (invisible) share: rebuild capital directly
+
+    # 7s. Update supplier satisfaction (realized delivery/order fill rate) so the
+    # NEXT step's adaptive supplier-weight can shift orders away from suppliers that
+    # persistently under-deliver (e.g. capital-destroyed firms). No-op unless
+    # adaptive_supplier_weight is on.
+    if sp.adaptive_supplier_weight:
+        for firm in firms.values():
+            firm.update_supplier_satisfaction(sc_network)
 
     # 7b. Collect routing summary from commercial links
     routing_summary = _collect_routing_summary(sc_network, time_step)

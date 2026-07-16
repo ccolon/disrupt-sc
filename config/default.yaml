@@ -258,6 +258,13 @@ enable_household_inventories: False
 # based on how well they covered the previous order
 adaptive_supplier_weight: False
 
+# When True, firms cap their input orders at current production capacity: a firm whose
+# capacity is reduced (e.g. capital destroyed) orders inputs only for the output it can
+# actually produce, rather than over-ordering inputs for its full demand (which would
+# otherwise pile into inventory unused and inflate the value-added loss). False keeps the
+# legacy demand-driven ordering.
+capacity_constrained_orders: False
+
 # Determines the initial utilization rate of firms
 # It is used to determine, based on the production of the input-output equilibrium, the production capacity of the firms
 # E.g., if a firm produces 80 and has a 0.8 utilization rate, then its production capacity is set to 100.

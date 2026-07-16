@@ -50,6 +50,9 @@ class SimParams:
     propagate_input_price_change: bool = True
     adaptive_inventories: bool = False
     adaptive_supplier_weight: bool = False
+    # When True, firms cap input orders at current production capacity (a
+    # capacity-destroyed firm stops over-ordering inputs it cannot process).
+    capacity_constrained_orders: bool = False
     # Characteristic time (DAYS) to mobilize idle capital into active capacity.
     # Per step at most min(1, days_per_step/tau) of idle can be activated (or
     # active mothballed), so a firm reaches full mobilization in ~tau.
