@@ -83,8 +83,13 @@ class Household:
             self.inventory = {}
             return
 
+        # Households receive_products() BEFORE consume() each step, so the current
+        # delivery already covers consumption even with a sub-step buffer — no 1-step
+        # floor is needed (unlike firms, which produce before receiving). max(x, 0.0)
+        # lets the configured inventory duration (e.g. 7 days) be honoured instead of
+        # being clamped up to a full time step.
         self.inventory = {
-            sector: need * max(self.inventory_duration_target.get(sector, 1.0), 1.0)
+            sector: need * max(self.inventory_duration_target.get(sector, 1.0), 0.0)
             for sector, need in self.eq_needs.items()
         }
 
@@ -101,7 +106,7 @@ class Household:
         sector_totals = {}
         for sector, need in self.sector_consumption.items():
             eq_need = self.eq_needs.get(sector, need)
-            target_inventory = eq_need * max(self.inventory_duration_target.get(sector, 1.0), 1.0)
+            target_inventory = eq_need * max(self.inventory_duration_target.get(sector, 1.0), 0.0)  # honour sub-step durations (see initialize_inventory)
             current_inv = self.inventory.get(sector, 0.0)
             restoration = max(0.0, target_inventory - current_inv) / max(self.inventory_restoration_time, 1.0)
             sector_totals[sector] = need + restoration
