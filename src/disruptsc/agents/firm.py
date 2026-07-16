@@ -19,6 +19,11 @@ if TYPE_CHECKING:
     from disruptsc.network.transport_network import TransportNetwork
     from disruptsc.params import TransportParams
 
+# EMA weight for supplier satisfaction (delivery/order fill rate). New signal gets
+# this weight, prior satisfaction (1-this). 0.5 ⇒ converges in ~3-4 steps; damps the
+# order/deliver oscillation a raw per-step ratio would cause.
+SATISFACTION_SMOOTHING = 0.5
+
 
 @dataclass(eq=False)
 class Firm:
@@ -215,9 +220,10 @@ class Firm:
         if propagate_price:
             self._calculate_price(sc_network)
 
-    def plan_purchase(self, adaptive_inventories: bool, adaptive_weight: bool):
+    def plan_purchase(self, adaptive_inventories: bool, adaptive_weight: bool,
+                      capacity_constrained: bool = False):
         """Decide purchase plan per supplier based on inventory needs."""
-        self._evaluate_input_needs()
+        self._evaluate_input_needs(capacity_constrained)
         self._decide_purchase_plan(adaptive_inventories, adaptive_weight)
 
     def send_purchase_orders(self, sc_network: ScNetwork):
@@ -225,6 +231,24 @@ class Firm:
         for supplier, _, data in sc_network.in_edges(self, data=True):
             link: CommercialLink = data["object"]
             link.order = self.purchase_plan.get(supplier.pid, 0.0)
+
+    def update_supplier_satisfaction(self, sc_network: ScNetwork,
+                                     smoothing: float = SATISFACTION_SMOOTHING):
+        """Update each supplier's satisfaction = EMA of its realized fill rate
+        (delivery / order on that link). This feeds the NEXT step's adaptive
+        supplier-weight substitution: a supplier that persistently under-delivers
+        loses weight, so buyers shift orders toward reliable suppliers of the same
+        input. Call AFTER deliver(). Suppliers not ordered from this step keep their
+        prior satisfaction (no order ⇒ no new signal, avoids recovery oscillation)."""
+        for supplier, _, data in sc_network.in_edges(self, data=True):
+            info = self.suppliers.get(supplier.pid)
+            if info is None:
+                continue
+            link: CommercialLink = data["object"]
+            if link.order < EPSILON:
+                continue
+            rate = min(1.0, link.delivery / link.order)
+            info["satisfaction"] = smoothing * rate + (1.0 - smoothing) * info.get("satisfaction", 1.0)
 
     # ------------------------------------------------------------------
     # Simulation loop — Phase 2: Produce
@@ -509,10 +533,18 @@ class Firm:
     # Private helpers
     # ------------------------------------------------------------------
 
-    def _evaluate_input_needs(self):
-        """Calculate how much of each input is needed for production target."""
+    def _evaluate_input_needs(self, capacity_constrained: bool = False):
+        """Calculate how much of each input is needed. By default needs track the
+        production *target* (demand). With ``capacity_constrained`` they are capped at
+        the firm's current production capacity, so a capacity-limited firm (e.g. one
+        whose capital was destroyed) orders inputs only for the output it can actually
+        make — instead of over-ordering inputs it cannot process (which otherwise pile
+        into inventory and inflate the value-added loss)."""
+        planned = self.production_target
+        if capacity_constrained:
+            planned = min(planned, self.current_production_capacity)
         self.input_needs = {
-            input_id: coef * self.production_target
+            input_id: coef * planned
             for input_id, coef in self.input_mix.items()
         }
 
