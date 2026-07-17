@@ -110,6 +110,17 @@ def main():
     ap.add_argument("--target-base", type=float, default=730.0)
     ap.add_argument("--lag-base", type=float, default=60.0)
     ap.add_argument("--crit-base", type=float, default=0.02, help="baseline materiality floor")
+    # Inventory sensitivity: multiplicative scales (OAT, x1 = baseline) applied in-process
+    # per config -- no rebuild (run_disruption re-inits inventory from the scaled targets).
+    ap.add_argument("--firm-inv-scales", type=_floats, default=[0.5, 2.0],
+                    help="multiply ALL firm input buffers by these factors")
+    ap.add_argument("--hh-inv-scales", type=_floats, default=[0.5, 2.0],
+                    help="multiply ALL household buffers by these factors")
+    ap.add_argument("--type-buffer-scales", type=_floats, default=[0.5, 2.0],
+                    help="multiply EACH firm input-type buffer in turn -- service/mfg/ag/trade/"
+                         "transport/utility, one OAT axis per type (isolates each type's lever)")
+    ap.add_argument("--restoration-scales", type=_floats, default=[0.5, 2.0],
+                    help="multiply inventory_restoration_time (restock speed; firm+household)")
     ap.add_argument("--criticality", type=Path, default=None,
                     help="path to the input-criticality matrix CSV (overrides config filepaths.input_criticality)")
     ap.add_argument("--shock", type=Path, default=None,
@@ -121,13 +132,22 @@ def main():
         list(range(args.n_seeds)) if args.n_seeds is not None else [0])
 
     # runtime configs to run within each build: (oat_param_label, {util,recon,public,target,lag})
+    # firm input types with a distinct buffer -> one OAT axis each (keyed buf_<type>)
+    FIRM_BUF_TYPES = ["utility", "agriculture", "manufacturing", "trade", "transport", "service"]
     base = dict(util=args.util_base, recon=args.recon_base, public=args.public_base,
-                target=args.target_base, lag=args.lag_base, crit=args.crit_base)
+                target=args.target_base, lag=args.lag_base, crit=args.crit_base,
+                firm_inv=1.0, hh_inv=1.0, restore=1.0)
+    for _t in FIRM_BUF_TYPES:
+        base[f"buf_{_t}"] = 1.0
     RT = [("utilization_rate", "util", args.utils), ("reconstruction_market", "recon", args.recon),
           ("reconstruction_public_share", "public", args.public_shares),
           ("reconstruction_target_time", "target", args.target_times),
           ("reconstruction_lag", "lag", args.recon_lags),
-          ("critical_input_threshold", "crit", args.crit_thresholds)]
+          ("critical_input_threshold", "crit", args.crit_thresholds),
+          ("firm_inventory_scale", "firm_inv", args.firm_inv_scales),
+          ("household_inventory_scale", "hh_inv", args.hh_inv_scales),
+          ("inventory_restoration_scale", "restore", args.restoration_scales)]
+    RT += [(f"firm_{_t}_buffer_scale", f"buf_{_t}", args.type_buffer_scales) for _t in FIRM_BUF_TYPES]
     if args.oat:
         run_configs = [("baseline", dict(base))]
         for name, key, levels in RT:
@@ -168,6 +188,10 @@ def main():
         default_transport_capacity=cfg.get("default_transport_capacity"), use_cargo_types=tp.use_cargo_types)
     mrio = load_mrio(fp.get("mrio"), ap_.monetary_units_in_data)
     sector_table = load_sector_table(fp.get("sector_table"))
+    _type_of = sector_table.drop_duplicates("sector").set_index("sector")["type"].to_dict()
+    def _input_type(region_sector):        # sector-type of an input, for per-type buffer scales
+        t = _type_of.get(region_sector.split("_", 1)[-1], "default")
+        return "service" if t == "services" else t  # normalise plural
     usd_per_ton = load_usd_per_ton(sector_table)
     selection = filter_sectors(mrio, ap_.flow_coverage, ap_.sectors_to_include, ap_.sectors_to_exclude)
     firm_table = create_firm_table(mrio, sector_table, fp.get("firms_spatial"), fp.get("households_spatial"),
@@ -193,7 +217,10 @@ def main():
         fs, hh = a[3], a[4]
         fv = state["firm_va"]
         TRACE_VA.append(sum(f.production * fv.get(pid, 0.0) for pid, f in fs.items()))
-        TRACE_HH.append(sum(h.consumption_loss for h in hh.values()))
+        # welfare = households only; the national government/investment agents share the
+        # hh dict but are separate accounting agents (would inflate the loss ~2.5x here).
+        TRACE_HH.append(sum(h.consumption_loss for h in hh.values()
+                            if getattr(h, "agent_type", "household") == "household"))
         return r
     S._run_one_time_step = traced
 
@@ -202,10 +229,24 @@ def main():
         print(f"[seed {seed}] building ...")
         sc, firms, households, countries, firm_va = build_agents(common, ap_, sp, tp, lp, seed)
         state["firm_va"] = firm_va
+        # capture the built (x1) inventory scheme so each config re-scales from baseline
+        base_firm_inv = {f.pid: dict(f.inventory_duration_target) for f in firms.values()}
+        base_hh_inv = {h.pid: dict(h.inventory_duration_target) for h in households.values()}
+        base_restore = ap_.inventory_restoration_time
         for oat_param, rc in run_configs:
+            fscale = rc.get("firm_inv", 1.0)
+            hscale, rscale = rc.get("hh_inv", 1.0), rc.get("restore", 1.0)
             for f in firms.values():
                 f.utilization_rate = rc["util"]
                 f.critical_input_threshold = rc["crit"]
+                # firm buffer = base x (all-firm scale) x (that input's per-type scale). In OAT
+                # only one buf_<type> differs from 1.0, so exactly one type is scaled per config.
+                f.inventory_duration_target = {k: v * fscale * rc.get(f"buf_{_input_type(k)}", 1.0)
+                                               for k, v in base_firm_inv[f.pid].items()}
+                f.inventory_restoration_time = base_restore * rscale
+            for h in households.values():
+                h.inventory_duration_target = {k: v * hscale for k, v in base_hh_inv[h.pid].items()}
+                h.inventory_restoration_time = base_restore * rscale
             TRACE_VA.clear(); TRACE_HH.clear()
             d = dict(disr)
             d.update(reconstruction_market=rc["recon"], reconstruction_public_share=rc["public"],
@@ -223,6 +264,10 @@ def main():
                          "reconstruction_market": rc["recon"], "reconstruction_public_share": rc["public"],
                          "reconstruction_target_time": rc["target"], "reconstruction_lag": rc["lag"],
                          "critical_input_threshold": rc["crit"],
+                         "firm_inventory_scale": rc.get("firm_inv", 1.0),
+                         "household_inventory_scale": rc.get("hh_inv", 1.0),
+                         "inventory_restoration_scale": rc.get("restore", 1.0),
+                         **{f"firm_{_t}_buffer_scale": rc.get(f"buf_{_t}", 1.0) for _t in FIRM_BUF_TYPES},
                          "household_loss_pct_annual_gdp": round(100.0 * hh_loss / annual_gdp, 4),
                          "household_loss_mUSD": round(hh_loss, 2),
                          "gdp_loss_pct_annual_gdp": round(100.0 * gdp_loss / annual_gdp, 4)})
