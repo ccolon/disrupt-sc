@@ -84,6 +84,15 @@ class AgentParams:
     # Partially-Binding Leontief: inputs below this share of a firm's intermediate
     # cost are non-critical (don't constrain output). 0.0 = strict Leontief.
     critical_input_threshold: float = 0.0
+    # Firm INPUT inventories. Storable goods (mfg/ag/trade) ~ inventory-to-sales stock;
+    # utility/transport are short (non-storable). service=90 is NOT literal stockpiling
+    # (services can't be warehoused) but a reduced-form COPING/resilience duration: firms
+    # keep operating through a service-input disruption via contracts, redundancy, degraded
+    # operation and substitution the model under-captures. Tested the storability-literal
+    # cut to 7d (2026-07-17): it did NOT improve MMI>7 local severity (acute sales DiD -2.9%
+    # vs UQ -9.6%) but doubled the SPURIOUS national cascade (control-zone recovery sales
+    # -4.9%->-10.9%), so the longer coping-duration value is retained. This is the single
+    # dominant inventory lever -- treat it as a sensitivity axis, not a hard number.
     inventory_duration_targets: dict = field(default_factory=lambda: {
         "definition": "per_input_type",
         "values": {"default": 30, "utility": 3, "agriculture": 15,
