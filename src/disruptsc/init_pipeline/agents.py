@@ -11,7 +11,7 @@ import pandas as pd
 from scipy.spatial import cKDTree
 
 from disruptsc.agents.firm import Firm
-from disruptsc.agents.household import Household
+from disruptsc.agents.household import Household, GovernmentDemand, InvestmentDemand
 from disruptsc.agents.country import Country
 from disruptsc.network.mrio import Mrio, Selection, rescale_monetary_values, _UNITS
 from disruptsc.params import AgentParams
@@ -302,6 +302,14 @@ def configure_household_inventories(households: dict[str, Household],
                                        .set_index("sector")["type"].to_dict())
 
     for hh in households.values():
+        # National government/investment agents hold no inventory (accounting-only,
+        # excluded from the welfare metric) -- never buffer them regardless of `enabled`.
+        if getattr(hh, "agent_type", "household") != "household":
+            hh.use_inventories = False
+            hh.inventory = {}
+            hh.inventory_duration_target = {}
+            hh.eq_needs = dict(hh.sector_consumption)
+            continue
         hh.use_inventories = enabled
         hh.inventory_restoration_time = inventory_restoration_time
         hh.inventory_duration_target = {}
@@ -478,6 +486,73 @@ def create_households(household_table: pd.DataFrame,
         )
         hh.purchase_plan = dict(consumption[idx])  # Will be updated during supply_chain wiring
         households[hh.pid] = hh
+    return households
+
+
+def create_representative_demand_agent(mrio: Mrio, label: str, agent_cls,
+                                       selection: Selection, params: AgentParams,
+                                       time_resolution: str, od_point: int,
+                                       region: str | None = None):
+    """Build ONE national final-demand agent (government or investment) from the whole
+    ``label`` column of the MRIO.
+
+    Unlike households, these are NOT spatially explicit -- a single representative buyer
+    keeps firm equilibrium production correct (its column is part of every seller's row
+    sum) and yields a separate shortfall metric. It buys every consumed sector nationally
+    (``weight_localization=0`` -> suppliers by size only; ``nb_suppliers`` large -> spread
+    across the whole sector so the aggregate agent still "sees" localized disruption) and
+    holds no inventory. Returns ``None`` if the column is absent/empty (e.g. a bundled
+    MRIO with no separate government column).
+    """
+    cols = [c for c in mrio.columns if c[1] == label]
+    if not cols:
+        return None
+    # Valid suppliers = modeled firm region-sectors (selection) + import country rows.
+    valid = set(selection.region_sectors)
+    import_label = mrio.import_label
+    rows = [r for r in mrio.index
+            if (r in valid) or (import_label and r[1] == import_label)]
+    raw = mrio.loc[rows, cols]
+    scaled = rescale_monetary_values(
+        raw, input_units=params.monetary_units_in_data, input_time_resolution="year",
+        target_units=params.monetary_units_in_model, target_time_resolution=time_resolution)
+    series = scaled.sum(axis=1)
+    sector_consumption = {f"{r}_{s}": float(v) for (r, s), v in series.items() if v > 0}
+    if not sector_consumption:
+        return None
+    region = region or (mrio.regions[0] if mrio.regions else "DOM")
+    agent = agent_cls(
+        pid=label, region=region, od_point=int(od_point), name=f"{label}_national",
+        population=1.0, sector_consumption=sector_consumption,
+        use_inventories=False, weight_localization=0.0, nb_suppliers=1e9,
+    )
+    agent.purchase_plan = dict(sector_consumption)  # refined during supply-chain wiring
+    logging.info(
+        f"Created national {label} agent: {len(sector_consumption)} sectors, "
+        f"total demand {sum(sector_consumption.values()):,.0f} {params.monetary_units_in_model}/step"
+    )
+    return agent
+
+
+def add_representative_demand_agents(households: dict, mrio: Mrio, selection: Selection,
+                                     params: AgentParams, time_resolution: str) -> dict:
+    """Add single national government + investment agents into the household dict.
+
+    They flow through all the household machinery (supply-chain wiring, init, ordering,
+    receiving, collection) but are tagged by ``agent_type`` and kept out of the welfare
+    headline. No-op for a bundled MRIO (no separate government/investment columns).
+    Must be called AFTER create_households and BEFORE build_supply_chain_network.
+    """
+    if not households:
+        return households
+    # National od_point = the most-populous household's node. Transport is off for these
+    # ensembles, so the exact node is immaterial; pick a populous, valid one.
+    anchor = max(households.values(), key=lambda h: getattr(h, "population", 0.0) or 0.0)
+    for label, cls in (("government", GovernmentDemand), ("investment", InvestmentDemand)):
+        agent = create_representative_demand_agent(
+            mrio, label, cls, selection, params, time_resolution, anchor.od_point)
+        if agent is not None:
+            households[agent.pid] = agent
     return households
 
 

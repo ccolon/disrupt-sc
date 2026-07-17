@@ -79,8 +79,11 @@ def main():
     # --- MAP: household loss by province AND canton (cumulative) ---
     # The model is one household per canton, so canton is the native resolution and
     # province is an aggregation up. We emit both; plot_distribution uses the canton one.
-    hd = pd.read_csv(args.run_dir / "household_data.csv", usecols=["time_step", "household", "consumption_loss"])
+    hd = pd.read_csv(args.run_dir / "household_data.csv",
+                     usecols=lambda c: c in {"time_step", "household", "consumption_loss", "agent_type"})
     hd = hd.loc[hd.time_step >= 1]
+    if "agent_type" in hd.columns:  # welfare = households only (exclude gov/investment agents)
+        hd = hd.loc[hd.agent_type == "household"]
     ht = gpd.read_file(args.run_dir / "household_table.geojson")[
         ["household", "subregion_province", "subregion_canton", "canton_name"]]
     geo = hd.merge(ht, on="household", how="left")

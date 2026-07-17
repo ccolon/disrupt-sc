@@ -62,20 +62,28 @@ def compute_gdp_loss(run_dir: str | Path) -> dict:
     pct_gross = 100.0 * gdp_loss_gross / annual_gdp if annual_gdp else float("nan")
 
     # expenditure-side cross-check (model native)
-    hh_loss = cty_loss = float("nan")
+    hh_loss = cty_loss = gov_loss = inv_loss = float("nan")
     ls = run_dir / "loss_summary.csv"
     if ls.exists():
         s = pd.read_csv(ls)
         hh_loss = float(s.get("households", pd.Series([np.nan])).iloc[0])
         cty_loss = float(s.get("countries", pd.Series([np.nan])).iloc[0])
+        # Separate national final-demand agents (post C/G/I split); NaN for bundled MRIOs.
+        gov_loss = float(s.get("government", pd.Series([np.nan])).iloc[0])
+        inv_loss = float(s.get("investment", pd.Series([np.nan])).iloc[0])
 
     hh_pct = 100.0 * hh_loss / annual_gdp if annual_gdp else float("nan")
 
     disr = (params.get("disruptions") or [{}])[0]
     row = {"run_id": run_dir.name,
-           # headline: household welfare loss as % of annual GDP
+           # headline: household welfare loss as % of annual GDP (private consumption only)
            "household_loss_pct_annual_gdp": round(hh_pct, 4),
            "household_loss_mUSD": round(hh_loss, 3),
+           # separate accounting metrics (not welfare): public-service + investment shortfall
+           "government_loss_mUSD": round(gov_loss, 3),
+           "government_loss_pct_annual_gdp": round(100.0 * gov_loss / annual_gdp, 4) if annual_gdp else float("nan"),
+           "investment_loss_mUSD": round(inv_loss, 3),
+           "investment_loss_pct_annual_gdp": round(100.0 * inv_loss / annual_gdp, 4) if annual_gdp else float("nan"),
            # production-side value-added loss (cross-check; amplified by the cascade)
            "gdp_loss_pct_annual_gdp": round(pct, 4),
            "gdp_loss_mUSD": round(gdp_loss, 3),

@@ -36,6 +36,17 @@ class Household:
     inventory_duration_target: dict[str, float] = field(default_factory=dict)
     inventory_restoration_time: float = 1.0
     eq_needs: dict[str, float] = field(default_factory=dict)
+    # Final-demand agent type: "household" (spatially explicit, welfare metric) vs
+    # "government" / "investment" (single national representative agents -- accounting
+    # consistency only, no inventory, excluded from the household welfare headline).
+    # Subclasses GovernmentDemand / InvestmentDemand override the default.
+    agent_type: str = "household"
+    # Supplier-selection overrides for the national agents (None -> use global params):
+    # weight_localization=0 picks suppliers by size only (no geographic concentration),
+    # nb_suppliers=large spreads demand across the whole sector so an aggregate national
+    # buyer still "sees" localized (e.g. coastal earthquake) disruption proportionally.
+    weight_localization: float | None = None
+    nb_suppliers: float | None = None
 
     # --- Per-timestep tracking ---
     consumption_per_retailer: dict[str, float] = field(default_factory=dict)
@@ -201,6 +212,7 @@ class Household:
         return {
             "time_step": time_step,
             "household": self.pid,
+            "agent_type": self.agent_type,
             "region": self.region,
             "tot_consumption": self.tot_consumption,
             "tot_spending": self.tot_spending,
@@ -228,3 +240,32 @@ class Household:
                 weight = self.retailers[sid].get("weight", 1.0)
                 share = weight / total_weight if total_weight > EPSILON else 0.0
                 self.purchase_plan[sid] = amount * share
+
+
+@dataclass(eq=False)
+class GovernmentDemand(Household):
+    """Single national representative agent for general-government final consumption.
+
+    Reuses all Household machinery (order -> receive -> rationed -> track unmet) but is
+    NOT spatially explicit and holds no inventory. Its demand keeps firm equilibrium
+    production correct (accounting consistency) and its unmet order is reported as a
+    separate public-service-disruption metric, NOT household welfare. A distinct class
+    so household_first rationing and the welfare filter treat it correctly.
+    """
+    agent_type: str = "government"
+
+    def id_str(self) -> str:
+        return f"Government demand in {self.region}"
+
+
+@dataclass(eq=False)
+class InvestmentDemand(Household):
+    """Single national representative agent for gross capital formation (GFCF + inventory
+    change). Same rationale as GovernmentDemand; its unmet order is an investment-shortfall
+    metric, not welfare. Kept as baseline demand so construction retains its equilibrium
+    output and the reconstruction surge can ramp on top of it.
+    """
+    agent_type: str = "investment"
+
+    def id_str(self) -> str:
+        return f"Investment demand in {self.region}"

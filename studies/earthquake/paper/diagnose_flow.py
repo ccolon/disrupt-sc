@@ -33,7 +33,7 @@ from disruptsc.init_pipeline.load_data import (                                #
 from disruptsc.init_pipeline.agents import (                                   # noqa: E402
     create_firm_table, create_firms, load_tech_coefs, load_input_criticality,
     load_inventories, configure_household_inventories, create_household_table,
-    create_households, create_countries)
+    create_households, create_countries, add_representative_demand_agents)
 import pandas as pd                                                            # noqa: E402
 from disruptsc.init_pipeline.supply_chain import build_supply_chain_network    # noqa: E402
 import disruptsc.run_pipeline.simulate as S                                    # noqa: E402
@@ -67,6 +67,7 @@ def build(flow):
     household_table, consumption = create_household_table(mrio, fp.get("households_spatial"), tnodes, selection, ap_,
                                                           time_resolution=sp.time_resolution)
     households = create_households(household_table, consumption)
+    households = add_representative_demand_agents(households, mrio, selection, ap_, sp.time_resolution)
     configure_household_inventories(households, ap_.enable_household_inventories, ap_.household_inventory_duration_targets,
                                     ap_.inventory_restoration_time, sp.time_resolution, sector_table)
     countries = create_countries(mrio, tnodes, fp.get("countries_spatial"), usd_per_ton, sp.time_resolution, ap_,
