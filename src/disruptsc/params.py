@@ -93,6 +93,20 @@ class AgentParams:
     })
     inventory_restoration_time: float = 4.0
     enable_household_inventories: bool = False
+    # Household buffers proxy the retail-shelf + home-pantry stock that the IO
+    # framework omits (bought-for-resale is netted out, so B2C links run
+    # producer->household with no retailer node). Unlike firms, this is calibrated
+    # to *final-consumption* storability, not production buffering: non-storable
+    # services/utilities/transport get a token buffer (coping/substitution proxy),
+    # construction is investment (0), and only physical goods hold real stock.
+    # Keyed on sector_table['type']; see configure_household_inventories.
+    household_inventory_duration_targets: dict = field(default_factory=lambda: {
+        "definition": "per_input_type",
+        "values": {"default": 7, "construction": 0,
+                   "service": 3, "transport": 3, "utility": 3, "trade": 3, "mining": 3,
+                   "agriculture": 7, "manufacturing": 14, "imports": 14},
+        "unit": "day",
+    })
     firm_data_type: str = "mrio"
     sectors_to_include: str = "all"
     sectors_to_exclude: tuple = ()

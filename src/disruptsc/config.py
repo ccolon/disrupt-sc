@@ -222,6 +222,13 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
         utilization_rate=config.get("utilization_rate", 0.8),
         critical_input_threshold=config.get("critical_input_threshold", 0.0),
         inventory_duration_targets=config.get("inventory_duration_targets", {}),
+        # Household buffers are a separate, retail/pantry-calibrated scheme (NOT the
+        # firm map). Falls back to the storable/non-storable default in params.py
+        # when the config omits it. (The legacy 'household_inventory_duration_target'
+        # key was never read; this wires it up.)
+        household_inventory_duration_targets=(
+            config.get("household_inventory_duration_target")
+            or AgentParams.__dataclass_fields__["household_inventory_duration_targets"].default_factory()),
         # inventory_restoration_time is given in DAYS in config; convert to time steps.
         inventory_restoration_time=config.get("inventory_restoration_time", 30.0)
         / days_per_timestep(config.get("time_resolution", "week")),

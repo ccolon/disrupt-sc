@@ -320,6 +320,47 @@ def configure_household_inventories(households: dict[str, Household],
             hh.inventory = {}
 
 
+_DAYS_PER_STEP = {"day": 1, "week": 7, "month": 30, "year": 365}
+
+
+def report_inventory_to_gdp(firms: dict, households: dict, time_resolution: str) -> dict:
+    """Standing defensibility check: total inventory stock as % of annual GDP.
+
+    Call after set_initial_conditions (needs firm.eq_finance + initialized
+    inventories). Firm input inventories map to national-accounts *business*
+    inventories (~10-15% of GDP in most economies); household consumption
+    inventories are an extra behavioural buffer (retail shelf + pantry) that
+    should stay modest. Logs the split and warns if the total looks
+    over-parametrised, so an inflated buffer can't silently return.
+    """
+    ppy = 365.0 / _DAYS_PER_STEP.get(time_resolution, 7)
+
+    def _va(f):
+        ef = getattr(f, "eq_finance", None) or {}
+        s = ef.get("sales", 0.0)
+        c = ef.get("costs", {})
+        return (s - c.get("input", 0.0) - c.get("transport", 0.0)) if s > 1e-12 else 0.0
+
+    gdp = sum(_va(f) for f in firms.values()) * ppy
+    firm_inv = sum(sum(f.inventory.values()) for f in firms.values() if f.inventory)
+    hh_inv = sum(sum(h.inventory.values()) for h in households.values() if h.inventory)
+    if gdp <= 0:
+        return {}
+    firm_pct, hh_pct = 100 * firm_inv / gdp, 100 * hh_inv / gdp
+    total_pct = firm_pct + hh_pct
+    logging.info(
+        f"Inventory/GDP check: firm {firm_pct:.1f}% + household {hh_pct:.1f}% "
+        f"= {total_pct:.1f}% of annual GDP (business-inventory benchmark ~10-15%)"
+    )
+    if total_pct > 20.0:
+        logging.warning(
+            f"Total inventory is {total_pct:.1f}% of annual GDP (>20%): buffers may be "
+            f"over-parametrised (firm {firm_pct:.1f}%, household {hh_pct:.1f}%). Check "
+            f"inventory_duration_targets / household_inventory_duration_target."
+        )
+    return {"firm_pct": firm_pct, "household_pct": hh_pct, "total_pct": total_pct}
+
+
 # ======================================================================
 # Households
 # ======================================================================
