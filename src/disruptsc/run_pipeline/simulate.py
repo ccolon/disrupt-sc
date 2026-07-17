@@ -414,6 +414,9 @@ def _run_one_time_step(time_step, sc_network, transport_network,
     if recon is not None:
         rebuild_from_reconstruction(firms, recon.capital_input_mix or DEFAULT_CAPITAL_INPUT_MIX)
         rebuild_public_capital(firms)   # public (invisible) share: rebuild capital directly
+    else:
+        for firm in firms.values():
+            firm.reconstruction_sales = 0.0   # clear stale reconstruction revenue when inactive
 
     # 7s. Update supplier satisfaction (realized delivery/order fill rate) so the
     # NEXT step's adaptive supplier-weight can shift orders away from suppliers that

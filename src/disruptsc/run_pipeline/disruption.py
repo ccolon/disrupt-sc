@@ -352,9 +352,13 @@ def rebuild_from_reconstruction(firms: dict, capital_input_mix: dict) -> float:
     for f in firms.values():
         if f.reconstruction_demand <= 0:
             f.reconstruction_produced = 0.0
+            f.reconstruction_sales = 0.0
             continue
         produced = min(f.product_stock, f.reconstruction_demand)
         f.reconstruction_produced = produced
+        # Revenue for the capital goods sold to reconstruction (investment demand, funded
+        # externally). evaluate_profit adds this so the firm's VA/profit isn't understated.
+        f.reconstruction_sales = produced * f.price
         f.product_stock = max(0.0, f.product_stock - produced)
         produced_per_sector[f.sector] = produced_per_sector.get(f.sector, 0.0) + produced
 
