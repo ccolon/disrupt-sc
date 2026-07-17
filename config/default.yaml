@@ -237,7 +237,7 @@ inventory_duration_targets:
     utility: 3
     agriculture: 15
     manufacturing: 30
-    service: 90
+    service: 90         # coping/resilience duration (NOT literal stock); 7d over-amplifies the cascade
     services: 90
     trade: 30
     transport: 5
