@@ -72,22 +72,26 @@ class Mrio(pd.DataFrame):
         "region_sectors", "region_sector_names", "regions", "sectors",
         "external_buying_countries", "external_selling_countries",
         "region_households", "monetary_units",
-        "export_label", "final_demand_label", "capital_label",
+        "export_label", "final_demand_label", "capital_label", "government_label",
         "import_label", "value_added_label", "tax_label",
     ]
 
     def __init__(self, *args, monetary_units: str = "mUSD", **kwargs):
         super().__init__(*args, **kwargs)
         self.export_label = self._detect_label("export", axis=1)
-        self.final_demand_label = self._detect_label("final.?demand", axis=1)
-        self.capital_label = self._detect_label("capital", axis=1)
+        # 'households' is the post-split HFCE label; 'final_demand' was the pre-split
+        # C+G+I bundle. Government and investment (GFCF + inventory change) are now their
+        # own final-use columns/agents. Patterns keep back-compat with bundled MRIOs.
+        self.final_demand_label = self._detect_label("final.?demand|household", axis=1)
+        self.government_label = self._detect_label("government", axis=1)
+        self.capital_label = self._detect_label("capital|investment", axis=1)
         self.import_label = self._detect_label("import", axis=0)
         self.value_added_label = self._detect_label("value.?added|va", axis=0)
         self.tax_label = self._detect_label("tax", axis=0)
         self._check_square()
         self.region_sectors = [
             t for t in self.columns
-            if t[1] not in (self.final_demand_label, self.export_label, self.capital_label)
+            if t[1] not in (self.final_demand_label, self.export_label, self.capital_label, self.government_label)
         ]
         self.region_sector_names = ["_".join(t) for t in self.region_sectors]
         self.regions = list({t[0] for t in self.region_sectors})
@@ -179,12 +183,12 @@ class Mrio(pd.DataFrame):
         return self.loc[:, fd_cols]
 
     def get_intermediary(self) -> pd.DataFrame:
-        cols = [t for t in self.columns if t[1] not in (self.final_demand_label, self.export_label, self.capital_label)]
+        cols = [t for t in self.columns if t[1] not in (self.final_demand_label, self.export_label, self.capital_label, self.government_label)]
         rows = [t for t in self.index if t[1] not in (self.import_label, self.value_added_label, self.tax_label)]
         return self.loc[rows, cols]
 
     def get_import_rows(self) -> pd.DataFrame:
-        cols = [t for t in self.columns if t[1] not in (self.final_demand_label, self.export_label, self.capital_label)]
+        cols = [t for t in self.columns if t[1] not in (self.final_demand_label, self.export_label, self.capital_label, self.government_label)]
         rows = [t for t in self.index if t[1] == self.import_label]
         return self.loc[rows, cols]
 

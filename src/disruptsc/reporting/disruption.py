@@ -49,6 +49,10 @@ def generate_report(output_folder: Path) -> Path:
 
     # Load CSV data
     df_hh = load_csv(output_folder / "household_data.csv")
+    # Household report = welfare agents only; government/investment are separate national
+    # accounting agents (agent_type) and would inflate the household loss sections.
+    if not df_hh.empty and "agent_type" in df_hh.columns:
+        df_hh = df_hh[df_hh["agent_type"] == "household"].copy()
     df_hh_sector = load_csv(output_folder / "household_data_by_sector.csv")
     df_country = load_csv(output_folder / "country_data.csv")
     df_firm = load_csv(output_folder / "firm_data.csv")

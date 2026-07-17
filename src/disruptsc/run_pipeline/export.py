@@ -375,24 +375,41 @@ def export_summary(household_data: list, country_data: list,
         for _, row in grp.iterrows():
             es = row.get("extra_spending_per_sector", {})
             cl = row.get("consumption_loss_per_sector", {})
+            atype = row.get("agent_type", "household")
             for sector in set(list(es.keys()) + list(cl.keys())):
                 loss_rows.append({
                     "household": row["household"],
+                    "agent_type": atype,
                     "time_step": row["time_step"],
                     "sector": sector,
                     "loss": es.get(sector, 0) + cl.get(sector, 0),
                 })
 
-    loss_df = pd.DataFrame(loss_rows)
-    if household_table is not None and "id" in household_table.columns:
+    loss_df_all = pd.DataFrame(loss_rows)
+    # Only households are welfare. Government + investment are single national accounting
+    # agents (see GovernmentDemand / InvestmentDemand): their unmet demand is a separate
+    # public-service-disruption / investment-shortfall metric, NOT household welfare.
+    def _agent_loss(atype: str) -> float:
+        if loss_df_all.empty or "agent_type" not in loss_df_all.columns:
+            return 0.0
+        return float(loss_df_all.loc[loss_df_all["agent_type"] == atype, "loss"].sum())
+
+    household_loss = _agent_loss("household")
+    government_loss = _agent_loss("government")
+    investment_loss = _agent_loss("investment")
+
+    # Household-only loss by region/sector/time (feeds the welfare distribution/choropleth).
+    if not loss_df_all.empty and "agent_type" in loss_df_all.columns:
+        loss_df = loss_df_all[loss_df_all["agent_type"] == "household"].drop(columns=["agent_type"])
+    else:
+        loss_df = loss_df_all
+    if household_table is not None and "id" in household_table.columns and not loss_df.empty:
         ht = household_table.copy()
         ht["id"] = "hh_" + ht["id"].astype(str)
         loss_df["region"] = loss_df["household"].map(ht.set_index("id")["region"])
     groupby_cols = [c for c in ["region", "sector", "time_step"] if c in loss_df.columns]
     if groupby_cols:
         loss_df = loss_df.groupby(groupby_cols, as_index=False)["loss"].sum()
-
-    household_loss = loss_df["loss"].sum()
 
     # Country losses
     c_df = pd.DataFrame(country_data)
@@ -403,6 +420,9 @@ def export_summary(household_data: list, country_data: list,
         country_loss = c_df["loss"].sum()
 
     logging.info(f"Cumulated household loss: {household_loss:,.2f} {monetary_units}")
+    if government_loss or investment_loss:
+        logging.info(f"Cumulated government loss: {government_loss:,.2f}, "
+                     f"investment loss: {investment_loss:,.2f} {monetary_units}")
     logging.info(f"Cumulated country loss: {country_loss:,.2f} {monetary_units}")
 
     if export_folder:
@@ -411,11 +431,13 @@ def export_summary(household_data: list, country_data: list,
             c_df[["time_step", "country", "loss"]].to_csv(
                 export_folder / "loss_per_country.csv", index=False,
             )
-        pd.DataFrame({"households": [household_loss], "countries": [country_loss]}).to_csv(
+        pd.DataFrame({"households": [household_loss], "government": [government_loss],
+                      "investment": [investment_loss], "countries": [country_loss]}).to_csv(
             export_folder / "loss_summary.csv", index=False,
         )
 
-    return {"household_loss": household_loss, "country_loss": country_loss}
+    return {"household_loss": household_loss, "government_loss": government_loss,
+            "investment_loss": investment_loss, "country_loss": country_loss}
 
 
 def summarize_criticality_losses(household_data: list, country_data: list) -> dict:

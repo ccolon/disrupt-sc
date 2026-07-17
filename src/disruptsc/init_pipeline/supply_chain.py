@@ -113,10 +113,15 @@ def _household_select_suppliers(hh, sc, firms, countries, rs_cache,
                                 transport_network, node_lon, node_lat, use_tn):
     hh.purchase_plan = {}
     hh.retailers = {}
+    # National government/investment agents override the globals: no geographic weighting
+    # (weight_localization=0) and connect to every supplier in each sector (large nb), so
+    # a single aggregate buyer spreads demand by firm size and sees localized disruption.
+    w_loc = weight_loc if hh.weight_localization is None else hh.weight_localization
+    nb = nb_suppliers_per_input if hh.nb_suppliers is None else hh.nb_suppliers
     for region_sector, amount in hh.sector_consumption.items():
         supplier_type, ids, weights, distances = _identify_suppliers(
             hh, region_sector, rs_cache,
-            nb_suppliers_per_input, weight_loc, import_label,
+            nb, w_loc, import_label,
             node_lon, node_lat, use_tn,
         )
         for sid, w in zip(ids, weights):
@@ -403,10 +408,13 @@ def _rescale(values, lo=0.1, hi=1.0):
 def _draw_nb_suppliers(nb_suppliers_per_input: float, max_available: int) -> int:
     if nb_suppliers_per_input <= 1:
         nb = 1
-    elif nb_suppliers_per_input >= 2:
-        nb = 2
-    else:
+    elif nb_suppliers_per_input < 2:
         nb = 2 if random.random() < (nb_suppliers_per_input - 1) else 1
+    else:
+        # Integer >= 2 (unchanged for the default 2). Representative national agents pass
+        # a large value to connect to every supplier in the sector (capped at max_available
+        # below), so their aggregate demand spreads across firms by size.
+        nb = int(round(nb_suppliers_per_input))
     return min(nb, max_available)
 
 

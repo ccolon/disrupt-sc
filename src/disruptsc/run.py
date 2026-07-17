@@ -45,6 +45,7 @@ from disruptsc.init_pipeline.agents import (
     create_firm_table, create_firms, load_tech_coefs, load_input_criticality,
     load_inventories, configure_household_inventories, report_inventory_to_gdp,
     create_household_table, create_households, create_countries,
+    add_representative_demand_agents,
 )
 from disruptsc.init_pipeline.supply_chain import build_supply_chain_network
 from disruptsc.init_pipeline.routing import setup_logistic_routes
@@ -221,6 +222,10 @@ def execute(config: dict, *, cache: str | None = None,
             selection, ap, time_resolution=sp.time_resolution,
         )
         households = create_households(household_table, consumption)
+        # Single national government + investment final-demand agents (accounting
+        # consistency; excluded from the welfare metric). No-op for a bundled MRIO.
+        households = add_representative_demand_agents(
+            households, mrio, selection, ap, sp.time_resolution)
         _configure_households(households)
 
         # Countries
