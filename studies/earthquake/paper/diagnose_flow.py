@@ -67,7 +67,7 @@ def build(flow):
     household_table, consumption = create_household_table(mrio, fp.get("households_spatial"), tnodes, selection, ap_,
                                                           time_resolution=sp.time_resolution)
     households = create_households(household_table, consumption)
-    configure_household_inventories(households, ap_.enable_household_inventories, ap_.inventory_duration_targets,
+    configure_household_inventories(households, ap_.enable_household_inventories, ap_.household_inventory_duration_targets,
                                     ap_.inventory_restoration_time, sp.time_resolution, sector_table)
     countries = create_countries(mrio, tnodes, fp.get("countries_spatial"), usd_per_ton, sp.time_resolution, ap_,
                                  selection, transport_edges=te, countries_no_transport=tp.countries_no_transport)

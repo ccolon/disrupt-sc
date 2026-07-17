@@ -64,7 +64,7 @@ def build_agents(common, ap_, sp, tp, lp, seed):
         load_input_criticality(firms, common["crit_df"])
     load_inventories(firms, ap_.inventory_duration_targets, sp.time_resolution, common["sector_table"])
     households = create_households(common["household_table"], common["consumption"])
-    configure_household_inventories(households, ap_.enable_household_inventories, ap_.inventory_duration_targets,
+    configure_household_inventories(households, ap_.enable_household_inventories, ap_.household_inventory_duration_targets,
                                     ap_.inventory_restoration_time, sp.time_resolution, common["sector_table"])
     countries = create_countries(common["mrio"], common["tnodes"], common["countries_path"], common["usd_per_ton"],
                                  sp.time_resolution, ap_, common["selection"], transport_edges=common["te"],

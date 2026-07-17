@@ -43,7 +43,7 @@ from disruptsc.init_pipeline.load_data import (
 from disruptsc.init_pipeline.transport import build_transport_network
 from disruptsc.init_pipeline.agents import (
     create_firm_table, create_firms, load_tech_coefs, load_input_criticality,
-    load_inventories, configure_household_inventories,
+    load_inventories, configure_household_inventories, report_inventory_to_gdp,
     create_household_table, create_households, create_countries,
 )
 from disruptsc.init_pipeline.supply_chain import build_supply_chain_network
@@ -159,7 +159,7 @@ def execute(config: dict, *, cache: str | None = None,
         configure_household_inventories(
             households,
             ap.enable_household_inventories,
-            ap.inventory_duration_targets,
+            ap.household_inventory_duration_targets,
             ap.inventory_restoration_time,
             sp.time_resolution,
             sector_table,
@@ -288,6 +288,7 @@ def execute(config: dict, *, cache: str | None = None,
     #           equilibrium orders for capacity-aware route assignment)
     # ------------------------------------------------------------------
     set_initial_conditions(sc_network, firms, households, countries, tp, sp)
+    report_inventory_to_gdp(firms, households, sp.time_resolution)
 
     # ------------------------------------------------------------------
     # Stage 4: Logistic routes

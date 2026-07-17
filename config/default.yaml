@@ -250,9 +250,31 @@ inventory_duration_targets:
 inventory_restoration_time: 30
 
 # Whether households should use inventory buffers.
-# When enabled, households reuse the same `inventory_duration_targets`
-# and `inventory_restoration_time` parameters as firms.
 enable_household_inventories: False
+
+# Household inventory buffers are a SEPARATE scheme from the firm map above. They
+# proxy the retail-shelf + home-pantry stock that the IO framework omits (bought-for-
+# resale is netted out, so B2C links run producer->household with no retailer node),
+# so they are calibrated to final-CONSUMPTION storability, not production buffering:
+# non-storable services/transport/utilities get a token coping buffer, construction is
+# investment (0), and only physical goods hold real stock. Keyed on sector_table['type'].
+# Omit this key to use the defensible default in params.py (AgentParams). Uses
+# `inventory_restoration_time` (shared with firms). NOTE: the legacy singular key was
+# never read before v2.x -- if you set it and saw no effect, that is why.
+household_inventory_duration_target:
+  definition: per_input_type
+  values:
+    default: 7
+    construction: 0
+    service: 3
+    transport: 3
+    utility: 3
+    trade: 3
+    mining: 3
+    agriculture: 7
+    manufacturing: 14
+    imports: 14
+  unit: day
 
 # In case firms have more than one supplier for an input, determines whether to adapt the order to each supplier
 # based on how well they covered the previous order
