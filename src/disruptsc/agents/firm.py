@@ -101,6 +101,7 @@ class Firm:
     rationing: float = 1.0
     reconstruction_demand: float = 0.0       # capital-good output requested for rebuilding this step
     reconstruction_produced: float = 0.0     # output actually allocated to rebuilding this step
+    reconstruction_sales: float = 0.0        # revenue for that output (investment-financed, not a client sale)
     capital_demanded: float = 0.0            # own capital the firm wants rebuilt (privately) this step
     public_capital_demanded: float = 0.0     # own capital rebuilt publicly (directly) this step
 
@@ -389,6 +390,11 @@ class Firm:
             data["object"].payment
             for _, _, data in sc_network.out_edges(self, data=True)
         )
+        # Capital goods produced for reconstruction are sold as investment (externally
+        # financed), not to a client on the graph -- count them as revenue so a capital-
+        # good firm's value-added reflects the rebuild output it makes (keeps profit-based
+        # VA consistent with production-based VA, which already includes this output).
+        sales += self.reconstruction_sales
         input_cost = sum(
             data["object"].payment
             for _, _, data in sc_network.in_edges(self, data=True)
@@ -527,6 +533,7 @@ class Firm:
             "profit": self.profit,
             "price": self.price,
             "delta_price_input": self.delta_price_input,
+            "reconstruction_sales": self.reconstruction_sales,  # private capital-good sales to reconstruction (investment)
         }
 
     # ------------------------------------------------------------------
