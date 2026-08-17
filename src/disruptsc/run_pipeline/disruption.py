@@ -174,7 +174,8 @@ class CapitalDestruction:
     def from_subregion_file(cls, path, firms: dict, *,
                             monetary_units: str = "mUSD",
                             canton_key: str = "subregion_canton",
-                            unit: str = "mUSD"):
+                            unit: str = "mUSD",
+                            amount_scale: float = 1.0):
         """Build a heterogeneous, absolute capital-destruction shock from a CSV.
 
         The CSV is long format with columns ``subregion_canton, sector,
@@ -196,7 +197,10 @@ class CapitalDestruction:
         if missing:
             raise ValueError(f"{path}: missing columns {sorted(missing)}; have {list(df.columns)}")
 
-        factor = _unit_factor(unit, monetary_units)
+        # amount_scale multiplies every destroyed-capital cell, so shock SEVERITY can be swept
+        # (x0.5 .. x2) without editing the shock file. Locations and the sector/canton pattern
+        # are unchanged -- only the magnitude scales.
+        factor = _unit_factor(unit, monetary_units) * float(amount_scale)
 
         by_cs: dict[tuple, list] = defaultdict(list)
         for pid, firm in firms.items():
@@ -499,6 +503,7 @@ def parse_disruptions(config_list: list | None,
                     monetary_units=monetary_units,
                     canton_key=cfg.get("canton_key", "subregion_canton"),
                     unit=cfg.get("unit", "mUSD"),
+                    amount_scale=cfg.get("amount_scale", 1.0),
                 )
             else:
                 raise ValueError(f"Unsupported capital_destruction description_type: {desc_type}")
