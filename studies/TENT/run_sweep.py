@@ -38,20 +38,21 @@ import time
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT))
 sys.setrecursionlimit(50000)
 
-from disruptsc.config import load_config, build_params, setup_logging          # noqa: E402
+from disruptsc.config import load_config, build_params, setup_logging, days_per_timestep  # noqa: E402
 from disruptsc.init_pipeline.transport import build_transport_network          # noqa: E402
 from disruptsc.init_pipeline.load_data import (                                # noqa: E402
     load_mrio, load_sector_table, load_usd_per_ton, filter_sectors)
 from disruptsc.init_pipeline.agents import (                                   # noqa: E402
-    create_firm_table, create_firms, load_tech_coefs, load_inventories,
-    configure_household_inventories, create_household_table, create_households,
-    create_countries)
+    create_firm_table, create_firms, load_tech_coefs, load_input_criticality,
+    load_inventories, configure_household_inventories, create_household_table,
+    create_households, create_countries)
 from disruptsc.init_pipeline.supply_chain import build_supply_chain_network    # noqa: E402
 from disruptsc.init_pipeline.routing import setup_logistic_routes              # noqa: E402
 from disruptsc.run_pipeline.simulate import (                                  # noqa: E402
@@ -85,6 +86,13 @@ def _git_sha() -> str:
 def _fingerprint(config: dict) -> str:
     payload = {k: config.get(k) for k in _FINGERPRINT_KEYS}
     payload["git_sha"] = _git_sha()
+    # The input-criticality matrix (Partially-Binding Leontief) changes the built
+    # firms, so fold its path + mtime into the fingerprint: swapping/editing it (or
+    # this being the first build that loads it) invalidates a stale snapshot.
+    crit = (config.get("filepaths") or {}).get("input_criticality")
+    payload["input_criticality"] = str(crit) if crit else None
+    payload["input_criticality_mtime"] = (
+        Path(crit).stat().st_mtime if crit and Path(crit).exists() else None)
     blob = json.dumps(payload, sort_keys=True, default=str).encode()
     return hashlib.sha256(blob).hexdigest()[:16]
 
@@ -115,6 +123,13 @@ def build_model(config: dict):
                                    transport_nodes, ap, selection)
     firms = create_firms(firm_table, ap)
     load_tech_coefs(firms, mrio, selection)
+    # Partially-Binding Leontief: load the IHS-Markit input-criticality matrix when
+    # configured (mirrors disruptsc.run.execute; without it firms fall back to strict
+    # Leontief, which would diverge from run_single_event's native run).
+    crit_path = fp.get("input_criticality")
+    if crit_path and Path(crit_path).exists():
+        load_input_criticality(firms, pd.read_csv(crit_path, index_col=0))
+        logging.info(f"Loaded input_criticality from {crit_path}")
     load_inventories(firms, ap.inventory_duration_targets, sp.time_resolution, sector_table)
     household_table, consumption = create_household_table(
         mrio, fp.get("households_spatial"), transport_nodes, selection, ap,
@@ -275,10 +290,16 @@ def main():
     setup_logging(args.log_level)
 
     config = load_config("TENT")
-    config["time_resolution"] = "day"           # daily resolution (locked decision)
+    # time_resolution comes from the TENT config file (user_defined_TENT.local.yaml):
+    # set it to 'day' or 'week' there and BOTH the model step and the day->step
+    # duration conversion below follow it. It also feeds the snapshot fingerprint,
+    # so switching resolutions auto-invalidates a stale snapshot.
     config["simulation_type"] = "disruption"
     if args.flow_coverage is not None:
         config["flow_coverage"] = args.flow_coverage   # feeds the snapshot fingerprint
+    resolution = config.get("time_resolution", "week")
+    days_per_step = days_per_timestep(resolution)   # xlsx day-durations -> steps
+    logging.info(f"time_resolution={resolution} (days_per_step={days_per_step})")
 
     snapshot = build_or_load_snapshot(config, Path(args.snapshot), rebuild=args.rebuild)
     # No epsilon early-stop: run the full 2 x duration horizon.
@@ -299,7 +320,7 @@ def main():
         logging.info("Snapshot ready (build-only). Exiting.")
         return
 
-    events = load_events(args.xlsx, days_per_step=1.0, return_periods=args.return_periods)
+    events = load_events(args.xlsx, days_per_step=days_per_step, return_periods=args.return_periods)
     missing = sorted(all_flooded_edge_ids(args.xlsx) - valid_ids)
     if missing:
         logging.warning(f"{len(missing)} flooded {DISRUPTION_ID_COL}(s) absent from the "

@@ -2,13 +2,13 @@
 #
 # TENT flood-event campaign — per-event supply-chain losses.
 #
-# 917 flood events (185 catchments x 5 return periods) from
-# <DATA>/TENT/Disruption/results_disrupt_sc.xlsx. Each event closes its flooded
+# Flood events (catchments x return periods) from
+# <DATA>/TENT/Disruption/results_disrupt_sc_v1.xlsx. Each event closes its flooded
 # road edges (100% capacity) for its recovery_duration and runs the economy for
-# exactly 2 x that duration (daily steps, NO epsilon early-stop).
+# exactly 2 x that duration (weekly steps, NO epsilon early-stop).
 #
-# Locked decisions: daily resolution, full closure, flow_coverage=0.8, all events,
-# per-event losses only.
+# Locked decisions: weekly resolution, full closure, flow_coverage=1.0, all events,
+# per-event losses only. (recovery_duration is converted days -> weeks in run_sweep.)
 #
 # Job graph:
 #   (1) one BUILD job    -> build + cache the pre-disruption snapshot once
@@ -57,7 +57,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-XLSX="${DATA_PATH}/TENT/Disruption/results_disrupt_sc.xlsx"
+XLSX="${DATA_PATH}/TENT/Disruption/results_disrupt_sc_v1.xlsx"
 SNAPSHOT="${OUTPUT_DIR}/baseline_snapshot.pkl"
 OUT_CSV="${OUTPUT_DIR}/event_losses.csv"
 SWEEP="${SCRIPT_DIR}/studies/TENT/run_sweep.py"

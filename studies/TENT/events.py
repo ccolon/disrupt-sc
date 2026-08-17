@@ -24,7 +24,7 @@ import pandas as pd
 
 # data root: <repo>/../disrupt-sc-data  (see src/disruptsc/paths.py)
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_XLSX = ROOT.parent / "disrupt-sc-data" / "TENT" / "Disruption" / "results_disrupt_sc.xlsx"
+DEFAULT_XLSX = ROOT.parent / "disrupt-sc-data" / "TENT" / "Disruption" / "results_disrupt_sc_v1.xlsx"
 
 
 @dataclass(frozen=True)
