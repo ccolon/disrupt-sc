@@ -32,8 +32,10 @@ N_SEEDS=10                          # <<< Monte-Carlo seeds
 T_FINAL=13                          # horizon (months); 13 covers UQ tau 0-12
 
 # baseline (central) config + per-parameter levels swept around it (OAT)
-FLOW_BASE=0.8;   FLOW_LEVELS=(0.6 0.8 1.0)
-NB_BASE=2;       NB_LEVELS=(1 2 4)
+FLOW_BASE=0.8;   FLOW_LEVELS=(0.6 0.7 0.8 0.9 1.0)
+# nb_suppliers is the DOMINANT lever and its whole effect is a cliff between 1 and 2, so the
+# 1-2 range is resolved with the stochastic 1-or-2 mix (fractional values), plus 3/6 above.
+NB_BASE=2;       NB_LEVELS=(1 1.25 1.5 1.75 2 3 6)
 UTIL_BASE=0.8;   UTILS="0.6,0.8,1.0"
 RECON_BASE=true; RECON="true,false"
 PUBLIC_BASE=0.8; PUBLIC_SHARES="0.0,0.5,0.8,1.0"   # reconstruction funded externally (aid) share
@@ -42,7 +44,9 @@ LAG_BASE=60;     RECON_LAGS="30,60,90"
 CRIT_BASE=0.02;  CRIT_THRESHOLDS="0.0,0.01,0.02,0.05"   # 0.01 = the "too-low" (non-saturating) point
 
 # ------------------------- SLURM resources --------------------------------
-TIME_WORKER="04:00:00"; MEM_WORKER="6G"
+# The oat_base job runs every runtime config in one build (~60 after the mechanism/severity
+# axes were added, up from ~34), so it needs more headroom than the build-variation jobs.
+TIME_WORKER="10:00:00"; MEM_WORKER="6G"
 TIME_POST="00:30:00";   MEM_POST="4G"
 # ===========================================================================
 
@@ -63,7 +67,10 @@ FIG_DIR="${OUTPUT_DIR}/figures"
 SUMMARY="${OUTPUT_DIR}/sensitivity_summary.csv"
 CRIT_CSV="${SCRIPT_DIR}/studies/earthquake/additional_data/input_criticality.csv"
 SHOCK_CSV="${SCRIPT_DIR}/studies/earthquake/additional_data/earthquake_shock_modelready.csv"
-DATA_OVERRIDES="--criticality ${CRIT_CSV} --shock ${SHOCK_CSV}"
+CANTON_MMI="${SCRIPT_DIR}/studies/earthquake/additional_data/canton_mmi_bin.csv"
+# --canton-mmi makes every config also report the MMI>7 vs control DiD (the UQ validation
+# target), so the sweep doubles as a calibration search, not just a robustness check.
+DATA_OVERRIDES="--criticality ${CRIT_CSV} --shock ${SHOCK_CSV} --canton-mmi ${CANTON_MMI}"
 ACTIVATE="source $(dirname "$(dirname "${PYTHON_ENV}")")/bin/activate ${PYTHON_ENV}"
 EXPORTS="export DISRUPT_SC_DATA_PATH=${DATA_PATH} && export PYTHONHASHSEED=0"
 BASE_RT="--util-base ${UTIL_BASE} --recon-base ${RECON_BASE} --public-base ${PUBLIC_BASE} --target-base ${TARGET_BASE} --lag-base ${LAG_BASE} --crit-base ${CRIT_BASE}"

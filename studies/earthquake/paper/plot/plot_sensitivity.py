@@ -17,7 +17,11 @@ import pandas as pd
 
 PARAMS = ["flow_coverage", "critical_input_threshold", "utilization_rate", "nb_suppliers_per_input",
           "reconstruction_market", "reconstruction_public_share", "reconstruction_target_time",
-          "reconstruction_lag",
+          "reconstruction_lag", "reconstruction_locality",
+          # mechanism switches + severity levers
+          "time_to_activate_idle_capital", "capital_to_value_added_ratio", "shock_scale",
+          "price_increase_threshold", "adaptive_supplier_weight", "capacity_constrained_orders",
+          "adaptive_inventories", "rationing_mode",
           # inventory sensitivity (multiplicative scales, x1 = baseline)
           "firm_inventory_scale", "household_inventory_scale", "inventory_restoration_scale",
           # per-input-type buffers in absolute DAYS (below one time step they are inert)
