@@ -19,8 +19,9 @@ PARAMS = ["flow_coverage", "critical_input_threshold", "utilization_rate", "nb_s
           "reconstruction_lag",
           # inventory sensitivity (multiplicative scales, x1 = baseline)
           "firm_inventory_scale", "household_inventory_scale", "inventory_restoration_scale",
-          "firm_utility_buffer_scale", "firm_agriculture_buffer_scale", "firm_manufacturing_buffer_scale",
-          "firm_trade_buffer_scale", "firm_transport_buffer_scale", "firm_service_buffer_scale"]
+          # per-input-type buffers in absolute DAYS (below one time step they are inert)
+          "firm_utility_buffer_days", "firm_agriculture_buffer_days", "firm_manufacturing_buffer_days",
+          "firm_trade_buffer_days", "firm_transport_buffer_days", "firm_service_buffer_days"]
 
 
 def main():

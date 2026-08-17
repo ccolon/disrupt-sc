@@ -220,6 +220,15 @@ def set_initial_conditions(sc_network, firms, households, countries,
     for u, v in sc_network.edges():
         sc_network[u][v]["object"].reset()
 
+    # Reset learned supplier satisfaction to its build-time value. It is an EMA of realized
+    # fill rates (see Firm.update_supplier_satisfaction), stored on the firm rather than on
+    # the link, so without this it SURVIVES a re-run: sweeps that reuse one build for several
+    # configs had every config after the first inherit the previous run's learned routing
+    # (worth ~0.3pp of household loss in the Ecuador sweep -- enough to swamp small axes).
+    for firm in firms.values():
+        for info in firm.suppliers.values():
+            info["satisfaction"] = 1.0
+
     for hh in households.values():
         hh.set_equilibrium_purchase_plan()
 

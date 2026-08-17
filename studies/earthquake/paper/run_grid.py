@@ -116,9 +116,11 @@ def main():
                     help="multiply ALL firm input buffers by these factors")
     ap.add_argument("--hh-inv-scales", type=_floats, default=[0.5, 2.0],
                     help="multiply ALL household buffers by these factors")
-    ap.add_argument("--type-buffer-scales", type=_floats, default=[0.5, 2.0],
-                    help="multiply EACH firm input-type buffer in turn -- service/mfg/ag/trade/"
-                         "transport/utility, one OAT axis per type (isolates each type's lever)")
+    ap.add_argument("--type-buffer-days", type=_floats, default=[30.0, 90.0, 180.0],
+                    help="ABSOLUTE buffer duration (DAYS) for each firm input type in turn -- "
+                         "utility/agriculture/manufacturing/trade/transport/service, one OAT axis "
+                         "per type. Levels below one time step are inert (see the note in main), "
+                         "so 30 = no buffer beyond the mandatory step at monthly resolution")
     ap.add_argument("--restoration-scales", type=_floats, default=[0.5, 2.0],
                     help="multiply inventory_restoration_time (restock speed; firm+household)")
     ap.add_argument("--criticality", type=Path, default=None,
@@ -130,39 +132,6 @@ def main():
 
     seeds = args.seeds if args.seeds is not None else (
         list(range(args.n_seeds)) if args.n_seeds is not None else [0])
-
-    # runtime configs to run within each build: (oat_param_label, {util,recon,public,target,lag})
-    # firm input types with a distinct buffer -> one OAT axis each (keyed buf_<type>)
-    FIRM_BUF_TYPES = ["utility", "agriculture", "manufacturing", "trade", "transport", "service"]
-    base = dict(util=args.util_base, recon=args.recon_base, public=args.public_base,
-                target=args.target_base, lag=args.lag_base, crit=args.crit_base,
-                firm_inv=1.0, hh_inv=1.0, restore=1.0)
-    for _t in FIRM_BUF_TYPES:
-        base[f"buf_{_t}"] = 1.0
-    RT = [("utilization_rate", "util", args.utils), ("reconstruction_market", "recon", args.recon),
-          ("reconstruction_public_share", "public", args.public_shares),
-          ("reconstruction_target_time", "target", args.target_times),
-          ("reconstruction_lag", "lag", args.recon_lags),
-          ("critical_input_threshold", "crit", args.crit_thresholds),
-          ("firm_inventory_scale", "firm_inv", args.firm_inv_scales),
-          ("household_inventory_scale", "hh_inv", args.hh_inv_scales),
-          ("inventory_restoration_scale", "restore", args.restoration_scales)]
-    RT += [(f"firm_{_t}_buffer_scale", f"buf_{_t}", args.type_buffer_scales) for _t in FIRM_BUF_TYPES]
-    if args.oat:
-        run_configs = [("baseline", dict(base))]
-        for name, key, levels in RT:
-            for v in levels:
-                if v != base[key]:
-                    c = dict(base); c[key] = v; run_configs.append((name, c))
-    else:                                                  # full factorial (dedupe recon=False)
-        run_configs = []
-        for u in args.utils:
-            for r in args.recon:
-                inner = ([(p, t, lg) for p in args.public_shares for t in args.target_times for lg in args.recon_lags]
-                         if r else [(args.public_base, args.target_base, args.lag_base)])
-                for p, t, lg in inner:
-                    run_configs.append((args.oat_tag, dict(util=u, recon=r, public=p, target=t, lag=lg,
-                                                           crit=args.crit_base)))
 
     setup_logging("info")
     cfg = load_config("EcuadorEQ")
@@ -177,9 +146,55 @@ def main():
         if not Path(args.shock).exists():
             raise SystemExit(f"--shock file not found: {args.shock}")
         disr = dict(disr, file=str(args.shock))
-    ppy = 365.0 / DAYS_PER_STEP.get(sp.time_resolution, 30)
+    step_days = DAYS_PER_STEP.get(sp.time_resolution, 30)
+    ppy = 365.0 / step_days
     print(f"flow_coverage={args.flow_coverage} nb_suppliers={args.nb_suppliers} t_final={sp.t_final} "
           f"seeds={seeds} recon={args.recon}")
+
+    # ---- runtime configs run within each build: (oat_param_label, {param: value}) ----
+    # Built here (not before build_params) because the per-type buffer axes are swept in
+    # ABSOLUTE DAYS and need the config's own baseline day values as the OAT base level.
+    # WHY DAYS, NOT SCALES: at monthly resolution a target below one step is inert --
+    # Firm.initialize_inventory floors the initial stock at max(target, 1 step) and
+    # plan_purchase only restocks when the target EXCEEDS current stock, so 3d / 5d / 15d all
+    # behave exactly like 30d. Multiplicative scales around those bases therefore measured
+    # nothing (they returned pure state-leakage noise). 30d = "no buffer beyond the mandatory
+    # one step"; only levels above one step actually bite.
+    FIRM_BUF_TYPES = ["utility", "agriculture", "manufacturing", "trade", "transport", "service"]
+    _inv = ap_.inventory_duration_targets or {}
+    _vals = _inv.get("values", {})
+    _unit_days = {"day": 1, "week": 7, "month": 30, "year": 365}.get(_inv.get("unit", "day"), 1)
+    base_days = {t: float(_vals.get(t, _vals.get("default", 30))) * _unit_days for t in FIRM_BUF_TYPES}
+    base = dict(util=args.util_base, recon=args.recon_base, public=args.public_base,
+                target=args.target_base, lag=args.lag_base, crit=args.crit_base,
+                firm_inv=1.0, hh_inv=1.0, restore=1.0)
+    for _t in FIRM_BUF_TYPES:
+        base[f"buf_{_t}"] = base_days[_t]
+    RT = [("utilization_rate", "util", args.utils), ("reconstruction_market", "recon", args.recon),
+          ("reconstruction_public_share", "public", args.public_shares),
+          ("reconstruction_target_time", "target", args.target_times),
+          ("reconstruction_lag", "lag", args.recon_lags),
+          ("critical_input_threshold", "crit", args.crit_thresholds),
+          ("firm_inventory_scale", "firm_inv", args.firm_inv_scales),
+          ("household_inventory_scale", "hh_inv", args.hh_inv_scales),
+          ("inventory_restoration_scale", "restore", args.restoration_scales)]
+    RT += [(f"firm_{_t}_buffer_days", f"buf_{_t}", args.type_buffer_days) for _t in FIRM_BUF_TYPES]
+    if args.oat:
+        run_configs = [("baseline", dict(base))]
+        for name, key, levels in RT:
+            for v in levels:
+                if v != base[key]:
+                    c = dict(base); c[key] = v; run_configs.append((name, c))
+        print(f"OAT: {len(run_configs)} configs/seed (per-type buffer bases, days: {base_days})")
+    else:                                                  # full factorial (dedupe recon=False)
+        run_configs = []
+        for u in args.utils:
+            for r in args.recon:
+                inner = ([(p, t, lg) for p in args.public_shares for t in args.target_times for lg in args.recon_lags]
+                         if r else [(args.public_base, args.target_base, args.lag_base)])
+                for p, t, lg in inner:
+                    run_configs.append((args.oat_tag, dict(util=u, recon=r, public=p, target=t, lag=lg,
+                                                           crit=args.crit_base)))
 
     # ---- seed-independent build (once) ----
     tn, te, tnodes = build_transport_network(
@@ -236,12 +251,15 @@ def main():
         for oat_param, rc in run_configs:
             fscale = rc.get("firm_inv", 1.0)
             hscale, rscale = rc.get("hh_inv", 1.0), rc.get("restore", 1.0)
+            # Per-type absolute-day targets -> time steps. At the baseline these reproduce the
+            # built targets exactly (load_inventories also computes days/step_days), so only the
+            # one type varied by this OAT config actually differs.
+            buf_steps = {t: rc[f"buf_{t}"] / step_days for t in FIRM_BUF_TYPES if f"buf_{t}" in rc}
             for f in firms.values():
                 f.utilization_rate = rc["util"]
                 f.critical_input_threshold = rc["crit"]
-                # firm buffer = base x (all-firm scale) x (that input's per-type scale). In OAT
-                # only one buf_<type> differs from 1.0, so exactly one type is scaled per config.
-                f.inventory_duration_target = {k: v * fscale * rc.get(f"buf_{_input_type(k)}", 1.0)
+                # types without a per-type axis (default/mining/construction) keep their built value
+                f.inventory_duration_target = {k: buf_steps.get(_input_type(k), v) * fscale
                                                for k, v in base_firm_inv[f.pid].items()}
                 f.inventory_restoration_time = base_restore * rscale
             for h in households.values():
@@ -267,7 +285,7 @@ def main():
                          "firm_inventory_scale": rc.get("firm_inv", 1.0),
                          "household_inventory_scale": rc.get("hh_inv", 1.0),
                          "inventory_restoration_scale": rc.get("restore", 1.0),
-                         **{f"firm_{_t}_buffer_scale": rc.get(f"buf_{_t}", 1.0) for _t in FIRM_BUF_TYPES},
+                         **{f"firm_{_t}_buffer_days": rc.get(f"buf_{_t}", base_days[_t]) for _t in FIRM_BUF_TYPES},
                          "household_loss_pct_annual_gdp": round(100.0 * hh_loss / annual_gdp, 4),
                          "household_loss_mUSD": round(hh_loss, 2),
                          "gdp_loss_pct_annual_gdp": round(100.0 * gdp_loss / annual_gdp, 4)})
