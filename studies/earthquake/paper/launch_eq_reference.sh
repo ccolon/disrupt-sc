@@ -83,23 +83,11 @@ for (( s=0; s<N_SEEDS; s++ )); do
 done
 
 # ---- postprocess: analyze per seed -> AVERAGE across seeds -> figures + model table ----
-# QUOTING (defensive): this payload is embedded in --wrap="bash -c '...'" (see submit()), so
-# nested single quotes are fragile -- keep globs meant for Python in \"double\" quotes.
-# DIAGNOSABILITY: the per-seed loop uses ';' so one bad seed doesn't abort the rest, then a
-# guard FAILS LOUDLY if the loop produced no output at all (a 50-seed run silently produced
-# zero uq_eventstudy.csv and only surfaced as a bare exit code); pipeline stages are
-# '&&'-chained so the first real failure stops there instead of cascading.
-PP="for d in ${REF_ROOT}/seed_*; do \
-      python ${PAPER}/analyze/distribution.py \$d --out-dir \$d; \
-      python ${PAPER}/analyze/uq_did.py \$d --canton-mmi ${CANTON_MMI} --out-dir \$d; \
-    done; \
-    n_ok=\$(ls ${REF_ROOT}/seed_*/uq_eventstudy.csv 2>/dev/null | wc -l); \
-    if [ \"\$n_ok\" -eq 0 ]; then echo \"ERROR: per-seed analyze produced no uq_eventstudy.csv -- aborting postprocess\" >&2; exit 1; fi; \
-    echo \"per-seed analyze OK for \$n_ok seed(s)\"; \
-    python ${PAPER}/average_runs.py --glob \"${REF_ROOT}/seed_*\" --out-dir ${FIG_DIR}/ref_avg && \
-    python ${PAPER}/plot/plot_distribution.py ${FIG_DIR}/ref_avg --gadm ${GADM} --fig ${FIG_DIR}/fig_distribution.png && \
-    python ${PAPER}/plot/plot_uq.py ${FIG_DIR}/ref_avg/uq_eventstudy.csv --uq ${UQ_TWFE} --fig ${FIG_DIR}/fig_uq.png && \
-    python ${PAPER}/plot/plot_model_table.py --ref-glob \"${REF_ROOT}/seed_*\" --out ${OUTPUT_DIR}/models_table.csv"
+# The payload must stay ONE flat command with no quotes, parens or $(...): submit() nests it
+# inside --wrap="bash -c '...'" and eval's the result, so any such metacharacter is exposed at
+# eval time and breaks the submit. All the logic (per-seed loop, guard, plots) therefore lives
+# in postprocess_reference.sh, which is also directly re-runnable by hand when a job dies.
+PP="bash ${PAPER}/postprocess_reference.sh ${REF_ROOT} ${FIG_DIR} ${OUTPUT_DIR} ${CANTON_MMI} ${GADM} ${UQ_TWFE}"
 PID=$(submit "ref_postprocess" "$TIME_POST" "$MEM_POST" "$REF_IDS" "$PP")
 
 echo
