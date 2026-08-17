@@ -9,20 +9,39 @@
 # Keeping the logic here means the payload stays one flat command with no metacharacters.
 #
 # Usage:
+#   bash studies/earthquake/paper/postprocess_reference.sh          # all paths defaulted
 #   bash postprocess_reference.sh REF_ROOT FIG_DIR OUTPUT_DIR CANTON_MMI GADM UQ_TWFE
 #
-# Safe to re-run by hand (per-seed analysis is idempotent -- it overwrites in place), which
-# is also how you recover when the chained SLURM job dies.
+# Every argument is optional and defaults to the standard repo layout (resolved relative to
+# this script, so it works from any cwd). Safe to re-run by hand -- per-seed analysis is
+# idempotent (overwrites in place) -- which is how you recover when the chained job dies.
 set -uo pipefail
 
-REF_ROOT=${1:?REF_ROOT (dir holding seed_*/)}
-FIG_DIR=${2:?FIG_DIR}
-OUTPUT_DIR=${3:?OUTPUT_DIR}
-CANTON_MMI=${4:?canton_mmi_bin.csv}
-GADM=${5:?gadm41_ECU_2.json}
-UQ_TWFE=${6:?twfe_event_study_coefs.csv}
-
 PAPER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO="$(cd "$PAPER/../../.." && pwd)"
+DEF_OUT="$REPO/output/earthquake_paper"
+DEF_AD="$REPO/studies/earthquake/additional_data"
+
+REF_ROOT=${1:-$DEF_OUT/reference}
+FIG_DIR=${2:-$DEF_OUT/figures}
+OUTPUT_DIR=${3:-$DEF_OUT}
+CANTON_MMI=${4:-$DEF_AD/canton_mmi_bin.csv}
+GADM=${5:-$DEF_AD/gadm41_ECU_2.json}
+UQ_TWFE=${6:-$DEF_AD/twfe_event_study_coefs.csv}
+
+echo "reference postprocess"
+echo "  seeds  : $REF_ROOT"
+echo "  figures: $FIG_DIR"
+echo "  table  : $OUTPUT_DIR/models_table.csv"
+
+# Fail early with a readable message rather than 50 cryptic tracebacks.
+missing=0
+[ -d "$REF_ROOT" ] || { echo "ERROR: no seed root at $REF_ROOT" >&2; missing=1; }
+for f in "$CANTON_MMI" "$GADM" "$UQ_TWFE"; do
+    [ -f "$f" ] || { echo "ERROR: missing input file: $f" >&2; missing=1; }
+done
+[ "$missing" -eq 0 ] || exit 1
+
 mkdir -p "$FIG_DIR"
 
 # ---- per-seed analyze ------------------------------------------------------
