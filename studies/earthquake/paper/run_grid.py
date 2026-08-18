@@ -355,8 +355,6 @@ def main():
         base_firm_inv = {f.pid: dict(f.inventory_duration_target) for f in firms.values()}
         base_hh_inv = {h.pid: dict(h.inventory_duration_target) for h in households.values()}
         base_restore = ap_.inventory_restoration_time
-        base_capital = {f.pid: (f.capital_initial, f.active_capital, f.idle_capital) for f in firms.values()}
-        base_capratio = float(ap_.capital_to_value_added_ratio)
         for oat_param, rc in run_configs:
             fscale = rc.get("firm_inv", 1.0)
             hscale, rscale = rc.get("hh_inv", 1.0), rc.get("restore", 1.0)
@@ -369,10 +367,6 @@ def main():
                              adaptive_inventories=rc["adainv"])
             tp_cfg = replace(tp, rationing_mode=rc["ration"],
                              price_increase_threshold=(rc["price_thr"] or None))
-            # capital_to_value_added_ratio scales all three capital stocks together, so equilibrium
-            # capacity is unchanged (it depends on active/capital_initial) while a FIXED absolute
-            # destruction removes a different fraction -> a pure shock-severity lever.
-            cap_mult = rc["capratio"] / base_capratio if base_capratio else 1.0
             # Per-type absolute-day targets -> time steps. At the baseline these reproduce the
             # built targets exactly (load_inventories also computes days/step_days), so only the
             # one type varied by this OAT config actually differs.
@@ -384,8 +378,11 @@ def main():
                 f.inventory_duration_target = {k: buf_steps.get(_input_type(k), v) * fscale
                                                for k, v in base_firm_inv[f.pid].items()}
                 f.inventory_restoration_time = base_restore * rscale
-                ci, ac, idl = base_capital[f.pid]
-                f.capital_initial, f.active_capital, f.idle_capital = ci * cap_mult, ac * cap_mult, idl * cap_mult
+                # Set the ATTRIBUTE, not the stocks: set_initial_conditions -> initialize_finance
+                # re-derives capital_initial = ratio * annual VA each run, so rescaling the stocks
+                # here would be silently overwritten. A bigger ratio means a fixed absolute
+                # destruction removes a smaller FRACTION -> a pure shock-severity lever.
+                f.capital_to_value_added_ratio = rc["capratio"]
             for h in households.values():
                 h.inventory_duration_target = {k: v * hscale for k, v in base_hh_inv[h.pid].items()}
                 h.inventory_restoration_time = base_restore * rscale
