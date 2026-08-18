@@ -1,33 +1,21 @@
 {
-  "grand_total_mUSD": 2438.4,
-  "canton_mapped_mUSD": 2425.25,
-  "canton_mapped_pct": 99.46,
-  "firm_cell_available_mUSD": 2273.99,
-  "firm_cell_available_pct": 93.26,
-  "n_model_ready_rows": 8272,
-  "n_cantones_mapped": 188,
+  "grand_total_mUSD": 2438.7,
+  "canton_mapped_mUSD": 2425.34,
+  "canton_mapped_pct": 99.45,
+  "firm_cell_available_mUSD": 2336.82,
+  "firm_cell_available_pct": 95.82,
+  "n_model_ready_rows": 761,
+  "n_cantones_mapped": 29,
   "sectors_in_shock_not_in_model": [],
-  "unmapped_canton_total_mUSD": 13.15,
+  "unmapped_canton_total_mUSD": 13.36,
   "unmapped_top": {
-    "24 DE MAYO (MANABI)": 12.62,
-    "RUMIÃ‘AHUI (PICHINCHA)": 0.15,
-    "PUJILI (COTOPAXI)": 0.11,
-    "SAN MIGUEL (BOLIVAR)": 0.04,
-    "PIÃ‘AS (EL ORO)": 0.04,
-    "PALTAS (LOJA)": 0.04,
-    "BAÃ‘OS (TUNGURAHUA)": 0.03,
-    "SAN JOSE DE CHIMBO (BOLIVAR)": 0.03
+    "24 DE MAYO (MANABI)": 13.36
   },
-  "mapped_no_firm_cell_total_mUSD": 151.26,
+  "mapped_no_firm_cell_total_mUSD": 88.52,
   "mapped_no_firm_cell_top_sectors": {
-    "ELE": 97.88,
-    "AGU": 10.98,
-    "FRT": 6.03,
-    "CAR": 4.13,
-    "QU2": 3.3,
-    "AYG": 2.69,
-    "CAN": 2.36,
-    "PAP": 2.3
+    "ELE": 77.01,
+    "AGU": 10.7,
+    "CUL": 0.81
   },
   "non_exact_canton_matches": {
     "2301": {
@@ -127,5 +115,5 @@
       "matched_to": "NAPO - CARLOS JULIO AROSEMENA TOLA"
     }
   },
-  "output_csv": "C:\\Users\\Celian\\OneDrive\\DisruptSC\\disrupt-sc\\runs\\earthquake\\_shock\\earthquake_shock_modelready.csv"
+  "output_csv": "C:\\Users\\Celian\\OneDrive\\DisruptSC\\disrupt-sc\\studies\\earthquake\\additional_data\\earthquake_shock_modelready.csv"
 }
