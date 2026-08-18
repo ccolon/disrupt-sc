@@ -175,7 +175,8 @@ class CapitalDestruction:
                             monetary_units: str = "mUSD",
                             canton_key: str = "subregion_canton",
                             unit: str = "mUSD",
-                            amount_scale: float = 1.0):
+                            amount_scale: float = 1.0,
+                            overflow_policy: str = "discard"):
         """Build a heterogeneous, absolute capital-destruction shock from a CSV.
 
         The CSV is long format with columns ``subregion_canton, sector,
@@ -203,12 +204,17 @@ class CapitalDestruction:
         factor = _unit_factor(unit, monetary_units) * float(amount_scale)
 
         by_cs: dict[tuple, list] = defaultdict(list)
+        by_canton: dict[str, list] = defaultdict(list)
         for pid, firm in firms.items():
             canton = (getattr(firm, "subregions", None) or {}).get(canton_key)
             if canton is not None:
                 by_cs[(canton, firm.sector)].append(pid)
+                by_canton[canton].append(pid)
 
+        spill = str(overflow_policy).lower() == "spill_canton"
         description: dict = defaultdict(float)
+        leftover: dict = defaultdict(float)          # canton -> capital that found no home in its own cell
+        no_cell = cell_overflow = 0.0                # why it had no home (diagnostics)
         applied = unmatched = overflow = 0.0
         n_matched = n_unmatched = 0
         for row in df.itertuples(index=False):
@@ -219,22 +225,61 @@ class CapitalDestruction:
             caps = [(pid, max(firms[pid].capital_initial, 0.0)) for pid in pids]
             total_cap = sum(c for _, c in caps)
             if not pids or total_cap <= 0:
-                unmatched += amount
+                # no firm of that sector in that canton
+                leftover[row.subregion_canton] += amount
+                no_cell += amount
                 n_unmatched += 1
                 continue
             n_matched += 1
-            applied += min(amount, total_cap)
             if amount > total_cap:
-                overflow += amount - total_cap
+                leftover[row.subregion_canton] += amount - total_cap
+                cell_overflow += amount - total_cap
+                amount = total_cap                   # the cell can absorb no more
             for pid, cap in caps:
                 if cap > 0:
                     description[pid] += amount * cap / total_cap
 
+        # ---- overflow policy -------------------------------------------------
+        # The canton TOTAL is the quantity the damage assessment measures most reliably (the
+        # sector split within a canton is the uncertain part, and the model's sector coverage is
+        # incomplete -- e.g. 94% of ELE capital sits in Cuenca/Guayaquil/Quito, so Manabi's
+        # electricity damage has almost nowhere to land). Spilling the residue onto other firms
+        # in the SAME canton preserves the geography at the cost of the within-canton sectoral
+        # split; discarding it silently shrinks the shock exactly where it is largest.
+        placed = 0.0
+        if spill:
+            for canton, amount in leftover.items():
+                if amount <= 0:
+                    continue
+                room = [(pid, max(firms[pid].capital_initial - description.get(pid, 0.0), 0.0))
+                        for pid in by_canton.get(canton, [])]
+                total_room = sum(r for _, r in room)
+                if total_room <= 0:
+                    continue                         # the whole canton is already written off
+                take = min(amount, total_room)
+                for pid, r in room:
+                    if r > 0:
+                        description[pid] += take * r / total_room
+                placed += take
+        # Keep the reported fields meaning what they always meant: `unmatched` is damage with no
+        # firm of that sector in that canton, `overflow` is damage exceeding available capital.
+        # Under spill_canton whatever was re-placed is no longer lost, so only the residue counts.
+        if spill:
+            residual = (no_cell + cell_overflow) - placed
+            unmatched = min(no_cell, residual)
+            overflow = max(residual - unmatched, 0.0)
+        else:
+            unmatched = no_cell
+            overflow = cell_overflow
+
+        applied = sum(min(v, max(firms[pid].capital_initial, 0.0)) for pid, v in description.items())
+
         logging.info(
             f"CapitalDestruction(file): {n_matched} cells -> {len(description)} firms, "
-            f"applied ~{applied:,.1f} {monetary_units} of capital; "
-            f"unmatched {n_unmatched} cells ({unmatched:,.1f}); "
-            f"capacity-capped overflow {overflow:,.1f}"
+            f"applied ~{applied:,.1f} {monetary_units} of capital "
+            f"[unplaced in own cell: {no_cell:,.1f} no-firm + {cell_overflow:,.1f} over-capacity; "
+            f"policy={'spill_canton' if spill else 'discard'} -> "
+            f"discarded {unmatched:,.1f}, still-unplaceable {overflow:,.1f}]"
         )
         if n_matched == 0 and len(df) > 0:
             logging.warning(
@@ -504,6 +549,7 @@ def parse_disruptions(config_list: list | None,
                     canton_key=cfg.get("canton_key", "subregion_canton"),
                     unit=cfg.get("unit", "mUSD"),
                     amount_scale=cfg.get("amount_scale", 1.0),
+                    overflow_policy=cfg.get("overflow_policy", "discard"),
                 )
             else:
                 raise ValueError(f"Unsupported capital_destruction description_type: {desc_type}")
