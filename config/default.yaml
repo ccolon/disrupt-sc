@@ -353,6 +353,16 @@ mc_caching:
 sensitivity: null
 
 # Determines the disruptive events to model TODO elaborate
+# Capital-destruction cells whose damage exceeds the modelled capital of the matching
+# (canton, sector) firms, or that match no firm at all, are by default DISCARDED. Set
+#   overflow_policy: spill_canton
+# on a capital_destruction disruption to re-place that residue on other firms in the SAME
+# canton instead (in proportion to their remaining capital). The canton total is what damage
+# assessments measure most reliably, and model sector coverage is incomplete -- e.g. in the
+# Ecuador case 94% of electricity capital sits in Cuenca/Guayaquil/Quito, so the affected
+# cantones' electricity damage has almost nowhere to land. Discarding shrinks the shock
+# exactly where it is largest; spilling preserves the geography at the cost of the
+# within-canton sectoral split. Options: discard (default) | spill_canton
 disruptions: null
 
 # What time interval does a time step represents
