@@ -1,24 +1,21 @@
 {
   "grand_total_mUSD": 2438.7,
-  "canton_mapped_mUSD": 2438.7,
-  "canton_mapped_pct": 100.0,
-  "firm_cell_available_mUSD": 2348.45,
-  "firm_cell_available_pct": 96.3,
-  "n_model_ready_rows": 803,
-  "n_cantones_mapped": 30,
+  "canton_mapped_mUSD": 2425.34,
+  "canton_mapped_pct": 99.45,
+  "firm_cell_available_mUSD": 2336.82,
+  "firm_cell_available_pct": 95.82,
+  "n_model_ready_rows": 761,
+  "n_cantones_mapped": 29,
   "sectors_in_shock_not_in_model": [],
-  "unmapped_canton_total_mUSD": 0.0,
-  "unmapped_top": {},
-  "mapped_no_firm_cell_total_mUSD": 90.25,
+  "unmapped_canton_total_mUSD": 13.36,
+  "unmapped_top": {
+    "24 DE MAYO (MANABI)": 13.36
+  },
+  "mapped_no_firm_cell_total_mUSD": 88.52,
   "mapped_no_firm_cell_top_sectors": {
-    "ELE": 77.77,
+    "ELE": 77.01,
     "AGU": 10.7,
-    "CUL": 0.81,
-    "HOT": 0.2,
-    "CAR": 0.12,
-    "QU2": 0.07,
-    "CEM": 0.06,
-    "MAD": 0.06
+    "CUL": 0.81
   },
   "non_exact_canton_matches": {
     "2301": {
