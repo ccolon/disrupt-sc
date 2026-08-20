@@ -596,17 +596,35 @@ class Firm:
             self.purchase_plan[supplier_id] = total_for_input * share
 
     def _calculate_price(self, sc_network: ScNetwork):
-        """Adjust price based on input cost changes."""
+        """Pass through the change in the *unit* cost of inputs.
+
+        The basket is priced twice, at current and at equilibrium prices, and only the
+        ratio is used, so the result is invariant to how much the firm happens to be
+        ordering. Comparing total spend against equilibrium spend instead — as this did
+        previously — counts restocking as a cost increase: a firm refilling depleted
+        inventories orders more, its measured input cost rises, and it raises its price
+        even though every supplier is still charging the equilibrium price and its true
+        cost per unit of output is unchanged. Inputs bought to rebuild stock are not
+        consumed by current production, so billing current buyers for them charges twice,
+        once now and again when the stock is drawn down.
+
+        This leaves no price response to scarcity: with the transport channel disabled
+        nothing raises a supplier's price, so prices stay at equilibrium. A scarcity
+        response would have to be modeled on its own terms — keyed on rationing or on
+        inventories below target — rather than arriving as a side effect of order volume.
+        """
         if not self.eq_finance or self.eq_finance.get("sales", 0) < EPSILON:
             return
-        current_input_cost = sum(
-            data["object"].price * data["object"].order
-            for _, _, data in sc_network.in_edges(self, data=True)
-            if data["object"].order > EPSILON
-        )
+        current_cost = reference_cost = 0.0
+        for _, _, data in sc_network.in_edges(self, data=True):
+            link = data["object"]
+            if link.order > EPSILON:
+                current_cost += link.price * link.order
+                reference_cost += link.eq_price * link.order      # same basket, equilibrium prices
         eq_input_cost = self.eq_finance["costs"]["input"]
-        if eq_input_cost > EPSILON:
-            self.delta_price_input = max(0.0, (current_input_cost - eq_input_cost) / self.eq_finance["sales"])
+        if eq_input_cost > EPSILON and reference_cost > EPSILON:
+            input_intensity = eq_input_cost / self.eq_finance["sales"]
+            self.delta_price_input = max(0.0, input_intensity * (current_cost / reference_cost - 1.0))
         else:
             self.delta_price_input = 0.0
         self.price = self.eq_price + self.delta_price_input
