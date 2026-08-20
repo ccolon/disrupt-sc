@@ -108,6 +108,11 @@ def main():
     ap.add_argument("--oat", action="store_true", help="one-at-a-time from baseline (default: full factorial)")
     ap.add_argument("--oat-tag", default="", help="oat_param label for these rows (build-param variation jobs)")
     ap.add_argument("--util-base", type=float, default=0.8)
+    ap.add_argument("--tau-base", type=float, default=None,
+                    help="OAT base for time_to_activate_idle_capital (DAYS); defaults to the "
+                         "config value. Set it explicitly from the launcher: the scope config is "
+                         "gitignored, and a base at or below one time step is degenerate "
+                         "(activation completes inside the step).")
     ap.add_argument("--recon-base", type=lambda s: str(s).lower() in ("true", "1", "yes", "on"), default=True)
     ap.add_argument("--public-base", type=float, default=0.8)
     ap.add_argument("--target-base", type=float, default=730.0)
@@ -199,7 +204,8 @@ def main():
     base = dict(util=args.util_base, recon=args.recon_base, public=args.public_base,
                 target=args.target_base, lag=args.lag_base, crit=args.crit_base,
                 firm_inv=1.0, hh_inv=1.0, restore=1.0,
-                tau=float(sp.time_to_activate_idle_capital),
+                tau=float(args.tau_base if args.tau_base is not None
+                          else sp.time_to_activate_idle_capital),
                 capratio=float(ap_.capital_to_value_added_ratio),
                 shock=float(disr.get("amount_scale", 1.0)),
                 price_thr=float(tp.price_increase_threshold or 0.0),

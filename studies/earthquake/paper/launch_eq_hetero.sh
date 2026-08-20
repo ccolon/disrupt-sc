@@ -40,6 +40,12 @@ SLURM_LOG_DIR="${SCRIPT_DIR}/slurm_logs/eq_hetero"
 N_SEEDS=3                   # <<< network realizations; every draw runs on all of them
 T_FINAL=12                  # months; horizons reported at 3, 6 and 12
 TOTAL=2438.7                # destroyed capital (mUSD) — the modeled earthquake shock
+# Idle-capital activation time (DAYS). MUST exceed one time step: at 30d with monthly
+# steps the activation fraction is min(1, 30/30) = 1, so idle capital is mobilized inside
+# the step the shock lands in, and any destruction below the spare-capacity margin
+# (1 - utilization_rate = 20% of capital) produces no output loss at all. Passed
+# explicitly because the scope config is gitignored and does not reach the cluster.
+TAU_ACTIVATE=90
 RESOLUTIONS="sector,province,canton,province_sector,canton_sector"
 
 # ------------------------- SLURM resources --------------------------------
@@ -104,7 +110,7 @@ for (( s=0; s<N_SEEDS; s++ )); do
   fi
   # --skip-existing is passed through so a requeued job resumes inside the shard
   P="python ${PAPER}/run_hetero.py --draws ${DRAWS_DIR} --seeds ${s} --total ${TOTAL} \
-     --t-final ${T_FINAL} --resolutions ${RESOLUTIONS} ${DATA_OVERRIDES} \
+     --t-final ${T_FINAL} --resolutions ${RESOLUTIONS} --tau-activate ${TAU_ACTIVATE} ${DATA_OVERRIDES} \
      --skip-existing --out ${SHARD}"
   add_id WORKER_IDS "$(submit "hetero_s${s}" "$TIME_WORKER" "$MEM_WORKER" "" "$P")"
 done
@@ -119,7 +125,7 @@ CID=$(submit "hetero_combine" "$TIME_POST" "$MEM_POST" "$WORKER_IDS" "$CP")
 n_draws=$(( $(cat "${DRAWS_DIR}"/draws_{sector,province,canton,province_sector,canton_sector}.csv 2>/dev/null | grep -cv '^resolution,') ))
 echo
 echo "Submitted HETEROGENEITY track: ${N_SEEDS} seed jobs + combine ${CID}"
-echo "  ${n_draws} draws + 1 homogeneous reference per seed, ${TOTAL} mUSD destroyed, ${T_FINAL} months"
+echo "  ${n_draws} draws + 1 homogeneous reference per seed, ${TOTAL} mUSD destroyed, ${T_FINAL} months, tau=${TAU_ACTIVATE}d"
 echo "  outputs: ${SUMMARY}, ${RAW}"
 if [[ ! -f "${PAPER}/plot/plot_hetero.py" ]]; then
     echo "  NOTE: plot/plot_hetero.py does not exist yet — combine will produce the CSVs only."

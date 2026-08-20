@@ -182,6 +182,12 @@ def main() -> None:
     ap.add_argument("--t-final", type=int, default=12, help="months")
     ap.add_argument("--resolutions", default=",".join(RESOLUTIONS))
     ap.add_argument("--criticality", type=Path, default=None)
+    ap.add_argument("--tau-activate", type=float, default=None,
+                    help="time_to_activate_idle_capital in DAYS, overriding the config. Must "
+                         "exceed one time step: at tau = step length the activation fraction is "
+                         "1, idle capital mobilizes within the step the shock lands in, and any "
+                         "destruction below the spare-capacity margin leaves no trace. Passed "
+                         "explicitly by the launcher because the scope config is gitignored.")
     ap.add_argument("--skip-existing", action="store_true",
                     help="resume: keep rows already in --out and run only what is missing")
     args = ap.parse_args()
@@ -189,14 +195,21 @@ def main() -> None:
     setup_logging("info")
     cfg = load_config("EcuadorEQ")
     cfg["t_final"] = args.t_final
+    if args.tau_activate is not None:
+        cfg["time_to_activate_idle_capital"] = args.tau_activate
     tp, sp, ap_, lp = build_params(cfg)
     fp = cfg["filepaths"]
     disr = cfg["disruptions"][0]
     step_days = DAYS_PER_STEP.get(sp.time_resolution, 30)
+    tau = float(sp.time_to_activate_idle_capital)
+    if tau <= step_days:
+        print(f"WARNING: time_to_activate_idle_capital={tau}d <= one step ({step_days}d): idle "
+              f"capital mobilizes instantly, so shocks below {100 * (1 - ap_.utilization_rate):.0f}% "
+              f"of a unit's capital will produce no output loss at all.")
     ppy = 365.0 / step_days
     horizons = {m: max(1, round(m * 30.0 / step_days)) for m in HORIZONS_MONTHS}
     print(f"time step = {sp.time_resolution} ({step_days}d), t_final={sp.t_final}, "
-          f"horizons(steps)={horizons}, seeds={args.seeds}")
+          f"tau_activate={tau}d, horizons(steps)={horizons}, seeds={args.seeds}")
 
     resolutions = tuple(r.strip() for r in args.resolutions.split(",") if r.strip())
     draws = load_draws(args.draws, resolutions)

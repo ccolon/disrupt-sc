@@ -54,7 +54,12 @@ REF_ROOT="${OUTPUT_DIR}/reference"
 FIG_DIR="${OUTPUT_DIR}/figures"
 CRIT_CSV="${SCRIPT_DIR}/studies/earthquake/additional_data/input_criticality.csv"
 SHOCK_CSV="${SCRIPT_DIR}/studies/earthquake/additional_data/earthquake_shock_modelready.csv"
-DATA_OVERRIDES="--criticality ${CRIT_CSV} --shock ${SHOCK_CSV}"
+# Idle-capital activation time (DAYS): must exceed one time step, else idle capital
+# mobilizes within the step the shock lands in and shocks below the spare-capacity
+# margin leave no trace. The scope config is gitignored, so this travels with the repo
+# rather than relying on the cluster's copy.
+TAU_ACTIVATE=90
+DATA_OVERRIDES="--criticality ${CRIT_CSV} --shock ${SHOCK_CSV} --tau-activate ${TAU_ACTIVATE}"
 ACTIVATE="source $(dirname "$(dirname "${PYTHON_ENV}")")/bin/activate ${PYTHON_ENV}"
 EXPORTS="export DISRUPT_SC_DATA_PATH=${DATA_PATH} && export PYTHONHASHSEED=0"
 

@@ -33,6 +33,11 @@ def main():
                     help="override disruptions[0].file (capital-destruction shock CSV)")
     ap.add_argument("--criticality", type=Path, default=None,
                     help="override filepaths.input_criticality (criticality matrix CSV)")
+    ap.add_argument("--tau-activate", type=float, default=None,
+                    help="time_to_activate_idle_capital in DAYS, overriding the config. Must "
+                         "exceed one time step, else idle capital mobilizes within the step the "
+                         "shock lands in. Passed by the launcher because the scope config is "
+                         "gitignored and does not travel to the cluster.")
     args = ap.parse_args()
 
     setup_logging("info")
@@ -46,6 +51,8 @@ def main():
         cfg["disruptions"][0]["file"] = str(args.shock)
     if args.criticality:
         cfg["filepaths"]["input_criticality"] = str(args.criticality)
+    if args.tau_activate is not None:
+        cfg["time_to_activate_idle_capital"] = args.tau_activate
 
     out = args.out_root / f"seed_{args.seed}"
     out.mkdir(parents=True, exist_ok=True)

@@ -42,6 +42,10 @@ PUBLIC_BASE=0.8; PUBLIC_SHARES="0.0,0.5,0.8,1.0"   # reconstruction funded exter
 TARGET_BASE=730; TARGET_TIMES="365,730"
 LAG_BASE=60;     RECON_LAGS="30,60,90"
 CRIT_BASE=0.02;  CRIT_THRESHOLDS="0.0,0.01,0.02,0.05"   # 0.01 = the "too-low" (non-saturating) point
+# Idle-capital activation time (DAYS). Levels at or below one time step (30d, monthly)
+# are degenerate: activation completes inside the step, so every such level collapses
+# onto the same result. Base moved off 30d; 30 is kept in the sweep to show the collapse.
+TAU_BASE=90;     TAU_LEVELS="30,60,90,180"
 
 # ------------------------- SLURM resources --------------------------------
 # The oat_base job runs every runtime config in one build (~60 after the mechanism/severity
@@ -73,7 +77,7 @@ CANTON_MMI="${SCRIPT_DIR}/studies/earthquake/additional_data/canton_mmi_bin.csv"
 DATA_OVERRIDES="--criticality ${CRIT_CSV} --shock ${SHOCK_CSV} --canton-mmi ${CANTON_MMI}"
 ACTIVATE="source $(dirname "$(dirname "${PYTHON_ENV}")")/bin/activate ${PYTHON_ENV}"
 EXPORTS="export DISRUPT_SC_DATA_PATH=${DATA_PATH} && export PYTHONHASHSEED=0"
-BASE_RT="--util-base ${UTIL_BASE} --recon-base ${RECON_BASE} --public-base ${PUBLIC_BASE} --target-base ${TARGET_BASE} --lag-base ${LAG_BASE} --crit-base ${CRIT_BASE}"
+BASE_RT="--util-base ${UTIL_BASE} --recon-base ${RECON_BASE} --public-base ${PUBLIC_BASE} --target-base ${TARGET_BASE} --lag-base ${LAG_BASE} --crit-base ${CRIT_BASE} --tau-base ${TAU_BASE} --tau-activate ${TAU_LEVELS}"
 
 $DRY_RUN || mkdir -p "$SHARD_DIR" "$FIG_DIR" "$SLURM_LOG_DIR"
 
