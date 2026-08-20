@@ -80,26 +80,33 @@ def main():
     # The model is one household per canton, so canton is the native resolution and
     # province is an aggregation up. We emit both; plot_distribution uses the canton one.
     hd = pd.read_csv(args.run_dir / "household_data.csv",
-                     usecols=lambda c: c in {"time_step", "household", "consumption_loss", "agent_type"})
+                     usecols=lambda c: c in {"time_step", "household", "consumption_loss",
+                                             "extra_spending", "agent_type"})
     hd = hd.loc[hd.time_step >= 1]
     if "agent_type" in hd.columns:  # welfare = households only (exclude gov/investment agents)
         hd = hd.loc[hd.agent_type == "household"]
+    # Welfare loss = goods not obtained PLUS the extra paid for those that were. The
+    # sectoral panel above is built from loss_per_region_sector_time.csv, which already
+    # nets both together, so summing consumption_loss alone here would make the map and
+    # the panel measure different quantities -- and models_table.csv, which totals the
+    # province file, would then disagree with loss_summary.csv on the headline.
+    hd["welfare_loss"] = hd.consumption_loss + hd.get("extra_spending", 0.0)
     ht = gpd.read_file(args.run_dir / "household_table.geojson")[
         ["household", "subregion_province", "subregion_canton", "canton_name"]]
     geo = hd.merge(ht, on="household", how="left")
 
-    pv = (geo.groupby("subregion_province").consumption_loss.sum().reset_index()
-              .rename(columns={"subregion_province": "province", "consumption_loss": "household_loss_mUSD"})
+    pv = (geo.groupby("subregion_province").welfare_loss.sum().reset_index()
+              .rename(columns={"subregion_province": "province", "welfare_loss": "household_loss_mUSD"})
               .sort_values("household_loss_mUSD", ascending=False))
     pv["pct_gdp"] = 100.0 * pv.household_loss_mUSD / G
     pv["share_pct"] = 100.0 * pv.household_loss_mUSD / pv.household_loss_mUSD.sum()
     pv.to_csv(out_dir / "loss_by_province_year.csv", index=False)
 
     # canton: keep province + canton_name so the map can join on (province, canton).
-    cv = (geo.groupby(["subregion_canton", "subregion_province", "canton_name"]).consumption_loss.sum()
+    cv = (geo.groupby(["subregion_canton", "subregion_province", "canton_name"]).welfare_loss.sum()
              .reset_index()
              .rename(columns={"subregion_canton": "canton", "subregion_province": "province",
-                              "consumption_loss": "household_loss_mUSD"})
+                              "welfare_loss": "household_loss_mUSD"})
              .sort_values("household_loss_mUSD", ascending=False))
     cv["pct_gdp"] = 100.0 * cv.household_loss_mUSD / G
     cv["share_pct"] = 100.0 * cv.household_loss_mUSD / cv.household_loss_mUSD.sum()

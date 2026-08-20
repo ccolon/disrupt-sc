@@ -16,9 +16,21 @@ from pathlib import Path
 
 import pandas as pd
 
-CONFIG = ["flow_coverage", "nb_suppliers_per_input", "utilization_rate", "critical_input_threshold",
-          "reconstruction_market", "reconstruction_public_share", "reconstruction_target_time",
-          "reconstruction_lag"]
+# Outcome columns and the seed: everything else in a shard is a swept parameter, and the
+# grouping has to use ALL of them. Naming the config columns explicitly is what broke this
+# before -- run_grid.py sweeps around twenty axes (inventory scales, activation time, capital
+# ratio, buffer days, mechanism switches) but only eight were listed, so every configuration
+# that happened to share those eight was pooled into one row. The baseline then absorbed
+# ~1950 runs spanning quite different settings and reported a spread that belonged to no
+# single configuration.
+NOT_CONFIG = {
+    "seed",
+    "household_loss_pct_annual_gdp", "household_loss_mUSD", "gdp_loss_pct_annual_gdp",
+    "did_sales_acute", "did_sales_recovery", "did_purchases_acute", "did_purchases_recovery",
+    # a label for which axis a row belongs to, not a parameter: the same configuration is
+    # reached from several axes (each axis re-runs the baseline), and those must merge
+    "oat_param",
+}
 
 
 def main():
@@ -43,7 +55,9 @@ def main():
     raw_out.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(raw_out, index=False)
 
-    cfg = [c for c in CONFIG if c in df.columns]
+    cfg = [c for c in df.columns if c not in NOT_CONFIG and c != args.metric]
+    if not cfg:
+        raise SystemExit("no configuration columns found — is this a sweep shard?")
     g = df.groupby(cfg, dropna=False)[args.metric]
     summ = g.agg(n_seeds="count", mean="mean", std="std",
                  p10=lambda s: s.quantile(0.10), p90=lambda s: s.quantile(0.90),
@@ -51,6 +65,17 @@ def main():
     summ = summ.round(4).sort_values("mean")
     args.out.parent.mkdir(parents=True, exist_ok=True)
     summ.to_csv(args.out, index=False)
+
+    # A group holding many more rows than there are seeds means some swept axis is still
+    # missing from cfg, and that group's spread is pooling configurations rather than seeds.
+    n_seed_values = df.seed.nunique() if "seed" in df.columns else None
+    if n_seed_values:
+        worst = int(summ.n_seeds.max())
+        if worst > n_seed_values:
+            over = summ.loc[summ.n_seeds > n_seed_values]
+            print(f"WARNING: {len(over)} group(s) hold more rows than the {n_seed_values} seeds "
+                  f"(largest {worst}). A swept parameter is probably missing from the shard "
+                  f"columns, so those rows pool different configurations.")
 
     print(f"metric = {args.metric}   ({df.seed.nunique() if 'seed' in df else '?'} seeds, "
           f"{len(summ)} configs)")
