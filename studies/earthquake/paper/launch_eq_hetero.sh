@@ -20,7 +20,19 @@
 #
 # This is INDEPENDENT of the reference and sensitivity tracks.
 #
-# Usage:  bash studies/earthquake/paper/launch_eq_hetero.sh [--dry-run] [--n-seeds 3] [--skip-existing]
+# Usage:  bash studies/earthquake/paper/launch_eq_hetero.sh [--dry-run] [--n-seeds 3]
+#                [--seeds 3,4] [--no-combine] [--skip-existing]
+#
+# --seeds: submit exactly these seeds (3,4 or 3-4) instead of 0..N-1. Use it to TOP UP a
+#   batch that is already running, so the seeds in flight are never resubmitted -- two jobs
+#   writing one shard will corrupt it, and --skip-existing cannot protect a seed that has
+#   not yet reached its first flush and so has no shard on disk yet.
+#
+# --no-combine: submit the workers only. Required when topping up: the combine job would
+#   otherwise depend on the NEW seeds alone and could fire while the earlier ones are still
+#   running, summarising half-written shards. Run combine by hand once everything lands:
+#     python combine_hetero.py --in <OUTPUT_DIR>/hetero_shards \
+#         --out <OUTPUT_DIR>/hetero_summary.csv --raw-out <OUTPUT_DIR>/hetero_all.csv
 #
 # --skip-existing: don't re-run a seed whose shard (hetero_shards/hetero_s<seed>.csv)
 #   already exists; combine always re-runs and refreshes the summary from all shards.
@@ -57,11 +69,15 @@ TIME_POST="00:30:00";   MEM_POST="4G"
 
 DRY_RUN=false
 SKIP_EXISTING=false
+NO_COMBINE=false
+SEED_LIST=""
 while [[ $# -gt 0 ]]; do
     case $1 in
         --dry-run)       DRY_RUN=true; shift ;;
         --skip-existing) SKIP_EXISTING=true; shift ;;
         --n-seeds)       N_SEEDS=$2; shift 2 ;;
+        --seeds)         SEED_LIST=$2; shift 2 ;;
+        --no-combine)    NO_COMBINE=true; shift ;;
         *) shift ;;
     esac
 done
@@ -101,12 +117,27 @@ add_id() {  # append a (possibly empty) job id to a ':'-joined list variable, sa
 }
 
 # ---- one worker per seed --------------------------------------------------
+# Either 0..N_SEEDS-1, or exactly the seeds named by --seeds (comma list or a-b range).
+if [[ -n "$SEED_LIST" ]]; then
+    if [[ "$SEED_LIST" == *-* && "$SEED_LIST" != *,* ]]; then
+        SEEDS=$(seq "${SEED_LIST%%-*}" "${SEED_LIST##*-}")
+    else
+        SEEDS=${SEED_LIST//,/ }
+    fi
+else
+    SEEDS=$(seq 0 $(( N_SEEDS - 1 )))
+fi
+
 WORKER_IDS=""
-for (( s=0; s<N_SEEDS; s++ )); do
+for s in $SEEDS; do
   SHARD="${SHARD_DIR}/hetero_s${s}.csv"
   if [[ "$SKIP_EXISTING" == true && -s "$SHARD" ]]; then
       echo "  skip hetero_s${s} (shard exists: ${SHARD})" >&2
       continue
+  fi
+  if [[ "$SKIP_EXISTING" != true && -s "$SHARD" ]]; then
+      echo "  WARNING: ${SHARD} already exists -- if a job is still writing it, this" >&2
+      echo "           submission will corrupt it. Cancel, or pass --skip-existing." >&2
   fi
   # --skip-existing is passed through so a requeued job resumes inside the shard
   P="python ${PAPER}/run_hetero.py --draws ${DRAWS_DIR} --seeds ${s} --total ${TOTAL} \
@@ -120,15 +151,20 @@ CP="python ${PAPER}/combine_hetero.py --in ${SHARD_DIR} --out ${SUMMARY} --raw-o
 if [[ -f "${PAPER}/plot/plot_hetero.py" ]]; then
     CP="${CP} && python ${PAPER}/plot/plot_hetero.py ${RAW} --fig-dir ${FIG_DIR}"
 fi
-CID=$(submit "hetero_combine" "$TIME_POST" "$MEM_POST" "$WORKER_IDS" "$CP")
+if [[ "$NO_COMBINE" == true ]]; then
+    CID="(not submitted)"
+else
+    CID=$(submit "hetero_combine" "$TIME_POST" "$MEM_POST" "$WORKER_IDS" "$CP")
+fi
 
 n_draws=$(( $(cat "${DRAWS_DIR}"/draws_{sector,province,canton,province_sector,canton_sector}.csv 2>/dev/null | grep -cv '^resolution,') ))
 echo
-echo "Submitted HETEROGENEITY track: ${N_SEEDS} seed jobs + combine ${CID}"
+echo "Submitted HETEROGENEITY track: seeds [$(echo $SEEDS | tr '\n' ' ')] + combine ${CID}"
 echo "  ${n_draws} draws + 1 homogeneous reference per seed, ${TOTAL} mUSD destroyed, ${T_FINAL} months, tau=${TAU_ACTIVATE}d"
 echo "  outputs: ${SUMMARY}, ${RAW}"
 if [[ ! -f "${PAPER}/plot/plot_hetero.py" ]]; then
     echo "  NOTE: plot/plot_hetero.py does not exist yet — combine will produce the CSVs only."
 fi
 $SKIP_EXISTING && echo "  --skip-existing ON: seeds with a shard are skipped; run_hetero.py also resumes within a shard."
-echo "  change the batch size with --n-seeds."
+echo "  change the batch size with --n-seeds, or top up a running batch with --seeds X,Y --no-combine."
+$NO_COMBINE && echo "  --no-combine: run combine_hetero.py by hand once every seed has finished."
