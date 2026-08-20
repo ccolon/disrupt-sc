@@ -7,6 +7,9 @@
 # already aggregated across seeds. So this takes the aggregates in full, plus exactly one
 # seed's firm_data.csv for the agent counts quoted in Sec. 2.6, and leaves the rest behind.
 #
+# The small per-seed analysis CSVs are taken from every seed, so across-seed spread
+# remains computable for disaggregated quantities, not just for the headline.
+#
 # It also captures the reference run LOG, which is the only place two Sec. 2.6 numbers exist:
 # household inventories as a share of GDP, and the shock-placement diagnostics behind the
 # "damage that failed to land" discussion. Neither is written to any CSV.
@@ -66,7 +69,27 @@ done
 # Small CSVs; taken whole so any number quoted in the text can be traced back.
 take "$OUTPUT_DIR/figures/ref_avg" "figures"
 
+# ---- per-seed analysis CSVs, from EVERY seed ------------------------------
+# distribution.py and uq_did.py write into each seed dir, and average_runs.py then
+# collapses them into figures/ref_avg. Taking only the average would leave no way to put
+# an across-seed band on anything disaggregated -- models_table.csv carries the spread of
+# the headline household loss and nothing else. These files are a few kB each, unlike the
+# firm-level exports below, so all seeds are cheap to carry.
+n_seed_dirs=0
+for d in "$OUTPUT_DIR"/reference/seed_*; do
+    [ -d "$d" ] || continue
+    n_seed_dirs=$((n_seed_dirs + 1))
+    sd=$(basename "$d")
+    for f in loss_by_sector_time.csv loss_by_province_year.csv loss_by_canton_year.csv \
+             uq_eventstudy.csv uq_did.csv; do
+        [ -e "$d/$f" ] && { mkdir -p "$DEST/reference/$sd"; cp "$d/$f" "$DEST/reference/$sd/"; \
+                            n_have=$((n_have + 1)); }
+    done
+done
+echo "  per-seed analysis CSVs from $n_seed_dirs seed dir(s)"
+
 # ---- one seed's firm-level export, for the Sec. 2.6 agent counts ----------
+# These are the bulk of a reference run (tens of MB each), so only the chosen seed.
 take "$OUTPUT_DIR/reference/seed_${SEED}/firm_data.csv"       "reference/seed_${SEED}"
 take "$OUTPUT_DIR/reference/seed_${SEED}/household_data.csv"  "reference/seed_${SEED}"
 take "$OUTPUT_DIR/reference/seed_${SEED}/firm_table.geojson"  "reference/seed_${SEED}"
