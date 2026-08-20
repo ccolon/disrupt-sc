@@ -40,9 +40,18 @@ def main():
     ap.add_argument("eventstudy_csv", type=Path, help="model uq_eventstudy.csv")
     ap.add_argument("--uq", type=Path, required=True, help="twfe_event_study_coefs.csv")
     ap.add_argument("--fig", type=Path, default=None)
+    ap.add_argument("--measure", default="b2b", choices=["b2b", "total"],
+                    help="b2b compares like with like -- UQ observes firm-to-firm flows "
+                         "only. Falls back to total when the run has no b2b rows.")
     args = ap.parse_args()
 
-    md = model_did(pd.read_csv(args.eventstudy_csv))
+    es = pd.read_csv(args.eventstudy_csv)
+    if "measure" in es.columns:
+        want = args.measure if args.measure in set(es.measure) else "total"
+        if want != args.measure:
+            print(f"note: no '{args.measure}' rows — plotting '{want}' instead")
+        es = es[es.measure == want]
+    md = model_did(es)
     uq = pd.read_csv(args.uq)
 
     fig, axes = plt.subplots(1, 2, figsize=(13, 5.2), sharex=True)

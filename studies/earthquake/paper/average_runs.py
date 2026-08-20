@@ -21,8 +21,10 @@ FILES = {
     "loss_by_sector_time.csv": ["isic", "time_step", "sector_label"],
     "loss_by_province_year.csv": ["province"],
     "loss_by_canton_year.csv": ["canton", "province", "canton_name"],
-    "uq_eventstudy.csv": ["outcome", "mmi_bin", "time_step", "tau"],
-    "uq_did.csv": ["outcome", "window"],
+    # "measure" separates the b2b and total variants; without it here the two would be
+    # averaged together into a number belonging to neither
+    "uq_eventstudy.csv": ["measure", "outcome", "mmi_bin", "time_step", "tau"],
+    "uq_did.csv": ["measure", "outcome", "window"],
 }
 
 
