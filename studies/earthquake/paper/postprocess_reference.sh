@@ -33,6 +33,7 @@ echo "reference postprocess"
 echo "  seeds  : $REF_ROOT"
 echo "  figures: $FIG_DIR"
 echo "  table  : $OUTPUT_DIR/models_table.csv"
+echo "  gdp    : $OUTPUT_DIR/gdp_by_seed.csv"
 
 # Fail early with a readable message rather than 50 cryptic tracebacks.
 missing=0
@@ -43,6 +44,11 @@ done
 [ "$missing" -eq 0 ] || exit 1
 
 mkdir -p "$FIG_DIR"
+
+# aggregate_gdp.py APPENDS to its --out, so clear it first: re-running the postprocess
+# would otherwise stack a second copy of every seed onto the first.
+GDP_CSV="$OUTPUT_DIR/gdp_by_seed.csv"
+rm -f "$GDP_CSV"
 
 # ---- per-seed analyze ------------------------------------------------------
 # Deliberately NOT fail-fast: one bad seed must not cost us the other 49.
@@ -57,6 +63,13 @@ for d in "$REF_ROOT"/seed_*; do
     fi
     if ! python "$PAPER/analyze/uq_did.py" "$d" --canton-mmi "$CANTON_MMI" --out-dir "$d"; then
         echo "WARN: uq_did.py failed for $d" >&2
+        n_fail=$((n_fail + 1))
+    fi
+    # household / government / investment / value-added decomposition, one row per seed.
+    # Sec. 2.6 reports these three separately, so the headline household figure in
+    # models_table.csv is not enough on its own.
+    if ! python "$PAPER/analyze/aggregate_gdp.py" "$d" --out "$GDP_CSV" >/dev/null; then
+        echo "WARN: aggregate_gdp.py failed for $d" >&2
         n_fail=$((n_fail + 1))
     fi
 done
@@ -87,3 +100,4 @@ echo "postprocess done:"
 echo "  $FIG_DIR/fig_distribution.png"
 echo "  $FIG_DIR/fig_uq.png"
 echo "  $OUTPUT_DIR/models_table.csv"
+echo "  $GDP_CSV"
