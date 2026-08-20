@@ -27,10 +27,8 @@ For the crossed resolutions, places are first partitioned into connected cluster
 then the (place, sector) cells inside each cluster are partitioned into as many
 draws as the cluster's capital supports.
 
-Capital is the model's own base: sector capital (capital_to_value_added_ratio x
-annual value added, read from a run export) split across cantones by each canton's
-share of that sector's output in firms.geojson -- the same weights the model uses to
-downscale.
+Capital is read firm by firm from a run export and grouped up to cells, so a group
+declared valid here really can absorb the shock in the run that destroys it.
 
 Usage
 -----
@@ -68,37 +66,39 @@ def norm(x: object) -> str:
 # --------------------------------------------------------------------------
 # inputs
 # --------------------------------------------------------------------------
-def load_capital(run_dir: Path, firms_geojson: Path) -> pd.Series:
-    """Capital per (canton, sector), in the model's own units (mUSD).
+def load_capital(run_dir: Path) -> pd.Series:
+    """Capital per (canton, province, sector), read from the model's own firms.
 
-    Sector totals come from the run export (active + idle capital at t=0, i.e.
-    capital_to_value_added_ratio x annual value added). They are national totals
-    fixed by the input-output table, so they are insensitive to which cantones the
-    model happens to include. The split across cantones uses the current
-    firms.geojson shares.
+    Taken firm by firm from a run export -- active plus idle capital at t=0, which is
+    capital_to_value_added_ratio times annual value added -- and grouped up to cells.
+
+    It must come from the model rather than be reconstructed from the spatial input
+    file. A firm's capital tracks its equilibrium production, and that is a network
+    outcome: which clients selected it, under the localization weights and the
+    coverage filter. It is not proportional to the output column of firms.geojson.
+    Sizing draws on that column instead gets sector totals exactly right, since they
+    are fixed by the input--output table, while getting the split across cantones
+    badly wrong -- Quito came out at $118bn against the $4.4bn the model gives it.
+    Draws built that way ask the run to destroy far more capital than the group holds.
     """
-    fd = pd.read_csv(run_dir / "firm_data.csv")
-    t0 = fd[fd["time_step"] == fd["time_step"].min()].copy()
-    t0["capital"] = t0["active_capital"] + t0["idle_capital"]
-    k_sector = t0.groupby("sector")["capital"].sum()
-    LOG.info("sector capital from %s: $%.0fM over %d sectors",
-             run_dir.name, k_sector.sum(), len(k_sector))
+    fd = pd.read_csv(run_dir / "firm_data.csv",
+                     usecols=["time_step", "firm", "active_capital", "idle_capital"])
+    t0 = fd[fd["time_step"] == fd["time_step"].min()]
+    per_firm = (t0["active_capital"] + t0["idle_capital"]).groupby(t0["firm"]).sum()
 
-    gj = json.loads(firms_geojson.read_text(encoding="utf-8"))
+    gj = json.loads((run_dir / "firm_table.geojson").read_text(encoding="utf-8"))
     rows = []
     for f in gj["features"]:
         p = f["properties"]
-        rec = {"canton": p["subregion_canton"], "province": p["subregion_province"]}
-        rec.update({k: v for k, v in p.items() if k.isupper() and len(k) == 3})
-        rows.append(rec)
-    out = pd.DataFrame(rows).set_index(["canton", "province"]).fillna(0.0)
-    LOG.info("firms.geojson: %d cantones", len(out))
-
-    shares = out.div(out.sum(axis=0).replace(0.0, pd.NA), axis=1).fillna(0.0)
-    cap = shares.mul(k_sector.reindex(shares.columns).fillna(0.0), axis=1)
-    cap.columns.name = "sector"
-    LOG.info("reconstructed capital: $%.0fM", cap.values.sum())
-    return cap.stack().rename("capital")
+        rows.append({"canton": p["subregion_canton"], "province": p["subregion_province"],
+                     "sector": p["sector"], "capital": per_firm.get(p["id"], 0.0)})
+    cap = (pd.DataFrame(rows).groupby(["canton", "province", "sector"]).capital.sum())
+    cap = cap[cap > 0]
+    LOG.info("model capital from %s: $%.0fM over %d cells, %d cantones, %d sectors",
+             run_dir.name, cap.sum(), len(cap),
+             cap.index.get_level_values("canton").nunique(),
+             cap.index.get_level_values("sector").nunique())
+    return cap.rename("capital")
 
 
 def load_adjacency(path: Path, cantones: list[str]) -> dict[str, set[str]]:
@@ -295,9 +295,7 @@ def build(resolution: str, cap: pd.Series, adj: dict, total: float) -> pd.DataFr
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--run", required=True, type=Path, help="run dir holding firm_data.csv")
-    ap.add_argument("--firms", type=Path,
-                    default=Path(r"C:/Users/Celian/OneDrive/DisruptSC/disrupt-sc-data/Ecuador/Spatial/firms.geojson"))
+    ap.add_argument("--run", required=True, type=Path, help="run dir holding firm_data.csv and firm_table.geojson")
     ap.add_argument("--adjacency", type=Path,
                     default=Path(r"C:/Users/Celian/OneDrive/WorldBank/Ecuador/Data/Structured/Admin/canton_adjacency.json"))
     ap.add_argument("--total", type=float, default=2438.7, help="destroyed capital, mUSD")
@@ -305,7 +303,7 @@ def main() -> None:
     args = ap.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
-    cap = load_capital(args.run, args.firms)
+    cap = load_capital(args.run)
     adj = load_adjacency(args.adjacency, sorted(cap.index.get_level_values("canton").unique()))
 
     args.out.mkdir(parents=True, exist_ok=True)
