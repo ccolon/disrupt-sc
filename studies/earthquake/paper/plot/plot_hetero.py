@@ -41,8 +41,12 @@ ORDER = [
 LABEL = {"homogeneous": "homogeneous", "sector": "sector", "province": "province",
          "canton": "canton", "province_sector": "province\n× sector",
          "canton_sector": "canton\n× sector"}
-FAMILY_COLOR = {"reference": "#6b7280", "sectoral": "#b45309",
-                "spatial": "#1d4ed8", "crossed": "#7e22ce"}
+# Family identity is carried by hue and by the rules between column groups; the two
+# members of a family differ in lightness, since panel (b) draws all six as lines and
+# one hue per family would leave province indistinguishable from canton.
+COLOR = {"homogeneous": "#6b7280", "sector": "#b45309",
+         "province": "#60a5fa", "canton": "#1d4ed8",
+         "province_sector": "#c084fc", "canton_sector": "#7e22ce"}
 
 
 def horizons(df: pd.DataFrame, metric: str) -> list[int]:
@@ -97,7 +101,7 @@ def main() -> None:
         vals = per_draw.loc[per_draw.resolution == res, ycol].dropna().values
         if not len(vals):
             continue
-        color = FAMILY_COLOR[fam]
+        color = COLOR[res]
         if len(vals) > 2:
             axL.boxplot([vals], positions=[i], widths=0.55, showfliers=False,
                         medianprops=dict(color=color, lw=2),
@@ -110,10 +114,10 @@ def main() -> None:
         xlabels.append(f"{LABEL.get(res, res)}\n(n={len(vals)})")
 
     if ref_val is not None:
-        axL.axhline(ref_val, color=FAMILY_COLOR["reference"], ls="--", lw=1.3, zorder=1)
+        axL.axhline(ref_val, color=COLOR["homogeneous"], ls="--", lw=1.3, zorder=1)
         axL.annotate("homogeneous reference", xy=(len(present) - 0.45, ref_val),
                      xytext=(0, 5), textcoords="offset points", ha="right", va="bottom",
-                     fontsize=9, color=FAMILY_COLOR["reference"])
+                     fontsize=9, color=COLOR["homogeneous"])
 
     # family separators: these are three families, not one nested scale
     for i in range(1, len(present)):
@@ -141,7 +145,7 @@ def main() -> None:
     for res, fam in present:
         sub = per_draw[per_draw.resolution == res]
         ys = [sub[f"{args.metric}_loss_pct_gdp_{h}m"].median() for h in hs]
-        axR.plot(hs, ys, marker="o", ms=4.5, lw=1.8, color=FAMILY_COLOR[fam],
+        axR.plot(hs, ys, marker="o", ms=4.5, lw=1.8, color=COLOR[res],
                  ls="--" if res == "homogeneous" else "-",
                  label=LABEL.get(res, res).replace("\n", " "))
     axR.set_xticks(hs)
