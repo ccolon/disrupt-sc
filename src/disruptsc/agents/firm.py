@@ -641,7 +641,16 @@ class Firm:
         self.price = self.eq_price + self.delta_price_input
 
     def _evaluate_quantities_to_deliver(self, sc_network: ScNetwork, rationing_mode: str):
-        """Determine delivery quantities, applying rationing if needed."""
+        """Determine delivery quantities, applying rationing if needed.
+
+        Deliveries are computed on ``order_book`` — the orders snapshotted by
+        ``retrieve_orders`` and used to plan this step's production — NOT on
+        ``link.order``, which step 4 has already overwritten with the orders for
+        the NEXT delivery. Serving the fresh orders against a stock produced for
+        the old ones breaks goods conservation: whenever clients raise orders
+        between steps the firm ships more than it holds and the drain clip
+        silently creates the difference (0.5% of VA over the earthquake year).
+        """
         if self.total_order < EPSILON:
             self.rationing = 1.0
             return
@@ -651,14 +660,14 @@ class Firm:
             self.rationing = 1.0
             for _, client, data in sc_network.out_edges(self, data=True):
                 link: CommercialLink = data["object"]
-                link.delivery = link.order
+                link.delivery = self.order_book.get(client.pid, 0.0)
                 link.delivery_in_tons = link.delivery * self.monetary_unit_factor / self.usd_per_ton if self.usd_per_ton > 0 else 0.0
         else:
             self.rationing = available / self.total_order
             if rationing_mode == "equal":
                 for _, client, data in sc_network.out_edges(self, data=True):
                     link: CommercialLink = data["object"]
-                    link.delivery = link.order * self.rationing
+                    link.delivery = self.order_book.get(client.pid, 0.0) * self.rationing
                     link.delivery_in_tons = link.delivery * self.monetary_unit_factor / self.usd_per_ton if self.usd_per_ton > 0 else 0.0
             elif rationing_mode == "household_first":
                 # Serve household clients first, then ration firm/country clients
@@ -669,20 +678,21 @@ class Firm:
                 hh_demand = other_demand = 0.0
                 for _, client, data in sc_network.out_edges(self, data=True):
                     link: CommercialLink = data["object"]
+                    ordered = self.order_book.get(client.pid, 0.0)
                     if client.__class__.__name__ == "Household":
-                        hh_links.append(link)
-                        hh_demand += link.order
+                        hh_links.append((link, ordered))
+                        hh_demand += ordered
                     else:
-                        other_links.append(link)
-                        other_demand += link.order
+                        other_links.append((link, ordered))
+                        other_demand += ordered
                 hh_ration = min(1.0, available / hh_demand) if hh_demand > EPSILON else 1.0
                 remainder = max(0.0, available - hh_demand * hh_ration)
                 other_ration = min(1.0, remainder / other_demand) if other_demand > EPSILON else 1.0
-                for link in hh_links:
-                    link.delivery = link.order * hh_ration
+                for link, ordered in hh_links:
+                    link.delivery = ordered * hh_ration
                     link.delivery_in_tons = link.delivery * self.monetary_unit_factor / self.usd_per_ton if self.usd_per_ton > 0 else 0.0
-                for link in other_links:
-                    link.delivery = link.order * other_ration
+                for link, ordered in other_links:
+                    link.delivery = ordered * other_ration
                     link.delivery_in_tons = link.delivery * self.monetary_unit_factor / self.usd_per_ton if self.usd_per_ton > 0 else 0.0
             else:
                 raise ValueError(
