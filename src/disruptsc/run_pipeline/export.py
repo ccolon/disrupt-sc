@@ -78,12 +78,14 @@ FIRM_COLUMNS = [
     "active_capital", "idle_capital",
     "product_stock", "total_order", "total_input", "rationing",
     "profit", "price", "delta_price_input",
+    "reconstruction_sales", "imports", "input_consumed", "input_stock",
 ]
 
 HOUSEHOLD_COLUMNS = [
     "time_step", "household", "region",
     "tot_consumption", "tot_spending",
     "consumption_loss", "extra_spending",
+    "imports", "inventory_total",
 ]
 
 HOUSEHOLD_BY_SECTOR_COLUMNS = [
@@ -95,6 +97,7 @@ HOUSEHOLD_BY_SECTOR_COLUMNS = [
 COUNTRY_COLUMNS = [
     "time_step", "country",
     "extra_spending", "consumption_loss",
+    "qty_sold", "qty_received",
     "generalized_transport_cost",
     "usd_transported", "tons_transported", "tonkm_transported",
 ]
