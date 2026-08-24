@@ -178,7 +178,7 @@ def main() -> None:
     ap.add_argument("--draws", type=Path, required=True, help="dir holding draws_<resolution>.csv")
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--seeds", type=_seeds, default=[0, 1, 2])
-    ap.add_argument("--total", type=float, default=2438.7, help="destroyed capital, mUSD")
+    ap.add_argument("--total", type=float, default=2510.1, help="destroyed capital, mUSD")
     ap.add_argument("--t-final", type=int, default=12, help="months")
     ap.add_argument("--resolutions", default=",".join(RESOLUTIONS))
     ap.add_argument("--criticality", type=Path, default=None)

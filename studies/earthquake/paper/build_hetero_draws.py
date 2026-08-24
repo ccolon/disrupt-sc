@@ -32,7 +32,7 @@ declared valid here really can absorb the shock in the run that destroys it.
 
 Usage
 -----
-    python build_hetero_draws.py --run <run_dir> --out <dir> [--total 2438.7]
+    python build_hetero_draws.py --run <run_dir> --out <dir> [--total 2510.1]
 """
 from __future__ import annotations
 
@@ -298,7 +298,7 @@ def main() -> None:
     ap.add_argument("--run", required=True, type=Path, help="run dir holding firm_data.csv and firm_table.geojson")
     ap.add_argument("--adjacency", type=Path,
                     default=Path(r"C:/Users/Celian/OneDrive/WorldBank/Ecuador/Data/Structured/Admin/canton_adjacency.json"))
-    ap.add_argument("--total", type=float, default=2438.7, help="destroyed capital, mUSD")
+    ap.add_argument("--total", type=float, default=2510.1, help="destroyed capital, mUSD")
     ap.add_argument("--out", type=Path, required=True)
     args = ap.parse_args()
 
