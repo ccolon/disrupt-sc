@@ -59,6 +59,7 @@ class Household:
     tot_spending: float = 0.0
     consumption_loss: float = 0.0
     extra_spending: float = 0.0
+    imports: float = 0.0                     # purchases received from country agents this step
 
     # ------------------------------------------------------------------
     # Helpers
@@ -140,6 +141,7 @@ class Household:
         self.tot_spending = 0.0
         self.consumption_loss = 0.0
         self.extra_spending = 0.0
+        self.imports = 0.0
 
     def send_purchase_orders(self, sc_network: ScNetwork):
         """Set order quantities on all incoming commercial links."""
@@ -159,6 +161,8 @@ class Household:
                 collect_shipment_from_node(self.od_point, link, transport_network, sectors_no_transport)
             quantity_received = link.realized_delivery
             price = link.price
+            if supplier.__class__.__name__ == "Country":
+                self.imports += quantity_received
 
             # Track purchases and replenish inventory if enabled.
             sector = link.product
@@ -218,6 +222,8 @@ class Household:
             "tot_spending": self.tot_spending,
             "consumption_loss": self.consumption_loss,
             "extra_spending": self.extra_spending,
+            "imports": self.imports,
+            "inventory_total": sum(self.inventory.values()) if self.use_inventories else 0.0,
             "consumption_per_sector": dict(self.consumption_per_sector),
             "spending_per_sector": dict(self.spending_per_sector),
             "consumption_loss_per_sector": dict(self.consumption_loss_per_sector),

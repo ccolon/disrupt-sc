@@ -46,6 +46,7 @@ class Country:
 
     # --- Per-timestep tracking ---
     qty_sold: float = 0.0
+    qty_received: float = 0.0  # goods received from domestic firms this step (exports of the modeled economy)
     generalized_transport_cost: float = 0.0
     usd_transported: float = 0.0
     tons_transported: float = 0.0
@@ -66,6 +67,7 @@ class Country:
 
     def reset_variables(self):
         self.qty_sold = 0.0
+        self.qty_received = 0.0
         self.generalized_transport_cost = 0.0
         self.usd_transported = 0.0
         self.tons_transported = 0.0
@@ -129,6 +131,8 @@ class Country:
             link: CommercialLink = data["object"]
             collect_shipment_from_node(self.od_point, link, transport_network, sectors_no_transport)
             quantity_received = link.realized_delivery
+            if supplier.__class__.__name__ == "Firm":
+                self.qty_received += quantity_received
             # Track losses
             expected = self.purchase_plan.get(supplier.pid, 0.0)
             if expected > EPSILON and quantity_received < expected - EPSILON:
@@ -148,6 +152,8 @@ class Country:
             "country": self.pid,
             "extra_spending": self.extra_spending,
             "consumption_loss": self.consumption_loss,
+            "qty_sold": self.qty_sold,
+            "qty_received": self.qty_received,
             "generalized_transport_cost": self.generalized_transport_cost,
             "usd_transported": self.usd_transported,
             "tons_transported": self.tons_transported,
