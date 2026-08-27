@@ -111,11 +111,13 @@ def _path_str(value) -> str | None:
     return str(value)
 
 
-def build_fingerprint(config: dict, *, criticality_duration: int) -> dict:
+def build_fingerprint(config: dict, *, criticality_duration: int | None = None) -> dict:
     """Return the fingerprint payload for the current run.
 
-    Pass *criticality_duration* explicitly so we don't have to peek into
-    the (already-parsed) criticality sub-dict here.
+    *criticality_duration* is passed explicitly by the criticality path
+    (so we don't have to peek into the already-parsed criticality
+    sub-dict here); plain disruption/initial-state provenance stamps
+    leave it None.
     """
     filepaths = config.get("filepaths") or {}
     payload = {
