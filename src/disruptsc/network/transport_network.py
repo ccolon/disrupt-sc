@@ -446,18 +446,23 @@ class TransportNetwork(nx.Graph):
                 _refresh_edge_capacity_costs(edge, self.cargo_types or [], capacity_constraint_mode)
 
     def reset_loads(self):
-        """Reset all load tracking and capacity costs to base values."""
-        cost_labels = self._get_cost_labels(with_capacity=False)
-        cap_labels = self._get_cost_labels(with_capacity=True)
+        """Reset all load tracking and capacity costs to base values.
+
+        Labels are derived from ``self.cargo_types`` per edge — NOT from the
+        keys of an arbitrary first edge, which may not carry every cargo type
+        (blocked types have no cost label there). Deriving from one edge left
+        the congestion-adjusted costs of the missing types un-reset on every
+        other edge, so congestion accumulated across time steps.
+        """
         for u, v in self.edges:
             edge = self[u][v]
-            for ct in (self.cargo_types or []):
-                edge[f"current_load_{ct}"] = 0
             edge["overused"] = False
             edge["shipments"] = {}
-            for i, cl in enumerate(cost_labels):
-                if cl in edge:  # blocked cargo types have no cost labels
-                    edge[cap_labels[i]] = edge[cl]
+            for ct in (self.cargo_types or []):
+                edge[f"current_load_{ct}"] = 0
+                base_label = f"cost_per_ton_{ct}"
+                if base_label in edge:  # blocked cargo types have no cost labels
+                    edge[f"cost_per_ton_with_capacity_{ct}"] = edge[base_label]
         for node_id in self.nodes:
             self._node[node_id]["shipments"] = {}
 
@@ -590,17 +595,6 @@ class TransportNetwork(nx.Graph):
                 "n_edges_no_flow": n_no_flow,
             },
         }
-
-    # ------------------------------------------------------------------
-    # Private helpers
-    # ------------------------------------------------------------------
-
-    def _get_cost_labels(self, with_capacity: bool) -> list[str]:
-        _, _, data = next(iter(self.edges(data=True)))
-        prefix = "cost_per_ton_with_capacity" if with_capacity else "cost_per_ton"
-        exclude = "cost_per_ton_with" if not with_capacity else None
-        return [k for k in data if k.startswith(prefix) and (exclude is None or not k.startswith(exclude) or with_capacity)]
-
 
 # ======================================================================
 # Module-level helpers
