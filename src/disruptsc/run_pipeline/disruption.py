@@ -543,8 +543,12 @@ def parse_disruptions(config_list: list | None,
                     cfg["destroyed_capital"], cfg["filter"], firms,
                 )
             elif desc_type in ("subregion_file", "file"):
+                # "repo:<relpath>" resolves against the code-repo root, so a
+                # tracked scope config can reference a shock file committed
+                # under studies/ without machine-specific absolute paths.
+                from disruptsc.config import resolve_repo_prefix
                 d = CapitalDestruction.from_subregion_file(
-                    cfg["file"], firms,
+                    resolve_repo_prefix(cfg["file"]), firms,
                     monetary_units=monetary_units,
                     canton_key=cfg.get("canton_key", "subregion_canton"),
                     unit=cfg.get("unit", "mUSD"),

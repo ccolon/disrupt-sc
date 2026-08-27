@@ -1,0 +1,144 @@
+# =========================================================================
+# Ecuador 2016 earthquake -- capital-destruction disruption (standalone scope)
+# =========================================================================
+# TRACKED baseline configuration for the earthquake paper. This is the file
+# the paper's runs are defined by: every scientifically active parameter of
+# the reference/sensitivity/heterogeneity pipelines lives here, in git.
+#
+# Run:   python -m disruptsc.run EcuadorEQ
+#
+# Load order: default.yaml -> THIS FILE -> user_defined_EcuadorEQ.local.yaml.
+# The gitignored .local file is for machine-specific overrides only
+# (absolute data paths, local experiments); keep science parameters HERE so
+# they travel with the repository.
+#
+# Paths: plain relative filepaths resolve against <data-root>/EcuadorEQ/.
+# The EcuadorEQ scope reuses the Ecuador scope's data, hence the ../Ecuador
+# prefixes. "repo:<relpath>" resolves against the code repo root, for inputs
+# committed with the code (criticality matrix, shock file under studies/).
+#
+# Model notes (unchanged from the original scope file): monthly steps,
+# transport OFF (ensemble mode), adapted-Leontief production via the IHS
+# Markit criticality matrix gated by a 2% materiality floor, supplier
+# substitution on, reconstruction market on (80% public).
+# inventory_restoration_time and reconstruction_target_time are in DAYS
+# (converted to model time steps via time_resolution).
+# =========================================================================
+
+# -- Data (pulled from the Ecuador scope data folder) --
+filepaths:
+  transport:          "../Ecuador/Transport/transport.gpkg"
+  multimodal:         "../Ecuador/Transport/multimodal.gpkg"
+  mrio:               "../Ecuador/Economic/mrio_59sectors_hhs_gvt_inv.csv"
+  sector_table:       "../Ecuador/Economic/sector_table.csv"
+  usd_per_ton:        "../Ecuador/Economic/sector_table.csv"
+  households_spatial: "../Ecuador/Spatial/households.geojson"
+  countries_spatial:  "../Ecuador/Spatial/countries.geojson"
+  firms_spatial:      "../Ecuador/Spatial/firms.geojson"
+  # Pichler et al. (2022) IHS Markit input-criticality matrix, crosswalked to
+  # Ecuador sectors (built by studies/earthquake/build_criticality.py).
+  # Committed in the code repo so it travels with git. Enables the
+  # adapted-Leontief production function (critical/important/non-critical).
+  input_criticality:  "repo:studies/earthquake/additional_data/input_criticality.csv"
+  # Dead keys inherited from default.yaml (the code never reads them); nulled so
+  # the resolved config carries no dangling paths.
+  inventory_duration_targets: null
+  admin: null
+
+# -- Economic / time --
+firm_data_type: "mrio"
+monetary_units_in_model: "mUSD"
+monetary_units_in_data: "kUSD"
+time_resolution: "month"
+t_final: 12
+flow_coverage: 0.8
+# Adapted-Leontief production: IHS Markit criticality matrix (filepaths.input_criticality)
+# gated by a materiality floor. Only inputs that are BOTH survey-critical AND >=2% of a
+# firm's cost bind; this makes losses saturate in flow_coverage (the pure matrix does not).
+critical_input_threshold: 0.02
+
+# -- Simulation --
+simulation_type: "disruption"
+mc_repetitions: 0
+export_files: True
+epsilon_stop_condition: 0     # always run the full horizon
+seed: 0
+
+# -- Transport / substitution --
+with_transport: False         # transport OFF (ensemble mode). True = geographic routing (~15x slower)
+use_cargo_types: False        # no per-cargo routing when transport is off
+
+# Supplier substitution (V1 = off). Substitution on = nb_suppliers 2-4 + adaptive weight True.
+nb_suppliers_per_input: 2
+adaptive_supplier_weight: True
+# Capacity-destroyed firms cap input orders at their reduced capacity (don't over-order
+# inputs they can't process -> no stranded-inventory VA loss).
+capacity_constrained_orders: True
+
+# -- Inventory / restocking --
+adaptive_inventories: True
+inventory_restoration_time: 90        # DAYS
+inventory_duration_targets:
+  definition: per_input_type
+  values:
+    default: 30
+    utility: 3
+    agriculture: 15
+    manufacturing: 30
+    trade: 30
+    transport: 5
+    service: 90         # coping/resilience duration (NOT literal stock); 7d over-amplifies the cascade
+    services: 90
+  unit: day
+enable_household_inventories: True
+# Household buffers proxy retail-shelf + home-pantry stock (the IO nets out
+# bought-for-resale, so B2C runs producer->household with no retailer node).
+# Calibrated to FINAL-CONSUMPTION storability, NOT firm production buffering.
+# Keyed on sector_table['type']; keeps total inventory ~8-10% of GDP.
+household_inventory_duration_target:
+  definition: per_input_type
+  values:
+    default: 7
+    construction: 0
+    service: 3
+    transport: 3
+    utility: 3
+    trade: 3
+    mining: 3
+    agriculture: 7
+    manufacturing: 14
+    imports: 14
+  unit: day
+
+# -- Other agent settings (as calibrated for Ecuador) --
+utilization_rate: 0.8
+# MUST exceed one time step: at the default 30d with monthly steps the activation
+# fraction is min(1, 30/30) = 1, so idle capital mobilizes entirely within the step
+# the shock lands in and sub-margin destruction leaves no output trace. 90d = 3 steps
+# restores a genuine capacity-recovery transient.
+time_to_activate_idle_capital: 90
+price_increase_threshold: 5
+capital_to_value_added_ratio: 3
+capacity_constraint: False
+transport_modes: ["roads", "maritime", "waterways", "airways"]   # only used if with_transport: True
+rationing_mode: "equal"
+
+# -- The earthquake shock --
+# Heterogeneous canton x IO-sector destroyed capital (absolute mUSD), matched to
+# firms by subregion_canton + sector and applied via incur_capital_destruction.
+disruptions:
+  - type: capital_destruction
+    description_type: subregion_file
+    file: "repo:studies/earthquake/additional_data/earthquake_shock_modelready.csv"
+    unit: mUSD
+    # Re-place damage that exceeds a (canton, sector) cell's modelled capital onto other
+    # firms in the SAME canton. With discard, 21.6% of the shock never landed and 96% of
+    # that loss fell on the treated MMI>7 cantones (Portoviejo -35%, Pedernales -36%).
+    overflow_policy: spill_canton
+    start_time: 1
+    reconstruction_market: True       # baseline: reconstruction ON (80% public)
+    reconstruction_target_time: 730   # DAYS -> steps via time_resolution
+    # Delay before reconstruction demand begins, measured from the shock (rubble clearing, insurance, planning)
+    reconstruction_lag: 60  # DAYS
+    capital_input_mix: {CON: 0.7, MAN: 0.2, IMP: 0.1}
+    reconstruction_public_share: 0.8
