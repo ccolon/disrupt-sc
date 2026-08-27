@@ -37,6 +37,7 @@ _NEEDS_LARGE_STACK = sys.platform == "win32"
 from disruptsc import paths
 from disruptsc.config import (
     load_config, build_params, setup_output, setup_logging, SIMU_TYPES_WITH_EXPORT,
+    attach_run_log, detach_run_log,
 )
 
 from disruptsc.init_pipeline.load_data import (
@@ -185,6 +186,7 @@ def execute(config: dict, *, cache: str | None = None,
     # writes its own sidecar in its per-run subfolder). Results can then be
     # attributed to an exact code revision after the fact.
     if export_folder:
+        attach_run_log(export_folder)   # archive this run's log as exp.log
         fp_payload = build_fingerprint(config)
         save_fingerprint(fp_payload, export_folder / "run_fingerprint.json")
         logging.info(
@@ -551,6 +553,7 @@ def execute(config: dict, *, cache: str | None = None,
         logging.warning(f"--open requested but no report generated: {reason}")
 
     logging.info("Done.")
+    detach_run_log()
     return export_folder
 
 
