@@ -35,7 +35,9 @@ _LARGE_STACK_SIZE = 64 * 1024 * 1024  # 64 MB
 _NEEDS_LARGE_STACK = sys.platform == "win32"
 
 from disruptsc import paths
-from disruptsc.config import load_config, build_params, setup_output, setup_logging
+from disruptsc.config import (
+    load_config, build_params, setup_output, setup_logging, SIMU_TYPES_WITH_EXPORT,
+)
 
 from disruptsc.init_pipeline.load_data import (
     load_mrio, load_sector_table, load_usd_per_ton, filter_sectors,
@@ -121,6 +123,8 @@ def _main_impl():
         config["flow_coverage"] = args.flow_coverage
     if args.seed is not None:
         config["seed"] = args.seed
+    if args.open:
+        config["export_files"] = True
 
     return execute(config, cache=args.cache,
                    cache_isolation=args.cache_isolation, open_report=args.open)
@@ -505,6 +509,14 @@ def execute(config: dict, *, cache: str | None = None,
     # ------------------------------------------------------------------
     if export_folder and open_report:
         _generate_and_open_report(sim_type, export_folder)
+    elif open_report:
+        if sim_type not in SIMU_TYPES_WITH_EXPORT:
+            reason = f"simulation_type={sim_type} has no exports"
+        elif sp.is_monte_carlo:
+            reason = "Monte Carlo runs have no per-run export folder"
+        else:
+            reason = "export_files is disabled"
+        logging.warning(f"--open requested but no report generated: {reason}")
 
     logging.info("Done.")
     return export_folder
