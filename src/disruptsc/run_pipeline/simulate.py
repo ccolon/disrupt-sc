@@ -124,6 +124,10 @@ def prepare_disruption_baseline(sc_network, transport_network, firms, households
                                 writers: AgentWriters | None = None,
                                 monitored_edges: list[str] | None = None):
     """Reset to equilibrium and execute the shared, undisrupted t=0 baseline."""
+    # Clear leftover transport disruptions/loads from a previous run on the same
+    # build (e.g. Monte-Carlo iteration N whose edge disruption outlasted t_final
+    # would otherwise still be closed at iteration N+1's baseline).
+    transport_network.reinitialize_flows_and_disruptions()
     set_initial_conditions(sc_network, firms, households, countries, tp, sp)
 
     all_data = {"firm": [], "household": [], "country": [], "transport_flow": []}
@@ -225,9 +229,26 @@ def set_initial_conditions(sc_network, firms, households, countries,
     # the link, so without this it SURVIVES a re-run: sweeps that reuse one build for several
     # configs had every config after the first inherit the previous run's learned routing
     # (worth ~0.3pp of household loss in the Ecuador sweep -- enough to swamp small axes).
+    #
+    # Same leak family: disruption and reconstruction state must not survive either.
+    # A reduction-mode shock whose duration outlasts t_final (or is infinite) would
+    # otherwise carry into the next run on the same build via
+    # production_capacity_reduction; leftover reconstruction_demand would inflate
+    # total_order at the next run's t=0 (retrieve_orders adds it). Absolute capital
+    # shocks self-heal because initialize_capital rebuilds the stocks below — these
+    # fields are the ones nothing below touches.
     for firm in firms.values():
         for info in firm.suppliers.values():
             info["satisfaction"] = 1.0
+        firm.production_capacity_reduction = 0.0
+        firm.remaining_disrupted_time = 0.0
+        firm.reconstruction_demand = 0.0
+        firm.capital_demanded = 0.0
+        firm.public_capital_demanded = 0.0
+        firm.reconstruction_produced = 0.0
+        firm.reconstruction_sales = 0.0
+        firm.price = firm.eq_price
+        firm.delta_price_input = 0.0
 
     for hh in households.values():
         hh.set_equilibrium_purchase_plan()
