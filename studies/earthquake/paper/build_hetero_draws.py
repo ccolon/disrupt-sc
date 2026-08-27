@@ -289,6 +289,10 @@ def build(resolution: str, cap: pd.Series, adj: dict, total: float) -> pd.DataFr
     df = pd.DataFrame(rows, columns=["draw_id", "units", "n_units", "group_capital_mUSD"])
     df.insert(0, "resolution", resolution)
     df["destroyed_fraction"] = total / df["group_capital_mUSD"]
+    # Stamp the build total so the draw list is self-describing: run_hetero.py
+    # derives its destroyed total from this column and refuses a mismatching
+    # explicit --total (the partition is only valid for the total it was built at).
+    df["total_mUSD"] = total
     return df
 
 

@@ -121,6 +121,28 @@ def load_draws(draws_dir: Path, resolutions: tuple) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True)
 
 
+def draws_total(draws: pd.DataFrame) -> float:
+    """The destroyed total the draw list was built for, read from the draws.
+
+    Prefers the stamped ``total_mUSD`` column (newer build_hetero_draws.py);
+    falls back to ``destroyed_fraction * group_capital_mUSD``, which equals
+    the build-time ``--total`` by construction. Refuses an internally
+    inconsistent draw list (files from different builds mixed together).
+    """
+    if "total_mUSD" in draws.columns:
+        vals = draws["total_mUSD"].astype(float)
+    else:
+        vals = (draws["destroyed_fraction"].astype(float)
+                * draws["group_capital_mUSD"].astype(float))
+    lo, hi = float(vals.min()), float(vals.max())
+    if hi - lo > 1e-3 * max(hi, 1.0):
+        raise SystemExit(
+            f"draw list is internally inconsistent: implied totals span "
+            f"{lo:.2f}-{hi:.2f} mUSD. Regenerate all draws_<resolution>.csv "
+            f"in one build_hetero_draws.py invocation.")
+    return float(vals.median())
+
+
 # --------------------------------------------------------------------------
 def build_agents(common, ap_, sp, tp, seed):
     """Fresh agents + seeded supply-chain network for one Monte-Carlo seed."""
@@ -178,7 +200,15 @@ def main() -> None:
     ap.add_argument("--draws", type=Path, required=True, help="dir holding draws_<resolution>.csv")
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--seeds", type=_seeds, default=[0, 1, 2])
-    ap.add_argument("--total", type=float, default=2510.1, help="destroyed capital, mUSD")
+    ap.add_argument("--total", type=float, default=None,
+                    help="destroyed capital, mUSD. Default: derived from the draw list "
+                         "itself (the total it was built for). An explicit value that "
+                         "disagrees with the draws is refused -- the group partition is "
+                         "only valid for its build total.")
+    ap.add_argument("--allow-total-mismatch", action="store_true",
+                    help="run anyway when --total differs from the draws' build total "
+                         "(destroyed_fraction then exceeds 1 for the smallest groups, "
+                         "and the shock silently overflows -- deliberate experiments only)")
     ap.add_argument("--t-final", type=int, default=12, help="months")
     ap.add_argument("--resolutions", default=",".join(RESOLUTIONS))
     ap.add_argument("--criticality", type=Path, default=None)
@@ -213,7 +243,23 @@ def main() -> None:
 
     resolutions = tuple(r.strip() for r in args.resolutions.split(",") if r.strip())
     draws = load_draws(args.draws, resolutions)
-    print(f"{len(draws)} draws over {draws.resolution.nunique()} resolutions")
+    implied_total = draws_total(draws)
+    if args.total is None:
+        total = implied_total
+    else:
+        total = float(args.total)
+        if abs(total - implied_total) > 0.005 * implied_total and not args.allow_total_mismatch:
+            raise SystemExit(
+                f"--total {total:.1f} does not match the total the draws were built for "
+                f"({implied_total:.1f} mUSD). Groups are partitioned so their capital is "
+                f">= the BUILD total; destroying a different amount silently changes every "
+                f"destroyed_fraction and overflows the smallest groups. Either drop --total "
+                f"(the draws' own total is used), regenerate the draws with "
+                f"build_hetero_draws.py --total {total:.1f}, or pass "
+                f"--allow-total-mismatch if the mismatch is deliberate.")
+    print(f"{len(draws)} draws over {draws.resolution.nunique()} resolutions, "
+          f"destroyed total {total:.1f} mUSD "
+          f"({'derived from draws' if args.total is None else 'explicit --total'})")
 
     done = set()
     if args.skip_existing and args.out.exists():
@@ -283,13 +329,13 @@ def main() -> None:
                 continue
             if res == "homogeneous":
                 sel = capital[capital > 0]
-                alloc = (sel * (args.total / sel.sum())).reset_index()
+                alloc = (sel * (total / sel.sum())).reset_index()
                 alloc.columns = ["subregion_canton", "province", "sector", "destroyed_capital_mUSD"]
                 alloc = alloc[["subregion_canton", "sector", "destroyed_capital_mUSD"]]
                 group_capital = float(capital.sum())
             else:
                 try:
-                    alloc = allocate(res, parse_units(res, units), capital, args.total)
+                    alloc = allocate(res, parse_units(res, units), capital, total)
                 except ValueError as exc:
                     logging.warning("seed %s %s#%s skipped: %s", seed, res, draw_id, exc)
                     continue
@@ -310,7 +356,7 @@ def main() -> None:
             row = {"seed": seed, "resolution": res, "draw_id": draw_id,
                    "n_units": (0 if res == "homogeneous" else len(parse_units(res, units))),
                    "group_capital_mUSD": round(group_capital, 2),
-                   "destroyed_fraction": round(args.total / group_capital, 5) if group_capital else float("nan"),
+                   "destroyed_fraction": round(total / group_capital, 5) if group_capital else float("nan"),
                    "total_destroyed_mUSD": round(float(alloc.destroyed_capital_mUSD.sum()), 2),
                    "annual_gdp_mUSD": round(annual_gdp, 2)}
             for m, steps in horizons.items():

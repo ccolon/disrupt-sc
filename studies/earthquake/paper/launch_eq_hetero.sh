@@ -51,7 +51,10 @@ SLURM_LOG_DIR="${SCRIPT_DIR}/slurm_logs/eq_hetero"
 # ========================= EXPERIMENT DESIGN ===============================
 N_SEEDS=3                   # <<< network realizations; every draw runs on all of them
 T_FINAL=12                  # months; horizons reported at 3, 6 and 12
-TOTAL=2438.7                # destroyed capital (mUSD) — the modeled earthquake shock
+# Destroyed capital is NOT set here: run_hetero.py derives it from the committed
+# draw list itself (the total the partition was built for) and refuses an explicit
+# --total that disagrees. To change the total, regenerate the draws with
+# build_hetero_draws.py --total <mUSD> and commit them.
 # Idle-capital activation time (DAYS). MUST exceed one time step: at 30d with monthly
 # steps the activation fraction is min(1, 30/30) = 1, so idle capital is mobilized inside
 # the step the shock lands in, and any destruction below the spare-capacity margin
@@ -140,7 +143,7 @@ for s in $SEEDS; do
       echo "           submission will corrupt it. Cancel, or pass --skip-existing." >&2
   fi
   # --skip-existing is passed through so a requeued job resumes inside the shard
-  P="python ${PAPER}/run_hetero.py --draws ${DRAWS_DIR} --seeds ${s} --total ${TOTAL} \
+  P="python ${PAPER}/run_hetero.py --draws ${DRAWS_DIR} --seeds ${s} \
      --t-final ${T_FINAL} --resolutions ${RESOLUTIONS} --tau-activate ${TAU_ACTIVATE} ${DATA_OVERRIDES} \
      --skip-existing --out ${SHARD}"
   add_id WORKER_IDS "$(submit "hetero_s${s}" "$TIME_WORKER" "$MEM_WORKER" "" "$P")"
@@ -160,7 +163,7 @@ fi
 n_draws=$(( $(cat "${DRAWS_DIR}"/draws_{sector,province,canton,province_sector,canton_sector}.csv 2>/dev/null | grep -cv '^resolution,') ))
 echo
 echo "Submitted HETEROGENEITY track: seeds [$(echo $SEEDS | tr '\n' ' ')] + combine ${CID}"
-echo "  ${n_draws} draws + 1 homogeneous reference per seed, ${TOTAL} mUSD destroyed, ${T_FINAL} months, tau=${TAU_ACTIVATE}d"
+echo "  ${n_draws} draws + 1 homogeneous reference per seed, total derived from the draw list, ${T_FINAL} months, tau=${TAU_ACTIVATE}d"
 echo "  outputs: ${SUMMARY}, ${RAW}"
 if [[ ! -f "${PAPER}/plot/plot_hetero.py" ]]; then
     echo "  NOTE: plot/plot_hetero.py does not exist yet — combine will produce the CSVs only."
