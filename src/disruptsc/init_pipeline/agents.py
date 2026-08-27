@@ -714,11 +714,18 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
             if total_imports > 0 else 0.0
         )
 
-        # USD per ton — look for country-specific or default
+        # USD per ton: exact-match resolution — the country's own import row,
+        # then the generic import row, then any import row (deterministic,
+        # sorted). The previous substring scan matched the first key merely
+        # CONTAINING the code ("US" hit any "AUS_*" row) and could take an
+        # arbitrary import row before a country-specific one, dict-order
+        # permitting.
+        imp = mrio.import_label or "IMP"
         country_upt = 2864.0
-        for key, val in usd_per_ton.items():
-            if country_code.lower() in key.lower() or "imp" in key.lower():
-                country_upt = val
+        for key in (f"{country_code}_{imp}", country_code, imp,
+                    *sorted(k for k in usd_per_ton if k.endswith(f"_{imp}"))):
+            if key in usd_per_ton:
+                country_upt = float(usd_per_ton[key])
                 break
 
         c = Country(

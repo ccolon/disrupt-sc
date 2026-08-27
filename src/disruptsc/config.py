@@ -331,6 +331,10 @@ def setup_output(config: dict, sim_params: SimParams) -> Path | None:
     return export_folder
 
 
+_LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+_RUN_LOG_HANDLER: "logging.Handler | None" = None
+
+
 def setup_logging(level: str = "info"):
     """Configure console logging."""
     logger = logging.getLogger()
@@ -338,8 +342,34 @@ def setup_logging(level: str = "info"):
         logger.handlers.clear()
     logger.setLevel(logging.DEBUG)
 
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    formatter = logging.Formatter(_LOG_FORMAT)
     console = logging.StreamHandler()
     console.setLevel(logging.DEBUG if level == "debug" else logging.INFO)
     console.setFormatter(formatter)
     logger.addHandler(console)
+
+
+def attach_run_log(export_folder) -> None:
+    """Mirror the log into ``<export_folder>/exp.log`` (DEBUG level).
+
+    Restores the v1 behavior of archiving each run's log with its outputs —
+    without it, the provenance of an exported run lives only in terminal
+    scrollback. Replaces the handler from any previous run in this process,
+    so programmatic drivers calling ``execute()`` in a loop never accumulate
+    handlers.
+    """
+    global _RUN_LOG_HANDLER
+    detach_run_log()
+    handler = logging.FileHandler(Path(export_folder) / "exp.log", encoding="utf-8")
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(logging.Formatter(_LOG_FORMAT))
+    logging.getLogger().addHandler(handler)
+    _RUN_LOG_HANDLER = handler
+
+
+def detach_run_log() -> None:
+    global _RUN_LOG_HANDLER
+    if _RUN_LOG_HANDLER is not None:
+        logging.getLogger().removeHandler(_RUN_LOG_HANDLER)
+        _RUN_LOG_HANDLER.close()
+        _RUN_LOG_HANDLER = None
