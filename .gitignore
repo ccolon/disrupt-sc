@@ -16,10 +16,9 @@ input/*
 # Local parameter overrides (not tracked)
 *.local.yaml
 
-# Claude
+# Claude session state (AGENTS.md and CLAUDE.md are TRACKED: they are the
+# shared, versioned briefing for collaborators and AI assistants)
 .claude
-CLAUDE.md
-AGENTS.md
 /data/.claude
 
 # PyCharm
