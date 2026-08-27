@@ -720,7 +720,15 @@ def _calculate_cost_per_ton(edge_attr: dict, params: dict, cargo_types: list, ti
         raise ValueError(f"{edge_id}: speed is 0 or nan")
 
     time_factor = {"day": 1, "week": 7, "month": 365.25 / 12, "year": 365.25}
-    adjusted_delay_cost = params["cost_of_time"] * (time_factor[time_resolution] / 7)
+    time_scale = time_factor[time_resolution] / 7
+
+    # cost_of_time is USD per ton-hour, either a scalar or a per-cargo-type
+    # dict ({cargo_type: value, "default": value}). Per-cargo values of time
+    # are what differentiates mode choice between cargo classes: containers
+    # value time highly and shun slow modes, bulk barely values it and rides
+    # the cheap slow ones — matching the commodity-level splits observed in
+    # freight statistics (Eurostat NST breakdown).
+    cot = params["cost_of_time"]
 
     basic_cost = km * params["basic_cost"].get(edge_attr["type"], 0.01)
     transport_time = km / speed
@@ -730,7 +738,7 @@ def _calculate_cost_per_ton(edge_attr: dict, params: dict, cargo_types: list, ti
     total_fee = loading_fee + border_fee
     special_cost = params.get("name-specific", {}).get(edge_attr.get("name", ""), 0)
 
-    cost = basic_cost + special_cost + total_fee + total_time * adjusted_delay_cost
+    base = basic_cost + special_cost + total_fee
 
     for ct in cargo_types:
         # Skip blocked cargo types — no cost label means the edge is
@@ -738,6 +746,11 @@ def _calculate_cost_per_ton(edge_attr: dict, params: dict, cargo_types: list, ti
         ct_capacity = _get_cargo_capacity(edge_attr, ct)
         if ct_capacity == 0:
             continue
+        if isinstance(cot, dict):
+            ct_cot = float(cot.get(ct, cot.get("default", 0.49)))
+        else:
+            ct_cot = float(cot)
+        cost = base + total_time * ct_cot * time_scale
         edge_attr[f"cost_per_ton_{ct}"] = cost
         edge_attr[f"cost_per_ton_with_capacity_{ct}"] = cost
 
