@@ -568,7 +568,9 @@ def _collect_routing_summary(sc_network, time_step: int) -> list[dict]:
 
     for u, v, data in sc_network.edges(data=True):
         link = data["object"]
-        if link.order < EPSILON:
+        # served_order = the order this step's delivery actually served
+        # (link.order already holds NEXT step's order at this point).
+        if link.served_order < EPSILON:
             continue
 
         if not link.use_transport_network:
@@ -578,7 +580,7 @@ def _collect_routing_summary(sc_network, time_step: int) -> list[dict]:
         else:
             bucket = getattr(link, "cargo_type", "unknown")
 
-        order_value = link.order * link.eq_price
+        order_value = link.served_order * link.eq_price
         buckets[bucket]["total_usd"] += order_value
 
         main_delivery = link.main_route_realized_delivery
@@ -594,7 +596,7 @@ def _collect_routing_summary(sc_network, time_step: int) -> list[dict]:
         buckets[bucket]["alternative_usd"] += alternative_delivery * link.eq_price
 
         # Blocked = ordered but not delivered
-        blocked = max(0.0, link.order - link.realized_delivery) * link.eq_price
+        blocked = max(0.0, link.served_order - link.realized_delivery) * link.eq_price
         buckets[bucket]["blocked_usd"] += blocked
 
     rows = []
