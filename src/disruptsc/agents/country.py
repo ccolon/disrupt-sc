@@ -87,20 +87,28 @@ class Country:
                 tp: TransportParams,
                 routing_event_collector=None):
         """Export/deliver products to firms and households."""
+        # Book realized_delivery, not link.delivery: multi-route links can drop
+        # blocked chunks, so realized < planned. Tons are scaled accordingly.
+        def _realized_tons(link):
+            if link.delivery > EPSILON:
+                return link.delivery_in_tons * link.realized_delivery / link.delivery
+            return 0.0
+
         def _after_delivery(link):
-            self.qty_sold += link.delivery
+            self.qty_sold += link.realized_delivery
 
         def _after_shipment(link, route):
-            self.qty_sold += link.delivery
-            self.usd_transported += link.delivery
-            self.tons_transported += link.delivery_in_tons
+            self.qty_sold += link.realized_delivery
+            self.usd_transported += link.realized_delivery
+            self.tons_transported += _realized_tons(link)
             if hasattr(route, 'length'):
-                self.tonkm_transported += link.delivery_in_tons * route.length
+                self.tonkm_transported += _realized_tons(link) * route.length
 
         for _, client, data in sc_network.out_edges(self, data=True):
             link: CommercialLink = data["object"]
             # Country delivers whatever was ordered (unlimited supply from outside)
             link.delivery = link.order
+            link.served_order = link.order
             link.delivery_in_tons = link.delivery * self.monetary_unit_factor / self.usd_per_ton if self.usd_per_ton > 0 else 0.0
             link.reset_transport_tracking()
 

@@ -48,6 +48,12 @@ class CommercialLink:
 
     # --- Flow state ---
     order: float = 0.0
+    # The order this step's delivery is serving. `order` itself is overwritten
+    # mid-step with the NEXT step's order (agents send new orders before
+    # deliveries execute), so any delivery/order ratio must use served_order —
+    # dividing by `order` mixes epochs and mis-measures fill rates exactly when
+    # orders are changing, i.e. during disruption transients.
+    served_order: float = 0.0
     delivery: float = 0.0
     delivery_in_tons: float = 0.0
     realized_delivery: float = 0.0
@@ -71,6 +77,7 @@ class CommercialLink:
     def reset(self):
         self.current_route = "main"
         self.order = 0.0
+        self.served_order = 0.0
         self.delivery = 0.0
         self.fulfilment_rate = 1.0
         self.price = self.eq_price
@@ -109,12 +116,14 @@ class CommercialLink:
             self.alternative_route_cost_per_ton = cost_per_ton
 
     def calculate_fulfilment_rate(self):
-        if self.order < EPSILON:
+        # Compare against the order this delivery was serving, not `order`,
+        # which already holds the next step's order at receive time.
+        if self.served_order < EPSILON:
             self.fulfilment_rate = 1.0
-        elif self.delivery > self.order + EPSILON:
+        elif self.delivery > self.served_order + EPSILON:
             self.fulfilment_rate = 1.0
         else:
-            self.fulfilment_rate = self.delivery / self.order
+            self.fulfilment_rate = self.delivery / self.served_order
 
     def update_indicator(self, quantity_delivered: float):
         if abs(self.delivery - quantity_delivered) > EPSILON:
@@ -214,6 +223,7 @@ class CommercialLink:
     # every simulation step, so persisting them through pickle is wasted
     # work (and adds recursion depth at scale: ~316k links × 10 fields).
     _TRANSIENT_FIELDS = frozenset({
+        "served_order",
         "alternative_route",
         "alternative_route_length",
         "alternative_route_cost_per_ton",
@@ -234,6 +244,7 @@ class CommercialLink:
         self.__dict__.update(state)
         # Restore transient fields to the same values reset_transport_tracking()
         # would write at the start of the next step.
+        self.served_order = 0.0
         self.alternative_route = None
         self.alternative_route_length = 1.0
         self.alternative_route_cost_per_ton = 0.0
