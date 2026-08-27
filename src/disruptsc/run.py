@@ -54,7 +54,7 @@ from disruptsc.init_pipeline.routing import setup_logistic_routes
 
 from disruptsc.run_pipeline.cache import (
     setup_cache_isolation,
-    parse_cache_arg,
+    parse_cache_arg, CACHE_LEVELS,
     cache_transport_network, load_cached_transport_network,
     cache_agents, load_cached_agents,
     cache_sc_network, load_cached_sc_network,
@@ -67,7 +67,7 @@ from disruptsc.run_pipeline.simulate import (
 from disruptsc.run_pipeline.disruption import parse_disruptions
 from disruptsc.run_pipeline.fingerprint import (
     build_fingerprint, fingerprint_hash, save_fingerprint,
-    load_fingerprint, diff_fingerprints,
+    load_fingerprint, diff_fingerprints, build_stage_fingerprint,
 )
 from disruptsc.run_pipeline.export import (
     export_transport_flows, export_summary, export_logistics_report,
@@ -166,6 +166,10 @@ def execute(config: dict, *, cache: str | None = None,
         logging.info(f"Seeded RNGs with seed={sp.seed}")
 
     cache_flags = parse_cache_arg(cache)
+    # Per-stage fingerprints: stored inside each cache pickle at save time and
+    # validated at load time, so a cache built under different watermarked
+    # settings (or a different scope) is refused instead of silently reused.
+    stage_fps = {level: build_stage_fingerprint(config, level) for level in CACHE_LEVELS}
     if cache_isolation:
         setup_cache_isolation(scope)
     if export_folder is None:
@@ -208,7 +212,8 @@ def execute(config: dict, *, cache: str | None = None,
     # ------------------------------------------------------------------
     if cache_flags["transport_network"]:
         logging.info("Loading transport network from cache")
-        transport_network, transport_edges, transport_nodes = load_cached_transport_network()
+        transport_network, transport_edges, transport_nodes = load_cached_transport_network(
+            scope=scope, stage_fp=stage_fps["transport_network"])
     else:
         logging.info("Building transport network")
         transport_network, transport_edges, transport_nodes = build_transport_network(
@@ -217,7 +222,8 @@ def execute(config: dict, *, cache: str | None = None,
             default_transport_capacity=config.get("default_transport_capacity"),
             use_cargo_types=tp.use_cargo_types,
         )
-        cache_transport_network(transport_network, transport_edges, transport_nodes)
+        cache_transport_network(transport_network, transport_edges, transport_nodes,
+                                scope=scope, stage_fp=stage_fps["transport_network"])
 
     # ------------------------------------------------------------------
     # Stage 2: Agents
@@ -225,7 +231,8 @@ def execute(config: dict, *, cache: str | None = None,
     selection = None  # flow-coverage Selection (set when building fresh)
     if cache_flags["agents"]:
         logging.info("Loading agents from cache")
-        mrio, sector_table, firms, firm_table, households, household_table, countries = load_cached_agents()
+        mrio, sector_table, firms, firm_table, households, household_table, countries = load_cached_agents(
+            scope=scope, stage_fp=stage_fps["agents"])
         _configure_households(households)
     else:
         logging.info("Building agents")
@@ -273,7 +280,8 @@ def execute(config: dict, *, cache: str | None = None,
             countries_no_transport=tp.countries_no_transport,
         )
 
-        cache_agents(firms, households, countries, mrio, sector_table, firm_table, household_table)
+        cache_agents(firms, households, countries, mrio, sector_table, firm_table, household_table,
+                     scope=scope, stage_fp=stage_fps["agents"])
 
     # Export MRIO summary (for reporting comparison)
     if export_folder:
@@ -285,7 +293,8 @@ def execute(config: dict, *, cache: str | None = None,
     # ------------------------------------------------------------------
     if cache_flags["sc_network"]:
         logging.info("Loading SC network from cache")
-        sc_network, firms, households, countries = load_cached_sc_network()
+        sc_network, firms, households, countries = load_cached_sc_network(
+            scope=scope, stage_fp=stage_fps["sc_network"])
         _configure_households(households)
     else:
         logging.info("Building supply chain network")
@@ -302,7 +311,8 @@ def execute(config: dict, *, cache: str | None = None,
             ap.weight_localization_household,
             effective_cargo_mapping, transport_network,
         )
-        cache_sc_network(sc_network, firms, households, countries)
+        cache_sc_network(sc_network, firms, households, countries,
+                         scope=scope, stage_fp=stage_fps["sc_network"])
 
     # Auto-shrink: prune transport-network cargo types to those actually used
     # by the supply chain. No-op when only one cargo type is present. Done
@@ -328,7 +338,8 @@ def execute(config: dict, *, cache: str | None = None,
     # ------------------------------------------------------------------
     if cache_flags["logistic_routes"]:
         logging.info("Loading logistic routes from cache")
-        sc_network, transport_network, cl_table, firms, households, countries = load_cached_logistic_routes()
+        sc_network, transport_network, cl_table, firms, households, countries = load_cached_logistic_routes(
+            scope=scope, stage_fp=stage_fps["logistic_routes"])
         _configure_households(households)
     else:
         if tp.with_transport:
@@ -341,7 +352,8 @@ def execute(config: dict, *, cache: str | None = None,
             )
         else:
             cl_table = None
-        cache_logistic_routes(sc_network, transport_network, cl_table, firms, households, countries)
+        cache_logistic_routes(sc_network, transport_network, cl_table, firms, households, countries,
+                              scope=scope, stage_fp=stage_fps["logistic_routes"])
 
     # ------------------------------------------------------------------
     # Stage 5: Run simulation
