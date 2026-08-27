@@ -87,10 +87,10 @@ graph TD
 
 DisruptSC uses a modular architecture with clear separation of concerns:
 
-- **[Agents](architecture/agents.md)**: Economic actors with spatial locations and behaviors
-- **[Networks](architecture/networks.md)**: Transport infrastructure and supply chain relationships  
-- **[Disruptions](architecture/disruptions.md)**: Events that affect agent capabilities or network availability
-- **[Simulation](architecture/simulation.md)**: Time-stepped execution with data collection
+- **[Agents](architecture/index.md)**: Economic actors with spatial locations and behaviors
+- **[Networks](architecture/index.md)**: Transport infrastructure and supply chain relationships
+- **[Disruptions](architecture/index.md#disruptions-and-recovery)**: Events that affect agent capabilities or network availability
+- **[Simulation](architecture/index.md#the-time-step)**: Time-stepped execution with data collection
 
 ---
 

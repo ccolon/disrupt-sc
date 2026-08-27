@@ -1,298 +1,137 @@
 # Architecture
 
-This section provides comprehensive technical documentation of DisruptSC's architecture, design patterns, and implementation details.
+How the v2 runtime is organized and what happens in a run. This page
+describes the code as it is — module paths are real and clickable in the
+repository.
 
-## Overview
+!!! note
+    The former multi-page architecture section described the v1 codebase
+    (`Model` class, `DisruptionFactory`, `simulation/` package) and was
+    removed rather than left to mislead. This page is the v2 reference.
 
-DisruptSC is built as a modular, extensible spatial agent-based model with the following core architectural principles:
+## Module layout
 
-- **Modular Design** - Independent, replaceable components
-- **Spatial Modeling** - Geographic awareness throughout the system
-- **Network-Based** - Explicit modeling of relationships and infrastructure
-- **Data-Driven** - Real-world data integration
-- **Disruption Analysis** - Disruptions and recovery as discrete events
-
-## Architecture Components
-
-### [System Overview](overview.md)
-Comprehensive overview of DisruptSC's architecture, design patterns, and component interactions. Covers the high-level system design, data flow, and integration patterns.
-
-**Key Topics:**
-- High-level architecture diagram
-- Component relationships
-- Data flow patterns
-- Design patterns (Factory, Builder, Observer)
-- Performance considerations
-- Extension points
-
-### [Agent System](agents.md)
-Detailed documentation of the agent-based modeling system, including agent types, behaviors, and interactions.
-
-**Key Topics:**
-- Base agent architecture
-- Firm agents and production modeling
-- Household agents and consumption patterns
-- Country agents and international trade
-- Agent interactions and relationships
-- Spatial agent behavior
-
-### [Network System](networks.md)
-Technical details of the network modeling system, including supply chains, transport infrastructure, and economic flows.
-
-**Key Topics:**
-- Supply chain network structure
-- Transport network modeling
-- Multi-regional input-output networks
-- Network integration and flow allocation
-- Capacity constraints and congestion
-- Network disruption modeling
-
-### [Disruption System](disruptions.md)
-Architecture of the flexible disruption system, supporting various disruption types and recovery mechanisms.
-
-**Key Topics:**
-- Disruption factory pattern
-- Transport disruptions
-- Capital destruction modeling
-- Supply chain disruptions
-- Cascading effects
-- Recovery mechanisms
-
-### [Simulation Engine](simulation.md)
-Core simulation engine architecture, time management, and execution control.
-
-**Key Topics:**
-- Simulation controller design
-- Time management and scheduling
-- Agent decision sequencing
-- Market clearing mechanisms
-- Data collection and state management
-- Performance monitoring
-
-## Core Concepts
-
-### Spatial Agent-Based Modeling
-
-DisruptSC combines two powerful modeling paradigms:
-
-**Agent-Based Modeling (ABM)**
-:   Economic agents with autonomous behaviors and interactions
-
-**Spatial Modeling**
-:   Agents are embedded in geographic space with transport networks
-
-This combination enables realistic simulation of:
-- Economic decision-making by individual actors
-- Spatial constraints on trade and transport
-- Network effects and cascading disruptions
-- Geographic heterogeneity in impacts
-
-### Key Components
-
-```mermaid
-graph TD
-    A[Transport Network] --> B[Agent Location]
-    B --> C[Supply Chain Network]
-    C --> D[Economic Equilibrium]
-    D --> E[Disruption Scenarios]
-    E --> F[Dynamic Simulation]
-    F --> G[Impact Analysis]
+```text
+src/disruptsc/
+├── run.py                 # CLI entry point + execute(): the cached, exporting pipeline
+├── build.py               # no-cache builder for programmatic drivers (studies, tests)
+├── config.py              # YAML loading (default → scope → .local → CLI), param building
+├── params.py              # frozen dataclasses: TransportParams, SimParams, AgentParams, LogisticsParams
+├── paths.py               # data-root resolution (env var → sibling repo → bundled examples)
+├── validate_inputs.py     # `validate-inputs <scope>` content checks
+├── init_pipeline/         # build stages
+│   ├── load_data.py       #   MRIO, sector table, flow-coverage Selection
+│   ├── transport.py       #   transport.gpkg + multimodal.gpkg → TransportNetwork
+│   ├── agents.py          #   firm/household/country creation + spatial disaggregation
+│   ├── supply_chain.py    #   supplier selection → ScNetwork (the RNG-driven stage)
+│   └── routing.py         #   initial route assignment (heuristic / candidate-path LP / edge LP)
+├── run_pipeline/          # execution stages
+│   ├── simulate.py        #   set_initial_conditions + the time-step loop
+│   ├── disruption.py      #   disruption parsing/applying + reconstruction market
+│   ├── cache.py           #   scope-keyed, fingerprint-validated pickle caches
+│   ├── fingerprint.py     #   run provenance + per-stage cache fingerprints
+│   └── export.py          #   CSV/GeoJSON writers, loss summaries
+├── agents/                # Firm, Household (+ Government/Investment), Country, transport_utils
+├── network/               # Mrio, ScNetwork, TransportNetwork, CommercialLink, Route
+└── reporting/             # HTML reports (initial_state, disruption)
 ```
 
-## Agent Types
+## A run, end to end
 
-DisruptSC models three types of economic agents:
+`execute()` in `run.py` orchestrates five stages, each cacheable
+(`--cache` presets) and each validated against a per-stage configuration
+fingerprint on reload:
 
-### 🏭 [Firms](agents.md#firms)
-- **Role**: Producers of goods and services
-- **Behavior**: Production planning, supplier selection, inventory management
-- **Location**: Spatially distributed based on economic data
-- **Key Attributes**: Sector, production capacity, input requirements
+1. **Transport network** — build the multimodal graph from the GeoPackage,
+   ingest per-edge costs and capacities.
+2. **Agents** — filter the MRIO with `flow_coverage` (a symmetric
+   per-buyer/per-supplier top-cells rule producing a `Selection`), create
+   firms (spatially disaggregated where `firms_spatial` provides locations),
+   households (population-weighted final demand), single national
+   government/investment agents, and country agents for external trade.
+3. **Supply-chain network** — every buyer selects suppliers per input with
+   probability ∝ importance / distance^w. This is the seeded, RNG-driven
+   stage: same `seed` → same network.
+4. **Initial conditions + routes** — solve the sparse Leontief system for
+   equilibrium production, initialize inventories, capital (split
+   active/idle by `utilization_rate`), finance, and orders; then assign
+   logistic routes (Dijkstra, or capacity-aware LP when
+   `capacity_constraint` is on).
+5. **Simulation** — the time-step loop below, for `initial_state`,
+   `disruption`, or `criticality`.
 
-### 🏠 [Households](agents.md#households)  
-- **Role**: Final consumers of goods and services
-- **Behavior**: Consumption demand, retailer selection
-- **Location**: Population-weighted spatial distribution
-- **Key Attributes**: Region, consumption patterns, size
+Programmatic drivers (the studies, the tests) use `disruptsc.build`
+(`build_common` + `build_agents`) instead of `execute()` and can trace every
+step through the `observer` callback that all simulate runners accept.
 
-### 🌍 [Countries](agents.md#countries)
-- **Role**: International trade partners
-- **Behavior**: Imports and exports goods and services
-- **Location**: Border points
-- **Key Attributes**: Trade shares
+## The time step
 
-## Network Structures
+Each step in `run_pipeline/simulate.py::_run_one_time_step`:
 
-### [Transport Networks](networks.md#transport-networks)
+1. apply disruptions starting this step; place reconstruction demand;
+2. firms retrieve the orders placed **last** step (the order book);
+3. firms plan production (target = orders − stock) and prices;
+4. idle capital is mobilized toward the target (rate-limited by
+   `time_to_activate_idle_capital`);
+5. all agents send **next** step's purchase orders;
+6. firms produce under Partially-Binding Leontief: critical inputs bind
+   output hard, "important" inputs bind softly, immaterial inputs
+   (cost share below `critical_input_threshold`) never bind;
+7. countries then firms deliver against the retrieved order book, rationing
+   when stock is short (`equal` or `household_first`); shipments traverse
+   the transport network (or bypass it for service sectors / transport-off
+   runs), rerouting around disrupted edges when an acceptable alternative
+   exists;
+8. reconstruction converts leftover capital-good output into rebuilt
+   capital; supplier satisfaction (delivery / served order) updates for
+   adaptive substitution;
+9. agents receive products; households consume; losses (consumption loss +
+   extra spending) accumulate;
+10. transport loads reset; profits are evaluated; disruption recovery ticks.
 
-Multi-modal infrastructure with :
+Two timing facts worth knowing when reading results: domestic supply
+responds to orders with a one-step lag (order placed at *t* is delivered at
+*t+1*), while country agents — unlimited external supply — deliver the order
+placed in the same step; and welfare is households only — the national
+government and investment agents share the household machinery but are
+excluded from the headline loss.
 
-- **Roads** - Primary domestic transport
-- **Maritime** - International transport  
-- **Railways** - Freight corridors
-- **Airways** - High-value goods or distant islands
-- **Waterways** - River and canal transport
-- **Pipelines** - Oil and gas
+## Disruptions and recovery
 
-### [Supply Chain Networks](networks.md#supply-chain-networks)
+`run_pipeline/disruption.py` parses the `disruptions:` block into objects:
 
-Commercial relationships between agents:
-- **B2B Links** - Firm-to-firm
-- **B2C Links** - Firm-to-household
-- **Imports/Exports** - Country-to-firm, country-to-household, firm-to-country
-- **Transit** - Country-to-country
+- **transport_disruption** — closes/derates edges by id or attribute, with
+  threshold/linear/exponential capacity recovery;
+- **transport_disruption_probability** — probabilistic arrivals over a
+  scenario horizon (drawn from the seeded RNG);
+- **capital_destruction** — fractional (via `filter:`) or absolute per
+  canton × sector (`description_type: subregion_file`), destroying active
+  and idle capital alike. Absolute shocks recover only through the
+  **reconstruction market**: damaged firms demand capital-good output
+  (split CON/MAN/IMP by `capital_input_mix`, localized by
+  `reconstruction_locality`, partly public via
+  `reconstruction_public_share`), and delivered output rebuilds capital
+  over `reconstruction_target_time`;
+- **productivity_shock** — a temporary TFP-style capacity reduction.
 
-## Model Workflow
+Firm-side timed recovery is threshold-only (full restoration when the
+duration elapses); transport-edge recovery supports shapes.
 
-### Initialization Phase
+## Reproducibility
 
-1. **[Transport Network Setup](networks.md#transport-setup)**
-   - Load infrastructure data
-   - Build network graph
-   - Configure logistics parameters
+- `seed` drives supplier selection and Monte-Carlo disruption arrivals;
+  MC repetition *i* re-seeds with `seed + i`.
+- Every exporting run writes `parameters.yaml`, `run_fingerprint.json`
+  (version + git SHA + watermarked config keys), and `exp.log`.
+- Pickle caches are keyed `<scope>_<stage>.pkl` and store a per-stage
+  fingerprint; a cache built under different watermarked settings is
+  refused with a key-level diff.
+- `set_initial_conditions` fully resets a build between runs (link state,
+  learned supplier satisfaction, disruption and reconstruction leftovers,
+  prices), so one build can host many runs.
 
-2. **[Agent Creation](agents.md#agent-creation)**
-   - Generate firms from economic data
-   - Place households by population
-   - Position countries at borders
+## See also
 
-3. **[Supply Chain Formation](networks.md#supply-chain-formation)**
-   - Link buyers and suppliers
-   - Assign commercial relationships
-   - Configure trade parameters
-
-4. **[Logistic Routes Identification](networks.md#route-optimization)**
-   - Find lower-cost transport paths from suppliers to clients
-   - Assign transport costs to firms
-
-5. **[Initial Economic Equilibrium](simulation.md#equilibrium)**
-   - Calculate production levels
-   - Set prices and flows
-   - Initialize inventories
-
-### Simulation Phase
-
-1. **[Disruption Scenario](disruptions.md)**
-   - Schedule disruption: transport, capital, productivity
-   - Trigger disruption and recovery processes
-
-2. **[Dynamic Simulation](simulation.md#time-steps)**
-   - Logistic adaptation via rerouting
-   - Cost-push price adjustment 
-   - Commercial adaptation: change of suppliers
-   - Impact propagation
-
-3. **[Impact Analysis](simulation.md#data-collection)**
-   - Agent state tracking
-   - Flow monitoring
-   - Performance metrics
-
-## Design Principles
-
-### Parsimonious
-
-###
-
-### Modular and extensible
-- Clear separation of concerns
-- Pluggable component architecture
-- Flexible configuration system
-- 
-### Extensibility
-- Abstract base classes for new agent types
-- Plugin system for disruption types
-- Configurable economic behaviors
-
-### Realism
-- Based on economic theory (Input-Output)
-- Realistic transport costs and times
-- Empirically-calibrated parameters
-
-## Data Flow
-
-```mermaid
-graph LR
-    A[Input Data] --> B[Model Initialization]
-    B --> C[Economic Equilibrium]
-    C --> D[Disruption Scenarios]
-    D --> E[Time-Step Simulation]
-    E --> F[Output Analysis]
-    
-    A1[MRIO Tables] --> A
-    A2[Transport Networks] --> A
-    A3[Spatial Data] --> A
-    
-    F --> F1[Economic Impacts]
-    F --> F2[Spatial Results]
-    F --> F3[Network Flows]
-```
-
-## Performance
-
-### Computational Complexity
-- **Shortest path algorithm** is for initial route selection and rerouting is most computationally intensive
-- **Scales** with number of agents and number of linkages, linear in simulation duration
-
-### Memory Requirements
-- **Minimum**: 8GB RAM for small models
-- **Recommended**: 16GB+
-
-### Runtime Performance
-- **Initialization**: Seconds to minutes, depending on scale
-- **Simulation**: Seconds for undisrupted time steps, minutes for disrupted time steps
-
-### How to speed-up
-- **Cut off** small agents and commercial relationship
-- **Cache** routes and initial states
-- **Parallelize**: not yet implemented
-
-
-## Technology Stack
-
-### Core Dependencies
-- **Python 3.10+** - Primary language
-- **NetworkX** - Graph algorithms
-- **Pandas/NumPy** - Data processing
-- **GeoPandas** - Spatial data handling
-- **SciPy** - Scientific computing
-
-### Optional Components
-- **Matplotlib/Plotly** - Visualization
-- **Jupyter** - Interactive analysis
-- **Dask** - Parallel computing
-- **PostGIS** - Spatial databases
-
-## Extension Points
-
-### Custom Agent Types
-```python
-from disruptsc.agents.base_agent import BaseAgent
-
-class CustomAgent(BaseAgent):
-    def __init__(self, ...):
-        # Custom initialization
-        pass
-    
-    def custom_behavior(self):
-        # Agent-specific logic
-        pass
-```
-
-### Custom Disruption Types
-```python
-from disruptsc.disruption.disruption import BaseDisruption
-
-class CustomDisruption(BaseDisruption):
-    def apply(self, model, time_step):
-        # Disruption logic
-        pass
-```
-
-## What's Next?
-
-Explore the detailed architecture:
-
-- **[Agents](agents.md)** - Economic actors and their behaviors
-- **[Networks](networks.md)** - Transport and supply chain structures
-- **[Disruptions](disruptions.md)** - Event modeling and recovery
-- **[Simulation](simulation.md)** - Time-stepped execution and data collection
+- [Parameters](../user-guide/parameters.md) — every knob with defaults
+- [MRIO Specification](../MRIO_SPECIFICATION.md) — the input-table format
+- [Criticality Analysis](../user-guide/criticality.md) — resumable edge sweeps

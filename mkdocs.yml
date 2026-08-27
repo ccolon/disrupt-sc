@@ -144,8 +144,10 @@ nav:
     - Criticality Analysis: user-guide/criticality.md
     - Data Modes: user-guide/data-modes.md
     - Input Data: user-guide/input-data.md
+    - MRIO Specification: MRIO_SPECIFICATION.md
     - Output Files: user-guide/output-files.md
     - Tutorial: user-guide/tutorial.md
+  - Architecture: architecture/index.md
   - Use Cases:
     - applications/index.md
   - Research & Policy:
