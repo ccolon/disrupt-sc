@@ -207,7 +207,11 @@ class Mrio(pd.DataFrame):
         dict[str, dict[str, float]]
             Keyed by buyer region_sector_name ("REG_SECTOR").
         """
-        intermediate = self.get_intermediary()
+        # Import rows are inputs too: a kept (bloc, imports) x (region, sector)
+        # cell must become a tech coefficient, or firms never buy imported
+        # intermediates and the firm->country "import" link path in
+        # supply_chain never triggers (KI-16).
+        intermediate = pd.concat([self.get_intermediary(), self.get_import_rows()])
         output = self.get_total_output()
         kept_rs_set = set(selection.region_sectors)
 
