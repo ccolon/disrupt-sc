@@ -36,13 +36,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))   # import run_grid hel
 sys.setrecursionlimit(50000)
 
 from disruptsc.config import load_config, build_params, setup_logging               # noqa: E402
-from disruptsc.init_pipeline.transport import build_transport_network               # noqa: E402
-from disruptsc.init_pipeline.load_data import (                                      # noqa: E402
-    load_mrio, load_sector_table, load_usd_per_ton, filter_sectors)
-from disruptsc.init_pipeline.agents import create_firm_table, create_household_table  # noqa: E402
-import disruptsc.run_pipeline.simulate as S                                          # noqa: E402
+from disruptsc.build import build_common, build_agents, firm_va_shares              # noqa: E402
 from disruptsc.run_pipeline.simulate import run_disruption                          # noqa: E402
-from run_grid import build_agents, _floats, _seeds, DAYS_PER_STEP                    # noqa: E402
+from run_grid import _floats, _seeds, DAYS_PER_STEP                                 # noqa: E402
 
 # capital_input_mix presets: {name: (mix, imp_fraction)}
 MIXES = [("domestic", {"CON": 0.7, "MAN": 0.2, "IMP": 0.1}, 0.10),
@@ -76,7 +72,6 @@ def main():
     cfg["flow_coverage"] = args.flow_coverage
     cfg["nb_suppliers_per_input"] = args.nb_suppliers
     tp, sp, ap_, lp = build_params(cfg)
-    fp = cfg["filepaths"]
     disr = cfg["disruptions"][0]
     if args.shock:
         if not Path(args.shock).exists():
@@ -84,52 +79,32 @@ def main():
         disr = dict(disr, file=str(args.shock))
     ppy = 365.0 / DAYS_PER_STEP.get(sp.time_resolution, 30)
 
-    # ---- seed-independent build (once) ----
-    tn, te, tnodes = build_transport_network(
-        cfg.get("transport_modes", ["roads"]), fp, cfg.get("logistics", {}), sp.time_resolution,
-        capacity_overrides=cfg.get("transport_capacity_overrides"),
-        default_transport_capacity=cfg.get("default_transport_capacity"), use_cargo_types=tp.use_cargo_types)
-    mrio = load_mrio(fp.get("mrio"), ap_.monetary_units_in_data)
-    sector_table = load_sector_table(fp.get("sector_table"))
-    usd_per_ton = load_usd_per_ton(sector_table)
-    selection = filter_sectors(mrio, ap_.flow_coverage, ap_.sectors_to_include, ap_.sectors_to_exclude)
-    firm_table = create_firm_table(mrio, sector_table, fp.get("firms_spatial"), fp.get("households_spatial"),
-                                   usd_per_ton, tnodes, ap_, selection)
-    household_table, consumption = create_household_table(mrio, fp.get("households_spatial"), tnodes, selection, ap_,
-                                                          time_resolution=sp.time_resolution)
-    crit_path = args.criticality or fp.get("input_criticality")
-    crit_df = pd.read_csv(crit_path, index_col=0) if crit_path and Path(crit_path).exists() else None
-    if crit_df is None:
-        print(f"WARNING: no criticality matrix at {crit_path}")
-    common = dict(tn=tn, te=te, tnodes=tnodes, mrio=mrio, sector_table=sector_table, usd_per_ton=usd_per_ton,
-                  selection=selection, firm_table=firm_table, household_table=household_table,
-                  consumption=consumption, cargo_map=(lp.sector_to_cargo_type if tp.use_cargo_types else {"default": "any"}),
-                  countries_path=fp.get("countries_spatial"), crit_df=crit_df)
+    # ---- seed-independent build (shared core builder) ----
+    common = build_common(cfg, tp, sp, ap_, lp, input_criticality=args.criticality)
+    tn, te = common["tn"], common["te"]
+    firm_table = common["firm_table"]
 
     # ---- trace: VA (for GDP), household loss (total + CON/MAN), CON/MAN production, capital destroyed ----
+    # Supported observer hook (called at the end of every simulated step) —
+    # replaces the old monkeypatch of _run_one_time_step.
     state = {"firm_va": {}, "cm_rs": set()}
     T_VA, T_HH, T_HHCM, T_PROD, T_KD = [], [], [], [], []
-    _orig = S._run_one_time_step
 
-    def traced(time_step, *a, **k):
-        r = _orig(time_step, *a, **k)
-        fs, hh = a[3], a[4]
+    def observer(time_step, firms, households, **_):
         fv, cm = state["firm_va"], state["cm_rs"]
-        T_VA.append(sum(f.production * fv.get(pid, 0.0) for pid, f in fs.items()))
-        T_HH.append(sum(h.consumption_loss for h in hh.values()))
-        T_HHCM.append(sum(sum(h.consumption_loss_per_sector.get(rs, 0.0) for rs in cm) for h in hh.values()))
-        T_PROD.append(sum(f.production for f in fs.values() if f.sector in ("CON", "MAN")))
-        T_KD.append(sum(f.capital_destroyed for f in fs.values()))
-        return r
-    S._run_one_time_step = traced
+        T_VA.append(sum(f.production * fv.get(pid, 0.0) for pid, f in firms.items()))
+        T_HH.append(sum(h.consumption_loss for h in households.values()))
+        T_HHCM.append(sum(sum(h.consumption_loss_per_sector.get(rs, 0.0) for rs in cm) for h in households.values()))
+        T_PROD.append(sum(f.production for f in firms.values() if f.sector in ("CON", "MAN")))
+        T_KD.append(sum(f.capital_destroyed for f in firms.values()))
 
     print(f"aid sweep: flow={args.flow_coverage} nb={args.nb_suppliers} t_final={sp.t_final} "
           f"seeds={seeds} public={args.public_shares} mixes={[m[0] for m in MIXES]}")
     rows = []
     for seed in seeds:
         print(f"[seed {seed}] building ...")
-        sc, firms, households, countries, firm_va = build_agents(common, ap_, sp, tp, lp, seed)
-        state["firm_va"] = firm_va
+        sc, firms, households, countries = build_agents(common, ap_, sp, tp, seed)
+        state["firm_va"] = firm_va_shares(firms)
         state["cm_rs"] = {f.region_sector for f in firms.values() if f.sector in ("CON", "MAN")}
         for f in firms.values():
             f.utilization_rate = args.util_base
@@ -144,7 +119,7 @@ def main():
                          capital_input_mix=dict(mix))
                 logging.disable(logging.INFO)
                 run_disruption(sc, tn, firms, households, countries, tp, sp, [d], te, firm_table, sp.t_final,
-                               export_folder=None)
+                               export_folder=None, observer=observer)
                 logging.disable(logging.NOTSET)
                 annual_gdp = T_VA[0] * ppy
                 hh = sum(T_HH); hh_cm = sum(T_HHCM)

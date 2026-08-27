@@ -30,12 +30,10 @@ from __future__ import annotations
 
 import argparse
 import logging
-import random
 import sys
 import tempfile
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -43,16 +41,8 @@ sys.path.insert(0, str(ROOT / "src"))
 sys.setrecursionlimit(50000)
 
 from disruptsc.config import load_config, build_params, setup_logging          # noqa: E402
-from disruptsc.init_pipeline.transport import build_transport_network          # noqa: E402
-from disruptsc.init_pipeline.load_data import (                                # noqa: E402
-    load_mrio, load_sector_table, load_usd_per_ton, filter_sectors)
-from disruptsc.init_pipeline.agents import (                                   # noqa: E402
-    create_firm_table, create_firms, load_tech_coefs, load_input_criticality,
-    load_inventories, configure_household_inventories, create_household_table,
-    create_households, create_countries, add_representative_demand_agents)
-from disruptsc.init_pipeline.supply_chain import build_supply_chain_network    # noqa: E402
-import disruptsc.run_pipeline.simulate as S                                    # noqa: E402
-from disruptsc.run_pipeline.simulate import run_disruption, set_initial_conditions  # noqa: E402
+from disruptsc.build import build_common, build_agents, firm_va_shares         # noqa: E402
+from disruptsc.run_pipeline.simulate import run_disruption                     # noqa: E402
 
 DAYS_PER_STEP = {"day": 1, "week": 7, "month": 30, "year": 365}
 RESOLUTIONS = ("sector", "province", "canton", "province_sector", "canton_sector")
@@ -144,40 +134,6 @@ def draws_total(draws: pd.DataFrame) -> float:
 
 
 # --------------------------------------------------------------------------
-def build_agents(common, ap_, sp, tp, seed):
-    """Fresh agents + seeded supply-chain network for one Monte-Carlo seed."""
-    firms = create_firms(common["firm_table"], ap_)
-    load_tech_coefs(firms, common["mrio"], common["selection"])
-    if common.get("crit_df") is not None:
-        load_input_criticality(firms, common["crit_df"])
-    load_inventories(firms, ap_.inventory_duration_targets, sp.time_resolution, common["sector_table"])
-    households = create_households(common["household_table"], common["consumption"])
-    households = add_representative_demand_agents(households, common["mrio"], common["selection"],
-                                                  ap_, sp.time_resolution)
-    configure_household_inventories(households, ap_.enable_household_inventories,
-                                    ap_.household_inventory_duration_targets,
-                                    ap_.inventory_restoration_time, sp.time_resolution,
-                                    common["sector_table"])
-    countries = create_countries(common["mrio"], common["tnodes"], common["countries_path"],
-                                 common["usd_per_ton"], sp.time_resolution, ap_, common["selection"],
-                                 transport_edges=common["te"],
-                                 countries_no_transport=tp.countries_no_transport)
-    random.seed(seed)
-    np.random.seed(seed)
-    sc = build_supply_chain_network(firms, households, countries, common["mrio"], common["sector_table"],
-                                    ap_.nb_suppliers_per_input, ap_.weight_localization_firm,
-                                    ap_.weight_localization_household, common["cargo_map"], common["tn"])
-    set_initial_conditions(sc, firms, households, countries, tp, sp)
-
-    def _va(f):
-        ef = getattr(f, "eq_finance", None) or {}
-        s = ef.get("sales", 0.0)
-        c = ef.get("costs", {})
-        return (s - c.get("input", 0.0) - c.get("transport", 0.0)) / s if s > 1e-12 else 0.0
-
-    return sc, firms, households, countries, {pid: _va(f) for pid, f in firms.items()}
-
-
 def model_capital(firms) -> pd.Series:
     """(canton, province, sector) -> capital, straight from the built firms.
 
@@ -228,7 +184,6 @@ def main() -> None:
     if args.tau_activate is not None:
         cfg["time_to_activate_idle_capital"] = args.tau_activate
     tp, sp, ap_, lp = build_params(cfg)
-    fp = cfg["filepaths"]
     disr = cfg["disruptions"][0]
     step_days = DAYS_PER_STEP.get(sp.time_resolution, 30)
     tau = float(sp.time_to_activate_idle_capital)
@@ -267,56 +222,32 @@ def main() -> None:
         done = set(zip(prev.seed, prev.resolution, prev.draw_id))
         print(f"resuming: {len(done)} rows already present")
 
-    # ---- seed-independent build ----
-    tn, te, tnodes = build_transport_network(
-        cfg.get("transport_modes", ["roads"]), fp, cfg.get("logistics", {}), sp.time_resolution,
-        capacity_overrides=cfg.get("transport_capacity_overrides"),
-        default_transport_capacity=cfg.get("default_transport_capacity"),
-        use_cargo_types=tp.use_cargo_types)
-    mrio = load_mrio(fp.get("mrio"), ap_.monetary_units_in_data)
-    sector_table = load_sector_table(fp.get("sector_table"))
-    usd_per_ton = load_usd_per_ton(sector_table)
-    selection = filter_sectors(mrio, ap_.flow_coverage, ap_.sectors_to_include, ap_.sectors_to_exclude)
-    firm_table = create_firm_table(mrio, sector_table, fp.get("firms_spatial"),
-                                   fp.get("households_spatial"), usd_per_ton, tnodes, ap_, selection)
-    household_table, consumption = create_household_table(mrio, fp.get("households_spatial"), tnodes,
-                                                          selection, ap_,
-                                                          time_resolution=sp.time_resolution)
-    cargo_map = lp.sector_to_cargo_type if tp.use_cargo_types else {"default": "any"}
-    crit_path = args.criticality or fp.get("input_criticality")
-    crit_df = pd.read_csv(crit_path, index_col=0) if crit_path and Path(crit_path).exists() else None
-    if crit_df is None:
-        print(f"WARNING: no criticality matrix at {crit_path} -- strict Leontief")
-    common = dict(tn=tn, te=te, tnodes=tnodes, mrio=mrio, sector_table=sector_table,
-                  usd_per_ton=usd_per_ton, selection=selection, firm_table=firm_table,
-                  household_table=household_table, consumption=consumption, cargo_map=cargo_map,
-                  countries_path=fp.get("countries_spatial"), crit_df=crit_df)
+    # ---- seed-independent build (shared core builder) ----
+    common = build_common(cfg, tp, sp, ap_, lp, input_criticality=args.criticality)
+    tn, te = common["tn"], common["te"]
+    firm_table = common["firm_table"]
 
     # ---- in-process trace: household / government / investment / value added ----
+    # Supported observer hook (called at the end of every simulated step) —
+    # replaces the old monkeypatch of _run_one_time_step.
     state = {"firm_va": {}}
     TRACE = {"va": [], "hh": [], "gov": [], "inv": []}
-    _orig = S._run_one_time_step
 
-    def traced(time_step, *a, **k):
-        r = _orig(time_step, *a, **k)
-        fs, hh = a[3], a[4]
+    def observer(time_step, firms, households, **_):
         fv = state["firm_va"]
-        TRACE["va"].append(sum(f.production * fv.get(pid, 0.0) for pid, f in fs.items()))
+        TRACE["va"].append(sum(f.production * fv.get(pid, 0.0) for pid, f in firms.items()))
         # the national government and investment agents live in the household dict but
         # are separate accounting agents -- keep them out of the welfare headline
         for key, want in (("hh", "household"), ("gov", "government"), ("inv", "investment")):
-            TRACE[key].append(sum(h.consumption_loss for h in hh.values()
+            TRACE[key].append(sum(h.consumption_loss for h in households.values()
                                   if getattr(h, "agent_type", "household") == want))
-        return r
-
-    S._run_one_time_step = traced
 
     rows: list[dict] = []
     tmpdir = Path(tempfile.mkdtemp(prefix="hetero_shock_"))
     for seed in args.seeds:
         print(f"[seed {seed}] building agents ...")
-        sc, firms, households, countries, firm_va = build_agents(common, ap_, sp, tp, seed)
-        state["firm_va"] = firm_va
+        sc, firms, households, countries = build_agents(common, ap_, sp, tp, seed)
+        state["firm_va"] = firm_va_shares(firms)
         capital = model_capital(firms)
         print(f"[seed {seed}] model capital ${capital.sum():,.0f}M over {len(capital)} cells")
 
@@ -349,7 +280,7 @@ def main() -> None:
                 v.clear()
             logging.disable(logging.INFO)
             run_disruption(sc, tn, firms, households, countries, tp, sp, [d], te, firm_table,
-                           sp.t_final, export_folder=None)
+                           sp.t_final, export_folder=None, observer=observer)
             logging.disable(logging.NOTSET)
 
             annual_gdp = TRACE["va"][0] * ppy
