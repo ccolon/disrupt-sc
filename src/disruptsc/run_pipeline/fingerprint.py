@@ -89,6 +89,80 @@ WATERMARKED_FILEPATH_KEYS = (
 )
 
 
+# ---------------------------------------------------------------------------
+# Per-stage fingerprints for the pickle caches (run_pipeline/cache.py)
+# ---------------------------------------------------------------------------
+# Each cache stage is invalidated by the config keys that shape what it
+# builds, plus everything an earlier stage depends on (agents are placed on
+# transport nodes, the SC network wires those agents, routes serve that
+# network) — so the key sets are CUMULATIVE down the pipeline. Deliberately
+# NOT included: run-time parameters that do not change the build (t_final,
+# epsilon_stop, simulation_type, disruptions, the household-inventory config
+# — which is re-applied on every cache load), and the code version/git SHA
+# (same contract as filenames-not-contents above: caches survive commits;
+# delete tmp/ after a change that alters build behavior).
+
+_STAGE_ORDER = ("transport_network", "agents", "sc_network", "logistic_routes")
+
+_STAGE_CONFIG_KEYS = {
+    "transport_network": (
+        "time_resolution", "transport_modes", "use_cargo_types",
+        "logistics", "default_transport_capacity", "transport_capacity_overrides",
+    ),
+    "agents": (
+        "monetary_units_in_data", "monetary_units_in_model",
+        "flow_coverage", "sectors_to_include", "sectors_to_exclude",
+        "countries_to_include", "countries_no_transport", "firm_data_type",
+        "explicit_service_firm", "utilization_rate", "critical_input_threshold",
+        "inventory_duration_targets", "inventory_restoration_time",
+        "capital_to_value_added_ratio", "country_transport_share",
+        "firm_transport_share",
+    ),
+    "sc_network": (
+        "nb_suppliers_per_input", "weight_localization_firm",
+        "weight_localization_household", "seed",
+        "with_transport", "transport_to_households", "sectors_no_transport_network",
+    ),
+    "logistic_routes": (
+        "capacity_constraint", "capacity_routing_max_iterations",
+        "price_increase_threshold", "use_route_cache",
+    ),
+}
+
+_STAGE_FILEPATH_KEYS = {
+    "transport_network": ("transport", "multimodal"),
+    "agents": ("mrio", "sector_table", "households_spatial", "firms_spatial",
+               "countries_spatial", "input_criticality"),
+    "sc_network": (),
+    "logistic_routes": (),
+}
+
+
+def build_stage_fingerprint(config: dict, stage: str) -> dict:
+    """Return ``{"hash", "payload"}`` for one cache stage.
+
+    The payload covers the stage's own keys plus every earlier stage's
+    (cumulative — later stages are built from earlier stages' outputs).
+    A per-stage subset, rather than the full run fingerprint, keeps the
+    legitimate sweep pattern working: changing e.g. the seed invalidates
+    the sc_network cache but NOT the transport-network cache.
+    """
+    idx = _STAGE_ORDER.index(stage)
+    cfg_keys: list = []
+    fp_keys: list = []
+    for s in _STAGE_ORDER[: idx + 1]:
+        cfg_keys += list(_STAGE_CONFIG_KEYS[s])
+        fp_keys += list(_STAGE_FILEPATH_KEYS[s])
+    filepaths = config.get("filepaths") or {}
+    payload = {
+        "stage": stage,
+        "scope": config.get("scope"),
+        "config": {k: config.get(k) for k in cfg_keys},
+        "filepaths": {k: _path_str(filepaths.get(k)) for k in fp_keys},
+    }
+    return {"hash": fingerprint_hash(payload), "payload": payload}
+
+
 def _git_sha() -> str | None:
     """Return the current git HEAD SHA, or None if not in a git repo."""
     try:
