@@ -22,7 +22,6 @@ export_files: False
 t_final: 10
 disruptions:
   - type: transport_disruption
-    description_type: edge_attributes
     attribute: id
     values: [0, 1, 2, 3, 4]  # Disrupt Main Road North
     start_time: 1
@@ -30,5 +29,8 @@ disruptions:
 
 # Model parameters
 utilization_rate: 0.8
-inventory_restoration_time: 4
+# In DAYS (converted to time steps via time_resolution). The pre-v2.x value 4
+# dated from when this knob was in time steps; 4 DAYS at weekly resolution is
+# near-instant restocking.
+inventory_restoration_time: 30
 capital_to_value_added_ratio: 3.0

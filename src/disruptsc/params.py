@@ -24,7 +24,6 @@ class TransportParams:
     # from sector_to_cargo_type as before.
     use_cargo_types: bool = True
     monetary_units: str = "mUSD"
-    route_optimization_weight: str = "cost_per_ton"
     chunk_size: float = 1e9  # tons per time-step; very large = no chunking
     route_candidate_count: int = 4
     route_candidate_stretch: float = 3.0
@@ -43,10 +42,6 @@ class SimParams:
     time_resolution: str = "week"
     simulation_type: str = "initial_state"
     mc_repetitions: int = 0
-    mc_caching: dict = field(default_factory=lambda: {
-        "transport_network": True, "agents": True,
-        "sc_network": False, "logistic_routes": False,
-    })
     propagate_input_price_change: bool = True
     adaptive_inventories: bool = False
     adaptive_supplier_weight: bool = False
@@ -100,6 +95,8 @@ class AgentParams:
                    "trade": 30, "transport": 5},
         "unit": "day",
     })
+    # In TIME STEPS (the config supplies DAYS; build_params divides by
+    # days_per_timestep). 4 steps ≈ the 30-day config default at weekly resolution.
     inventory_restoration_time: float = 4.0
     enable_household_inventories: bool = False
     # Household buffers proxy the retail-shelf + home-pantry stock that the IO
@@ -139,7 +136,5 @@ class LogisticsParams:
     border_crossing_fees: dict = field(default_factory=dict)
     border_crossing_times: dict = field(default_factory=dict)
     cost_of_time: float = 0.49
-    variability_coef: float = 0.44
-    variability: dict = field(default_factory=dict)
     name_specific: dict = field(default_factory=dict)
     sector_to_cargo_type: dict = field(default_factory=dict)
