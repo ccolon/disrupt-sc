@@ -92,10 +92,11 @@ DisruptSC relies on several key packages:
 - **networkx** - Graph/network analysis
 - **scipy** - Scientific computing
 - **shapely** - Geometric operations
+- **pyarrow** - Parquet MRIO tables
+- **plotly** - Interactive HTML reports (`--open`)
 
 ### Optional Dependencies
 - **matplotlib** - Basic plotting
-- **plotly** - Interactive visualizations
 - **jupyter** - Notebook environment for analysis
 
 ## Troubleshooting
@@ -190,7 +191,7 @@ conda env create -f dsc-environment.yml
 conda activate dsc
 
 # Install in development mode with test dependencies
-pip install -e ".[dev,test]"
+pip install -e ".[dev]"
 
 # Install pre-commit hooks
 pre-commit install
@@ -209,5 +210,5 @@ After successful installation:
 If you're still having trouble:
 
 - Review the common issues above
-- Search [existing issues](https://github.com/worldbank/disrupt-sc/issues)
+- Search [existing issues](https://github.com/ccolon/disrupt-sc/issues)
 - Open a new issue with your error message and system details

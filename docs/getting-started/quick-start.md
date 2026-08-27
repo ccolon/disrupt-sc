@@ -32,8 +32,8 @@ The default `Testkistan` configuration runs the simulation type configured in
 # Run a disruption scenario
 disruptsc Testkistan --simulation_type disruption
 
-# Override duration and input coverage
-disruptsc Testkistan --duration 12 --input_coverage 0.95
+# Override duration and flow coverage
+disruptsc Testkistan --duration 12 --flow_coverage 0.95
 
 # Reuse all cached initialization stages
 disruptsc Testkistan --cache same_logistic_routes
@@ -50,7 +50,6 @@ Disruptions are configured in the scope YAML file:
 simulation_type: "disruption"
 disruptions:
   - type: "transport_disruption"
-    description_type: "edge_attributes"
     attribute: "name"
     values: ["road_1"]
     start_time: 1

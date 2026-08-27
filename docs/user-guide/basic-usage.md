@@ -29,7 +29,7 @@ disruptsc Testkistan --simulation_type disruption
 disruptsc Cambodia --cache same_transport_network_new_agents
 
 # Override selected runtime parameters
-disruptsc Cambodia --duration 90 --input_coverage 0.9
+disruptsc Cambodia --duration 90 --flow_coverage 0.9 --seed 42
 
 # Use a process-specific cache folder
 disruptsc Cambodia --cache_isolation
@@ -55,7 +55,8 @@ The `scope` argument identifies the case study:
 | `--simulation_type` | Override YAML `simulation_type`. Choices: `initial_state`, `disruption`, `criticality`. |
 | `--cache` | Reuse cached initialization stages. |
 | `--duration` | Override `t_final`. |
-| `--input_coverage` | Override `input_coverage` (cumulative input-coverage fraction in (0, 1]). |
+| `--flow_coverage` | Override `flow_coverage` (cumulative flow-coverage fraction in (0, 1]). |
+| `--seed` | Override the RNG seed (reproducible supplier selection and MC draws). |
 | `--log_level` | Set logging level: `info` or `debug`. |
 | `--verbose` | Alias for `--log_level debug`. |
 | `--cache_isolation` | Use a process-private cache directory. |
@@ -76,8 +77,9 @@ The `scope` argument identifies the case study:
 DisruptSC loads configuration in this order:
 
 1. `config/default.yaml` (shipped)
-2. `config/user_defined_<scope>.local.yaml` (optional, gitignored — your personal tweaks)
-3. Supported CLI overrides
+2. `config/user_defined_<scope>.yaml` (optional, committed — the scope's shared configuration)
+3. `config/user_defined_<scope>.local.yaml` (optional, gitignored — machine-specific overrides)
+4. Supported CLI overrides
 
 File paths in the YAML are relative to the scope folder in the resolved data root.
 
@@ -112,7 +114,6 @@ Runs a disruption scenario configured under `disruptions`:
 simulation_type: "disruption"
 disruptions:
   - type: "transport_disruption"
-    description_type: "edge_attributes"
     attribute: "name"
     values: ["bridge_1", "road_42"]
     start_time: 1
@@ -157,7 +158,9 @@ duration.
 
 ## Validation
 
-Use the lightweight validator to check that required configured files exist:
+Validate a scope's configuration and input files before running — file
+existence, config consistency, sector-table columns, MRIO structure and
+labels, spatial geometry and cross-references, transport layers:
 
 ```bash
 validate-inputs Testkistan
@@ -174,12 +177,13 @@ output/<scope>/<timestamp>/
 
 Typical exported files include:
 
-- `parameters.yaml`
-- `firm_table.geojson`
-- `household_table.geojson`
+- `parameters.yaml` (full config snapshot)
+- `run_fingerprint.json` (code version, git SHA, watermarked config keys)
+- `exp.log` (the run's log)
+- `firm_table.geojson`, `household_table.geojson`
+- `firm_data.csv`, `household_data.csv`, `country_data.csv`, `link_data.csv`
 - `transport_edges_with_flows_*.geojson`
-- `summary.csv`
-- `exp.log`
+- `loss_summary.csv`, `loss_per_region_sector_time.csv`
 
 ## Practical Workflow
 
