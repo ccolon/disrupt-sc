@@ -1,22 +1,18 @@
-# Logging level
-logging_level: "info"
-
 filepaths:
   "transport": "Transport/transport.gpkg"
   "multimodal": "Transport/multimodal.gpkg"
   # Economic data
   "sector_table": "Economic/sector_table.csv"
   "mrio": "Economic/mrio.csv"
-  "usd_per_ton": "Economic/usd_per_ton.csv"
   # Spatial data
   "households_spatial": "Spatial/households.geojson"
   "countries_spatial": "Spatial/countries.geojson"
   "firms_spatial": "Spatial/firms.geojson"
-  # Optional
-  "inventory_duration_targets": "Economic/inventory_targets.csv"
-  "admin": "Spatial/admin.geojson"
-
-admin: None
+  # Optional: Pichler et al. (2022)-style input-criticality matrix enabling the
+  # adapted-Leontief production function. Omit (or null) for strict Leontief /
+  # the critical_input_threshold cost-share proxy. A "repo:<relpath>" value
+  # resolves against the code repo instead of the data folder.
+  # "input_criticality": null
 
 with_transport: True
 
@@ -93,27 +89,8 @@ logistics:
     airways: 2
     pipelines: 0
   cost_of_time: 0.49 #USD/hour
-  variability_coef: 0.44 #USD/hour
-  variability: #as fraction of travel time
-    roads:
-      paved: 0.01
-      unpaved: 0.075
-    maritime: 0.005
-    airways: 0.005
-    waterways: 0.02
-    railways: 0.02
-    multimodal:
-      roads-maritime: 0.1
-      roads-airways: 0.1
-      roads-waterways: 0.1
-      roads-railways: 0.1
-      railways-maritime: 0.1
-      pipelines-maritime: 0.1
   name-specific:
     azerty: 0
-
-# Dictionary of edges, identified by their name, for which we have data on their flow, in monetary terms
-flow_data: {}
 
 # Default capacity per transport mode (tons/day).
 # A number sets shared capacity for all cargo types.
@@ -158,10 +135,6 @@ monetary_units_in_data: "mUSD"
 # Define the type of input data to calibrate the model.
 # Current v2 runtime supports 'mrio'. Transaction-based firm creation is not implemented.
 firm_data_type: "mrio"
-
-
-# Whether to model congestion
-congestion: True
 
 # Whether firms should readjust their price to changes in input prices
 propagate_input_price_change: True
@@ -228,10 +201,9 @@ explicit_service_firm: True
 # Duration target for the firm inventory
 # When firm holds the inventories meeting this target, then the firms can keep meeting their pre-disruption
 # production targets without ordering more inputs for the specified number of time steps.
-# if definition = per_input_type, then give values of sector type
-# if definition = inputed, then give a filepath
+# definition: per_input_type (values keyed on sector_table['type']) — the only mode in v2.
 inventory_duration_targets:
-  definition: per_input_type  # inputed
+  definition: per_input_type
   values:
     default: 30
     utility: 3
@@ -339,15 +311,10 @@ weight_localization_household: 4
 # The type of simulation to run
 simulation_type: initial_state
 
-# Nb of Monte Carlo simulations to run
+# Nb of Monte Carlo simulations to run. Each repetition re-parses the
+# disruptions (fresh probabilistic draws) and re-runs on the same build,
+# reset to equilibrium; with `seed` set, repetition i is seeded seed+i.
 mc_repetitions: 0
-
-# Monte Carlo caching configuration - specifies which model components to reuse between iterations
-mc_caching:
-  transport_network: true  # Reuse transport network (expensive to rebuild)
-  agents: true            # Reuse agents (firms, households, countries)
-  sc_network: false       # Regenerate supply chain network (allows stochastic variation)
-  logistic_routes: false  # Regenerate logistic routes (allows stochastic variation)
 
 # Reserved for future sensitivity analysis support.
 sensitivity: null
@@ -414,13 +381,6 @@ criticality:
 # Value of the household extra spending and consumption loss under which we stop the simulation
 # Units is the monetary_units_in_model
 epsilon_stop_condition: 1e-3
-
-# Characteristic of the transport edges that the path chosen by firms to
-# deliver to their to clients should minimized
-# Possible values are:
-# - time_cost
-# - cost_per_ton
-route_optimization_weight: "cost_per_ton"
 
 # If the relative increase in transport cost is larger than this value, then the firm chooses not to deliver
 # the product

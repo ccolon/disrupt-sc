@@ -97,17 +97,25 @@ def resolve_repo_prefix(value):
 # ---------------------------------------------------------------------------
 
 def _parse_capacity_constraint(raw) -> tuple[bool, str]:
-    """Return (enabled, mode) from the capacity_constraint config value."""
+    """Return (enabled, mode) from the capacity_constraint config value.
+
+    Unknown values RAISE instead of silently enabling gradual mode — a typo
+    on a scientifically active switch must fail loudly, not pass as a choice.
+    """
     if isinstance(raw, bool):
         return raw, "gradual"
     if isinstance(raw, str):
         low = raw.lower()
-        if low in ("off", "disabled", "false"):
+        if low in ("off", "disabled", "false", "no"):
             return False, "gradual"
+        if low in ("on", "true", "yes"):
+            return True, "gradual"
         if low in ("gradual", "binary"):
             return True, low
-        return True, "gradual"
-    return True, "gradual"
+    raise ValueError(
+        f"capacity_constraint must be a bool, 'off', 'gradual', or 'binary' "
+        f"(got {raw!r})"
+    )
 
 
 _DAYS_PER_TIMESTEP = {"day": 1, "week": 7, "month": 30, "year": 365}
@@ -132,6 +140,16 @@ _REMOVED_CUTOFFS = (
 )
 
 
+# Keys that were parsed but never consumed by the v2 runtime — setting them
+# has no effect. Kept here so old configs surface a warning instead of a
+# silent no-op.
+_INERT_KEYS = (
+    "congestion", "mc_caching", "logging_level", "flow_data",
+    "route_optimization_weight", "admin",
+)
+_INERT_LOGISTICS_KEYS = ("variability", "variability_coef")
+
+
 def _warn_removed_cutoff_params(config: dict) -> None:
     """Surface old cutoff keys that are silently ignored under flow_coverage."""
     present = [k for k in _REMOVED_CUTOFFS if k in config]
@@ -139,6 +157,14 @@ def _warn_removed_cutoff_params(config: dict) -> None:
         logging.warning(
             f"The following config keys are no longer used (replaced by "
             f"flow_coverage): {present}. Remove them from your YAML."
+        )
+    inert = [k for k in _INERT_KEYS if k in config]
+    inert += [f"logistics.{k}" for k in _INERT_LOGISTICS_KEYS
+              if k in (config.get("logistics") or {})]
+    if inert:
+        logging.warning(
+            f"The following config keys have NO effect in v2 and are ignored: "
+            f"{inert}. Remove them from your YAML."
         )
 
 
@@ -201,7 +227,6 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
         countries_no_transport=tuple(config.get("countries_no_transport") or ()),
         use_cargo_types=bool(config.get("use_cargo_types", True)),
         monetary_units=config.get("monetary_units_in_model", "mUSD"),
-        route_optimization_weight=config.get("route_optimization_weight", "cost_per_ton"),
         chunk_size=_parse_chunk_size(logistics, config.get("time_resolution", "week")),
         route_candidate_count=int(logistics.get("route_candidate_count", 4)),
         route_candidate_stretch=float(logistics.get("route_candidate_stretch", 3.0)),
@@ -218,10 +243,6 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
         time_resolution=config.get("time_resolution", "week"),
         simulation_type=config.get("simulation_type", "initial_state"),
         mc_repetitions=config.get("mc_repetitions", 0) or 0,
-        mc_caching=config.get("mc_caching", {
-            "transport_network": True, "agents": True,
-            "sc_network": False, "logistic_routes": False,
-        }),
         propagate_input_price_change=config.get("propagate_input_price_change", True),
         adaptive_inventories=config.get("adaptive_inventories", False),
         adaptive_supplier_weight=config.get("adaptive_supplier_weight", False),
@@ -262,6 +283,10 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
         monetary_units_in_data=config.get("monetary_units_in_data", "mUSD"),
         capital_to_value_added_ratio=config.get("capital_to_value_added_ratio", 3.0),
         country_transport_share=config.get("country_transport_share", 0.2),
+        # Was declared on AgentParams and used as the firm transport-share
+        # fallback, but never wired to the config — the YAML value was
+        # silently ignored (its sibling country_transport_share was wired).
+        firm_transport_share=config.get("firm_transport_share", 0.2),
     )
 
     logistics_params = LogisticsParams(
@@ -273,8 +298,6 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
         border_crossing_fees=logistics.get("border_crossing_fees", {}),
         border_crossing_times=logistics.get("border_crossing_times", {}),
         cost_of_time=logistics.get("cost_of_time", 0.49),
-        variability_coef=logistics.get("variability_coef", 0.44),
-        variability=logistics.get("variability", {}),
         name_specific=logistics.get("name-specific", {}),
         sector_to_cargo_type=logistics.get("sector_to_cargo_type", {}),
     )

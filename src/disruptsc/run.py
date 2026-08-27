@@ -336,7 +336,7 @@ def execute(config: dict, *, cache: str | None = None,
             cl_table = setup_logistic_routes(
                 sc_network, transport_network, firms, countries,
                 tp,
-                max_capacity_iterations=config.get("capacity_routing_max_iterations", 10),
+                max_capacity_iterations=config.get("capacity_routing_max_iterations", 3),
                 export_folder=export_folder,
             )
         else:

@@ -31,7 +31,6 @@ filepaths:
   multimodal:         "../Ecuador/Transport/multimodal.gpkg"
   mrio:               "../Ecuador/Economic/mrio_59sectors_hhs_gvt_inv.csv"
   sector_table:       "../Ecuador/Economic/sector_table.csv"
-  usd_per_ton:        "../Ecuador/Economic/sector_table.csv"
   households_spatial: "../Ecuador/Spatial/households.geojson"
   countries_spatial:  "../Ecuador/Spatial/countries.geojson"
   firms_spatial:      "../Ecuador/Spatial/firms.geojson"
@@ -40,10 +39,6 @@ filepaths:
   # Committed in the code repo so it travels with git. Enables the
   # adapted-Leontief production function (critical/important/non-critical).
   input_criticality:  "repo:studies/earthquake/additional_data/input_criticality.csv"
-  # Dead keys inherited from default.yaml (the code never reads them); nulled so
-  # the resolved config carries no dangling paths.
-  inventory_duration_targets: null
-  admin: null
 
 # -- Economic / time --
 firm_data_type: "mrio"

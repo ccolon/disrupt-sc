@@ -185,7 +185,16 @@ def _load_transport_edges(filepath: Path, mode: str, time_resolution: str,
     time_factor = {"day": 1, "week": 7, "month": 30, "year": 365}.get(time_resolution, 7)
     for col in gdf.columns:
         if col == "capacity" or col.startswith("capacity_"):
-            gdf[col] = pd.to_numeric(gdf[col], errors="coerce").fillna(0) * time_factor
+            numeric = pd.to_numeric(gdf[col], errors="coerce")
+            n_nan = int(numeric.isna().sum())
+            if n_nan:
+                # Capacity 0 means BLOCKED for that cargo type (no cost label is
+                # written), so a missing value silently closes the edge — say so.
+                logging.warning(
+                    f"{layer or mode}: {n_nan} edge(s) have missing/non-numeric "
+                    f"'{col}' — set to 0, i.e. BLOCKED for that cargo type."
+                )
+            gdf[col] = numeric.fillna(0) * time_factor
 
     return gdf
 
@@ -258,6 +267,7 @@ def _apply_default_capacities(tn: TransportNetwork, defaults: dict,
       - a dict    → per-cargo-type capacity (tons/day)
     """
     time_factor = {"day": 1, "week": 7, "month": 30, "year": 365}.get(time_resolution, 7)
+    dropped_data_caps: dict = {}
     for u, v in tn.edges:
         edge = tn[u][v]
         mode = edge["type"]
@@ -266,7 +276,8 @@ def _apply_default_capacities(tn: TransportNetwork, defaults: dict,
             # No default specified → unlimited shared capacity
             edge["capacity"] = 1e9 * time_factor
             for ct in cargo_types:
-                edge.pop(f"capacity_{ct}", None)  # ensure no stale per-ct caps
+                if edge.pop(f"capacity_{ct}", None) is not None:  # ensure no stale per-ct caps
+                    dropped_data_caps[mode] = dropped_data_caps.get(mode, 0) + 1
         elif isinstance(mode_cap, dict):
             # Per-cargo-type defaults
             edge["capacity"] = 1e9 * time_factor  # shared fallback (unused if all ct specified)
@@ -277,6 +288,15 @@ def _apply_default_capacities(tn: TransportNetwork, defaults: dict,
             edge["capacity"] = float(mode_cap) * time_factor
             for ct in cargo_types:
                 edge.pop(f"capacity_{ct}", None)
+
+    for mode, n in sorted(dropped_data_caps.items()):
+        logging.warning(
+            f"default_transport_capacity has no entry for mode '{mode}': "
+            f"{n} data-supplied per-cargo capacity value(s) on its edges were "
+            f"DISCARDED and the edges treated as unlimited. Add a "
+            f"default_transport_capacity entry for '{mode}' if capacities "
+            f"should apply."
+        )
 
     # Also pick up per-cargo-type capacity from GeoJSON columns if present
     for u, v in tn.edges:
@@ -300,6 +320,17 @@ def _apply_capacity_overrides(tn: TransportNetwork, overrides: dict,
       - a dict    → per-cargo-type capacity (tons/day)
     """
     time_factor = {"day": 1, "week": 7, "month": 30, "year": 365}.get(time_resolution, 7)
+    # A dict override implicitly BLOCKS every cargo type it does not list
+    # (capacity 0 → no cost label → invisible to routing). Say so once per edge.
+    for name, override in overrides.items():
+        if isinstance(override, dict):
+            omitted = [ct for ct in cargo_types if ct not in override]
+            if omitted:
+                logging.warning(
+                    f"transport_capacity_overrides['{name}'] omits cargo type(s) "
+                    f"{omitted} — they get capacity 0 (BLOCKED) on that edge. "
+                    f"List them explicitly to keep them open."
+                )
     for u, v in tn.edges:
         edge = tn[u][v]
         name = edge.get("name", "")

@@ -89,6 +89,38 @@ class TransportDisruption:
 _MONETARY_UNITS = {"USD": 1.0, "kUSD": 1e3, "mUSD": 1e6}
 
 
+def _match_firms_by_filters(filters: dict, firms: dict, label: str) -> list:
+    """Return the pids of firms matching an attribute filter dict.
+
+    Keys are firm attributes (``sector``, ``region``, ...); a ``subregion_*``
+    key matches against ``firm.subregions`` (e.g. ``subregion_province``).
+    Shared by every filter-based disruption so they all support subregions
+    and all LOG their match count — a filter that matches zero firms is a
+    silent no-op shock otherwise.
+    """
+    matched = []
+    for pid, firm in firms.items():
+        ok = True
+        for attr, values in filters.items():
+            if attr.startswith("subregion_"):
+                sub_key = attr.replace("subregion_", "")
+                if (getattr(firm, "subregions", {}) or {}).get(sub_key) not in values:
+                    ok = False
+                    break
+            elif getattr(firm, attr, None) not in values:
+                ok = False
+                break
+        if ok:
+            matched.append(pid)
+    logging.info(f"{label} filter matched {len(matched)} firms")
+    if not matched:
+        logging.warning(
+            f"{label} filter {filters} matched NO firm — this disruption "
+            f"is a no-op. Check attribute names and values."
+        )
+    return matched
+
+
 def _unit_factor(from_unit: str, to_unit: str) -> float:
     """Multiplier converting a value in *from_unit* into *to_unit*."""
     try:
@@ -153,21 +185,7 @@ class CapitalDestruction:
     def from_firms_attributes(cls, destroyed_fraction, filters: dict, firms: dict,
                               input_units: str = "mUSD", target_units: str = "mUSD"):
         """Select firms matching filters and apply uniform destruction."""
-        matched = []
-        for pid, firm in firms.items():
-            match = True
-            for attr, values in filters.items():
-                if attr.startswith("subregion_"):
-                    sub_key = attr.replace("subregion_", "")
-                    if getattr(firm, "subregions", {}).get(sub_key) not in values:
-                        match = False
-                        break
-                elif getattr(firm, attr, None) not in values:
-                    match = False
-                    break
-            if match:
-                matched.append(pid)
-        logging.info(f"CapitalDestruction filter matched {len(matched)} firms")
+        matched = _match_firms_by_filters(filters, firms, "CapitalDestruction")
         return cls(description={pid: destroyed_fraction for pid in matched})
 
     @classmethod
@@ -476,8 +494,7 @@ class ProductivityShock:
 
     @classmethod
     def from_firms_attributes(cls, reduction, filters: dict, firms: dict):
-        matched = [pid for pid, f in firms.items()
-                   if all(getattr(f, a, None) in v for a, v in filters.items())]
+        matched = _match_firms_by_filters(filters, firms, "ProductivityShock")
         return cls(description={pid: reduction for pid in matched})
 
 
@@ -564,6 +581,21 @@ def parse_disruptions(config_list: list | None,
                     shape=cfg.get("recovery_shape", "threshold"),
                     rate=cfg.get("recovery_rate", 1.0),
                 )
+            # Loud no-op warnings: firm-side recovery is threshold-only, and
+            # absolute (file-based) destruction has no timed recovery at all —
+            # capital returns only via the reconstruction market.
+            if d.absolute and ("duration" in cfg or "recovery_shape" in cfg):
+                logging.warning(
+                    "capital_destruction with description_type=file is an absolute, "
+                    "permanent capital loss: 'duration'/'recovery_shape' are IGNORED "
+                    "(rebuild happens via reconstruction_market)."
+                )
+            elif cfg.get("recovery_shape", "threshold") != "threshold":
+                logging.warning(
+                    f"capital_destruction: firm-side recovery is threshold-only; "
+                    f"recovery_shape={cfg['recovery_shape']!r} is IGNORED "
+                    f"(capacity is restored in full when 'duration' elapses)."
+                )
             d.reconstruction_market = cfg.get("reconstruction_market", False)
             # reconstruction_target_time is given in DAYS in config; convert to time steps.
             from disruptsc.config import days_per_timestep
@@ -605,6 +637,12 @@ def parse_disruptions(config_list: list | None,
                     duration=cfg["duration"],
                     shape=cfg.get("recovery_shape", "threshold"),
                     rate=cfg.get("recovery_rate", 1.0),
+                )
+            if cfg.get("recovery_shape", "threshold") != "threshold":
+                logging.warning(
+                    f"productivity_shock: firm-side recovery is threshold-only; "
+                    f"recovery_shape={cfg['recovery_shape']!r} is IGNORED "
+                    f"(capacity is restored in full when 'duration' elapses)."
                 )
             disruptions.append(d)
 
