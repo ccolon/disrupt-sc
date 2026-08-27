@@ -62,14 +62,34 @@ def load_config(scope: str, parameter_folder: Path = None) -> dict:
         logging.warning("'events' is deprecated; use 'disruptions' instead.")
         config["disruptions"] = config["events"]
 
-    # Resolve filepaths to absolute
+    # Resolve filepaths to absolute. Plain relative values resolve against the
+    # scope's data folder; a "repo:" prefix resolves against the code-repo root
+    # instead (for inputs committed with the code, e.g. the input-criticality
+    # matrix under studies/); absolute values pass through unchanged.
     for key, val in config.get("filepaths", {}).items():
         if val and val != "None":
-            config["filepaths"][key] = paths.get_data_path(scope) / val
+            resolved = resolve_repo_prefix(val)
+            if resolved is not val:
+                config["filepaths"][key] = Path(resolved)
+            else:
+                config["filepaths"][key] = paths.get_data_path(scope) / val
         else:
             config["filepaths"][key] = None
 
     return config
+
+
+def resolve_repo_prefix(value):
+    """Resolve a ``repo:<relpath>`` string against the code-repo root.
+
+    Any other value is returned unchanged (identity preserved, so callers can
+    detect whether resolution happened). Used for config paths that point at
+    files committed with the code rather than the data repo — e.g.
+    ``repo:studies/earthquake/additional_data/earthquake_shock_modelready.csv``.
+    """
+    if isinstance(value, str) and value.startswith("repo:"):
+        return str(paths.ROOT_FOLDER / value[len("repo:"):])
+    return value
 
 
 # ---------------------------------------------------------------------------
