@@ -107,7 +107,11 @@ testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "--cov=src/disruptsc --cov-report=html --cov-report=term-missing"
+# Make `pytest` work from a bare clone: the src layout is put on sys.path here,
+# and coverage is opt-in (it used to be forced via addopts, which made every
+# run fail wherever pytest-cov wasn't installed):
+#   pytest --cov=src/disruptsc --cov-report=term-missing
+pythonpath = ["src"]
 
 [tool.mypy]
 python_version = "3.10"
