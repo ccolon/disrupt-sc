@@ -507,11 +507,11 @@ def create_representative_demand_agent(mrio: Mrio, label: str, agent_cls,
     cols = [c for c in mrio.columns if c[1] == label]
     if not cols:
         return None
-    # Valid suppliers = modeled firm region-sectors (selection) + import country rows.
+    # Valid suppliers = modeled firm region-sectors (selection) + import country rows
+    # (legacy (BLOC, "imports") or sector-resolved (BLOC, sector) — match by region).
     valid = set(selection.region_sectors)
-    import_label = mrio.import_label
-    rows = [r for r in mrio.index
-            if (r in valid) or (import_label and r[1] == import_label)]
+    ext = set(mrio.external_selling_countries)
+    rows = [r for r in mrio.index if (r in valid) or (r[0] in ext)]
     raw = mrio.loc[rows, cols]
     scaled = rescale_monetary_values(
         raw, input_units=params.monetary_units_in_data, input_time_resolution="year",
@@ -641,12 +641,24 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
             if val > 0:
                 exports_by_country.setdefault(col[0], {})[f"{row[0]}_{row[1]}"] = val
 
-    # Per-country imports (supply) from kept cells (supplier = external country)
+    # Per-country imports (supply) from kept cells (supplier = external country).
+    # Import rows are (BLOC, "imports") in the legacy format and (BLOC, sector)
+    # in the sector-resolved format — match by region, not label.
+    country_set = set(all_countries)
     imports_per_country: dict[str, float] = {}
     kept_import_cells = [
         (row, col) for (row, col) in selection.kept_cells
-        if row[1] == imp_label
+        if row[0] in country_set
     ]
+    # Per-sector density (USD/ton) averaged over regions, for the
+    # sector-resolved import format: a country's effective density is the
+    # value-weighted harmonic mean over its kept import mix (tons add up).
+    sector_density: dict[str, float] = {}
+    for key, val in usd_per_ton.items():
+        sec = key.split("_", 1)[1] if "_" in key else key
+        sector_density.setdefault(sec, []).append(float(val))
+    sector_density = {s: sum(v) / len(v) for s, v in sector_density.items() if v}
+    country_import_tons: dict[str, float] = {}
     if kept_import_cells:
         imp_rows = sorted({row for row, _ in kept_import_cells})
         imp_cols = sorted({col for _, col in kept_import_cells})
@@ -654,6 +666,9 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
         for row, col in kept_import_cells:
             val = float(imp_sub.at[row, col])
             imports_per_country[row[0]] = imports_per_country.get(row[0], 0.0) + val
+            dens = sector_density.get(row[1], 0.0)
+            if dens > 0:
+                country_import_tons[row[0]] = country_import_tons.get(row[0], 0.0) + val / dens
     total_imports = sum(imports_per_country.values()) or 1.0
 
     # Build countries
@@ -721,12 +736,20 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
         # arbitrary import row before a country-specific one, dict-order
         # permitting.
         imp = mrio.import_label or "IMP"
-        country_upt = 2864.0
-        for key in (f"{country_code}_{imp}", country_code, imp,
-                    *sorted(k for k in usd_per_ton if k.endswith(f"_{imp}"))):
-            if key in usd_per_ton:
-                country_upt = float(usd_per_ton[key])
-                break
+        # Sector-resolved import format: value-weighted harmonic density of
+        # the country's kept import mix (correct for total tonnage). Legacy
+        # fallback: exact-match resolution against the usd_per_ton dict.
+        c_val = imports_per_country.get(country_code, 0.0)
+        c_tons = country_import_tons.get(country_code, 0.0)
+        if c_tons > 0 and c_val > 0:
+            country_upt = c_val / c_tons
+        else:
+            country_upt = 2864.0
+            for key in (f"{country_code}_{imp}", country_code, imp,
+                        *sorted(k for k in usd_per_ton if k.endswith(f"_{imp}"))):
+                if key in usd_per_ton:
+                    country_upt = float(usd_per_ton[key])
+                    break
 
         c = Country(
             pid=country_code,

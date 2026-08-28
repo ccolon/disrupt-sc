@@ -146,8 +146,9 @@ def _check_mrio(path, config: dict, errors: list, warnings: list):
     except Exception as exc:
         errors.append(f"MRIO failed to load/parse (structure problem?): {exc}")
         return None
-    if not mrio.import_label:
-        errors.append("MRIO: no import row label detected (level-1 matching 'import')")
+    if not mrio.import_label and not mrio.external_selling_countries:
+        errors.append("MRIO: no import supply detected (neither an 'imports' row label "
+                      "nor sector-resolved external-region rows)")
     if not mrio.export_label:
         errors.append("MRIO: no export column label detected (level-1 matching 'export')")
     if not mrio.final_demand_label:

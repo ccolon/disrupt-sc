@@ -32,7 +32,14 @@ def build_supply_chain_network(
 ) -> ScNetwork:
     """Build full supply-chain graph.  Returns populated ScNetwork."""
     sc = ScNetwork()
-    import_label = mrio.import_label
+    # Country products are recognized by their region prefix (works for both
+    # the legacy "BLOC_imports" product and sector-resolved "BLOC_SECTOR").
+    country_pids = set(countries.keys())
+    # Product sector -> sector type, to cargo-type import links by the product
+    # actually shipped (grain vs machinery) instead of a flat "imports" type.
+    sector_types = {}
+    if sector_table is not None and "type" in sector_table.columns:
+        sector_types = sector_table.set_index("sector")["type"].to_dict()
 
     # --- Build index: region_sector -> [firm_pid, ...] ---
     rs_to_firms = {}
@@ -51,7 +58,7 @@ def build_supply_chain_network(
         _household_select_suppliers(
             hh, sc, firms, countries, rs_cache,
             nb_suppliers_per_input, weight_localization_household,
-            sector_to_cargo_type, import_label, transport_network,
+            sector_to_cargo_type, country_pids, sector_types, transport_network,
             node_lon, node_lat, use_tn,
         )
 
@@ -73,7 +80,7 @@ def build_supply_chain_network(
         _firm_select_suppliers(
             firm, sc, firms, countries, rs_cache,
             nb_suppliers_per_input, weight_localization_firm,
-            sector_to_cargo_type, import_label, transport_network,
+            sector_to_cargo_type, country_pids, sector_types, transport_network,
             node_lon, node_lat, use_tn,
         )
 
@@ -109,7 +116,7 @@ def build_supply_chain_network(
 
 def _household_select_suppliers(hh, sc, firms, countries, rs_cache,
                                 nb_suppliers_per_input, weight_loc,
-                                sector_to_cargo_type, import_label,
+                                sector_to_cargo_type, country_pids, sector_types,
                                 transport_network, node_lon, node_lat, use_tn):
     hh.purchase_plan = {}
     hh.retailers = {}
@@ -118,17 +125,18 @@ def _household_select_suppliers(hh, sc, firms, countries, rs_cache,
     # a single aggregate buyer spreads demand by firm size and sees localized disruption.
     w_loc = weight_loc if hh.weight_localization is None else hh.weight_localization
     nb = nb_suppliers_per_input if hh.nb_suppliers is None else hh.nb_suppliers
+    import_ptype = _aggregate_import_inputs(hh.sector_consumption, country_pids, sector_types)
     for region_sector, amount in hh.sector_consumption.items():
         supplier_type, ids, weights, distances = _identify_suppliers(
             hh, region_sector, rs_cache,
-            nb, w_loc, import_label,
+            nb, w_loc, country_pids,
             node_lon, node_lat, use_tn,
         )
         for sid, w in zip(ids, weights):
             if supplier_type == "country":
                 supplier = countries[sid]
                 category = "import_B2C"
-                ptype = "imports"
+                ptype = import_ptype.get(sid, "imports")
                 distance = _distance_between(hh, supplier, transport_network)
             else:
                 supplier = firms[sid]
@@ -214,21 +222,51 @@ def _country_select_suppliers(country, sc, firms, countries, rs_to_firms,
 # Firm supplier selection
 # ------------------------------------------------------------------
 
+def _aggregate_import_inputs(needs: dict, country_pids: set, sector_types: dict) -> dict:
+    """Fold per-product import entries (sector-resolved MRIO) into one
+    "{COUNTRY}_imports" entry per partner, mutating *needs* in place.
+
+    The supply-chain graph holds one edge per (supplier, buyer) pair, so
+    per-product country links would silently overwrite each other. The
+    aggregate keeps the exact total; the buyer's product mix survives as
+    the returned {country: dominant_sector_type} used to cargo-type the
+    single link (a food firm's imports ride as dry_bulk, an automotive
+    firm's as container).
+    """
+    by_country: dict = {}
+    for key in list(needs.keys()):
+        region = key.split("_", 1)[0]
+        if region in country_pids and not key.endswith("_imports"):
+            by_country.setdefault(region, []).append((key, needs.pop(key)))
+    dominant_ptype = {}
+    for country, entries in by_country.items():
+        agg_key = f"{country}_imports"
+        needs[agg_key] = needs.get(agg_key, 0.0) + sum(w for _, w in entries)
+        type_w: dict = {}
+        for key, w in entries:
+            sec = key.split("_", 1)[1]
+            t = sector_types.get(sec, "imports")
+            type_w[t] = type_w.get(t, 0.0) + w
+        dominant_ptype[country] = max(type_w, key=type_w.get)
+    return dominant_ptype
+
+
 def _firm_select_suppliers(firm, sc, firms, countries, rs_cache,
                            nb_suppliers_per_input, weight_loc,
-                           sector_to_cargo_type, import_label,
+                           sector_to_cargo_type, country_pids, sector_types,
                            transport_network, node_lon, node_lat, use_tn):
+    import_ptype = _aggregate_import_inputs(firm.input_mix, country_pids, sector_types)
     for sector_id, sector_weight in firm.input_mix.items():
         supplier_type, ids, weights, distances = _identify_suppliers(
             firm, sector_id, rs_cache,
-            nb_suppliers_per_input, weight_loc, import_label,
+            nb_suppliers_per_input, weight_loc, country_pids,
             node_lon, node_lat, use_tn,
         )
         for sid, w in zip(ids, weights):
             if supplier_type == "country":
                 supplier = countries[sid]
                 category = "import"
-                ptype = "imports"
+                ptype = import_ptype.get(sid, "imports")
             else:
                 supplier = firms[sid]
                 category = "domestic_B2B"
@@ -254,7 +292,7 @@ def _firm_select_suppliers(firm, sc, firms, countries, rs_cache,
 # ------------------------------------------------------------------
 
 def _identify_suppliers(buyer, region_sector, rs_cache,
-                        nb_suppliers_per_input, weight_loc, import_label,
+                        nb_suppliers_per_input, weight_loc, country_pids,
                         node_lon, node_lat, use_tn):
     """Return (supplier_type, selected_ids, weights, distances|None).
 
@@ -266,10 +304,11 @@ def _identify_suppliers(buyer, region_sector, rs_cache,
     given seed.
     """
 
-    # Import case
-    if import_label and import_label in region_sector:
-        country_code = region_sector.split("_")[0]
-        return "country", [country_code], [1.0], None
+    # Import case — the product's region prefix is a country agent. Covers the
+    # legacy "BLOC_imports" product and sector-resolved "BLOC_SECTOR" products.
+    region = region_sector.split("_", 1)[0]
+    if region in country_pids:
+        return "country", [region], [1.0], None
 
     entry = rs_cache.get(region_sector)
     if entry is None:
