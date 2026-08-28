@@ -87,7 +87,7 @@ def filter_sectors(mrio: Mrio,
     )
     kept_ext_selling = tuple(
         c for c in selection.external_selling_countries
-        if any(row[0] == c and row[1] == mrio.import_label for row in rows_present)
+        if any(row[0] == c for row in rows_present)
     )
 
     dropped_rs = len(selection.region_sectors) - len(kept_rs)

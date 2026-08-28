@@ -627,8 +627,9 @@ def export_mrio_summary(mrio, selected, export_folder: Path):
     imports_per_country = {}
     exports_per_country = {}
     for c in countries:
-        if import_label and (c, import_label) in mrio.index:
-            imports_per_country[c] = float(mrio.loc[(c, import_label), selected].sum())
+        c_rows = [r for r in mrio.index if r[0] == c]
+        if c_rows:
+            imports_per_country[c] = float(mrio.loc[c_rows, selected].sum().sum())
         if export_label and (c, export_label) in mrio.columns:
             exports_per_country[c] = float(mrio.loc[selected, (c, export_label)].sum())
     by_country = pd.DataFrame({
