@@ -94,6 +94,18 @@ The heterogeneity draw list under `studies/earthquake/additional_data/`
 is **committed experimental design**: `run_hetero.py` derives the destroyed
 total from it and refuses a mismatching `--total`.
 
+## Onboarding a new scope (`onboarding/`)
+
+To calibrate the model to a new country or region ("apply disrupt-sc to X",
+"new scope for X", "validation report for scope X"), follow
+`onboarding/RUNBOOK.md` — an assistant-neutral, phased runbook (scope →
+modes → trade geography/MRIO → extraction → transport network → spatial →
+initial_state run → validation report) with user checkpoints, a resumable
+per-scope manifest, deterministic helper scripts (`onboarding/scripts/`,
+start with `check_env.py`), and a living defect register
+(`onboarding/references/known-issues.md`) that takes precedence over stale
+docs pages.
+
 ## Conventions for changes
 
 - Ask before substantial changes to model logic or architecture; bug fixes
