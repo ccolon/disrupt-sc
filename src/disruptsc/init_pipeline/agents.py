@@ -859,15 +859,28 @@ def _integrate_spatial_firms(ft: gpd.GeoDataFrame, filepath: Path, mrio: Mrio) -
     # Keep MRIO firms that have no spatial data
     keep = ft[~ft["region_sector"].isin(available_rs)].copy()
 
-    # Add spatial firms with importance from MRIO output split
+    # Add spatial firms sized by the MRIO output of their region_sector,
+    # distributed in PROPORTION to the file's per-point values (population,
+    # plant capacity, production tonnage...). Units cancel in the within-
+    # sector normalization, so any consistent per-sector basis works, but
+    # mixing bases within one region_sector is the file producer's problem.
+    # Points without a usable value fall back to an equal split - the
+    # pre-2026-08-31 behavior, under which supplier choice was effectively
+    # distance-only within a region_sector (KI-17).
     total_output = mrio.get_total_output()
     spatial_rows = []
     for rs in available_rs:
         rs_spatial = spatial[spatial["region_sector"] == rs].copy()
-        n_firms = len(rs_spatial)
         rs_tuple = tuple(rs.split("_", 1))
-        total_imp = total_output.get(rs_tuple, 0) / max(n_firms, 1)
-        rs_spatial["importance"] = total_imp
+        total_out = total_output.get(rs_tuple, 0)
+        weights = None
+        if "importance" in rs_spatial.columns:
+            weights = pd.to_numeric(rs_spatial["importance"], errors="coerce").fillna(0.0)
+            weights = weights.clip(lower=0.0)
+        if weights is not None and weights.sum() > 0:
+            rs_spatial["importance"] = total_out * weights / weights.sum()
+        else:
+            rs_spatial["importance"] = total_out / max(len(rs_spatial), 1)
         if "region" not in rs_spatial.columns:
             rs_spatial["region"] = rs_tuple[0]
         if "sector" not in rs_spatial.columns:
