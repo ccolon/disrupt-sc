@@ -214,3 +214,34 @@ TEN-T multimodal connectors (endpoint-snapped). Rules learned on Romania:
   (location × sector) with the value as importance; zero/NaN dropped.
 - Run: `validate-inputs <Scope>` then `disruptsc <Scope> --simulation_type initial_state --open`.
   The flag is `--flow_coverage` (docs mentioning `--input_coverage` are stale, KI-04).
+
+---
+
+## 6. firm-extractor  (`<parent>/Firms/firm-extractor`, data library `<parent>/Firms/`)
+
+Per-scope YAML config, never edit-in-place (see `configs/example.yaml`). Long-format
+output: `region, sector, importance, name, source` — consumed by DisruptSC's long-form
+firms branch; after KI-17 the importance values set firm sizes proportionally.
+
+```bash
+cd <parent>/Firms/firm-extractor && pip install -e .
+firm-extractor sources            # adapters, data presence, fetch hints
+firm-extractor coverage cfg.yaml  # dry-run: sector -> source proposal
+firm-extractor build cfg.yaml     # firms.geojson + *_coverage.csv
+```
+
+Key rules baked into the tool:
+- ONE source per sector (ordered preference list): importance is relative within a
+  region_sector, so units cancel — but only if bases are never mixed there.
+- Grid sources (mapspam) are zonal-aggregated to the scope's admin POLYGONS (the
+  geoBoundaries files from phase 6 step 3, not the household points), then placed at
+  `weighted_centroid` (default) / `max_cell` / `representative_point`.
+- Concordances in `<repo>/concordance/*_to_icio.csv` target ICIO 2025 native codes
+  (A01 crops, B05 coal, B07 metal ores, C24A/C24B basic metals, D power). Copy +
+  rewrite the `sector` column for aggregated schemes; `mine:*`/`proc:*`/`*` wildcards
+  are matched after exact codes.
+- Adapters: `jasansky` (weight = latest-year production, then capacity, then presence;
+  Region/Company pseudo-facilities dropped), `mapspam` (`_A` rasters only),
+  `gem_gipt` (UNTESTED until the form-gated xlsx lands in `<parent>/Firms/GEM/`).
+- Data caveats live in `Firms/README.md` and KI-18/19/20 — CEADS swapped lat/lon +
+  suspect units, GID no-coordinates/licensing, Maus payload not downloaded.
