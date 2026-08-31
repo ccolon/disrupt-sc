@@ -39,6 +39,11 @@ TOOL_REPOS = {
         "suggest": "transport/transnet/multitnbuild",
         "aliases": ["multitnbuild"],
     },
+    "firm-extractor": {
+        "url": "https://github.com/ccolon/firm-extractor",
+        "suggest": "Firms/firm-extractor",
+        "aliases": [],
+    },
 }
 
 
@@ -69,7 +74,7 @@ def find_tool_repo(name: str) -> Path | None:
     parent = disruptsc_parent()
     names = [name] + spec["aliases"]
     bases = [parent, parent / "MRIO", parent / "transport",
-             parent / "transport" / "transnet", parent / "tools"]
+             parent / "transport" / "transnet", parent / "Firms", parent / "tools"]
     for base in bases:
         for n in names:
             p = base / n
