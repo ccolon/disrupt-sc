@@ -244,6 +244,13 @@ Key rules baked into the tool:
   Region/Company pseudo-facilities dropped), `mapspam` (`_A` rasters only),
   `gem_power` (the 8 per-technology GEM power trackers in `<parent>/Firms/GEM/`;
   operating units, MW; validated on Romania 2026-08-31: 639 units, 20.8 GW ≈ national
-  total, Cernavodă/Iron-Gate shares exact; small-hydro under tracker thresholds missing).
+  total, Cernavodă/Iron-Gate shares exact; small-hydro under tracker thresholds missing),
+  `gem_steel` (GIST plant-level; reported production > capacity), `gem_cement` (GCCT;
+  production > cement > clinker capacity; Romania: 9 plants / 15.4 Mtpa = the full industry).
+- **Vintage trap**: GEM status is "today", the MRIO is usually 2020–2022. Set
+  `source_options: {gem_steel: {statuses: [... mothballed...], reference_year: <MRIO yr>}}`
+  or plants idled since the MRIO year vanish — Romania: default 3 mills/1.0 Mt vs vintage
+  5 mills/3.5 Mt with Liberty Galați restored at its 2022-era 1.6 Mt (≈ national output).
+  Decide at the phase-6 checkpoint, per scope.
 - Data caveats live in `Firms/README.md` and KI-18/19/20 — CEADS swapped lat/lon +
   suspect units, GID no-coordinates/licensing, Maus payload not downloaded.
