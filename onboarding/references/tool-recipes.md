@@ -254,3 +254,11 @@ Key rules baked into the tool:
   Decide at the phase-6 checkpoint, per scope.
 - Data caveats live in `Firms/README.md` and KI-18/19/20 — CEADS swapped lat/lon +
   suspect units, GID no-coordinates/licensing, Maus payload not downloaded.
+- `climatetrace` adapter (API, no download): facility points + MODELLED activity/capacity
+  per year 2021–2026 from api.climatetrace.org (CC-BY-4.0), 23 default subsectors spanning
+  most manufacturing/mining/fossil ICIO sectors; set `source_options: {climatetrace:
+  {reference_year: <MRIO yr>, subsectors: [...]}}` — the year matters (Alro Slatina 2022:
+  105 kt vs 2024: 59 kt). Country-aggregate pseudo-assets are auto-dropped. Romania check:
+  closes C24B (Slatina + Tulcea alumina) and C19 (all 4 refineries, plausible crude-run
+  ranking) in one source; per-facility confidence is often "low" — use for relative
+  within-sector weights, verify totals nationally.
