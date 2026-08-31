@@ -37,6 +37,7 @@ Supporting material in this folder (script commands below are run from `onboardi
 - `references/failure-triage.md` — runtime error → cause → fix for phase 7.
 - `references/validation-report.md` — phase 8 method: model-vs-data comparisons, data sources, report structure. **Read before phase 8.**
 - `references/known-issues.md` — register of tool/model defects. Consult at each phase; append when new ones surface.
+- `references/firm-data-sources.md` — survey of open plant/grid production datasets for the phase-6 firm-level path.
 - `scripts/` — deterministic helpers (`check_env.py`, `mrio_coverage.py`, `geofabrik.py`, `build_spatial.py`, `check_scope.py`, `validation_metrics.py`, `eurostat_mode_targets.py`).
 
 ## Standing rules
