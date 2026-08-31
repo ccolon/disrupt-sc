@@ -242,6 +242,8 @@ Key rules baked into the tool:
   are matched after exact codes.
 - Adapters: `jasansky` (weight = latest-year production, then capacity, then presence;
   Region/Company pseudo-facilities dropped), `mapspam` (`_A` rasters only),
-  `gem_gipt` (UNTESTED until the form-gated xlsx lands in `<parent>/Firms/GEM/`).
+  `gem_power` (the 8 per-technology GEM power trackers in `<parent>/Firms/GEM/`;
+  operating units, MW; validated on Romania 2026-08-31: 639 units, 20.8 GW ≈ national
+  total, Cernavodă/Iron-Gate shares exact; small-hydro under tracker thresholds missing).
 - Data caveats live in `Firms/README.md` and KI-18/19/20 — CEADS swapped lat/lon +
   suspect units, GID no-coordinates/licensing, Maus payload not downloaded.
