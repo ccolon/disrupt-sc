@@ -254,6 +254,12 @@ Key rules baked into the tool:
   Decide at the phase-6 checkpoint, per scope.
 - Data caveats live in `Firms/README.md` and KI-18/19/20 — CEADS swapped lat/lon +
   suspect units, GID no-coordinates/licensing, Maus payload not downloaded.
+- `manual` adapter: per-scope CSV of hand-curated anchor facilities
+  (`source_options: {manual: {csv: <Scope>/Spatial/sources/manual_firms.csv}}`,
+  columns `sector,name,lon,lat,weight[,iso3,unit,note]`; sector used as-is, no
+  concordance). Use for flagship few-plant sectors no database sees (automotive,
+  shipyards, a mis-weighted chemicals anchor); every row's figure needs a source in
+  `note`, and the CSV is a **user checkpoint** — the human vouches for the rows.
 - `climatetrace` adapter (API, no download): facility points + MODELLED activity/capacity
   per year 2021–2026 from api.climatetrace.org (CC-BY-4.0), 23 default subsectors spanning
   most manufacturing/mining/fossil ICIO sectors; set `source_options: {climatetrace:
