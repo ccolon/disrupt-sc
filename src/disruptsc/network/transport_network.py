@@ -688,7 +688,22 @@ def _get_speed(edge_attr: dict, speed_dict: dict) -> float:
     return speed_dict.get(edge_attr["type"], 50)
 
 
+def _per_cargo(value, cargo_type: str) -> float:
+    """Resolve a logistics value that may be a scalar or a per-cargo-type dict
+    ({cargo_type: v, "default": v}). Per-cargo TRANSFER costs are what express
+    dedicated transshipment infrastructure: a refinery rail siding makes the
+    road-rail transfer near-free for liquid bulk while the same terminal costs
+    a container its full lift - a distinction mode-level scalars cannot carry
+    (the Romania v6 calibration bounded this: no scalar rail cost satisfies
+    dry-bulk and liquid-bulk rail shares simultaneously)."""
+    if isinstance(value, dict):
+        return float(value.get(cargo_type, value.get("default", 0.0)))
+    return float(value)
+
+
 def _get_dwell_time_and_fee(edge_attr: dict, dwell_times: dict, loading_fees: dict):
+    """Returns the configured values for this edge's multimodes key - each may
+    be a scalar or a per-cargo dict; resolved per cargo in _calculate_cost_per_ton."""
     if edge_attr["type"] == "multimodal":
         key = edge_attr.get("multimodes", "")
         return dwell_times.get(key, 0.0), loading_fees.get(key, 0.0)
@@ -734,11 +749,10 @@ def _calculate_cost_per_ton(edge_attr: dict, params: dict, cargo_types: list, ti
     transport_time = km / speed
     dwell_time, loading_fee = _get_dwell_time_and_fee(edge_attr, params.get("dwell_times", {}), params.get("loading_fees", {}))
     border_time, border_fee = _get_border_crossing_time_and_fee(edge_attr, params.get("border_crossing_times", {}), params.get("border_crossing_fees", {}))
-    total_time = transport_time + dwell_time + border_time
-    total_fee = loading_fee + border_fee
+    fixed_time = transport_time + border_time
     special_cost = params.get("name-specific", {}).get(edge_attr.get("name", ""), 0)
 
-    base = basic_cost + special_cost + total_fee
+    fixed_base = basic_cost + special_cost + border_fee
 
     for ct in cargo_types:
         # Skip blocked cargo types — no cost label means the edge is
@@ -750,7 +764,11 @@ def _calculate_cost_per_ton(edge_attr: dict, params: dict, cargo_types: list, ti
             ct_cot = float(cot.get(ct, cot.get("default", 0.49)))
         else:
             ct_cot = float(cot)
-        cost = base + total_time * ct_cot * time_scale
+        # dwell_times / loading_fees entries may be per-cargo dicts (see
+        # _per_cargo): transfer costs, unlike line-haul costs, differ by
+        # cargo class because of dedicated transshipment infrastructure
+        cost = (fixed_base + _per_cargo(loading_fee, ct)
+                + (fixed_time + _per_cargo(dwell_time, ct)) * ct_cot * time_scale)
         edge_attr[f"cost_per_ton_{ct}"] = cost
         edge_attr[f"cost_per_ton_with_capacity_{ct}"] = cost
 
