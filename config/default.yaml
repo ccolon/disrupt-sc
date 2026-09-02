@@ -49,6 +49,11 @@ logistics:
   switching_costs:
     modal_switch: 0.15  # Additional cost percentage when switching transport modes (e.g., rail to road)
     port_switch: 0.05
+  # dwell_times / loading_fees: keyed by the edge's multimodes string; each
+  # value is a scalar or a per-cargo-type dict ({container: 12, liquid_bulk: 1,
+  # default: 12}) - per-cargo transfer costs express dedicated transshipment
+  # infrastructure (refinery rail sidings, grain terminals) that mode-level
+  # line-haul costs cannot.
   dwell_times:  # hours
     roads-maritime: 12
     roads-railways: 12
