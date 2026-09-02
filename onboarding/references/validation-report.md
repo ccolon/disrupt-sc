@@ -121,8 +121,36 @@ instead of copying blindly:
      the per-cargo block of `eurostat_mode_targets.py --compare`.
    - Retype refined petroleum (C19) as `oil_and_gas` in the sector table (add
      `oil_and_gas` to `physical_types` in the sector-table config) so it gets
-     liquid_bulk cargo; expect a compromise fit — real product trains use refinery
-     sidings with no transfer cost.
+     liquid_bulk cargo.
+
+   **v6/v6.1 supplement (Romania 2026-09-02, after the firm-level geography):**
+   refit whenever the firm geography changes materially — the v5 fit did not survive
+   real refinery/plant placement. Procedure and laws that transfer to any scope:
+   - **Always calibrate with `--seed`**: unseeded runs wobble ±2–4 pp from supplier
+     RNG; you cannot attribute a 3 pp move to a parameter without it.
+   - **Two-stage**: (1) rebalance the scalars inside their grounded ranges — the
+     honest levels matter (optimistic port handling of 3 h/$1 alone gave barges 50%
+     of liquid tkm; realistic is ~16 h/$3.5); (2) express infrastructure with
+     **per-cargo `dwell_times`/`loading_fees`** (dict form
+     `{default: 6, liquid_bulk: 0.5}`, disrupt-sc ≥ fa4a39f) — refinery sidings =
+     near-free rail transfer for liquid, no fuel river terminals = prohibitive barge
+     transfer. On Romania this took liquid rail from 11% to 57% with dry bulk and
+     containers undisturbed; it removed what v5 had to document as a structural
+     ceiling.
+   - **Empirical sensitivity laws** (signs, verified by sweeps): raising a bulk
+     cargo's VOT moves it barge→rail, never rail→road (barge is slowest); rail
+     `basic_cost` trades dry-rail against liquid-rail with NO joint scalar solution
+     (Romania: 0.032 → 49/51% dry/liquid rail, 0.046 → 31/16%) — that conflict is
+     exactly what per-cargo transfer costs resolve; barge suppression is transfer-
+     cost work, not VOT work.
+   - **Expect knife edges**: routing is winner-take-all per OD, so one fee step can
+     flip a whole OD block (Romania: liquid barge fee $24→$28 moved ~16% of liquid
+     tkm). Bracket the flip point and stay on the safe side; document it in the
+     config.
+   - **Judge the fit per-cargo, dominant-mode-first**: for disruption analysis the
+     right dominant mode per cargo class beats a cosmetically closer aggregate —
+     and the aggregate road target is inflated anyway (registered-hauliers-anywhere
+     bias the tool prints).
    - **Import flows only get cargo-typed with `SECTOR_RESOLVED_IMPORTS` extraction**
      (recipes §1) + corridor-basin sub-blocs: on Romania this lifted the Danube from
      13.6% to 17.9% of inland tkm (target 19.2) with no cost changes at all — imported
@@ -139,8 +167,13 @@ instead of copying blindly:
    sector densities via `hs17_to_icio_concordance.csv`; `--patch-config` updates the
    sector-table YAML directly). Literature guesses ran ~2–3× low on high-value
    manufacturing for Romania; bulk sectors were roughly right.
-4. Weight firms by sub-national GDP/employment instead of population — fixes hub
-   geography (capital-city effect).
+4. Weight firms by real data instead of population — **implemented as the
+   firm-extractor toolchain** (recipes §6): plant trackers and production grids for
+   concentrated sectors, `regional_stats` (Eurostat NUTS3 employment / any national
+   county×sector table) for services and dispersed manufacturing, `manual` anchors
+   for flagship few-plant sectors, with the KI-17 fix making weights set firm sizes.
+   Fixes hub geography (Romania: Pitești = Dacia entered the top-4 throughput nodes)
+   and is a PREREQUISITE for meaningful mode calibration — refit costs after it.
 5. Split aggregate gateways (e.g. one EUR point) across the real crossings once
    per-crossing scenarios matter.
 6. Maritime activation is a model-level change (country→maritime attachment), not a
