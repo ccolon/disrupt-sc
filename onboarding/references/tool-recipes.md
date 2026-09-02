@@ -284,3 +284,10 @@ Key rules baked into the tool:
   fail loudly. For EU scopes `scripts/eurostat_nuts3_employment.py` fetches NUTS3
   employment (nama_10r_3empers) and applies the expansion map in one command - this is the
   systematic replacement of population weights for services + dispersed manufacturing.
+- Romania-style extras for `regional_stats`: its `csv` option accepts a LIST of long-format
+  files (e.g. Eurostat employment + an INS table). `scripts/ins_tempo_fetch.py` pulls any
+  county-level INS Tempo (Romania) matrix into that format with zero manual download - the
+  pivot endpoint needs the `encQuery` form (colon-separated dims, comma-separated
+  nomItemIds); the JSON `arr` form silently returns an empty pivot. Forestry example:
+  AGR306A (harvested wood by county) -> A02 weights; the script strips "Municipiul "
+  prefixes so Bucharest matches the polygon names.
