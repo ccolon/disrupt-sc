@@ -268,3 +268,19 @@ Key rules baked into the tool:
   closes C24B (Slatina + Tulcea alumina) and C19 (all 4 refineries, plausible crude-run
   ranking) in one source; per-facility confidence is often "low" — use for relative
   within-sector weights, verify totals nationally.
+- `gem_coalmine` adapter: Coal Mine Tracker "Non-closed mines" + built-in "Historic
+  Production (2018-2025)" sheet - `reference_year` gives exact-year reported output per
+  mine (Romania 2022: 7 mines, 16.7 Mt = national lignite). NOTE the tracker's 'ISO Code'
+  column is NUMERIC ISO 3166-1; countries are matched by name via the shared GEM map.
+  Prefer over climatetrace for B05.
+- `gem_goget` adapter: GOGET "Field-level main data" + long production table
+  ("Quantity (converted)" per Unit ID x Data Year); weight = reference_year production,
+  else the field's latest year, else presence. Covers only large fields (Romania: ~half
+  of national gas output) - still far better than population for B06.
+- `regional_stats` adapter: any (admin x sector) table (employment, GVA) -> one point per
+  admin unit per sector at the polygon's representative point. IDENTITY_CONCORDANCE: the
+  CSV carries scope sector codes; section->sectors expansion happens at CSV build where it
+  is reviewable. Admin names matched after case/diacritic normalization, unmatched names
+  fail loudly. For EU scopes `scripts/eurostat_nuts3_employment.py` fetches NUTS3
+  employment (nama_10r_3empers) and applies the expansion map in one command - this is the
+  systematic replacement of population weights for services + dispersed manufacturing.
