@@ -291,3 +291,10 @@ Key rules baked into the tool:
   nomItemIds); the JSON `arr` form silently returns an empty pivot. Forestry example:
   AGR306A (harvested wood by county) -> A02 weights; the script strips "Municipiul "
   prefixes so Bucharest matches the polygon names.
+- `osm_landuse` adapter: extraction-site footprints (B08) without the Copernicus-gated
+  CLC download - reads `landuse=quarry` multipolygons from the scope's Geofabrik PBF
+  (usually already on disk from phase 5), area-weighted (km2, EPSG:8857). CRITICAL:
+  the largest OSM "quarries" are open-pit coal/metal mines (Romania: Jilt 16.6 km2) -
+  always set `exclude_from` (drops polygons within radius_km of another source's mine
+  points; tag/name filters alone are insufficient, only 2/782 Romanian pits carried a
+  resource tag). Romania after exclusion: 743 quarries, 125 km2, max 3.7 km2.
