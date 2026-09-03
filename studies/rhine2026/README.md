@@ -304,10 +304,13 @@ and consequences:
 - Scenario outputs live outside the OneDrive-synced repo (`C:\dsc_runs
 hine2026`), because the
   per-step link export grows a multi-GB CSV that the sync client re-hashes.
-- Still open (KI-30): `Route` objects are ~7 kB each (list subclass with duplicated tuple
-  lists) and reverse-direction retrievals build a private copy per link; a slim route
-  representation would halve the remaining footprint. Per-step growth during the closure weeks
-  (alternative routes, chunked shipments) is the remaining suspect for the slowdown.
+- disrupt-sc 369a8aa: `Route` objects were ~7 kB each (three copies of their tuples plus a
+  dict) and route assignment built one per link — 786k objects for 143k distinct routes. Now
+  slots + one copy of the tuples, and `intern_routes()` shares one Route per node sequence
+  across links, route plans and the library (older caches are interned on load and re-saved).
+- Diagnosis of run 2's slowdown: its private memory exceeded the RAM, the OS trimmed the
+  working set to ~10 GB and every step paged the routes back in. Per-step growth during the
+  closure weeks (alternative routes, chunked shipments) remains to be measured.
 
 ### 2.2 Scenario construction
 
