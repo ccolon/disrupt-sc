@@ -87,10 +87,15 @@ def main() -> int:
     ap.add_argument("--trust-cache", action="store_true",
                     help="load the sc_network cache without the stage-fingerprint check "
                          "(caches written before the transport-key split)")
+    ap.add_argument("--seed", type=int, default=None,
+                    help="the seed the full run was launched with (disruptsc <scope> --seed N): the "
+                         "supply chain and its cache fingerprint depend on it")
     args = ap.parse_args()
     setup_logging("info")
     scope = args.scope
     config = load_config(scope)
+    if args.seed is not None:
+        config["seed"] = args.seed
     tp, sp, ap_, lp = build_params(config)
     if tp.capacity_constraint_enabled:
         raise SystemExit("reroute_baseline reproduces the unconstrained assignment only")
