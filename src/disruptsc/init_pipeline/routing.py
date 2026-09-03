@@ -91,6 +91,10 @@ def setup_logistic_routes(
     # 3. Build summary table
     cl_table = _build_commercial_link_table(sc_network)
 
+    # 3b. Share Route objects between links with the same node sequence (KI-30)
+    before, after = intern_routes(sc_network, transport_network)
+    logging.info(f"Route objects shared across links: {before:,} -> {after:,} distinct routes")
+
     # 4. Reset loads so simulation starts fresh
     transport_network.reset_loads()
 
@@ -1994,6 +1998,48 @@ def _find_affected_sources(link_specs: list[dict],
                 affected.add(spec["origin"])
                 break
     return affected
+
+
+def intern_routes(sc_network, transport_network: TransportNetwork) -> tuple[int, int]:
+    """Make links with the same (cargo type, node sequence) share one Route object.
+
+    Route assignment builds one Route per link, so the many links between
+    the same two transport nodes (firms at the same node, several products)
+    each carried their own copy: 786k Route objects for 143k distinct routes
+    on the EU scope, ~5 GB (KI-30). Routes are never mutated after
+    construction (``revert`` has no caller), so sharing is safe. The route
+    library is interned with the same table, so links and library share too.
+
+    Returns (route objects before, distinct routes after).
+    """
+    canon: dict[tuple, Route] = {}
+
+    def _c(route):
+        if route is None:
+            return None
+        # A Route holds nodes, edge ids, modes and length only — nothing
+        # cargo-specific (costs live on the link) — so the node sequence is
+        # the identity.
+        return canon.setdefault(tuple(route.transport_nodes), route)
+
+    seen_before: set[int] = set()
+    for _, _, data in sc_network.edges(data=True):
+        link = data.get("object")
+        if link is None or getattr(link, "route", None) is None:
+            continue
+        seen_before.add(id(link.route))
+        link.route = _c(link.route)
+        if link.route_plan:
+            link.route_plan = [(_c(r), share) for r, share in link.route_plan]
+        if getattr(link, "alternative_route", None) is not None:
+            seen_before.add(id(link.alternative_route))
+            link.alternative_route = _c(link.alternative_route)
+    for per_cargo in getattr(transport_network, "shortest_path_library", {}).values():
+        for routes in per_cargo.values():
+            for key, route in routes.items():
+                seen_before.add(id(route))
+                routes[key] = _c(route)
+    return len(seen_before), len(canon)
 
 
 def _populate_route_cache(link_specs: list[dict],

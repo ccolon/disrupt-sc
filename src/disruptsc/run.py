@@ -52,7 +52,7 @@ from disruptsc.init_pipeline.agents import (
     add_representative_demand_agents,
 )
 from disruptsc.init_pipeline.supply_chain import build_supply_chain_network
-from disruptsc.init_pipeline.routing import setup_logistic_routes
+from disruptsc.init_pipeline.routing import setup_logistic_routes, intern_routes
 
 from disruptsc.run_pipeline.cache import (
     setup_cache_isolation,
@@ -367,6 +367,14 @@ def execute(config: dict, *, cache: str | None = None,
             scope=scope, stage_fp=stage_fps["logistic_routes"])
         _configure_households(households)
         report_inventory_to_gdp(firms, households, sp.time_resolution)
+        # Caches written before route sharing (KI-30) hold one Route per link;
+        # share them now and re-save once so the next load is small.
+        before, after = intern_routes(sc_network, transport_network)
+        if before > after * 1.05 and before - after > 1000:
+            logging.info(f"Route objects shared across links: {before:,} -> {after:,}; "
+                         f"re-saving the routes cache")
+            cache_logistic_routes(sc_network, transport_network, cl_table, firms, households, countries,
+                                  scope=scope, stage_fp=stage_fps["logistic_routes"])
     else:
         if tp.with_transport:
             logging.info("Setting up logistic routes")
@@ -380,6 +388,9 @@ def execute(config: dict, *, cache: str | None = None,
             cl_table = None
         cache_logistic_routes(sc_network, transport_network, cl_table, firms, households, countries,
                               scope=scope, stage_fp=stage_fps["logistic_routes"])
+    # The commercial-link table only feeds the cache; on the EU scope it is a
+    # 0.65 GB DataFrame that the simulation never reads.
+    del cl_table
 
     # ------------------------------------------------------------------
     # Stage 5: Run simulation
