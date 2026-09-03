@@ -129,6 +129,21 @@ def main():
     print("   (DIHK survey 29 Jul-4 Aug 2026, Kaub 20-30 cm: ~33 % restricting production, 6 % stopped)")
     print(share.to_string())
 
+    # --- 3b. cascade signature: firms at (near) zero output with full order books ---
+    fd_all = pd.read_csv(run / "firm_data.csv", usecols=["time_step", "firm", "region", "sector", "production",
+                                                          "production_target", "total_order"])
+    b0 = fd_all[fd_all["time_step"] == 0].set_index("firm")["production"]
+    fd_all["base"] = fd_all["firm"].map(b0)
+    live = fd_all[fd_all["base"] > 1.0]
+    coll = live[(live["production"] < 0.01 * live["base"]) & (live["total_order"] > 0.5 * live["base"])]
+    sig = coll.groupby("time_step").agg(firms=("firm", "size"), lost_output=("base", "sum"))
+    sig["lost_output_%_of_EU"] = (100 * sig["lost_output"] / b0[b0 > 1.0].sum()).round(3)
+    print("\n== 3b. CASCADE SIGNATURE: firms (baseline > 1 mUSD/week) producing < 1 % of baseline with orders > 50 % of baseline ==")
+    print("   (run 1 of 3 Sep: hundreds of service firms by week 3 under strict Leontief — an artefact, see KI-29)")
+    print(sig.to_string() if len(sig) else "   none")
+    if len(coll):
+        print("   by sector (all weeks):", coll.groupby("sector").size().sort_values(ascending=False).head(8).to_dict())
+
     # --- 4. price surcharges ---
     ld = pd.read_csv(run / "link_data.csv", usecols=["time_step", "seller_region", "buyer_region", "order", "realized_delivery",
                                                      "delivery_in_tons", "cargo_type", "eq_price", "price"])
