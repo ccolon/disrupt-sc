@@ -125,6 +125,8 @@ use_route_cache: true
 use_cargo_types: true            # false -> one "any" cargo bucket, ~N x faster routing
 capacity_constraint: "off"       # off | gradual | binary  (typos raise an error)
 price_increase_threshold: 2      # give up delivery if rerouting cost rises beyond this factor
+delivered_price_increase_threshold: null   # if set (e.g. 0.5): give up only when transport_share x relative
+                                           # cost increase exceeds it (delivered price +50%); replaces the rule above
 sectors_no_transport_network: ['utility', 'transport', 'trade', 'services', 'service', 'construction']
 countries_no_transport: []       # country pids whose flows bypass the network entirely
 country_attachment: roads        # roads (nearest road node) | any (sea-placed blocs attach to maritime nodes)

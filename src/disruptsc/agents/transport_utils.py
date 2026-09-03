@@ -55,6 +55,18 @@ def _base_route_cost(route: Route,
     return route.sum_indicator(transport_network, f"cost_per_ton_{cargo_type}")
 
 
+def too_expensive(tp: TransportParams, relative_increase: float, transport_share: float) -> bool:
+    """Give-up rule for a delivery whose transport cost rose by *relative_increase*.
+
+    With ``delivered_price_increase_threshold`` set, the test is on the delivered
+    price (transport_share x relative increase); otherwise the legacy test on the
+    freight bill (1 + relative increase > price_increase_threshold) applies.
+    """
+    if tp.delivered_price_increase_threshold is not None:
+        return transport_share * relative_increase > tp.delivered_price_increase_threshold
+    return tp.price_increase_threshold is not None and 1.0 + relative_increase > tp.price_increase_threshold
+
+
 def send_shipment(agent_pid, od_point: int,
                   transport_share: float,
                   link: CommercialLink,
@@ -123,7 +135,7 @@ def send_shipment(agent_pid, od_point: int,
         if not stays_on_main:
             relative_increase += link.calculate_switching_cost(tp.switching_costs, transport_network)
 
-        if tp.price_increase_threshold is not None and 1.0 + relative_increase > tp.price_increase_threshold:
+        if too_expensive(tp, relative_increase, transport_share):
             link.realized_delivery = 0.0
             link.delivery = 0.0
             link.payment = 0.0
@@ -182,7 +194,7 @@ def send_shipment(agent_pid, od_point: int,
         )
         relative_increase += switching_penalty
 
-        if tp.price_increase_threshold is not None and 1.0 + relative_increase > tp.price_increase_threshold:
+        if too_expensive(tp, relative_increase, transport_share):
             link.realized_delivery = 0.0
             link.delivery = 0.0
             link.payment = 0.0
@@ -289,7 +301,7 @@ def _send_chunked_shipment(
                 planned_route, alt_route, tp.switching_costs, transport_network,
             )
             relative_increase += switching_penalty
-            if tp.price_increase_threshold is not None and 1.0 + relative_increase > tp.price_increase_threshold:
+            if too_expensive(tp, relative_increase, transport_share):
                 if routing_event_collector:
                     routing_event_collector.record_event(
                         agent_pid, link.buyer_id, "too_expensive",
