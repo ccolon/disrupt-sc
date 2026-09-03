@@ -112,7 +112,8 @@ def build_agents(common: dict, ap, sp, tp, seed=None):
         common["mrio"], common["tnodes"], common["countries_path"],
         common["usd_per_ton"], sp.time_resolution, ap, common["selection"],
         transport_edges=common["te"],
-        countries_no_transport=tp.countries_no_transport)
+        countries_no_transport=tp.countries_no_transport,
+        country_attachment=tp.country_attachment)
     if seed is not None:
         random.seed(seed)
         np.random.seed(seed)

@@ -127,6 +127,7 @@ capacity_constraint: "off"       # off | gradual | binary  (typos raise an error
 price_increase_threshold: 2      # give up delivery if rerouting cost rises beyond this factor
 sectors_no_transport_network: ['utility', 'transport', 'trade', 'services', 'service', 'construction']
 countries_no_transport: []       # country pids whose flows bypass the network entirely
+country_attachment: roads        # roads (nearest road node) | any (sea-placed blocs attach to maritime nodes)
 ```
 
 Transport networks are loaded from a GeoPackage configured by
