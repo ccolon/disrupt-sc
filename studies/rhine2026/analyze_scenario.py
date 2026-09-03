@@ -80,28 +80,32 @@ def main():
     caps = pd.read_csv(HERE / "scenarios" / "rhine_capacities.csv").set_index("name")
     kaub_tpd = float(caps.loc[KAUB_EDGE, "tons_per_day"])
     rhine_names = set(caps.index)
-    et = weekly_edge_tons(run, rhine_names | set())
-    kaub = et[et["name"] == KAUB_EDGE].set_index("time_step")["tons"]
-    fc = fleet_capacity(args.profile, kaub_tpd).set_index("time_step")
-    tab = pd.DataFrame({"week_start": fc["week_start"], "kaub_cm": fc["kaub_cm"],
-                        "capacity_factor": fc["capacity_factor"].round(2),
-                        "fleet_cap_kt": (fc["fleet_capacity_t_per_week"] / 1e3).round(0),
-                        "model_kt": (kaub.reindex(fc.index) / 1e3).round(0)})
-    tab["model/fleet"] = (tab["model_kt"] / tab["fleet_cap_kt"]).round(2)
-    base = kaub.get(0, np.nan)
-    print(f"\n== 1. KAUB EDGE: weekly tons (kt) vs fleet capacity at the gauge; baseline t=0 = {base/1e3:,.0f} kt/week ==")
-    print(tab.to_string())
-    over = tab[tab["model/fleet"] > 1.0]
-    if len(over):
-        print(f"  WEEKS ABOVE PHYSICAL CAPACITY: {list(over.index)} -> multipliers too low there")
+    have_flows = any(run.glob("transport_edges_with_flows_*.geojson"))
+    if have_flows:
+        et = weekly_edge_tons(run, rhine_names | set())
+        kaub = et[et["name"] == KAUB_EDGE].set_index("time_step")["tons"]
+        fc = fleet_capacity(args.profile, kaub_tpd).set_index("time_step")
+        tab = pd.DataFrame({"week_start": fc["week_start"], "kaub_cm": fc["kaub_cm"],
+                            "capacity_factor": fc["capacity_factor"].round(2),
+                            "fleet_cap_kt": (fc["fleet_capacity_t_per_week"] / 1e3).round(0),
+                            "model_kt": (kaub.reindex(fc.index) / 1e3).round(0)})
+        tab["model/fleet"] = (tab["model_kt"] / tab["fleet_cap_kt"]).round(2)
+        base = kaub.get(0, np.nan)
+        print(f"\n== 1. KAUB EDGE: weekly tons (kt) vs fleet capacity at the gauge; baseline t=0 = {base/1e3:,.0f} kt/week ==")
+        print(tab.to_string())
+        over = tab[tab["model/fleet"] > 1.0]
+        if len(over):
+            print(f"  WEEKS ABOVE PHYSICAL CAPACITY: {list(over.index)} -> multipliers too low there")
 
-    # --- 2. corridor substitution ---
-    corr = et[et["name"].str.startswith("corridor_")].pivot(index="time_step", columns="name", values="tons")
-    corr = corr / 1e6
-    corr.columns = [c.replace("corridor_", "").replace("_tkm", " Mtkm") for c in corr.columns]
-    rel = (corr / corr.iloc[0] * 100).round(1)
-    print("\n== 2. RHINE-BASIN CORRIDOR (lon 5.5-9.5, lat 47.5-52.2): weekly tkm by mode, % of baseline ==")
-    print(rel.to_string())
+        # --- 2. corridor substitution ---
+        corr = et[et["name"].str.startswith("corridor_")].pivot(index="time_step", columns="name", values="tons")
+        corr = corr / 1e6
+        corr.columns = [c.replace("corridor_", "").replace("_tkm", " Mtkm") for c in corr.columns]
+        rel = (corr / corr.iloc[0] * 100).round(1)
+        print("\n== 2. RHINE-BASIN CORRIDOR (lon 5.5-9.5, lat 47.5-52.2): weekly tkm by mode, % of baseline ==")
+        print(rel.to_string())
+    else:
+        print("\n== 1-2. no transport_edges_with_flows_*.geojson (flows are exported at the end of a run) - skipped ==")
 
     # --- 3. corridor firms below baseline ---
     ft = gpd.read_file(run / "firm_table.geojson")
@@ -181,6 +185,9 @@ def main():
               f"(ex ante estimates: -0.1 to -0.4 pp of Q3 GDP)")
 
     # --- 6. routing summary ---
+    if not (run / "routing_summary.csv").exists():
+        print("\n== 6. no routing_summary.csv yet (written at the end of a run) - skipped ==")
+        return
     rs = pd.read_csv(run / "routing_summary.csv")
     piv = rs.pivot_table(index="time_step", columns="cargo_type", values=["alternative_usd", "blocked_usd"], aggfunc="sum")
     tot_usd = rs.groupby("time_step")["total_usd"].sum()
