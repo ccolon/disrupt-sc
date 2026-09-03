@@ -278,14 +278,34 @@ VOT from pricing the sea leg, which had sent Asian imports into the nearest Adri
 | Run | Command | Status |
 |---|---|---|
 | 2026 observed profile, run 1 | strict Leontief (`critical_input_threshold` 0.0), legacy give-up rule | **aborted** at week 5: a cascade seeded by negligible cross-border service inputs (a 0.04 mUSD/week Belgian postal input shutting a 707 mUSD/week German retailer), see `calibration_log.md` §Scenario runs; archived as `2026_seed42_strictleontief_aborted` |
-| 2026 observed profile, run 2 = **unlimited-substitution bound** | `run_rhine.py --profile 2026 --no-open --seed 42` with `critical_input_threshold: 0.02` and `delivered_price_increase_threshold: 0.5` (config, disrupt-sc 03259ae); cost shocks ×1.2–3.8, closed 3–23 Aug, 8 recovery weeks, `--cache auto` | launched 16:52, `runs/rhine2026/2026_seed42`; through the first closure week: fill 100 %, output loss < 0.001 %, max delivered-price rise 9 % — with unlimited road/rail every displaced ton moves at once (see §2.2a, substitution ceiling) |
-| 2026 **main**: substitution ceiling 0.30 | `--substitution-share 0.3` (rail ≈ 100 of ≈ 1,000 barges, trucks bound by drivers; disrupt-sc 12e085b) → `runs/rhine2026/2026_seed42_sub30` | queued after run 2 (queue `EU/runs/queue_after_2026.ps1`, pid 3284) |
+| 2026 observed profile, run 2 = **unlimited-substitution bound** | `run_rhine.py --profile 2026 --no-open --seed 42` with `critical_input_threshold: 0.02` and `delivered_price_increase_threshold: 0.5` (config, disrupt-sc 03259ae); cost shocks ×1.2–3.8, closed 3–23 Aug, 8 recovery weeks, `--cache auto` | launched 16:52, **stopped 21:42 with weeks 0–18 complete** (whole shock + 3 recovery weeks; archived as `runs/rhine2026/2026_seed42_unlimited_partial18`, steps had slowed from 7–9 to 15–78 min — see §2.2c); through the first closure week: fill 100 %, output loss < 0.001 %, max delivered-price rise 9 % — with unlimited road/rail every displaced ton moves at once (see §2.2a, substitution ceiling) |
+| 2026 **main**: substitution ceiling 0.30 | `--substitution-share 0.3` (rail ≈ 100 of ≈ 1,000 barges, trucks bound by drivers; disrupt-sc 12e085b) → `runs/rhine2026/2026_seed42_sub30` | relaunch pending: first attempt (21:42) thrashed at 23 GB (§2.2c); outputs now go to `C:\dsc_runshine20266_seed42_sub30` (outside OneDrive), queue `EU/runs/queue_rhine.ps1` |
 | ceiling sensitivities | `--substitution-share 0.15` and `0.5` → `…_sub15`, `…_sub50` | queued |
 | 2018 counterfactual | `--profile 2018 --substitution-share 0.3` — `scenarios/2018.csv` is a **reconstructed** weekly Kaub series (anchors: <78 cm for ≈108 days Aug–Dec, 42 cm on 16 Oct, record 25 cm on 22 Oct, second trough 21 Nov–3 Dec; other weeks interpolated) — replace by PEGELONLINE/BfG daily data before publication → `runs/rhine2026/2018_seed42_sub30` | queued |
-| no-disruption control | 6 undisrupted weeks, same config → `runs/rhine2026/control_nodisruption_seed42` (baseline drift check, KI-29) | queued last |
+| no-disruption control | 6 undisrupted weeks, same config → `runs/rhine2026/control_nodisruption_seed42` (baseline drift check, KI-29) | queued last (queue_rhine.ps1) |
 | closure only | `--profile 2026 --closure-threshold 0.99` → only weeks at ≥ 99 % reduction close, no cost shocks (isolates the closure channel: expect none) and `--closure-threshold 0.75` vs `1.01` (no closures, all cost shocks) | to run |
 | give-up rule sensitivity | `--legacy-give-up` (freight-bill rule, threshold 2) → `runs/rhine2026/2026_seed42_legacy` | queued after the 2018 run |
 | analysis | `analyze_scenario.py <run>` — Kaub tonnage vs fleet capacity, corridor substitution, corridor firms below baseline vs DIHK, price surcharges, value-added loss vs the macro range | after each run |
+
+### 2.2c Memory and run-time on the EU scope (3 Sep, evening)
+
+Run 2's weekly steps slowed from 7–9 min to 15–18 min with one 78-min spike, and the relaunched
+main run stalled at step 0 with 23 GB private memory on a 31 GB machine (page-file thrashing, CPU
+time frozen). A stage-by-stage profile of the initialisation (`--cache auto`, all four caches
+current) explains it: the supply-chain pickle alone expands to **6 GB** in memory (786k
+`CommercialLink` objects plus the networkx graph), the routes pickle carries a *second* copy of it
+plus the `Route` objects, and `run.py` loaded both — the interpreter never returns the peak. Fixes
+and consequences:
+
+- disrupt-sc 5e09946: when the routes cache is current, the supply-chain stage and the
+  pre-routing `set_initial_conditions` (≈ 10 min on the EU scope) are skipped — the routes
+  pickle carries them, and every simulation entry point resets the initial conditions itself.
+- Scenario outputs live outside the OneDrive-synced repo (`C:\dsc_runshine2026`), because the
+  per-step link export grows a multi-GB CSV that the sync client re-hashes.
+- Still open (KI-30): `Route` objects are ~7 kB each (list subclass with duplicated tuple
+  lists) and reverse-direction retrievals build a private copy per link; a slim route
+  representation would halve the remaining footprint. Per-step growth during the closure weeks
+  (alternative routes, chunked shipments) is the remaining suspect for the slowdown.
 
 ### 2.2 Scenario construction
 
