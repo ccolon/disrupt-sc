@@ -182,7 +182,12 @@ Scenario tables built from this evidence (in `scenarios/`): `2026.csv` (weekly
 Kaub profile 22 Jun → 28 Sep, observed/press/forecast/assumption flagged),
 `draught_table.csv` (Kaub cm → aggregate capacity factor past Kaub, with the
 per-vessel GMS load factor and the anchoring source per row);
-`rhine_capacities.csv` pending the CCNR/Destatis section tonnages.
+`rhine_capacities.csv` (normal-year Mt/yr and tons/day per named segment: CCNR
+cross-sections at Emmerich 117.9 Mt and Iffezheim 16.0 Mt for 2023, Kaub ≈ 50 Mt and the
+rest interpolated from port volumes, all interpolations marked ESTIMATE).
+`python studies/rhine2026/run_rhine.py --profile 2026 --dry-run` prints the weekly
+schedule: 15 disrupted weeks from 22 June, capacity −18 % (105 cm) to −91 % (11 cm, week
+of 10 August), −77 % on the 17 August week, −50 % after the rain, 8 recovery weeks.
 
 ### 2.1 Observable ↔ model output mapping
 
