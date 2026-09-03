@@ -132,6 +132,14 @@ _STAGE_CONFIG_KEYS = {
     ),
 }
 
+# What LATER stages inherit from the transport stage. Agents (od_points) and
+# the supply chain (supplier choice by network distance, cargo typing) depend
+# on the network GEOMETRY and the cargo mapping, not on cost parameters, so a
+# change of logistics costs must not rebuild them (EU scope: 15 of ~40 build
+# minutes per calibration iteration). Routes depend on everything.
+_TRANSPORT_GEOMETRY_KEYS = ("time_resolution", "transport_modes", "use_cargo_types")
+_TRANSPORT_INHERITED_SUBKEYS = {"logistics": ("sector_to_cargo_type",)}
+
 _STAGE_FILEPATH_KEYS = {
     "transport_network": ("transport", "multimodal"),
     "agents": ("mrio", "sector_table", "households_spatial", "firms_spatial",
@@ -153,14 +161,23 @@ def build_stage_fingerprint(config: dict, stage: str) -> dict:
     idx = _STAGE_ORDER.index(stage)
     cfg_keys: list = []
     fp_keys: list = []
+    sub_cfg: dict = {}
     for s in _STAGE_ORDER[: idx + 1]:
-        cfg_keys += list(_STAGE_CONFIG_KEYS[s])
+        if s == "transport_network" and stage in ("agents", "sc_network"):
+            # geometry + cargo mapping only: costs do not change agents or links
+            cfg_keys += list(_TRANSPORT_GEOMETRY_KEYS)
+            for key, subkeys in _TRANSPORT_INHERITED_SUBKEYS.items():
+                block = config.get(key) or {}
+                for sub in subkeys:
+                    sub_cfg[f"{key}.{sub}"] = block.get(sub) if isinstance(block, dict) else None
+        else:
+            cfg_keys += list(_STAGE_CONFIG_KEYS[s])
         fp_keys += list(_STAGE_FILEPATH_KEYS[s])
     filepaths = config.get("filepaths") or {}
     payload = {
         "stage": stage,
         "scope": config.get("scope"),
-        "config": {k: config.get(k) for k in cfg_keys},
+        "config": {**{k: config.get(k) for k in cfg_keys}, **sub_cfg},
         "filepaths": {k: _path_str(filepaths.get(k)) for k in fp_keys},
     }
     return {"hash": fingerprint_hash(payload), "payload": payload}
