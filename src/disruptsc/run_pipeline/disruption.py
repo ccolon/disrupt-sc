@@ -48,6 +48,9 @@ class TransportDisruption:
     description: dict[int, float] = field(default_factory=dict)
     recovery: Recovery | None = None
     start_time: int = 1
+    # Share of a closed edge's traffic that the substitutes can absorb
+    # (1.0 = unlimited, the legacy behaviour); the rest is not delivered.
+    substitution_share: float = 1.0
 
     def implement(self, transport_network):
         duration = self.recovery.duration if self.recovery else float("inf")
@@ -63,6 +66,7 @@ class TransportDisruption:
                     recovery_shape=recovery_shape,
                     recovery_rate=recovery_rate,
                 )
+                edata["closure_substitution_share"] = float(self.substitution_share)
                 logging.debug(f"Disrupted edge {eid}: {reduction:.0%} capacity loss for {duration} steps")
 
     def log_info(self):
@@ -101,6 +105,13 @@ class TransportCostShock:
     description: dict[int, object] = field(default_factory=dict)
     duration: float = 1
     start_time: int = 1
+    # Substitution ceiling (default = unlimited substitutes, the legacy
+    # behaviour): the shocked mode still carries capacity_factor of each
+    # link's tonnage (at the surcharged cost) and the substitutes absorb at
+    # most substitution_share of the displaced remainder; the rest is not
+    # delivered. capacity_factor None = 1/multiplier for a scalar multiplier.
+    capacity_factor: float | None = None
+    substitution_share: float = 1.0
 
     def implement(self, transport_network):
         n = 0
@@ -108,9 +119,17 @@ class TransportCostShock:
             edata = transport_network[edge[0]][edge[1]]
             eid = edata["id"]
             if eid in self.description:
-                transport_network.start_edge_cost_shock(edata, self.description[eid], self.duration)
+                mult = self.description[eid]
+                cap = self.capacity_factor
+                if cap is None:
+                    cap = 1.0 / float(mult) if not isinstance(mult, dict) else 1.0
+                transport_network.start_edge_cost_shock(
+                    edata, mult, self.duration,
+                    capacity_factor=cap, substitution_share=self.substitution_share)
                 n += 1
-        logging.info(f"Cost shock applied to {n} edge(s) for {self.duration} step(s)")
+        logging.info(f"Cost shock applied to {n} edge(s) for {self.duration} step(s)"
+                     + (f" (capacity {self.capacity_factor:.2f}, substitution {self.substitution_share:.2f})"
+                        if self.substitution_share < 1.0 else ""))
 
     def log_info(self):
         mults = {str(m) for m in self.description.values()}
@@ -581,6 +600,7 @@ def parse_disruptions(config_list: list | None,
                     shape=cfg.get("recovery_shape", "threshold"),
                     rate=cfg.get("recovery_rate", 1.0),
                 )
+            d.substitution_share = float(cfg.get("substitution_share", 1.0))
             disruptions.append(d)
 
         elif dtype == "transport_cost_shock":
@@ -592,6 +612,8 @@ def parse_disruptions(config_list: list | None,
                 duration=cfg.get("duration", 1),
             )
             d.start_time = cfg.get("start_time", 1)
+            d.capacity_factor = cfg.get("capacity_factor")
+            d.substitution_share = float(cfg.get("substitution_share", 1.0))
             disruptions.append(d)
 
         elif dtype == "transport_disruption_probability":

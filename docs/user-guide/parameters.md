@@ -194,9 +194,19 @@ steps where the edge is de facto closed.
     attribute: name
     values: [rhine_mainz_koblenz]
     cost_multiplier: 4.5      # barges at 22% load -> 1/0.22
+    capacity_factor: 0.22     # optional (default 1/cost_multiplier): share still carried by the shocked mode
+    substitution_share: 0.3   # optional (default 1.0 = unlimited substitutes): share of the displaced
+                              # remainder that the alternative route absorbs; the rest is not delivered
     start_time: 7
     duration: 1
 ```
+
+Both `transport_disruption` and `transport_cost_shock` accept `substitution_share`
+(the *substitution ceiling*). With it below 1, a link whose main route is hit
+delivers `capacity_factor + substitution_share x (1 - capacity_factor)` of its
+planned quantity (closures: `substitution_share`), pays the tonnage-weighted
+cost of the two routes, and the shortfall is counted as blocked. Without it the
+substitutes are unlimited and a closure costs nothing but the detour price.
 Filters accept firm attributes and `subregion_*` keys, and log how many firms
 they matched. Firm-side recovery is threshold-only (`recovery_shape` is
 ignored with a warning); absolute capital destruction recovers only through
