@@ -256,7 +256,15 @@ drops the affected deliveries as too expensive because that demo network has no 
 This matches what the evidence says happened: the market cleared by price first (rates ×2–5),
 then by rationing and production cuts, with rail absorbing only a tenth of the tonnage. The
 ex post check is physical: modelled weekly Rhine tonnage must not exceed the fleet's capacity
-at that week's gauge, otherwise the multiplier is too low for that week. The give-up rule
+at that week's gauge, otherwise the multiplier is too low for that week.
+- **substitution ceiling** (`substitution_share`, disrupt-sc 12e085b): run 2 showed that with
+  unlimited road and rail a closure costs nothing but the detour price (fill rate 100 % through
+  the first closure week). With the ceiling, a link hit by a shock delivers
+  `capacity_factor + substitution_share × (1 − capacity_factor)` of its plan (closure:
+  `substitution_share`), barges carry their part at the surcharged cost, the alternative route
+  the rest, and the shortfall is lost. 0.30 for the main run (DB Cargo ≈ 100 of ≈ 1,000 barges
+  by rail; road bound by drivers and tank equipment), 0.15 and 0.50 as sensitivities. The Rhine
+  tonnage then equals the fleet's capacity by construction. The give-up rule
 (`price_increase_threshold` 2 on the freight bill) should be relaxed for the scenario runs
 (`--price-threshold`), since shippers paid ×5 freight on goods worth 20–50× the freight.
 
@@ -270,8 +278,11 @@ VOT from pricing the sea leg, which had sent Asian imports into the nearest Adri
 | Run | Command | Status |
 |---|---|---|
 | 2026 observed profile, run 1 | strict Leontief (`critical_input_threshold` 0.0), legacy give-up rule | **aborted** at week 5: a cascade seeded by negligible cross-border service inputs (a 0.04 mUSD/week Belgian postal input shutting a 707 mUSD/week German retailer), see `calibration_log.md` §Scenario runs; archived as `2026_seed42_strictleontief_aborted` |
-| 2026 observed profile, run 2 | `run_rhine.py --profile 2026 --no-open --seed 42` with `critical_input_threshold: 0.02` and `delivered_price_increase_threshold: 0.5` (config, disrupt-sc 03259ae); cost shocks ×1.2–3.8, closed 3–23 Aug, 8 recovery weeks, `--cache auto` | launched 16:52, `runs/rhine2026/2026_seed42` |
-| 2018 counterfactual | `--profile 2018` — `scenarios/2018.csv` is a **reconstructed** weekly Kaub series (anchors: <78 cm for ≈108 days Aug–Dec, 42 cm on 16 Oct, record 25 cm on 22 Oct, second trough 21 Nov–3 Dec; other weeks interpolated) — replace by PEGELONLINE/BfG daily data before publication | queued after the 2026 run (`EU/runs/queue_after_2026.ps1`), then `--price-threshold 5` → `runs/rhine2026/2026_seed42_pt5` |
+| 2026 observed profile, run 2 = **unlimited-substitution bound** | `run_rhine.py --profile 2026 --no-open --seed 42` with `critical_input_threshold: 0.02` and `delivered_price_increase_threshold: 0.5` (config, disrupt-sc 03259ae); cost shocks ×1.2–3.8, closed 3–23 Aug, 8 recovery weeks, `--cache auto` | launched 16:52, `runs/rhine2026/2026_seed42`; through the first closure week: fill 100 %, output loss < 0.001 %, max delivered-price rise 9 % — with unlimited road/rail every displaced ton moves at once (see §2.2a, substitution ceiling) |
+| 2026 **main**: substitution ceiling 0.30 | `--substitution-share 0.3` (rail ≈ 100 of ≈ 1,000 barges, trucks bound by drivers; disrupt-sc 12e085b) → `runs/rhine2026/2026_seed42_sub30` | queued after run 2 (queue `EU/runs/queue_after_2026.ps1`, pid 3284) |
+| ceiling sensitivities | `--substitution-share 0.15` and `0.5` → `…_sub15`, `…_sub50` | queued |
+| 2018 counterfactual | `--profile 2018 --substitution-share 0.3` — `scenarios/2018.csv` is a **reconstructed** weekly Kaub series (anchors: <78 cm for ≈108 days Aug–Dec, 42 cm on 16 Oct, record 25 cm on 22 Oct, second trough 21 Nov–3 Dec; other weeks interpolated) — replace by PEGELONLINE/BfG daily data before publication → `runs/rhine2026/2018_seed42_sub30` | queued |
+| no-disruption control | 6 undisrupted weeks, same config → `runs/rhine2026/control_nodisruption_seed42` (baseline drift check, KI-29) | queued last |
 | closure only | `--profile 2026 --closure-threshold 0.99` → only weeks at ≥ 99 % reduction close, no cost shocks (isolates the closure channel: expect none) and `--closure-threshold 0.75` vs `1.01` (no closures, all cost shocks) | to run |
 | give-up rule sensitivity | `--legacy-give-up` (freight-bill rule, threshold 2) → `runs/rhine2026/2026_seed42_legacy` | queued after the 2018 run |
 | analysis | `analyze_scenario.py <run>` — Kaub tonnage vs fleet capacity, corridor substitution, corridor firms below baseline vs DIHK, price surcharges, value-added loss vs the macro range | after each run |
