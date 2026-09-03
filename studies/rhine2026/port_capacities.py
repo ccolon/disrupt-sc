@@ -138,26 +138,35 @@ def main():
             unmatched.append((p["rep_mar"], p["rep_mar_label"] + " (no connector)", round(p["mt"], 1),
                               f"nearest connector {min(dists):.0f} km"))
             continue
-        share = 1.0 / len(near)
-        for _, c in near.iterrows():
+        # capacity overrides are keyed by edge NAME (= terminal_id) and applied to
+        # every edge carrying that name (a terminal usually has a road AND a rail
+        # connector). Split the port throughput equally across its terminals,
+        # then across each terminal's edges, so a port cannot pass more than its
+        # throughput through the sum of its connectors.
+        terminals = near.groupby("name").size()
+        t_share = 1.0 / len(terminals)
+        for tname, n_edges in terminals.items():
+            edge_share = t_share / n_edges
+            modes = "; ".join(sorted(near.loc[near["name"] == tname, "multimodes"].unique()))
             rows.append({"port": p["rep_mar_label"], "rep_mar": p["rep_mar"], "port_mt": round(p["mt"], 2),
-                         "connector": c["name"], "multimodes": c["multimodes"],
-                         "tons_per_day": round(p["mt"] * 1e6 / 365 * args.peak * share)})
+                         "connector": tname, "multimodes": modes, "n_edges": int(n_edges),
+                         "tons_per_day": round(p["mt"] * 1e6 / 365 * args.peak * edge_share)})
     df = pd.DataFrame(rows)
-    # a connector serving several listed ports gets the sum
+    # a terminal serving several listed ports gets the sum (one row per NAME)
     caps = df.groupby("connector", as_index=False).agg(tons_per_day=("tons_per_day", "sum"),
                                                         ports=("port", lambda s: "; ".join(sorted(set(s)))))
-    # every other maritime connector: floor capacity (small/unlisted port)
-    floor = round(args.floor_mt * 1e6 / 365 * args.peak)
-    others = mm[~mm["name"].isin(caps["connector"])]
-    caps = pd.concat([caps, pd.DataFrame({"connector": others["name"].values, "tons_per_day": floor,
-                                          "ports": f"(unlisted port, floor {args.floor_mt} Mt/yr)"})],
-                     ignore_index=True)
+    # every other maritime terminal: floor capacity per edge (small/unlisted port)
+    others = mm[~mm["name"].isin(caps["connector"])].groupby("name").size()
+    floor_rows = pd.DataFrame({"connector": others.index,
+                               "tons_per_day": [round(args.floor_mt * 1e6 / 365 * args.peak / n) for n in others.values],
+                               "ports": f"(unlisted port, floor {args.floor_mt} Mt/yr per terminal)"})
+    caps = pd.concat([caps, floor_rows], ignore_index=True)
+    assert caps["connector"].is_unique
     out = DATA / "Transport" / "port_capacities.csv"
     df.to_csv(out, index=False)
     caps.to_csv(DATA / "Transport" / "port_capacity_overrides.csv", index=False)
     print(f"{len(es)} Eurostat port rows >= {args.min_mt} Mt; matched {df.port.nunique()} ports to "
-          f"{df.connector.nunique()} connectors; {len(others)} other maritime connectors at the floor; unmatched: {len(unmatched)}")
+          f"{df.connector.nunique()} terminals; {len(others)} other maritime terminals at the floor; unmatched: {len(unmatched)}")
     for u in unmatched[:30]:
         print("   unmatched:", u)
     print(df.groupby("port")["port_mt"].first().sort_values(ascending=False).head(12).to_string())
