@@ -86,6 +86,35 @@ needed for the paper.
 | 7 run | `config/user_defined_EU.local.yaml` (draft committed alongside this README, Romania-calibrated logistics as the prior); `initial_state` with `--seed 42` | run folder + sanity report |
 | 8 validation | `validation_metrics.py EU`; modal split vs Eurostat `tran_hv_frmod` per country and per NST (DE, NL, BE, FR, AT, PL, IT…); port shares vs Eurostat `mar_go_aa`; Rhine tonnage vs CCNR/Destatis (Emmerich–Lobith cross-section ≈ 150 Mt/yr); trade by partner vs Comext | `EU/validation_report.md` |
 
+### 1.2b Status 2026-09-03 and the calibration plan
+
+Built and committed: ICIO 2022 extraction (28 × 50, 12 blocs), sector table with
+EU-mix BACI 2023 unit values, 251 NUTS2 households, 12,874 firm-extractor firm points,
+12 gateway points on sea/border nodes (`country_attachment: any`, disrupt-sc 1ab423d).
+Two bugs found on the way and fixed in disrupt-sc: `sectors_to_exclude: None` excluded
+sector N from every ICIO scope (KI-24, 0bf2124); the route cache deep-copied every
+reversed route (92 of 130 build minutes on the EU scope, 7363ad4).
+
+**Smoke run** (population-weighted firms, `output/EU/20260903_072310`): output 92 % of
+MRIO, exports 98 %, imports 87 %, gateway shares = MRIO-implied. Flow assignment is
+far off and is the calibration job (`studies/rhine2026/flow_checks.py`):
+
+| Check | Model | Real | Lever |
+|---|---|---|---|
+| inland tkm split EU (road/rail/IWW) | 46.5 / 40.1 / 13.4 | 78.1 / 16.9 / 5.0 (Eurostat 2023) | mode costs, transfer costs, VOT (per cargo) |
+| DE split | 41 / 30 / 29 | 73 / 21 / 7 | idem; IWW ×4 too high |
+| Rhine at Kaub (`rhine_mainz_koblenz`) | 182 Mt/yr | ≈ 50 | waterway cost / transfers |
+| Rhine at Emmerich | 203 Mt/yr | 118 | idem |
+| Antwerp / Trieste / Venice port entries | 55 / 183 / 150 Mt | 242 / 51 / 25 | **port capacities** (binary constraint, `port_capacities.py`) |
+
+Plan: (1) run the firm-level baseline (in progress); (2) apply per-port throughput
+capacities (Eurostat 2023 × 1.3 peak) through `transport_capacity_overrides` with
+`capacity_constraint: binary`, which blocks over-capacity terminals without re-pricing
+every edge; (3) refit mode costs per cargo class against the DE/NL/EU NST targets
+(Romania procedure: scalars in range first, then per-cargo transfer costs, always with
+`--seed 42`); (4) check the Rhine profile against `scenarios/rhine_capacities.csv`.
+Runtime after the cache fix: ≈ 40 min build + 6 min per weekly step (12.6 GB RAM).
+
 ### 1.3 Calibration targets specific to the Rhine study
 
 - **Rhine cross-section tonnage** (Emmerich/Lobith ≈ 140–160 Mt/yr; Kaub ≈ 50–60
@@ -167,13 +196,22 @@ per-vessel GMS load factor and the anchoring source per row);
 | Named-firm impacts (BASF Ludwigshafen, ThyssenKrupp Duisburg, refineries) | production of the plant-level firms placed by firm-extractor | firm-level rows |
 | Macro (GDP effect 2018 ≈ −0.3 %, Bundesbank) | total value-added loss, EU-wide and DE | aggregate loss series |
 
-### 2.2 Scenario construction (to fix once the timeline evidence is in)
+### 2.2 Scenario construction
 
-1. Weekly Kaub levels (PEGELONLINE / BfG) for June–September 2026 → load-factor
-   curve using the CCNR/BDB draught tables (GMS ≈ 30 % load at 40 cm; ≈ 0 below
-   ~30 cm for large units) → weekly capacity multiplier on the Middle Rhine edge.
-2. Waterway capacities in tons/day for the Rhine chain (normal-year tonnage /
-   365 × peak factor) so that a 70 % capacity loss actually binds.
+1. Weekly Kaub levels (`scenarios/2026.csv`, PEGELONLINE daily means for
+   August–September, press readings for June–July, BfG forecast beyond) →
+   `scenarios/draught_table.csv` (aggregate capacity factor past Kaub: 0.60 at GlW,
+   0.30 at 40 cm, 0.22 at 25 cm, 0.05 at 5 cm) → weekly `capacity_reduction` on
+   `rhine_mainz_koblenz` via `run_rhine.py`.
+2. Waterway capacities in tons/day for the Rhine chain (`scenarios/rhine_capacities.csv`,
+   CCNR cross-sections Emmerich 117.9 Mt and Iffezheim 16.0 Mt in 2023, Kaub ≈ 50 Mt
+   estimated) so that a 70 % capacity loss actually binds. **Open design point**: the
+   gradual congestion multiplier is 0.5 at zero load and 1.0 only at 80 % utilisation,
+   so switching `capacity_constraint` on re-prices every edge relative to the
+   calibrated (unconstrained) baseline. Candidate fix for the scenario runs: derive
+   per-edge capacities from the baseline flows (capacity = 1.25 × baseline load,
+   floored) for all modes so that the baseline sits at u ≈ 0.8 (multiplier ≈ 1)
+   everywhere, and only the Rhine edges get the real (lower, low-water) capacities.
 3. Rail alternative capacity (Rhine valley lines, DB Cargo statements) bounds the
    modal shift — `default_transport_capacity.railways` per corridor via
    `transport_capacity_overrides` on the named rail edges.
