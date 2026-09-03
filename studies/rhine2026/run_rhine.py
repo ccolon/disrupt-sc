@@ -122,6 +122,9 @@ def main():
     ap.add_argument("--price-threshold", type=float, default=None,
                     help="override price_increase_threshold for the scenario (config default 2.0 = give up "
                          "a delivery once its transport bill more than doubles; 2026 shippers paid x5 rates)")
+    ap.add_argument("--legacy-give-up", action="store_true",
+                    help="sensitivity: drop the delivered-price give-up rule (delivered_price_increase_threshold "
+                         "= None) so the legacy freight-bill rule (price_increase_threshold) applies")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--cache", default="auto",
                     help="cache preset passed to execute(); 'auto' reuses every stage whose fingerprint "
@@ -172,6 +175,8 @@ def main():
         config["flow_coverage"] = args.flow_coverage
     if args.price_threshold is not None:
         config["price_increase_threshold"] = args.price_threshold
+    if args.legacy_give_up:
+        config["delivered_price_increase_threshold"] = None
     if args.constraint_mode != "off":
         overrides = dict(config.get("transport_capacity_overrides") or {})   # port throughputs from the config
         if args.edge_capacities and Path(args.edge_capacities).exists():
