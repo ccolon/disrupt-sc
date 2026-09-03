@@ -32,6 +32,7 @@ from disruptsc.init_pipeline.load_data import (
     load_mrio, load_sector_table, load_usd_per_ton, filter_sectors,
 )
 from disruptsc.init_pipeline.agents import (
+    attachment_nodes,
     create_firm_table, create_firms, load_tech_coefs, load_input_criticality,
     load_inventories, configure_household_inventories,
     create_household_table, create_households, create_countries,
@@ -60,11 +61,12 @@ def build_common(config: dict, tp, sp, ap, lp, *, input_criticality=None) -> dic
     usd_per_ton = load_usd_per_ton(sector_table)
     selection = filter_sectors(mrio, ap.flow_coverage,
                                ap.sectors_to_include, ap.sectors_to_exclude)
+    agent_nodes = attachment_nodes(tnodes, te, tp.agent_attachment, "Firm/household")
     firm_table = create_firm_table(mrio, sector_table, fp.get("firms_spatial"),
                                    fp.get("households_spatial"), usd_per_ton,
-                                   tnodes, ap, selection)
+                                   agent_nodes, ap, selection)
     household_table, consumption = create_household_table(
-        mrio, fp.get("households_spatial"), tnodes, selection, ap,
+        mrio, fp.get("households_spatial"), agent_nodes, selection, ap,
         time_resolution=sp.time_resolution,
     )
     crit_path = input_criticality or fp.get("input_criticality")

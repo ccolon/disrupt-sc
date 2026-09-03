@@ -121,11 +121,13 @@ def _parse_country_attachment(raw) -> str:
     """Validate ``country_attachment``: 'roads' (legacy, nearest road node)
     or 'any' (nearest node of any mode, so sea-placed blocs attach to the
     maritime layer). Typos raise instead of silently keeping the legacy rule."""
+    return _parse_attachment(raw, "country_attachment")
+
+
+def _parse_attachment(raw, key: str) -> str:
     value = str(raw).strip().lower()
     if value not in ("roads", "any"):
-        raise ValueError(
-            f"country_attachment must be 'roads' or 'any' (got {raw!r})"
-        )
+        raise ValueError(f"{key} must be 'roads' or 'any' (got {raw!r})")
     return value
 
 
@@ -259,6 +261,7 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
                                               ["utility", "transport", "trade", "services", "service", "construction"])),
         countries_no_transport=tuple(config.get("countries_no_transport") or ()),
         country_attachment=_parse_country_attachment(config.get("country_attachment", "roads")),
+        agent_attachment=_parse_attachment(config.get("agent_attachment", "any"), "agent_attachment"),
         use_cargo_types=bool(config.get("use_cargo_types", True)),
         monetary_units=config.get("monetary_units_in_model", "mUSD"),
         chunk_size=_parse_chunk_size(logistics, config.get("time_resolution", "week")),

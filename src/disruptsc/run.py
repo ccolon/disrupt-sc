@@ -45,6 +45,7 @@ from disruptsc.init_pipeline.load_data import (
 )
 from disruptsc.init_pipeline.transport import build_transport_network
 from disruptsc.init_pipeline.agents import (
+    attachment_nodes,
     create_firm_table, create_firms, load_tech_coefs, load_input_criticality,
     load_inventories, configure_household_inventories, report_inventory_to_gdp,
     create_household_table, create_households, create_countries,
@@ -248,11 +249,16 @@ def execute(config: dict, *, cache: str | None = None,
             ap.sectors_to_include, ap.sectors_to_exclude,
         )
 
+        # Firms and households attach to road nodes (agent_attachment: roads)
+        # or to the nearest node of any mode (legacy "any").
+        agent_nodes = attachment_nodes(transport_nodes, transport_edges,
+                                       tp.agent_attachment, "Firm/household")
+
         # Firms
         firm_table = create_firm_table(
             mrio, sector_table, filepaths.get("firms_spatial"),
             filepaths.get("households_spatial"), usd_per_ton,
-            transport_nodes, ap, selection,
+            agent_nodes, ap, selection,
         )
         firms = create_firms(firm_table, ap)
         load_tech_coefs(firms, mrio, selection)
@@ -264,7 +270,7 @@ def execute(config: dict, *, cache: str | None = None,
 
         # Households
         household_table, consumption = create_household_table(
-            mrio, filepaths.get("households_spatial"), transport_nodes,
+            mrio, filepaths.get("households_spatial"), agent_nodes,
             selection, ap, time_resolution=sp.time_resolution,
         )
         households = create_households(household_table, consumption)
