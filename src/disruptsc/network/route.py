@@ -12,18 +12,26 @@ if TYPE_CHECKING:
 
 
 class Route(list):
-    """A route is an alternating sequence of nodes and edges: [(n1,), (n1,n2), (n2,), ...]."""
+    """A route is an alternating sequence of nodes and edges: [(n1,), (n1,n2), (n2,), ...].
+
+    Memory layout matters: a large scope holds ~10^5-10^6 routes of ~30 edges
+    (KI-30). The list part is the only copy of the node/edge tuples;
+    ``transport_edges`` is a slice of it (shares the tuples),
+    ``transport_nodes_and_edges`` is an alias of the list itself, and
+    ``__slots__`` removes the per-instance dict.
+    """
+
+    __slots__ = ("transport_nodes", "transport_edges", "transport_edge_ids",
+                 "transport_modes", "length")
 
     def __init__(self, node_list: list, transport_network: TransportNetwork, cargo_type: str):
         node_edge_tuple = [[(node_list[0],)]] + [
             [(node_list[i], node_list[i + 1]), (node_list[i + 1],)]
             for i in range(len(node_list) - 1)
         ]
-        transport_nodes_and_edges = [item for sub in node_edge_tuple for item in sub]
-        super().__init__(transport_nodes_and_edges)
-        self.transport_nodes_and_edges = transport_nodes_and_edges
+        super().__init__(item for sub in node_edge_tuple for item in sub)
         self.transport_nodes = node_list
-        self.transport_edges = [item for item in transport_nodes_and_edges if len(item) == 2]
+        self.transport_edges = self[1::2]
         self.transport_edge_ids = [
             transport_network[u][v]["id"] for u, v in self.transport_edges
         ]
@@ -31,6 +39,11 @@ class Route(list):
             transport_network[u][v]["type"] for u, v in self.transport_edges
         })
         self.length = self.sum_indicator(transport_network, "km")
+
+    @property
+    def transport_nodes_and_edges(self) -> list:
+        """The alternating node/edge sequence — the list part itself."""
+        return self
 
     # ------------------------------------------------------------------
     # Queries
@@ -145,10 +158,9 @@ class Route(list):
             else:
                 reversed_items.append(item)
         self[:] = reversed_items
-        self.transport_nodes_and_edges = reversed_items
         self.transport_nodes = list(reversed(self.transport_nodes))
-        self.transport_edges = [(e[1], e[0]) for e in reversed(self.transport_edges)]
-        self.transport_edge_ids.reverse()
+        self.transport_edges = self[1::2]
+        self.transport_edge_ids = list(reversed(self.transport_edge_ids))
 
     # ------------------------------------------------------------------
     # Pickle hooks — minimal state to avoid recursion blow-up at scale
@@ -178,11 +190,8 @@ class Route(list):
                 tne.append((nodes[i], nodes[i + 1]))
                 tne.append((nodes[i + 1],))
         list.__init__(self, tne)
-        self.transport_nodes_and_edges = tne
         self.transport_nodes = nodes
-        self.transport_edges = [
-            (nodes[i], nodes[i + 1]) for i in range(len(nodes) - 1)
-        ]
+        self.transport_edges = self[1::2]
         self.transport_edge_ids = state["transport_edge_ids"]
         self.transport_modes = state["transport_modes"]
         self.length = state["length"]
