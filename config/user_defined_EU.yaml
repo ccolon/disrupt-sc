@@ -40,6 +40,25 @@ time_resolution: week
 
 flow_coverage: 0.9
 
+# Which inputs can stop a firm (strict Leontief on critical inputs only). The
+# default 0.0 makes EVERY kept input critical; with sector-resolved imports and
+# 28 regions a German retailer buys 0.04 mUSD/week of Belgian postal services
+# (0.01% of its inputs) with a 7-day stock, and when that supplier faltered in
+# week 2 of the 2026 scenario (run 20260903_154747) the retailer's 707 mUSD/week
+# production went to zero in week 3 - a cascade seeded by negligible inputs, not
+# by the Rhine. 0.02 = inputs below 2% of a firm's input bill do not constrain
+# production (cost-share proxy for criticality; the Ecuador study uses the PBL
+# survey matrix instead - a candidate upgrade, see Pichler et al. 2022).
+critical_input_threshold: 0.02
+
+# Give-up rule on the DELIVERED price (disrupt-sc >= 2026-09-03): a delivery is
+# dropped only when transport_share x relative transport-cost increase exceeds
+# 0.5, i.e. the delivered price would rise by more than half. The legacy rule
+# (freight bill more than doubled) dropped Rhine legs whose whole route is the
+# Kaub edge at x3 while their freight is a few percent of the goods' value;
+# 2026 shippers paid x5 rates.
+delivered_price_increase_threshold: 0.5
+
 simulation_type: initial_state
 export_files: True
 

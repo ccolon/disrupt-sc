@@ -15,6 +15,13 @@ class TransportParams:
     use_route_cache: bool = True
     switching_costs: dict = field(default_factory=lambda: {"modal_switch": 0.15, "port_switch": 0.05})
     price_increase_threshold: float | None = 2.0  # None = no threshold
+    # Optional give-up rule on the DELIVERED price instead of the freight bill:
+    # drop a delivery when transport_share x relative transport-cost increase
+    # exceeds this fraction (0.5 = the delivered price would rise by more than
+    # half). A tripled freight bill on goods whose transport is 3% of value is
+    # a 6% price rise that shippers pay (Rhine 2026: x5 rates were paid); the
+    # legacy rule drops it. None = legacy rule only.
+    delivered_price_increase_threshold: float | None = None
     sectors_no_transport: tuple = ("utility", "transport", "trade", "services", "service", "construction")
     countries_no_transport: tuple = ()
     # Where external Country agents attach to the transport network:
