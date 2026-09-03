@@ -207,7 +207,13 @@ TEN-T multimodal connectors (endpoint-snapped). Rules learned on Romania:
 - Transport gpkg: one LineString layer per mode, EPSG:4326. Nodes are derived from endpoints
   rounded to 6 decimals — edges connect only if endpoints match at 1e-6°.
 - `countries.geojson`: one Point per external bloc, `region` property = bloc label exactly as in
-  the MRIO; missing bloc = hard ValueError; points snap to the nearest **roads** node.
+  the MRIO; missing bloc = hard ValueError; points snap to the nearest **roads** node
+  (`country_attachment: any` lets a Point placed at sea attach to the maritime layer, so the
+  port of entry is chosen by routing — used by the EU scope).
+- `agent_attachment: roads` snaps firms and households to road nodes (default `any` = nearest
+  node of any mode). Set it whenever the network is trunk-only (TEN-T): with `any`, the EU
+  scope had 46 % of firm output sitting on rail nodes and shipping by rail with no access leg
+  or transfer cost, which no transfer-cost calibration could correct.
 - `households.geojson`: Points, `region` (∈ MRIO internal regions; non-matching rows silently
   dropped), `population`, optional `subregion_*`. Also the region-centroid source for firms.
 - `firms.geojson` wide form: `region` + one column per exact MRIO sector name → melted to
