@@ -157,7 +157,15 @@ def _precompute_and_assign(link_specs: list[dict],
     # Group links by cargo_type to batch Dijkstra runs
     cargo_types = _get_cargo_types(link_specs)
 
-    # Pre-compute all paths for each cargo type
+    # Pre-compute paths for each cargo type. Only the destinations that a
+    # source actually ships to are kept: single_source_dijkstra_path returns a
+    # path to EVERY reachable node (6.8k on the EU scope), and keeping them all
+    # for ~1.2k sources per cargo type (~8M path lists) exhausted memory on a
+    # 32 GB machine; the links need ~200k (cargo, source, dest) keys in total.
+    needed_dests: dict[tuple, set] = {}
+    for s in link_specs:
+        needed_dests.setdefault((s["cargo_type"], s["origin"]), set()).add(s["destination"])
+
     path_lookup = {}  # (cargo_type, source, dest) -> node_list
     for cargo_type in cargo_types:
         weight = f"cost_per_ton_{cargo_type}"
@@ -176,8 +184,10 @@ def _precompute_and_assign(link_specs: list[dict],
                 )
             except nx.NetworkXError:
                 paths = {}
-            for dest, path in paths.items():
-                path_lookup[(cargo_type, source, dest)] = path
+            for dest in needed_dests.get((cargo_type, source), ()):
+                path = paths.get(dest)
+                if path is not None:
+                    path_lookup[(cargo_type, source, dest)] = path
 
     # Assign routes to links (single route per link → route_plan with 1 entry)
     _assign_routes_from_lookup(link_specs, path_lookup, transport_network)
