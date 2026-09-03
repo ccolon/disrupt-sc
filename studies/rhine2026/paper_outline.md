@@ -73,8 +73,8 @@ data file it comes from, so the pipeline can produce it without re-deciding.
 | F1 | EU network + firms map | `plots/baseline_figures.py` — DONE (`figures/F1_network_firms.png`) |
 | F2 | modal split model vs Eurostat, per country/cargo | `plots/baseline_figures.py` — DONE (`figures/F2_modal_split.*`) |
 | F3 | Rhine profile model vs CCNR (Basel → Lobith) | `plots/baseline_figures.py` — DONE (`figures/F3_rhine_profile.*`) |
-| F4 | gauge → schedule | `scenarios/2026.csv`, `draught_table.csv`, `run_rhine.py --dry-run` |
-| F5 | production-loss map, peak week | scenario run `loss_per_region_sector_time.csv` + NUTS2 polygons |
-| F6 | tiered propagation by country | scenario run `firm_data.csv` + supply-chain edgelist |
+| F4 | gauge → capacity factor → schedule | `plots/scenario_figures.py` — DONE (`figures/F4_shock_2026.*`, `F4_shock_2018.png`) |
+| F5 | production-loss map (NUTS2), peak week | `plots/scenario_figures.py --run <run>` (firm_data + nuts2_admin) — after the run |
+| F6 | weekly value-added loss by country | `plots/scenario_figures.py --run <run>` — after the run; tiered propagation via the supply-chain edgelist still to do |
 | T1 | calibrated parameters | final `config/user_defined_EU.yaml` |
 | T2 | validation targets vs model | `evidence/evidence_rhine_literature.md` (b), `validation_targets_2026_surveys.md` |
