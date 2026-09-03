@@ -308,6 +308,8 @@ hine2026`), because the
   dict) and route assignment built one per link — 786k objects for 143k distinct routes. Now
   slots + one copy of the tuples, and `intern_routes()` shares one Route per node sequence
   across links, route plans and the library (older caches are interned on load and re-saved).
+- Verified on the relaunched main run (22:30): 9.75 GB private after the routes load, flat at
+  9.5–10.1 GB through week 7, ~10 min per week, no paging (`EU/runs/mem_watch.csv`).
 - Diagnosis of run 2's slowdown: its private memory exceeded the RAM, the OS trimmed the
   working set to ~10 GB and every step paged the routes back in. Per-step growth during the
   closure weeks (alternative routes, chunked shipments) remains to be measured.
