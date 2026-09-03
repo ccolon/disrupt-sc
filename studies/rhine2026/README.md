@@ -265,6 +265,16 @@ Port choice is calibrated by cost as well: a per-mode value of time (`cost_of_ti
 VOT from pricing the sea leg, which had sent Asian imports into the nearest Adriatic port
 (Suez→Munich via Trieste 217 vs via Rotterdam 402 USD/t, of which sea time 130 vs 288).
 
+### 2.2b Runs (3 Sep, after the v12 baseline)
+
+| Run | Command | Status |
+|---|---|---|
+| 2026 observed profile | `run_rhine.py --profile 2026 --no-open --seed 42` (cost shocks ×1.2–3.8, closed 3–23 Aug, 8 recovery weeks, `--cache auto`) | launched 15:47, `runs/rhine2026/2026_seed42` |
+| 2018 counterfactual | `--profile 2018` — `scenarios/2018.csv` is a **reconstructed** weekly Kaub series (anchors: <78 cm for ≈108 days Aug–Dec, 42 cm on 16 Oct, record 25 cm on 22 Oct, second trough 21 Nov–3 Dec; other weeks interpolated) — replace by PEGELONLINE/BfG daily data before publication | to run |
+| closure only | `--profile 2026 --closure-threshold 0.99` → only weeks at ≥ 99 % reduction close, no cost shocks (isolates the closure channel: expect none) and `--closure-threshold 0.75` vs `1.01` (no closures, all cost shocks) | to run |
+| price-threshold sensitivity | `--price-threshold 3` and `5` (2026 shippers paid ×5 freight) | to run |
+| analysis | `analyze_scenario.py <run>` — Kaub tonnage vs fleet capacity, corridor substitution, corridor firms below baseline vs DIHK, price surcharges, value-added loss vs the macro range | after each run |
+
 ### 2.2 Scenario construction
 
 1. Weekly Kaub levels (`scenarios/2026.csv`, PEGELONLINE daily means for
