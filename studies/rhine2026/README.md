@@ -222,6 +222,31 @@ of 10 August), −77 % on the 17 August week, −50 % after the rain, 8 recovery
 | Named-firm impacts (BASF Ludwigshafen, ThyssenKrupp Duisburg, refineries) | production of the plant-level firms placed by firm-extractor | firm-level rows |
 | Macro (GDP effect 2018 ≈ −0.3 %, Bundesbank) | total value-added loss, EU-wide and DE | aggregate loss series |
 
+### 2.2a Mechanism (decided 2026-09-03, no capacity-constrained routing)
+
+Capacity-constrained routing does not scale to this scope (197k OD groups; killed after
+81 CPU-minutes), so low water is represented with two mechanisms the model handles cheaply:
+- **cost shock** (`transport_cost_shock`, disrupt-sc c641fa5): the Kaub edge stays open but
+  its cost is multiplied by 1/(capacity factor) — barges at 40 % load cost 2.5× per ton, the
+  model's Kleinwasserzuschlag. A buyer whose route crosses it pays the surcharge (passed into
+  the price via `transport_share`), reroutes when rail or road is cheaper (with the modal-switch
+  penalty), or gives up beyond `price_increase_threshold`.
+- **closure** for the weeks below the sailing floor (`--closure-threshold 0.75`: Kaub 24, 11
+  and 27 cm, 3–23 Aug 2026): existing `transport_disruption` mechanics.
+`run_rhine.py --profile 2026 --dry-run` prints the schedule (×1.2 in late June, ×3 mid-July,
+×3.8 the week of 27 July, closed 3–23 August, ×2–3 through September).
+This matches what the evidence says happened: the market cleared by price first (rates ×2–5),
+then by rationing and production cuts, with rail absorbing only a tenth of the tonnage. The
+ex post check is physical: modelled weekly Rhine tonnage must not exceed the fleet's capacity
+at that week's gauge, otherwise the multiplier is too low for that week. The give-up rule
+(`price_increase_threshold` 2 on the freight bill) should be relaxed for the scenario runs
+(`--price-threshold`), since shippers paid ×5 freight on goods worth 20–50× the freight.
+
+Port choice is calibrated by cost as well: a per-mode value of time (`cost_of_time:
+{container: {default: 1.6, maritime: 0.15}}`, same commit) stops the inland service-quality
+VOT from pricing the sea leg, which had sent Asian imports into the nearest Adriatic port
+(Suez→Munich via Trieste 217 vs via Rotterdam 402 USD/t, of which sea time 130 vs 288).
+
 ### 2.2 Scenario construction
 
 1. Weekly Kaub levels (`scenarios/2026.csv`, PEGELONLINE daily means for
