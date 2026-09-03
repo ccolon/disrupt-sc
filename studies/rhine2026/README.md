@@ -137,7 +137,16 @@ Files in `evidence/` (web-collected 2026-09-02/03, every fact dated and sourced)
   the academic literature + a 73-row **validation-targets table** + 17 open gaps.
 - `evidence_rhine_datasources.md` — machine-readable sources (PEGELONLINE,
   Destatis 46321, Eurostat iww_*, CCNR market observation, production indices,
-  barge freight indices, Kleinwasserzuschlag tables) — in progress.
+  barge freight indices, Kleinwasserzuschlag tables) — partial (gauges complete).
+- `update_20260903_supply_chain_damage.md` — 3 Sep sweep for supply-chain disruption and
+  damage evaluations: the DIHK survey (n = 170, 29 Jul–4 Aug: 78 % higher costs, 72 %
+  reorganised logistics, ≈ 33 % restricting production, 6 % stopped, 13 % site at risk),
+  IHK Rheinhessen, the ex ante macro range (IfW −0.1/−0.2 pp Q3, Oxford Economics −0.2,
+  Commerzbank −0.35, IW −0.4 pp p.a.; BVR nevertheless raised its 2026 forecast to 1.0 %),
+  VCI's 3 Sep quarterly report, DB Cargo's substitution ceiling, the July truck-toll index,
+  and the list of ex post anchors still to come (Destatis July IP ≈ 8 Sep, BASF Q3 27 Oct).
+- `validation_targets_2026_surveys.md` — rows 74–83 of the validation-targets table
+  (firm-level extensive margin, cost pass-through distribution, adaptation shares).
 
 **The 2026 event in one paragraph.** After the least snowy Alpine winter since
 1991 and a Rhine basin below normal precipitation every month from February, the
