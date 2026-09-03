@@ -11,13 +11,13 @@ Steps (each a subcommand, so the download can be approved separately):
   fetch      download the GISCO NUTS 2021 polygons (public, EU copyright notice
              applies: "© EuroGeographics for the administrative boundaries").
                  python eurostat_nuts_households.py fetch --out <dir> [--levels 2,3]
-             Files: NUTS_RG_20M_2021_4326_LEVL_<n>.json (~3 MB for level 2,
+             Files: NUTS_RG_20M_2021_4326_LEVL_<n>.geojson (~3 MB for level 2,
              ~6 MB for level 3) from
              https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/
 
   households NUTS polygons + population CSV -> households.geojson
                  python eurostat_nuts_households.py households \
-                     --nuts <dir>/NUTS_RG_20M_2021_4326_LEVL_2.json \
+                     --nuts <dir>/NUTS_RG_20M_2021_4326_LEVL_2.geojson \
                      --population <population_nuts_2023.csv> \
                      --countries AUT,BEL,...,CHE --out <Scope>/Spatial/households.geojson
              Points at representative points; properties: region (ISO3 of the
@@ -26,7 +26,7 @@ Steps (each a subcommand, so the download can be approved separately):
   admin      NUTS3 polygons -> one admin GeoJSON with region (ISO3) + shapeName
              for firm-extractor (``region_property: region``).
                  python eurostat_nuts_households.py admin \
-                     --nuts <dir>/NUTS_RG_20M_2021_4326_LEVL_3.json \
+                     --nuts <dir>/NUTS_RG_20M_2021_4326_LEVL_3.geojson \
                      --countries ... --out <Scope>/Spatial/sources/nuts3_admin.geojson
 
 The population CSV is the Eurostat ``demo_r_pjanaggr3`` extract written by the
@@ -48,7 +48,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from iso_codes import ISO2_TO_ISO3  # noqa: E402
 
 GISCO = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/"
-FILE = "NUTS_RG_20M_2021_4326_LEVL_{level}.json"
+# NUTS 2024 by default: Eurostat's regional tables (population, employment)
+# are published on the current classification, and codes must match exactly.
+FILE = "NUTS_RG_20M_{year}_4326_LEVL_{level}.geojson"
 EUROSTAT_TO_ISO2 = {"EL": "GR", "UK": "GB"}
 
 
@@ -61,7 +63,7 @@ def cmd_fetch(args) -> int:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     for lvl in [int(x) for x in args.levels.split(",")]:
-        name = FILE.format(level=lvl)
+        name = FILE.format(level=lvl, year=args.year)
         dest = out / name
         if dest.exists() and not args.force:
             print(f"exists: {dest}")
@@ -119,15 +121,25 @@ def cmd_households(args) -> int:
 def cmd_admin(args) -> int:
     countries = [c.strip().upper() for c in args.countries.split(",")]
     g = _load_nuts(args.nuts, countries)
+    # shapeName = the NUTS code by default: Eurostat labels are transliterated
+    # (Achaia) while GISCO names are local-script (Αχαΐα), so name matching
+    # fails for EL/BG and for every renamed unit; codes match exactly.
+    names = g["NUTS_ID"] if args.name == "code" else g["NUTS_NAME"]
     out = gpd.GeoDataFrame({
         "region": g["region"].values,
-        "shapeName": g["NUTS_NAME"].values,
+        "shapeName": names.values,
         "nuts_id": g["NUTS_ID"].values,
+        "nuts_name": g["NUTS_NAME"].values,
         "level": g["LEVL_CODE"].values,
     }, geometry=g.geometry.values, crs="EPSG:4326")
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     out.to_file(args.out, driver="GeoJSON")
     print(f"written {args.out}: {len(out)} polygons, {out.region.nunique()} countries")
+    if args.per_country:
+        for iso3, sub in out.groupby("region"):
+            p = Path(args.out).with_name(f"{Path(args.out).stem}_{iso3}.geojson")
+            sub.to_file(p, driver="GeoJSON")
+        print(f"  + one file per country ({out.region.nunique()}) for firm-extractor admin_boundaries")
     return 0
 
 
@@ -136,11 +148,16 @@ def main() -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     f = sub.add_parser("fetch"); f.add_argument("--out", required=True)
     f.add_argument("--levels", default="2,3"); f.add_argument("--force", action="store_true")
+    f.add_argument("--year", type=int, default=2024, help="NUTS classification year (2021, 2024)")
     h = sub.add_parser("households"); h.add_argument("--nuts", required=True)
     h.add_argument("--population", required=True); h.add_argument("--pop-field", default="population_2023")
     h.add_argument("--countries", required=True); h.add_argument("--out", required=True)
     a = sub.add_parser("admin"); a.add_argument("--nuts", required=True)
     a.add_argument("--countries", required=True); a.add_argument("--out", required=True)
+    a.add_argument("--name", choices=["code", "label"], default="code",
+                   help="shapeName = NUTS code (default, matches Eurostat tables) or local name")
+    a.add_argument("--per-country", action="store_true",
+                   help="also write <out stem>_<ISO3>.geojson per country (firm-extractor admin_boundaries)")
     args = ap.parse_args()
     return {"fetch": cmd_fetch, "households": cmd_households, "admin": cmd_admin}[args.cmd](args)
 
