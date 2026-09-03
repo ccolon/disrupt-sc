@@ -303,7 +303,18 @@ def execute(config: dict, *, cache: str | None = None,
     # ------------------------------------------------------------------
     # Stage 3: Supply chain network
     # ------------------------------------------------------------------
-    if cache_flags["sc_network"]:
+    # The logistic-routes pickle carries the supply chain, the agents and the
+    # transport network as they were when the routes were built. When it is
+    # reused, loading the sc_network pickle and setting the pre-routing
+    # initial conditions would only build objects that the routes load then
+    # replaces: on the EU scope that is ~10 min and a second copy of the
+    # supply chain in memory (the interpreter does not give the peak back).
+    routes_from_cache = cache_flags["logistic_routes"]
+    if routes_from_cache:
+        logging.info("Logistic-routes cache is current: skipping the supply-chain stage "
+                     "(the routes pickle carries it)")
+        sc_network = None
+    elif cache_flags["sc_network"]:
         logging.info("Loading SC network from cache")
         sc_network, firms, households, countries = load_cached_sc_network(
             scope=scope, stage_fp=stage_fps["sc_network"])
@@ -329,30 +340,33 @@ def execute(config: dict, *, cache: str | None = None,
     # Auto-shrink: prune transport-network cargo types to those actually used
     # by the supply chain. No-op when only one cargo type is present. Done
     # before the logistic-route stage so Dijkstra/LP runs N× fewer times.
-    used_cargo = {
-        getattr(data["object"], "cargo_type", None)
-        for _, _, data in sc_network.edges(data=True)
-    }
-    used_cargo.discard(None)
-    used_cargo.discard("")
-    if used_cargo:
-        transport_network.shrink_cargo_types_to(used_cargo)
+    if sc_network is not None:
+        used_cargo = {
+            getattr(data["object"], "cargo_type", None)
+            for _, _, data in sc_network.edges(data=True)
+        }
+        used_cargo.discard(None)
+        used_cargo.discard("")
+        if used_cargo:
+            transport_network.shrink_cargo_types_to(used_cargo)
 
-    # ------------------------------------------------------------------
-    # Stage 3b: Set initial conditions (before routing, so links have
-    #           equilibrium orders for capacity-aware route assignment)
-    # ------------------------------------------------------------------
-    set_initial_conditions(sc_network, firms, households, countries, tp, sp)
-    report_inventory_to_gdp(firms, households, sp.time_resolution)
+        # --------------------------------------------------------------
+        # Stage 3b: Set initial conditions (before routing, so links have
+        #           equilibrium orders for capacity-aware route assignment).
+        #           Every simulation entry point resets them again itself.
+        # --------------------------------------------------------------
+        set_initial_conditions(sc_network, firms, households, countries, tp, sp)
+        report_inventory_to_gdp(firms, households, sp.time_resolution)
 
     # ------------------------------------------------------------------
     # Stage 4: Logistic routes
     # ------------------------------------------------------------------
-    if cache_flags["logistic_routes"]:
+    if routes_from_cache:
         logging.info("Loading logistic routes from cache")
         sc_network, transport_network, cl_table, firms, households, countries = load_cached_logistic_routes(
             scope=scope, stage_fp=stage_fps["logistic_routes"])
         _configure_households(households)
+        report_inventory_to_gdp(firms, households, sp.time_resolution)
     else:
         if tp.with_transport:
             logging.info("Setting up logistic routes")
