@@ -70,9 +70,9 @@ data file it comes from, so the pipeline can produce it without re-deciding.
 ## Figures/tables checklist (producer)
 | # | Content | Producer |
 |---|---|---|
-| F1 | EU network + firms map | new `plots/network_map.py` (transport.gpkg, firms.geojson) |
-| F2 | modal split model vs Eurostat, per country/cargo | `flow_checks.py` §2 + `mode_split_targets_*.csv` |
-| F3 | Rhine profile model vs CCNR | `flow_checks.py` §1 |
+| F1 | EU network + firms map | `plots/baseline_figures.py` — DONE (`figures/F1_network_firms.png`) |
+| F2 | modal split model vs Eurostat, per country/cargo | `plots/baseline_figures.py` — DONE (`figures/F2_modal_split.*`) |
+| F3 | Rhine profile model vs CCNR (Basel → Lobith) | `plots/baseline_figures.py` — DONE (`figures/F3_rhine_profile.*`) |
 | F4 | gauge → schedule | `scenarios/2026.csv`, `draught_table.csv`, `run_rhine.py --dry-run` |
 | F5 | production-loss map, peak week | scenario run `loss_per_region_sector_time.csv` + NUTS2 polygons |
 | F6 | tiered propagation by country | scenario run `firm_data.csv` + supply-chain edgelist |
