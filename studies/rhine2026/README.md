@@ -269,10 +269,11 @@ VOT from pricing the sea leg, which had sent Asian imports into the nearest Adri
 
 | Run | Command | Status |
 |---|---|---|
-| 2026 observed profile | `run_rhine.py --profile 2026 --no-open --seed 42` (cost shocks ×1.2–3.8, closed 3–23 Aug, 8 recovery weeks, `--cache auto`) | launched 15:47, `runs/rhine2026/2026_seed42` |
+| 2026 observed profile, run 1 | strict Leontief (`critical_input_threshold` 0.0), legacy give-up rule | **aborted** at week 5: a cascade seeded by negligible cross-border service inputs (a 0.04 mUSD/week Belgian postal input shutting a 707 mUSD/week German retailer), see `calibration_log.md` §Scenario runs; archived as `2026_seed42_strictleontief_aborted` |
+| 2026 observed profile, run 2 | `run_rhine.py --profile 2026 --no-open --seed 42` with `critical_input_threshold: 0.02` and `delivered_price_increase_threshold: 0.5` (config, disrupt-sc 03259ae); cost shocks ×1.2–3.8, closed 3–23 Aug, 8 recovery weeks, `--cache auto` | launched 16:52, `runs/rhine2026/2026_seed42` |
 | 2018 counterfactual | `--profile 2018` — `scenarios/2018.csv` is a **reconstructed** weekly Kaub series (anchors: <78 cm for ≈108 days Aug–Dec, 42 cm on 16 Oct, record 25 cm on 22 Oct, second trough 21 Nov–3 Dec; other weeks interpolated) — replace by PEGELONLINE/BfG daily data before publication | queued after the 2026 run (`EU/runs/queue_after_2026.ps1`), then `--price-threshold 5` → `runs/rhine2026/2026_seed42_pt5` |
 | closure only | `--profile 2026 --closure-threshold 0.99` → only weeks at ≥ 99 % reduction close, no cost shocks (isolates the closure channel: expect none) and `--closure-threshold 0.75` vs `1.01` (no closures, all cost shocks) | to run |
-| price-threshold sensitivity | `--price-threshold 3` and `5` (2026 shippers paid ×5 freight) | to run |
+| give-up rule sensitivity | `--legacy-give-up` (freight-bill rule, threshold 2) → `runs/rhine2026/2026_seed42_legacy` | queued after the 2018 run |
 | analysis | `analyze_scenario.py <run>` — Kaub tonnage vs fleet capacity, corridor substitution, corridor firms below baseline vs DIHK, price surcharges, value-added loss vs the macro range | after each run |
 
 ### 2.2 Scenario construction
