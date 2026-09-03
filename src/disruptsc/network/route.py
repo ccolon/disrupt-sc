@@ -44,6 +44,14 @@ class Route(list):
                 return False
         return True
 
+    def has_cost_shock(self, transport_network: TransportNetwork) -> bool:
+        """True when any edge of the route carries an active cost shock
+        (see TransportNetwork.start_edge_cost_shock)."""
+        for u, v in self.transport_edges:
+            if transport_network[u][v].get("cost_shock_duration", 0) > 0:
+                return True
+        return False
+
     def has_over_capacity_edges(self, transport_network: TransportNetwork) -> bool:
         for u, v in self.transport_edges:
             if transport_network[u][v].get("overused", False):
