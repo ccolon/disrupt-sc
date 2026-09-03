@@ -86,6 +86,10 @@ def main():
     ap.add_argument("--capacities", default=str(SCEN / "rhine_capacities.csv"))
     ap.add_argument("--recovery-weeks", type=int, default=8, help="extra weeks after the profile ends")
     ap.add_argument("--flow-coverage", type=float, default=None)
+    ap.add_argument("--constraint-mode", choices=["gradual", "binary"], default="gradual",
+                    help="gradual = congestion surcharge (the model's Kleinwasserzuschlag; re-prices every "
+                         "capacitated edge by its utilisation); binary = over-capacity edges are not routed, "
+                         "no re-pricing (see README section 2.2 design point)")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--scope", default="EU")
     ap.add_argument("--out", default=None)
@@ -116,7 +120,7 @@ def main():
     config["t_final"] = t_final
     config["epsilon_stop_condition"] = 0
     config["seed"] = args.seed
-    config["capacity_constraint"] = "gradual"
+    config["capacity_constraint"] = args.constraint_mode
     if args.flow_coverage is not None:
         config["flow_coverage"] = args.flow_coverage
     caps = pd.read_csv(args.capacities)
