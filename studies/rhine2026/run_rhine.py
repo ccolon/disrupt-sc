@@ -123,6 +123,10 @@ def main():
                     help="override price_increase_threshold for the scenario (config default 2.0 = give up "
                          "a delivery once its transport bill more than doubles; 2026 shippers paid x5 rates)")
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--cache", default="auto",
+                    help="cache preset passed to execute(); 'auto' reuses every stage whose fingerprint "
+                         "matches (a scenario differs from the calibrated baseline only by its "
+                         "disruptions, so all four stages are reused: build in minutes, not 40)")
     ap.add_argument("--scope", default="EU")
     ap.add_argument("--out", default=None)
     ap.add_argument("--no-open", action="store_true")
@@ -186,7 +190,7 @@ def main():
 
     export_folder = Path(args.out) if args.out else RUNS_DIR / f"{args.profile}_seed{args.seed}"
     print(f"Export folder: {export_folder}")
-    execute(config, export_folder=export_folder, open_report=not args.no_open)
+    execute(config, cache=(args.cache or None), export_folder=export_folder, open_report=not args.no_open)
     print(f"\nDone. Time series + report in: {export_folder}")
 
 

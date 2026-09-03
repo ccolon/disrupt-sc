@@ -20,6 +20,7 @@ disruptsc <scope>                          # or: python -m disruptsc.run <scope>
 disruptsc Testkistan                       # bundled demo (examples/data/Testkistan)
 disruptsc <scope> --simulation_type disruption --duration 12 --seed 42
 disruptsc <scope> --cache same_logistic_routes --cache_isolation
+disruptsc <scope> --cache auto             # reuse every stage whose fingerprint still matches
 validate-inputs <scope>                    # content checks before a run
 pytest                                     # works from a bare clone (53 tests)
 ```

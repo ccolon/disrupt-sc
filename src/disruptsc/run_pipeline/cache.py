@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import pickle
 from pathlib import Path
@@ -82,7 +83,48 @@ def save_cache(name: str, data: dict, scope: str | None = None,
         # supports out-of-band buffers and is more efficient for the large
         # numpy/pandas blobs we serialize.
         pickle.dump(payload, f, protocol=pickle.HIGHEST_PROTOCOL)
+    # Sidecar with the stage hash so that `--cache auto` can decide whether a
+    # stage is reusable without unpickling a gigabyte.
+    if stage_fp is not None:
+        with open(_sidecar(path), "w", encoding="utf-8") as f:
+            json.dump({"hash": stage_fp.get("hash"), "stage": name}, f)
     logging.info(f"Cached {name} → {path}")
+
+
+def _sidecar(pkl_path: Path) -> Path:
+    return pkl_path.with_suffix(".fp.json")
+
+
+def cache_is_current(name: str, scope: str | None, stage_fp: dict) -> bool:
+    """True when a cache for *name* exists and its sidecar hash matches *stage_fp*."""
+    path = _pkl(name, scope)
+    side = _sidecar(path)
+    if not path.exists() or not side.exists():
+        return False
+    try:
+        with open(side, encoding="utf-8") as f:
+            return json.load(f).get("hash") == stage_fp.get("hash")
+    except (OSError, ValueError):
+        return False
+
+
+def resolve_auto_cache_flags(scope: str | None, stage_fps: dict) -> dict[str, bool]:
+    """``--cache auto``: reuse every stage whose stored fingerprint matches the
+    current configuration, rebuild the others.
+
+    Stage fingerprints are keyed on what each stage actually depends on (the
+    agents and the supply chain on the network geometry, not on costs), so a
+    cost change reuses agents + sc_network while rebuilding the transport
+    network and the routes; a run that only changes `disruptions` reuses all
+    four. Routes are reused only when every upstream stage is reused too.
+    """
+    flags = {level: cache_is_current(level, scope, stage_fps[level]) for level in CACHE_LEVELS}
+    flags["logistic_routes"] = flags["logistic_routes"] and all(
+        flags[level] for level in CACHE_LEVELS if level != "logistic_routes")
+    reused = [level for level, ok in flags.items() if ok]
+    logging.info(f"--cache auto: reusing {reused or 'nothing'}; rebuilding "
+                 f"{[level for level, ok in flags.items() if not ok] or 'nothing'}")
+    return flags
 
 
 def load_cache(name: str, scope: str | None = None,

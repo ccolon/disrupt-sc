@@ -56,7 +56,7 @@ from disruptsc.init_pipeline.routing import setup_logistic_routes
 
 from disruptsc.run_pipeline.cache import (
     setup_cache_isolation,
-    parse_cache_arg, CACHE_LEVELS,
+    parse_cache_arg, resolve_auto_cache_flags, CACHE_LEVELS,
     cache_transport_network, load_cached_transport_network,
     cache_agents, load_cached_agents,
     cache_sc_network, load_cached_sc_network,
@@ -167,13 +167,16 @@ def execute(config: dict, *, cache: str | None = None,
         np.random.seed(sp.seed)
         logging.info(f"Seeded RNGs with seed={sp.seed}")
 
-    cache_flags = parse_cache_arg(cache)
     # Per-stage fingerprints: stored inside each cache pickle at save time and
     # validated at load time, so a cache built under different watermarked
     # settings (or a different scope) is refused instead of silently reused.
     stage_fps = {level: build_stage_fingerprint(config, level) for level in CACHE_LEVELS}
     if cache_isolation:
         setup_cache_isolation(scope)
+    if cache == "auto":
+        cache_flags = resolve_auto_cache_flags(scope, stage_fps)
+    else:
+        cache_flags = parse_cache_arg(cache)
     if export_folder is None:
         export_folder = setup_output(config, sp)
     else:
@@ -895,7 +898,8 @@ def _parse_args():
     parser = argparse.ArgumentParser(description="DisruptSC v2")
     parser.add_argument("scope", help="Region scope (e.g. ECA, Gulf, Armenia)")
     parser.add_argument("--cache", default=None,
-                        help="Cache preset (same_transport_network_new_agents, etc.)")
+                        help="Cache preset (same_transport_network_new_agents, etc.), or 'auto' to reuse "
+                             "every stage whose stored fingerprint matches the current configuration")
     parser.add_argument("--simulation_type", choices=["initial_state", "disruption", "criticality"],
                         help="Override simulation_type from the YAML configuration")
     parser.add_argument("--duration", type=int, default=None,
