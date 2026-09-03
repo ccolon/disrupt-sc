@@ -126,8 +126,18 @@ def main():
         print("\n== 1-2. no transport_edges_with_flows_*.geojson (flows are exported at the end of a run) - skipped ==")
 
     # --- 3. corridor firms below baseline ---
-    ft = gpd.read_file(run / "firm_table.geojson")
-    edges = gpd.read_file(run / "transport_edges.geojson")
+    # firm_table/transport_edges geojson are exported at the end of a run; for a partial run
+    # borrow them from the newest finished EU run (same agent cache -> same firm ids).
+    geo = run
+    if not (run / "firm_table.geojson").exists():
+        cands = sorted((p for p in (ROOT / "output" / "EU").glob("*/firm_table.geojson")),
+                       key=lambda p: p.stat().st_mtime, reverse=True)
+        if not cands:
+            raise SystemExit("no firm_table.geojson in the run nor in output/EU/*")
+        geo = cands[0].parent
+        print(f"   (firm_table/transport_edges borrowed from {geo})")
+    ft = gpd.read_file(geo / "firm_table.geojson")
+    edges = gpd.read_file(geo / "transport_edges.geojson")
     rhine = edges[edges["name"].isin(rhine_names)].to_crs(3035)
     corridor = rhine.buffer(args.corridor_km * 1000).unary_union
     ft_m = ft.to_crs(3035)
