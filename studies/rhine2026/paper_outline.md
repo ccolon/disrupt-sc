@@ -43,8 +43,14 @@ data file it comes from, so the pipeline can produce it without re-deciding.
 ## 4. The 2026 scenario
 - Inputs: weekly Kaub gauge (PEGELONLINE/BfG) → draught table → capacity factor → cost multiplier
   or closure (Figure 4: gauge, capacity factor and schedule, 22 Jun – 5 Oct 2026).
-- Runs: baseline; 2026 profile; counterfactuals (2018 profile; 3-week closure only; no closure);
-  sensitivities (price threshold; container/liquid transfer costs; seed).
+- Runs: baseline; 2026 profile with the substitution ceiling 0.30 (main); bounds and
+  sensitivities: unlimited substitutes (run 2), ceiling 0.15 and 0.50, legacy give-up rule;
+  counterfactuals: 2018 profile at 0.30; no-disruption control (drift check). Seed sensitivity
+  if time allows.
+- Two modelling decisions to state up front, both forced by the scale of the scope: the
+  criticality threshold (2 % cost-share proxy for the partially-binding Leontief; strict
+  Leontief let a negligible cross-border service input cascade — KI-29) and the give-up rule on
+  the delivered price rather than the freight bill.
 - Outputs: Rhine tonnage by week vs physical fleet capacity (the ex post consistency check);
   modal substitution (rail/road tonnage gained vs DB Cargo's ~100-barge ceiling); price
   surcharges on Rhine-dependent links vs observed freight-rate multiples; firm production losses
