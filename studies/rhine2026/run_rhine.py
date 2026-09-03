@@ -84,6 +84,11 @@ def main():
     ap.add_argument("--edges", default=KAUB_EDGE, help="comma-separated rhine_* edge names")
     ap.add_argument("--draught-table", default=str(SCEN / "draught_table.csv"))
     ap.add_argument("--capacities", default=str(SCEN / "rhine_capacities.csv"))
+    ap.add_argument("--edge-capacities",
+                    default=str(ROOT.parent / "disrupt-sc-data" / "EU" / "Transport" / "scenario_edge_capacities.csv"),
+                    help="baseline-derived rail/road/waterway capacities (baseline_capacities.py); "
+                         "merged into transport_capacity_overrides for the scenario run when the file exists; "
+                         "pass an empty string to disable")
     ap.add_argument("--recovery-weeks", type=int, default=8, help="extra weeks after the profile ends")
     ap.add_argument("--flow-coverage", type=float, default=None)
     ap.add_argument("--constraint-mode", choices=["gradual", "binary"], default="gradual",
@@ -123,10 +128,15 @@ def main():
     config["capacity_constraint"] = args.constraint_mode
     if args.flow_coverage is not None:
         config["flow_coverage"] = args.flow_coverage
-    caps = pd.read_csv(args.capacities)
-    overrides = dict(config.get("transport_capacity_overrides") or {})
+    overrides = dict(config.get("transport_capacity_overrides") or {})   # port throughputs from the config
+    if args.edge_capacities and Path(args.edge_capacities).exists():
+        ec = pd.read_csv(args.edge_capacities)
+        overrides.update({str(r["name"]): float(r["capacity_tpd"]) for _, r in ec.iterrows()})
+        print(f"edge capacities: {len(ec)} rail/road/waterway edges from {args.edge_capacities}")
+    caps = pd.read_csv(args.capacities)                                   # Rhine cross-sections last (win)
     overrides.update({r["name"]: float(r["tons_per_day"]) for _, r in caps.iterrows()})
     config["transport_capacity_overrides"] = overrides
+    print(f"transport_capacity_overrides: {len(overrides)} edges; capacity_constraint: {args.constraint_mode}")
     config["disruptions"] = disruptions
 
     export_folder = Path(args.out) if args.out else RUNS_DIR / f"{args.profile}_seed{args.seed}"
