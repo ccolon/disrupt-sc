@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import copy
 import logging
 import math
 from collections import defaultdict
@@ -283,9 +282,7 @@ class TransportNetwork(nx.Graph):
             return None
         if from_node == key[0]:
             return cached
-        route = copy.deepcopy(cached)
-        route.revert()
-        return route
+        return cached.reversed_copy()
 
     def cache_route(self, from_node: int, to_node: int,
                     normal_or_disrupted: str, cargo_type: str, route: Route):
@@ -293,9 +290,7 @@ class TransportNetwork(nx.Graph):
         if from_node == key[0]:
             self.shortest_path_library[normal_or_disrupted][cargo_type][key] = route
         else:
-            canonical = copy.deepcopy(route)
-            canonical.revert()
-            self.shortest_path_library[normal_or_disrupted][cargo_type][key] = canonical
+            self.shortest_path_library[normal_or_disrupted][cargo_type][key] = route.reversed_copy()
 
     def is_route_available(self, route: Route) -> bool:
         """Check if a route's edges are all undisrupted."""

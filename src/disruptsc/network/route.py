@@ -88,6 +88,25 @@ class Route(list):
                 result.add((u, v))
         return result
 
+    def reversed_copy(self) -> "Route":
+        """A new Route running the opposite way, built from the minimal state.
+
+        Replaces ``copy.deepcopy(route); route.revert()`` on the cache path:
+        deepcopy of a list subclass with pickle hooks first runs
+        ``__setstate__`` and THEN re-appends the original list items, so the
+        copy's list part came back doubled (attributes stayed right, which is
+        why routing kept working); it also cost ~90 min for the 763k routes of
+        the EU scope. Building from the four stored fields is exact and cheap.
+        """
+        new = Route.__new__(Route)
+        new.__setstate__({
+            "transport_nodes": list(reversed(self.transport_nodes)),
+            "transport_edge_ids": list(reversed(self.transport_edge_ids)),
+            "transport_modes": list(self.transport_modes),
+            "length": self.length,
+        })
+        return new
+
     def revert(self):
         """Reverse the route in-place."""
         reversed_items = []
