@@ -565,7 +565,8 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
                      time_resolution: str, params: AgentParams,
                      selection: Selection,
                      transport_edges: gpd.GeoDataFrame | None = None,
-                     countries_no_transport: tuple = ()) -> dict[str, Country]:
+                     countries_no_transport: tuple = (),
+                     country_attachment: str = "roads") -> dict[str, Country]:
     """Create Country objects from MRIO trade data.
 
     Only countries kept by *selection* (i.e. those that retain at least
@@ -578,14 +579,24 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
     to the road network and reach other modes via multimodal edges.
     If *transport_edges* is provided, only nodes that are endpoints of road
     edges are considered; otherwise all transport nodes are used.
+
+    With ``country_attachment="any"`` the road restriction is lifted: a
+    country Point placed at sea snaps to the nearest maritime node, so its
+    port of entry becomes a routing decision per buyer instead of a fixed
+    gateway (continental scopes with several competing seaboards).
     """
     # Identify countries kept by the flow-coverage selection
     buying = set(selection.external_buying_countries)
     selling = set(selection.external_selling_countries)
     all_countries = sorted(buying | selling)
 
-    # Filter transport nodes to road-only for country placement
-    if transport_edges is not None and "type" in transport_edges.columns:
+    # Filter transport nodes to road-only for country placement (legacy rule);
+    # "any" keeps every node so sea-placed blocs attach to the maritime layer.
+    if country_attachment == "any":
+        country_nodes = transport_nodes
+        logging.info(f"Country placement on any of the {len(transport_nodes)} transport nodes "
+                     f"(country_attachment: any)")
+    elif transport_edges is not None and "type" in transport_edges.columns:
         road_edges = transport_edges[transport_edges["type"] == "roads"]
         road_node_ids = set(road_edges["end1"].tolist() + road_edges["end2"].tolist())
         country_nodes = transport_nodes[transport_nodes.index.isin(road_node_ids)]

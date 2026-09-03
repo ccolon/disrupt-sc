@@ -280,6 +280,7 @@ def execute(config: dict, *, cache: str | None = None,
             usd_per_ton, sp.time_resolution, ap, selection,
             transport_edges=transport_edges,
             countries_no_transport=tp.countries_no_transport,
+            country_attachment=tp.country_attachment,
         )
 
         cache_agents(firms, households, countries, mrio, sector_table, firm_table, household_table,

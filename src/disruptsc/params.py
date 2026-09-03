@@ -17,6 +17,14 @@ class TransportParams:
     price_increase_threshold: float | None = 2.0  # None = no threshold
     sectors_no_transport: tuple = ("utility", "transport", "trade", "services", "service", "construction")
     countries_no_transport: tuple = ()
+    # Where external Country agents attach to the transport network:
+    # "roads" (legacy) snaps every country point to the nearest ROAD node, so
+    # a maritime partner enters at one fixed port; "any" snaps to the nearest
+    # node of any mode, letting a Point placed at sea attach to the maritime
+    # layer so that the port of entry is chosen by routing per OD pair
+    # (continental scopes: one "Americas" bloc served through Rotterdam,
+    # Le Havre or Algeciras depending on the buyer).
+    country_attachment: str = "roads"
     # When False, all shipments are tagged with a single cargo type
     # ("any") and the routing pipeline runs Dijkstra/LP once instead of
     # once per cargo type. Useful for studies without pipelines or other

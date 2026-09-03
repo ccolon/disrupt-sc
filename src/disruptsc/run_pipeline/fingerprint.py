@@ -38,6 +38,7 @@ WATERMARKED_CONFIG_KEYS = (
     "sectors_to_include",
     "sectors_to_exclude",
     "countries_no_transport",
+    "country_attachment",
     "countries_to_include",
     # Transport / routing
     "use_cargo_types",
@@ -112,7 +113,8 @@ _STAGE_CONFIG_KEYS = {
     "agents": (
         "monetary_units_in_data", "monetary_units_in_model",
         "flow_coverage", "sectors_to_include", "sectors_to_exclude",
-        "countries_to_include", "countries_no_transport", "firm_data_type",
+        "countries_to_include", "countries_no_transport", "country_attachment",
+        "firm_data_type",
         "explicit_service_firm", "utilization_rate", "critical_input_threshold",
         "inventory_duration_targets", "inventory_restoration_time",
         "capital_to_value_added_ratio", "country_transport_share",

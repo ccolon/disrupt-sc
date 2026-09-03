@@ -166,6 +166,15 @@ sectors_no_transport_network: ['utility', 'transport', 'trade', 'services', 'ser
 # countries on the transport network.
 countries_no_transport: []
 
+# Where external Country agents attach to the transport network.
+#   roads : nearest ROAD node (legacy). A maritime partner therefore enters
+#           through ONE fixed port chosen by where its Point was placed.
+#   any   : nearest node of any mode. A Point placed at sea attaches to the
+#           maritime layer, so the port of entry is chosen by routing for each
+#           buyer - needed for continental scopes (EU) where one overseas bloc
+#           is served by several competing seaboards. Typos raise.
+country_attachment: roads
+
 # When True (default), each shipment is tagged with a cargo type (container,
 # dry_bulk, liquid_bulk, …) derived from sector_to_cargo_type, and the routing
 # pipeline runs once per cargo type. When False, every shipment uses a single

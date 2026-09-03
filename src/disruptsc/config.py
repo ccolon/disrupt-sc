@@ -96,6 +96,18 @@ def resolve_repo_prefix(value):
 # Build param bundles from config dict
 # ---------------------------------------------------------------------------
 
+def _parse_country_attachment(raw) -> str:
+    """Validate ``country_attachment``: 'roads' (legacy, nearest road node)
+    or 'any' (nearest node of any mode, so sea-placed blocs attach to the
+    maritime layer). Typos raise instead of silently keeping the legacy rule."""
+    value = str(raw).strip().lower()
+    if value not in ("roads", "any"):
+        raise ValueError(
+            f"country_attachment must be 'roads' or 'any' (got {raw!r})"
+        )
+    return value
+
+
 def _parse_capacity_constraint(raw) -> tuple[bool, str]:
     """Return (enabled, mode) from the capacity_constraint config value.
 
@@ -225,6 +237,7 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
         sectors_no_transport=tuple(config.get("sectors_no_transport_network",
                                               ["utility", "transport", "trade", "services", "service", "construction"])),
         countries_no_transport=tuple(config.get("countries_no_transport") or ()),
+        country_attachment=_parse_country_attachment(config.get("country_attachment", "roads")),
         use_cargo_types=bool(config.get("use_cargo_types", True)),
         monetary_units=config.get("monetary_units_in_model", "mUSD"),
         chunk_size=_parse_chunk_size(logistics, config.get("time_resolution", "week")),
