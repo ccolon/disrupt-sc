@@ -9,11 +9,13 @@ of one-step ``transport_disruption`` entries reproduces any profile, because
 DisruptSC clears a disruption when its duration elapses and re-applies the
 next one at the next step (see ``run_pipeline/disruption.py``).
 
-The economics of low water then come out of the model's congestion surcharge
-(``capacity_constraint: gradual``): utilisation above capacity multiplies the
-edge cost (x2 at 100 %, x5 at 105 %, x10 at 110 %), which is the model's
-counterpart of the Kleinwasserzuschlag; buyers reroute to rail/road when that
-is cheaper, or give up deliveries beyond ``price_increase_threshold``.
+Without capacity routing (EU default, user decision 2026-09-03) each week is
+a COST SHOCK on the Kaub edge — ``transport_cost_shock`` with multiplier
+1/load_factor, the model's counterpart of the Kleinwasserzuschlag: buyers
+pay the surcharge (passed into prices), reroute to rail/road when that is
+cheaper, or give up beyond ``price_increase_threshold`` — or a CLOSURE in
+the weeks where the fleet cannot sail (reduction >= --closure-threshold).
+Partial capacity reductions remain available for capacity-routing modes.
 
 Inputs (studies/rhine2026/scenarios/):
   <profile>.csv      week_start, kaub_cm  (weekly mean Kaub gauge, cm)  [or load_factor]
@@ -62,19 +64,35 @@ def weekly_reductions(profile: pd.DataFrame, curve) -> list[float]:
     return [round(1.0 - v, 4) for v in lf]
 
 
-def build_disruptions(reductions: list[float], edges: list[str], min_reduction=0.01) -> list[dict]:
+def build_disruptions(reductions: list[float], edges: list[str], min_reduction=0.01,
+                      closure_threshold: float | None = None,
+                      max_multiplier: float = 20.0) -> list[dict]:
+    """One disruption entry per week.
+
+    Without capacity routing (the EU default) a week is either a CLOSURE
+    (capacity reduction at or above *closure_threshold*: the fleet cannot
+    sail, Kaub below ~30 cm; ``transport_disruption`` with reduction 1.0,
+    rerouting + price pass-through through the alternative-route logic) or a
+    COST SHOCK (``transport_cost_shock`` with multiplier 1/(1 - reduction):
+    barges at 40 % load cost 2.5x per ton; buyers pay, reroute where rail or
+    road is cheaper, or give up beyond price_increase_threshold). With
+    *closure_threshold* None the partial capacity reductions are emitted as
+    such — meaningful only under capacity-constrained routing.
+    """
     out = []
     for t, r in enumerate(reductions, start=1):
         if r < min_reduction:
             continue
-        out.append({
-            "type": "transport_disruption",
-            "attribute": "name",
-            "values": list(edges),
-            "capacity_reduction": float(r),
-            "start_time": t,
-            "duration": 1,
-        })
+        if closure_threshold is None:
+            out.append({"type": "transport_disruption", "attribute": "name", "values": list(edges),
+                        "capacity_reduction": float(r), "start_time": t, "duration": 1})
+        elif r >= closure_threshold:
+            out.append({"type": "transport_disruption", "attribute": "name", "values": list(edges),
+                        "capacity_reduction": 1.0, "start_time": t, "duration": 1})
+        else:
+            out.append({"type": "transport_cost_shock", "attribute": "name", "values": list(edges),
+                        "cost_multiplier": round(min(max_multiplier, 1.0 / (1.0 - r)), 3),
+                        "start_time": t, "duration": 1})
     return out
 
 
@@ -91,10 +109,19 @@ def main():
                          "pass an empty string to disable")
     ap.add_argument("--recovery-weeks", type=int, default=8, help="extra weeks after the profile ends")
     ap.add_argument("--flow-coverage", type=float, default=None)
-    ap.add_argument("--constraint-mode", choices=["gradual", "binary"], default="gradual",
-                    help="gradual = congestion surcharge (the model's Kleinwasserzuschlag; re-prices every "
-                         "capacitated edge by its utilisation); binary = over-capacity edges are not routed, "
-                         "no re-pricing (see README section 2.2 design point)")
+    ap.add_argument("--constraint-mode", choices=["off", "gradual", "binary"], default="off",
+                    help="off = no capacity routing (EU default: the heuristic does not scale; use "
+                         "--closure-threshold); gradual = congestion surcharge; binary = over-capacity "
+                         "edges are not routed (both need capacity-constrained routing)")
+    ap.add_argument("--closure-threshold", type=float, default=0.75,
+                    help="weeks whose capacity reduction is >= this value close the Kaub edge entirely "
+                         "(2026 profile at 0.75: the four weeks of 27 Jul-23 Aug); lighter weeks become "
+                         "cost shocks x1/(1-reduction) (transport_cost_shock). Set to a negative value "
+                         "to emit partial capacity reductions instead (needs --constraint-mode "
+                         "gradual|binary)")
+    ap.add_argument("--price-threshold", type=float, default=None,
+                    help="override price_increase_threshold for the scenario (config default 2.0 = give up "
+                         "a delivery once its transport bill more than doubles; 2026 shippers paid x5 rates)")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--scope", default="EU")
     ap.add_argument("--out", default=None)
@@ -108,15 +135,26 @@ def main():
     curve = load_factor_curve(Path(args.draught_table))
     reductions = weekly_reductions(profile, curve)
     edges = [e.strip() for e in args.edges.split(",") if e.strip()]
-    disruptions = build_disruptions(reductions, edges)
+    closure = args.closure_threshold if (args.closure_threshold is not None and args.closure_threshold >= 0) else None
+    if closure is None and args.constraint_mode == "off":
+        raise SystemExit("partial capacity reductions need --constraint-mode gradual|binary; "
+                         "with capacity routing off use --closure-threshold (default 0.75)")
+    disruptions = build_disruptions(reductions, edges, closure_threshold=closure)
     t_final = len(reductions) + args.recovery_weeks
 
-    print(f"profile {args.profile}: {len(reductions)} weeks, {len(disruptions)} disrupted weeks, "
+    print(f"profile {args.profile}: {len(reductions)} weeks, {len(disruptions)} disrupted weeks "
+          f"({'closure >= ' + format(closure, '.0%') if closure is not None else 'partial reductions'}), "
           f"max reduction {max(reductions):.0%}, t_final={t_final}, edges={edges}")
     for d in disruptions:
         wk = profile.iloc[d["start_time"] - 1]
+        if d["type"] == "transport_cost_shock":
+            what = f"cost x{d['cost_multiplier']:.2f}"
+        elif d["capacity_reduction"] >= 1.0:
+            what = "CLOSED"
+        else:
+            what = f"capacity -{d['capacity_reduction']:.0%}"
         print(f"  t={d['start_time']:2d} {wk.get('week_start', '')} "
-              f"kaub={wk.get('kaub_cm', float('nan'))} -> capacity -{d['capacity_reduction']:.0%}")
+              f"kaub={wk.get('kaub_cm', float('nan'))} -> {what}")
     if args.dry_run:
         return
 
@@ -128,15 +166,22 @@ def main():
     config["capacity_constraint"] = args.constraint_mode
     if args.flow_coverage is not None:
         config["flow_coverage"] = args.flow_coverage
-    overrides = dict(config.get("transport_capacity_overrides") or {})   # port throughputs from the config
-    if args.edge_capacities and Path(args.edge_capacities).exists():
-        ec = pd.read_csv(args.edge_capacities)
-        overrides.update({str(r["name"]): float(r["capacity_tpd"]) for _, r in ec.iterrows()})
-        print(f"edge capacities: {len(ec)} rail/road/waterway edges from {args.edge_capacities}")
-    caps = pd.read_csv(args.capacities)                                   # Rhine cross-sections last (win)
-    overrides.update({r["name"]: float(r["tons_per_day"]) for _, r in caps.iterrows()})
-    config["transport_capacity_overrides"] = overrides
-    print(f"transport_capacity_overrides: {len(overrides)} edges; capacity_constraint: {args.constraint_mode}")
+    if args.price_threshold is not None:
+        config["price_increase_threshold"] = args.price_threshold
+    if args.constraint_mode != "off":
+        overrides = dict(config.get("transport_capacity_overrides") or {})   # port throughputs from the config
+        if args.edge_capacities and Path(args.edge_capacities).exists():
+            ec = pd.read_csv(args.edge_capacities)
+            overrides.update({str(r["name"]): float(r["capacity_tpd"]) for _, r in ec.iterrows()})
+            print(f"edge capacities: {len(ec)} rail/road/waterway edges from {args.edge_capacities}")
+        caps = pd.read_csv(args.capacities)                               # Rhine cross-sections last (win)
+        overrides.update({r["name"]: float(r["tons_per_day"]) for _, r in caps.iterrows()})
+        config["transport_capacity_overrides"] = overrides
+        print(f"transport_capacity_overrides: {len(overrides)} edges; capacity_constraint: {args.constraint_mode}")
+    else:
+        n_closed = sum(1 for d in disruptions if d["type"] == "transport_disruption")
+        print(f"capacity routing off: {n_closed} closure week(s) + {len(disruptions) - n_closed} "
+              f"cost-shock week(s), no capacity overrides")
     config["disruptions"] = disruptions
 
     export_folder = Path(args.out) if args.out else RUNS_DIR / f"{args.profile}_seed{args.seed}"
