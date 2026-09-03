@@ -1,0 +1,13 @@
+kaub_cm,load_factor,load_factor_vessel_gms,anchor
+5,0.05,0.00,"only purpose-built low-water vessels move (Stolt Ludwigshafen ~800 t at 30 cm; 9 such ships Aug 2026); Kaub 5-6 cm 14-17 Aug 2026"
+10,0.08,0.00,"press: shipping past Kaub stopped; Contargo/CMA CGM: no barge <24 cm"
+15,0.12,0.02,"KBN week to ~13 Aug 2026 (Kaub 10-17 cm): 60 kt dry + 30 kt wet vs normal 300 + 100 kt = 22%; partly small Class II-IV units"
+25,0.22,0.09,"KBN 22% at ~20-25 cm; Argus: 1,200 t tanker loads 180 t (15%) at 23 cm; low-water ships 700-800 t of 5,100 t"
+30,0.25,0.11,"IfW 28 Jul 2026: loads 10-15%; 2018 record 25 cm: only Class II/III vessels sailed (van Dorsser 2020)"
+40,0.30,0.16,"WSV: at 40-50 cm vessels carry ~20%; Contargo 40 cm 'freight navigation practically impossible' (large container vessels)"
+55,0.40,0.24,"Contargo: 55 cm = 16% for large container vessels; fleet redeployment x2-2.5 (twice the number of vessels, SMC 2026)"
+78,0.60,0.35,"GlW: Contargo 25% per vessel = 4x ships; Ademmer et al. 2023: a full month <78 cm = -25% German IWW tonnage (Kaub usually far below in those months)"
+100,0.80,0.46,"mild surcharge band (Maersk EUR 100/20' <91 cm)"
+120,0.90,0.56,"Kaub 120-125 cm late April 2026: normal loading reported"
+150,1.00,0.71,"full loading of standard vessels needs ~150 cm (hydrostatus/Kiel); fleet slack absorbs the residual"
+250,1.00,1.00,"Contargo 2017: 250 cm = 100%"

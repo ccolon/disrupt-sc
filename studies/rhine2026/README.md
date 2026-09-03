@@ -100,15 +100,60 @@ needed for the paper.
 
 ## 2. Track 2 — case-study evidence (validation)
 
-Files in `evidence/` (agent-collected 2026-09-02, to be curated):
+Files in `evidence/` (web-collected 2026-09-02/03, every fact dated and sourced):
 - `evidence_rhine2026_timeline.md` — what happened in summer 2026 (Kaub gauge
-  trajectory, freight, surcharges, industrial statements, macro estimates, policy).
-- `evidence_rhine_literature.md` — quantified findings from 2018/2022 and the
-  academic literature (Ademmer et al., Vinke et al., Jonkeren et al., Bundesbank,
-  Kiel) = the **validation-targets table**.
+  trajectory day by day, freight, surcharges, industrial statements, macro estimates,
+  policy, other rivers, meteorology, confounders; ~150 sources).
+- `evidence_rhine_literature.md` — annotated bibliography of 2018/2022/2003 and
+  the academic literature + a 73-row **validation-targets table** + 17 open gaps.
 - `evidence_rhine_datasources.md` — machine-readable sources (PEGELONLINE,
   Destatis 46321, Eurostat iww_*, CCNR market observation, production indices,
-  barge freight indices, Kleinwasserzuschlag tables).
+  barge freight indices, Kleinwasserzuschlag tables) — in progress.
+
+**The 2026 event in one paragraph.** After the least snowy Alpine winter since
+1991 and a Rhine basin below normal precipitation every month from February, the
+Kaub gauge (Rhine-km 546, the Middle Rhine bottleneck) fell below the reference
+low-water level GlW (77 cm) around 8–12 July, was last above it on 20–22 July,
+equalled the 2018 record (25 cm) on 31 July, set a new all-time low on 4 August
+and reached **5 cm on 17 August** (series since 1880; Cologne 44 cm, Duisburg-
+Ruhrort 126 cm, Emmerich −28 cm, Lobith 565 m³/s — all records). There was no
+formal closure, but the river was "de facto divided" at Kaub from ~11 August:
+standard vessels loaded 10–20 %, only nine purpose-built low-water tankers kept
+moving 250–800 t parcels, KBN counted 90 kt/week past the bottleneck instead of
+400 kt (−77 %), ARA→Karlsruhe tanker rates rose from EUR 45/t (June) to EUR
+215/t (mid-August, ARA→Basel 275/t), container surcharges reached EUR 1,335/20'.
+Rain from 18 August lifted Kaub to 77 cm on 29 August (never above GlW); on
+2 September it was falling again (54 cm) with the BfG forecasting 37–40 cm by
+6 September. Named impacts: LyondellBasell (butadiene FM 16 Jul), Covestro
+(polyether polyols FM 7 Aug), BASF (isolated bottlenecks, plasticiser FM,
+"reduced capacity"), Evonik, Lanxess, thyssenkrupp (own push convoys stopped
+14 Jul, furnace output "moderately" reduced, rail share doubled), MiRO Karlsruhe
+(tankers at 1/3, 50 % of usual rail capacity because the right-bank Rhine railway
+is closed until 12 Dec 2026), EnBW/Uniper. Macro: IfW −0.1/−0.2 pp Q3 GDP,
+Commerzbank −0.35 pp, IW up to −0.4 pp p.a., Bundesbank "at best slight growth".
+Confounders: Hormuz-driven oil prices, weak cracker demand (65–70 %), the rail
+line closure, Dutch port strikes.
+
+**Ten numbers the model must reproduce (2018 as the calibrated precedent):**
+
+| # | Target | Value | Source |
+|---|---|---|---|
+| 1 | German IWW tonnage per Kaub day < 78 cm | −0.87 % (t), −0.41 % (t−1); 30 days ≈ −25 % | Ademmer et al. 2023 |
+| 2 | German industrial production per low-water day | −0.034 % (t), −0.024 % (t−1); ≈ −1 % per 30 days; peak −1.5 % (Nov 2018) | Ademmer et al. 2023 |
+| 3 | Elasticity of IP to IWW volume | 0.036 (+0.03 lagged): −10 % IWW → −0.4 % IP → −0.1 % GDP | Ademmer et al. 2023 |
+| 4 | German IWW 2018 | 198.0 Mt (−11.1 %); Nov 2018 −34 % y/y; tkm −15.5 % | Destatis; BDB |
+| 5 | Traditional Rhine 2018 / 2022 | 165 Mt (−11 %) / 155.5 Mt (−7.8 %) | CCNR |
+| 6 | Freight rates 2018 | liquid spot ≈ 4.5× normal, dry ≈ 2.5× (Oct–Nov); Rotterdam→Basel distillate $5 → $35/bbl | CCNR; EIA |
+| 7 | Load factors vs Kaub | 78 cm 25 %; 55 cm 16 %; 40 cm ≈ 20 % (WSV); 25 cm 15 %; 2018 Duisburg barges 2,000 → 700 t | Contargo; van Dorsser; Platts |
+| 8 | Modal substitution | rail +0.07 % per low-water day (weak); 2026: DB Cargo 400–900 wagons ≈ 200 barges, Kombiverkehr +2,000 TEU | Ademmer; DB Cargo |
+| 9 | Firm level 2018 | BASF EBIT −EUR 250 m; chem-pharma production Q4 2018 −10 % q/q | BASF; VCI |
+| 10 | 2026 throughput at Kaub | 60+30 kt/week vs 300+100 normal (−77 %) at Kaub 10–17 cm; rates 45 → 215 EUR/t | KBN; Argus |
+
+Scenario tables built from this evidence (in `scenarios/`): `2026.csv` (weekly
+Kaub profile 22 Jun → 28 Sep, observed/press/forecast/assumption flagged),
+`draught_table.csv` (Kaub cm → aggregate capacity factor past Kaub, with the
+per-vessel GMS load factor and the anchoring source per row);
+`rhine_capacities.csv` pending the CCNR/Destatis section tonnages.
 
 ### 2.1 Observable ↔ model output mapping
 
