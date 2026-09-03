@@ -111,8 +111,12 @@ Progress 3 Sep (details per version in `disrupt-sc-data/EU/calibration_log.md`):
 move (Kaub 132 → 106 Mt, containers on target); v3 inert → root cause found: agents were
 snapped to rail/waterway nodes (`agent_attachment: roads`, disrupt-sc 9eb15df); v4 on road
 nodes: rail collapses to 3 % (over-inflated rail/transfer costs from v2–v3), Rhine profile
-near real (Kaub 68 Mt); v5 = sea-leg value of time (running); v6 = rail and transfers back
-into range, iterated with the routing-only harness.
+near real (Kaub 68 Mt); v5 = sea-leg value of time (Trieste 50 Mt vs 51, Antwerp ×4);
+v6–v12 = seven harness iterations of ~2 min each on rail cost/speed, terminal transfers and
+the barge value of time for containers. **v12 adopted**: containers 66/28/7 (DE 68/28/5),
+dry bulk 56/27/17 (53/27/20), Emmerich 127 Mt (118), Köln 94 (88), Kaub 68 (50); residuals:
+liquid bulk rail-heavy (52 vs 42 %), no short-haul road by construction, one EU-wide rail
+cost too strong for FR/IT/AT and too weak for DE, Upper Rhine under-served.
 
 Plan: (1) firm-level baseline — done (`20260903_094137`, 42 min; economics 93.6 % / 98 % /
 89 %; flow fit unchanged in structure: Kaub 132 Mt, Antwerp 53 Mt, rail 40 %); (2) v2 =
