@@ -107,13 +107,25 @@ far off and is the calibration job (`studies/rhine2026/flow_checks.py`):
 | Rhine at Emmerich | 203 Mt/yr | 118 | idem |
 | Antwerp / Trieste / Venice port entries | 55 / 183 / 150 Mt | 242 / 51 / 25 | **port capacities** (binary constraint, `port_capacities.py`) |
 
-Plan: (1) run the firm-level baseline (in progress); (2) apply per-port throughput
-capacities (Eurostat 2023 × 1.3 peak) through `transport_capacity_overrides` with
-`capacity_constraint: binary`, which blocks over-capacity terminals without re-pricing
-every edge; (3) refit mode costs per cargo class against the DE/NL/EU NST targets
-(Romania procedure: scalars in range first, then per-cargo transfer costs, always with
-`--seed 42`); (4) check the Rhine profile against `scenarios/rhine_capacities.csv`.
-Runtime after the cache fix: ≈ 40 min build + 6 min per weekly step (12.6 GB RAM).
+Plan: (1) firm-level baseline — done (`20260903_094137`, 42 min; economics 93.6 % / 98 % /
+89 %; flow fit unchanged in structure: Kaub 132 Mt, Antwerp 53 Mt, rail 40 %); (2) v2 =
+per-port throughput capacities (Eurostat 2023 × 1.3 peak) through
+`transport_capacity_overrides` with `capacity_constraint: binary`, which blocks
+over-capacity terminals without re-pricing every edge, plus a first cost move (waterways
+0.0045 → 0.010, rail 0.040 → 0.044, roads 0.055 → 0.050 USD/tkm, river transfers 24 h/6 USD
+with container 12 h/4 and liquid 16 h/4, rail transfers 8 h/5) — running; (3) refit per
+cargo class against the DE/NL/EU NST targets (Romania procedure: scalars in range first,
+then per-cargo transfer costs, always with `--seed 42`); (4) check the Rhine profile
+against `scenarios/rhine_capacities.csv`. Every iteration is logged in
+`disrupt-sc-data/EU/calibration_log.md`. Runtime: ≈ 42 min per full rebuild, 7 min per
+weekly step (12.6 GB RAM).
+
+Scenario side (independent of the calibration): `baseline_capacities.py` derives finite
+capacities for every rail/road/waterway edge from the calibrated baseline (baseline load ×
+headroom, rail 1.3 / road 1.5 as stated assumptions to sweep) and gives the Rhine edges
+their normal-year cross-sections; `run_rhine.py` merges that CSV and the port capacities
+into the scenario run's overrides, so rail can absorb only its headroom (DB Cargo's
+≈ 100-barge ceiling) instead of the whole Rhine traffic.
 
 ### 1.3 Calibration targets specific to the Rhine study
 
