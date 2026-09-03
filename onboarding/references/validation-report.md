@@ -96,9 +96,12 @@ The first call materialises the routable links (one equilibrium solve on the cac
 rebuilds the cost labels and re-routes (scipy Dijkstra). Change `logistics.*` in the
 config between calls; a change of the cargo mapping, the network files, the seed or
 the agent data invalidates the parquet through the stage hash. Confirm the final
-parameter set with one full `initial_state` run — the stage caches now survive cost
-changes (agents and the supply chain are keyed on the network geometry only), so that
-run is routing + equilibrium + one step. Caches written before 312de8d are rebuilt once.
+parameter set with one full `initial_state` run launched with `--cache auto`: every stage
+whose stored fingerprint still matches is reused (agents and the supply chain are keyed on
+the network geometry only, so a cost change rebuilds just the transport labels and the
+routes), which makes the confirming run routing + equilibrium + one step. Without a
+`--cache` flag the CLI rebuilds everything. Caches written before 312de8d carry no sidecar
+and are rebuilt once.
 
 ## Recurring recommendation patterns
 
