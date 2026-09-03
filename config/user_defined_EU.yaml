@@ -1,0 +1,143 @@
+# ============================================================================
+# EU scope — whole-EU DisruptSC for the Rhine 2026 low-water paper
+# 2026-09-03 (decisions approved by the user at the runbook checkpoints):
+# MRIO: OECD ICIO 2022, EU27 + CHE internal (28 regions x 50 native sectors),
+#   sector-resolved imports, 12 external blocs (GBR NOR TUR UKR RUS USA CHN
+#   singletons + MEA ASI AME AFR ROW), bloc-to-bloc block zeroed.
+# Transport: TEN-T network (onboarding/scripts/tent_to_scope.py from
+#   TENT/Transport/tent_plain.gpkg), 4 modes + terminal connectors; Rhine
+#   chain named (Kaub = rhine_mainz_koblenz).
+# Spatial: households = 249 NUTS2 points (Eurostat pop 2023); firms =
+#   firm-extractor (plants + NUTS3 employment), population file kept for A/B.
+# ============================================================================
+
+filepaths:
+  mrio: "Economic/mrio.csv"
+  sector_table: "Economic/sector_table.csv"
+  # firm-level file from firm-extractor (EU/firm_extractor_config.yaml);
+  # Spatial/firms_population.geojson = NUTS2 population fallback for A/B tests
+  firms_spatial: "Spatial/firms.geojson"
+  households_spatial: "Spatial/households.geojson"
+  countries_spatial: "Spatial/countries.geojson"
+  transport: "Transport/transport.gpkg"
+  multimodal: "Transport/multimodal.gpkg"
+
+transport_modes: [roads, railways, waterways, maritime]
+with_transport: True
+# Overseas blocs sit on SEA nodes (Atlantic edge, Suez approach, Port Said,
+# Channel, Baltic) so the port of entry is chosen by routing per buyer -
+# needs disrupt-sc >= 1ab423d (country_attachment).
+country_attachment: any
+# v4 (2026-09-03): firms and households attach to ROAD nodes. With the legacy
+# "any" rule 46% of firm output sat directly on TEN-T rail nodes and 12% on
+# waterway/maritime nodes, shipping by rail/barge with no access leg and no
+# transfer cost - which is why the v3 transfer-cost move was inert.
+agent_attachment: roads
+
+monetary_units_in_model: mUSD
+monetary_units_in_data: mUSD   # OECD ICIO is million USD (mEUR if FIGARO is chosen)
+time_resolution: week
+
+flow_coverage: 0.9
+
+simulation_type: initial_state
+export_files: True
+
+logistics:
+  # v1 (baseline, run 20260903_094137) = Romania v6.1 values: roads 0.055 / rail 0.040 /
+  # waterways 0.0045 / maritime 0.0015; transfers rr 6h/3.5 (liquid 0.5/0),
+  # rw 16h/3.5 (liquid 8/2), *-maritime 24h/7, wm 8h/2. Fit: inland tkm
+  # 45.5/40.4/14.1 road/rail/IWW vs Eurostat EU27 78/17/5; DE 40/30/30 vs 73/21/7;
+  # Kaub 132 Mt vs ~50; per cargo dry 22/41/37, container 59/40/1, liquid 10/42/48.
+  # v2 (2026-09-03): first move inside grounded ranges - barge and rail were too
+  # cheap for bulk relative to road (VOT 0.08 makes time irrelevant, so the
+  # cheapest USD/tkm mode wins wherever the network allows). Waterways 0.0045 ->
+  # 0.010 (CCNR: Rhine dry-cargo ~0.6-1.0 EUR-ct/tkm all-in incl. port dues and
+  # empty returns), rail 0.040 -> 0.044, roads 0.055 -> 0.050 (EU long-haul
+  # contract rates ~0.05 USD/tkm); river transfers to realistic terminal
+  # handling 24 h/6 USD (containers 12 h/4: dedicated Rhine container terminals;
+  # liquid 16 h/4); rail transfers 8 h/5 (liquid sidings unchanged). Port
+  # throughput capacities (binary) added separately - see the marked block.
+  speeds:  # km/hour
+    roads: 60         # motorway line-haul (TEN-T core roads)
+    # v8 (harness): 30 -> 45 km/h. At 30 km/h rail cost containers 0.072
+    # USD/tkm all-in (0.032 + 1.2/30) vs 0.070 for road, so no distance ever
+    # favoured rail (v7: containers 97/3/0 vs DE 68/28/5). Intermodal and
+    # block trains on the core network average 45-50 km/h door to door.
+    railways: 45
+    waterways: 12     # Rhine barge (upstream ~10, downstream ~15)
+    maritime: 35
+  # v6 (2026-09-03, after v4 run 20260903_133214 with agents on road nodes):
+  # rail collapsed to 3% of inland tkm (target 17%) because the v2/v3 rail and
+  # transfer costs had been inflated to fight an excess that the attachment
+  # rule was creating; with two road-rail transfers per rail trip they are
+  # brought back into range: rail 0.044 -> 0.032 USD/tkm (EU block-train and
+  # intermodal rates 0.02-0.04), road-rail transfers 8 h/5 -> 4 h/3 USD
+  # (intermodal terminals), dry bulk 12 h/8 -> 6 h/4 (bulk sidings both ends).
+  # Iterated with onboarding/scripts/reroute_baseline.py (routing-only).
+  basic_cost:  # USD per ton*km
+    roads: 0.050
+    railways: 0.032
+    waterways: 0.010
+    maritime: 0.0015
+  # v5 (2026-09-03): per-MODE value of time for containers. The inland 1.6
+  # USD/t.h stands in for service quality and separates road from rail; on the
+  # sea leg every option is a ship, and 1.6 priced the 100 extra hours
+  # Suez->Rotterdam at 160 USD/t, sending Asian imports to the nearest Adriatic
+  # port (Trieste 156 Mt vs 51 real; Antwerp 41 vs 242). 0.15 USD/t.h = 3.6
+  # USD/t/day ~ inventory cost of ~10 kUSD/t goods at 13 %/yr.
+  cost_of_time:  # USD per ton-hour, per cargo type (and per mode)
+    # v7 (harness): inland container VOT 1.6 -> 1.2 with intermodal-terminal
+    # transfers 2 h/2 USD, so the rail-vs-road breakeven for containers drops
+    # from ~1,000 km to ~450 km (v6: containers 98/2/0 vs DE 68/28/5)
+    # v11: containers on barges value time like sea freight, not like a truck:
+    # at 1.0 USD/t.h a 12 km/h barge cost 0.093 USD/tkm (road 0.067), so
+    # container-on-barge was 0.1% (DE target 5%, NL 26%; Rotterdam-Duisburg
+    # container barges are a fifth of Emmerich's tonnage). 0.3 = 7 USD/t/day.
+    # v12: 0.3 flooded the Rhine with boxes (container IWW 14%, Kaub 121 Mt); bracket at 0.45
+    container: {default: 1.0, maritime: 0.15, waterways: 0.45}   # v8: 1.2 -> 1.0 with rail at 45 km/h
+    dry_bulk: 0.08
+    liquid_bulk: 0.08
+    default: 2.0
+  # v3 (2026-09-03, after v2 run 20260903_121946): dry bulk was rail-dominant
+  # (43% vs 27% DE) where reality is road-dominant - bulk rail needs sidings or
+  # tipplers at both ends, which aggregates/construction consignees lack; the
+  # road-rail transfer for dry bulk goes to 12 h/8 USD. Container-on-barge was
+  # 1% vs 5%: Rhine container terminals are efficient, river transfer for
+  # containers 12 h/4 -> 8 h/3. Everything else as v2.
+  dwell_times:  # hours, one key per multimodes string of multimodal.gpkg
+    # v7: container 2 h (intermodal terminals), dry bulk 4 h (sidings), liquid
+    # 1 h; liquid river terminals 8 h (Rhine tank terminals; v6 liquid IWW 9% vs 30)
+    # v9: container terminal dwell 2 -> 3 h (v8 at 2 h: containers 61/39/0 vs 68/28/5,
+    # rail 35% overall - the breakeven band flips whole OD groups at once)
+    roads-railways: {default: 4, container: 3, dry_bulk: 4, liquid_bulk: 1}
+    # v10: river terminals a notch dearer (v9: DE inland waterways 81 bn tkm vs 45 real,
+    # Kaub 68 Mt vs 50 while per-cargo IWW shares sat on target - judge IWW by tkm)
+    # v12: container river terminals 8 -> 4 h (Rotterdam/Duisburg barge terminals turn boxes in hours)
+    roads-waterways: {default: 24, container: 4, dry_bulk: 20, liquid_bulk: 10}
+    roads-maritime: 24
+    railways-waterways: {default: 24, container: 4, dry_bulk: 20, liquid_bulk: 10}
+    railways-maritime: 24
+    waterways-maritime: 8
+  loading_fees:  # USD/ton
+    roads-railways: {default: 3, container: 2, dry_bulk: 3, liquid_bulk: 1}
+    roads-waterways: {default: 6, container: 3, dry_bulk: 5, liquid_bulk: 3}
+    roads-maritime: 7
+    railways-waterways: {default: 6, container: 3, dry_bulk: 5, liquid_bulk: 3}
+    railways-maritime: 7
+    waterways-maritime: 2
+  border_crossing_fees:   # Schengen/EU internal borders are ~free; keep tiny
+    roads: 0.5
+    railways: 0.5
+    waterways: 0
+    maritime: 0
+  border_crossing_times:
+    roads: 0.5
+    railways: 2       # locomotive/crew change at most EU rail borders
+    waterways: 0
+    maritime: 0
+
+# Port throughput capacities (Transport/port_capacity_overrides.csv) are NOT applied:
+# capacity-constrained routing (heuristic candidate generation over ~200k OD groups)
+# does not scale to this scope - killed after 80 CPU-min on 2026-09-03. Port choice is
+# a cost question in this scope; capacity_constraint stays off (default).
