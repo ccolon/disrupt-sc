@@ -107,6 +107,13 @@ far off and is the calibration job (`studies/rhine2026/flow_checks.py`):
 | Rhine at Emmerich | 203 Mt/yr | 118 | idem |
 | Antwerp / Trieste / Venice port entries | 55 / 183 / 150 Mt | 242 / 51 / 25 | **port capacities** (binary constraint, `port_capacities.py`) |
 
+Progress 3 Sep (details per version in `disrupt-sc-data/EU/calibration_log.md`): v2 cost
+move (Kaub 132 → 106 Mt, containers on target); v3 inert → root cause found: agents were
+snapped to rail/waterway nodes (`agent_attachment: roads`, disrupt-sc 9eb15df); v4 on road
+nodes: rail collapses to 3 % (over-inflated rail/transfer costs from v2–v3), Rhine profile
+near real (Kaub 68 Mt); v5 = sea-leg value of time (running); v6 = rail and transfers back
+into range, iterated with the routing-only harness.
+
 Plan: (1) firm-level baseline — done (`20260903_094137`, 42 min; economics 93.6 % / 98 % /
 89 %; flow fit unchanged in structure: Kaub 132 Mt, Antwerp 53 Mt, rail 40 %); (2) v2 =
 per-port throughput capacities (Eurostat 2023 × 1.3 peak) through
