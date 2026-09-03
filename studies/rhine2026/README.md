@@ -235,6 +235,10 @@ Capacity-constrained routing does not scale to this scope (197k OD groups; kille
   and 27 cm, 3–23 Aug 2026): existing `transport_disruption` mechanics.
 `run_rhine.py --profile 2026 --dry-run` prints the schedule (×1.2 in late June, ×3 mid-July,
 ×3.8 the week of 27 July, closed 3–23 August, ×2–3 through September).
+Verified end to end on the bundled Testkistan scope (3 Sep): a ×1.5 shock on the main road for
+2 steps surcharges 21 of 31 links (+10 % price = transport share × 50 %), loses no delivery,
+propagates into downstream prices the next step (+14 %) and decays after the shock; a ×3 shock
+drops the affected deliveries as too expensive because that demo network has no alternative.
 This matches what the evidence says happened: the market cleared by price first (rates ×2–5),
 then by rationing and production cuts, with rail absorbing only a tenth of the tonnage. The
 ex post check is physical: modelled weekly Rhine tonnage must not exceed the fleet's capacity
