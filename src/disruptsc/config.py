@@ -96,6 +96,27 @@ def resolve_repo_prefix(value):
 # Build param bundles from config dict
 # ---------------------------------------------------------------------------
 
+def _parse_sector_list(raw) -> tuple:
+    """``sectors_to_exclude`` as a tuple of sector codes.
+
+    YAML parses an unquoted ``None`` as the STRING "None" (only null/~ are
+    null), and ``tuple("None")`` is ``('N', 'o', 'n', 'e')`` - which silently
+    excluded every sector literally named ``N`` (ICIO: administrative and
+    support services) from every scope built on the shipped default.yaml
+    (Romania 2026-08/09 runs, EU smoke run 20260903_072310). Accept
+    None/"None"/"none"/"" as empty and reject a bare string otherwise, so a
+    typo cannot become a per-character sector filter again."""
+    if raw is None:
+        return ()
+    if isinstance(raw, str):
+        if raw.strip().lower() in ("", "none", "null", "~"):
+            return ()
+        raise ValueError(
+            f"sectors_to_exclude must be a list of sector codes (got the string {raw!r})"
+        )
+    return tuple(str(s) for s in raw)
+
+
 def _parse_country_attachment(raw) -> str:
     """Validate ``country_attachment``: 'roads' (legacy, nearest road node)
     or 'any' (nearest node of any mode, so sea-placed blocs attach to the
@@ -289,7 +310,7 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
         enable_household_inventories=config.get("enable_household_inventories", False),
         firm_data_type=config.get("firm_data_type", "mrio"),
         sectors_to_include=config.get("sectors_to_include", "all"),
-        sectors_to_exclude=tuple(config.get("sectors_to_exclude") or []),
+        sectors_to_exclude=_parse_sector_list(config.get("sectors_to_exclude")),
         countries_to_include=config.get("countries_to_include", "all"),
         explicit_service_firm=config.get("explicit_service_firm", True),
         monetary_units_in_model=config.get("monetary_units_in_model", "mUSD"),
