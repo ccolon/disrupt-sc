@@ -35,6 +35,14 @@ GAZETTEER = {  # lon, lat
     "Warsaw": (21.01, 52.23), "Prague": (14.42, 50.09), "Frankfurt": (8.68, 50.11),
     "Brenner": (11.51, 47.00), "Kufstein": (12.17, 47.58), "Strasbourg": (7.75, 48.58),
     "Adriatic (Ancona-Split lane)": (16.0, 43.0), "Lobith/Emmerich": (6.15, 51.85),
+    "Oslo (NOR gateway)": (10.71, 59.90), "Szczecin-Swinoujscie": (14.58, 53.44), "Burgas": (27.49, 42.49),
+    "Bilbao": (-3.05, 43.34), "Constanta": (28.65, 44.15), "Klaipeda": (21.13, 55.70), "Riga": (24.09, 57.04),
+    "Tallinn": (24.75, 59.44), "Helsinki": (24.95, 60.17), "Lisbon": (-9.13, 38.70), "Dublin": (-6.20, 53.35),
+    "Aarhus": (10.22, 56.15), "Copenhagen-Malmo": (12.60, 55.65), "Ravenna": (12.25, 44.47), "Livorno": (10.30, 43.55),
+    "Naples": (14.27, 40.84), "Gioia Tauro": (15.90, 38.45), "Thessaloniki": (22.93, 40.63), "Limassol": (33.02, 34.65),
+    "Sines": (-8.87, 37.95), "Tarragona": (1.23, 41.10), "Cartagena": (-0.98, 37.59), "Huelva": (-6.93, 37.20),
+    "Wilhelmshaven": (8.15, 53.58), "Rostock": (12.10, 54.15), "Lubeck": (10.85, 53.90), "Amsterdam": (4.80, 52.41),
+    "Ghent": (3.75, 51.12), "Dunkirk": (2.35, 51.04), "Nantes-St Nazaire": (-2.20, 47.28), "Bordeaux": (-0.55, 44.95),
 }
 
 EUROSTAT_2023 = {  # % of inland tkm road / rail / IWW (tran_hv_frmod)
