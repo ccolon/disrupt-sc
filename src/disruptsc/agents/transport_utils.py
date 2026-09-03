@@ -93,7 +93,60 @@ def send_shipment(agent_pid, od_point: int,
     # --- Single-route path ---
     # Always try the main route first; if available, switch back to it
     main_route = link.route
-    if main_route and available_transport_network.is_route_available(main_route):
+    if (main_route and available_transport_network.is_route_available(main_route)
+            and link.delivery_in_tons > EPSILON
+            and main_route.has_cost_shock(transport_network)):
+        # The main route is open but crosses a cost-shocked edge (low water,
+        # congestion, toll). Compare the re-priced main route with the best
+        # alternative on the shocked network and take the cheaper; then the
+        # same pass-through / give-up rules as for a closed edge apply. The
+        # closure and shock cases are kept separate so that closures keep
+        # their exact previous behaviour.
+        shocked_cost = transport_network.compute_route_cost(
+            main_route, link.cargo_type, with_capacity=tp.capacity_constraint_enabled,
+        )
+        alt_route = discover_route(
+            od_point, link, transport_network, available_transport_network,
+            tp.capacity_constraint_enabled, tp.use_route_cache,
+        )
+        alt_cost = (transport_network.compute_route_cost(
+            alt_route, link.cargo_type, with_capacity=tp.capacity_constraint_enabled)
+            if alt_route is not None else float("inf"))
+        stays_on_main = alt_route is None or alt_cost >= shocked_cost
+        chosen = main_route if stays_on_main else alt_route
+        chosen_cost = shocked_cost if stays_on_main else alt_cost
+
+        link.alternative_route = chosen
+        link.alternative_found = True
+        link.alternative_route_cost_per_ton = chosen_cost
+        relative_increase = link.calculate_relative_increase_in_transport_cost()
+        if not stays_on_main:
+            relative_increase += link.calculate_switching_cost(tp.switching_costs, transport_network)
+
+        if tp.price_increase_threshold is not None and 1.0 + relative_increase > tp.price_increase_threshold:
+            link.realized_delivery = 0.0
+            link.delivery = 0.0
+            link.payment = 0.0
+            if routing_event_collector:
+                routing_event_collector.record_event(
+                    agent_pid, link.buyer_id, "too_expensive", relative_increase,
+                )
+            return
+
+        link.price = base_price * (1 + transport_share * relative_increase)
+        if stays_on_main:
+            link.current_route = "main"
+            link.main_route_realized_delivery = link.delivery
+        else:
+            link.current_route = "alternative"
+            link.alternative_route_realized_delivery = link.delivery
+        if routing_event_collector:
+            routing_event_collector.record_event(
+                agent_pid, link.buyer_id,
+                "surcharged" if stays_on_main else "rerouted", relative_increase,
+            )
+        route = chosen
+    elif main_route and available_transport_network.is_route_available(main_route):
         link.current_route = "main"
         link.price = base_price
         link.main_route_realized_delivery = link.delivery

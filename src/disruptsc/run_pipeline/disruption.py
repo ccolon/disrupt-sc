@@ -83,6 +83,56 @@ class TransportDisruption:
 
 
 # ------------------------------------------------------------------
+# Transport cost shock
+# ------------------------------------------------------------------
+
+@dataclass
+class TransportCostShock:
+    """Multiplies the cost of transport edges without closing them.
+
+    description: {edge_id: multiplier} where multiplier is a number or a
+    per-cargo dict ({cargo_type: m, "default": m}); duration in time steps
+    (inf = permanent). A low-water river is the archetype: barges sail at a
+    third of their load, so every ton costs three times more, buyers pay the
+    surcharge, reroute where rail or road is cheaper, or give up beyond
+    ``price_increase_threshold``. Pairs with ``transport_disruption`` for the
+    weeks where the edge is de facto closed.
+    """
+    description: dict[int, object] = field(default_factory=dict)
+    duration: float = 1
+    start_time: int = 1
+
+    def implement(self, transport_network):
+        n = 0
+        for edge in transport_network.edges:
+            edata = transport_network[edge[0]][edge[1]]
+            eid = edata["id"]
+            if eid in self.description:
+                transport_network.start_edge_cost_shock(edata, self.description[eid], self.duration)
+                n += 1
+        logging.info(f"Cost shock applied to {n} edge(s) for {self.duration} step(s)")
+
+    def log_info(self):
+        mults = {str(m) for m in self.description.values()}
+        logging.info(f"TransportCostShock: {len(self.description)} edges at t={self.start_time}, "
+                     f"x{'/'.join(sorted(mults))} for {self.duration} step(s)")
+
+    @classmethod
+    def from_edge_attributes(cls, edges: gpd.GeoDataFrame, attribute: str,
+                             values: list, multiplier, duration: float = 1):
+        if attribute == "disruption":
+            mask = pd.concat(
+                [edges[attribute].str.contains(v, na=False) for v in values], axis=1
+            ).any(axis=1)
+        else:
+            mask = edges[attribute].isin(values)
+        ids = edges.loc[mask, "id"].tolist()
+        if not ids:
+            logging.warning(f"transport_cost_shock: no edge matched {attribute} in {values} - no-op")
+        return cls(description={eid: multiplier for eid in ids}, duration=duration)
+
+
+# ------------------------------------------------------------------
 # Capital destruction
 # ------------------------------------------------------------------
 
@@ -533,6 +583,17 @@ def parse_disruptions(config_list: list | None,
                 )
             disruptions.append(d)
 
+        elif dtype == "transport_cost_shock":
+            mult = cfg.get("cost_multiplier", cfg.get("multiplier"))
+            if mult is None:
+                raise ValueError("transport_cost_shock needs 'cost_multiplier' (number or per-cargo dict)")
+            d = TransportCostShock.from_edge_attributes(
+                transport_edges, cfg["attribute"], cfg["values"], mult,
+                duration=cfg.get("duration", 1),
+            )
+            d.start_time = cfg.get("start_time", 1)
+            disruptions.append(d)
+
         elif dtype == "transport_disruption_probability":
             reduction = cfg.get("capacity_reduction", cfg.get("fraction_capacity_lost", 1.0))
             base = TransportDisruption.from_edge_attributes(
@@ -661,7 +722,7 @@ def apply_disruptions(disruptions: list, time_step: int,
     for d in disruptions:
         if d.start_time != time_step:
             continue
-        if isinstance(d, TransportDisruption):
+        if isinstance(d, (TransportDisruption, TransportCostShock)):
             d.implement(transport_network)
         elif isinstance(d, (CapitalDestruction, ProductivityShock)):
             d.implement(firms)

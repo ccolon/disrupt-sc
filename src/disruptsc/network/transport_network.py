@@ -234,6 +234,54 @@ class TransportNetwork(nx.Graph):
         edge["disruption_recovery_shape"] = "threshold"
         edge["disruption_recovery_rate"] = 1.0
 
+    # ------------------------------------------------------------------
+    # Cost shocks (the edge stays open, its cost labels are multiplied)
+    # ------------------------------------------------------------------
+    # A low-water river, a congested corridor or a toll: capacity is not
+    # zero, but every ton costs more. Buyers whose route crosses a shocked
+    # edge pay the surcharge, reroute if an alternative is cheaper, or give
+    # up beyond price_increase_threshold (see agents/transport_utils.py) —
+    # without the capacity-routing heuristic, which does not scale to
+    # continental scopes (EU: 197k OD groups, killed after 81 CPU-min).
+
+    def invalidate_alternative_routes(self):
+        """Forget cached alternative routes: their costs no longer hold."""
+        self.shortest_path_library["alternative"] = {
+            ct: {} for ct in self.shortest_path_library.get("alternative", {})
+        } or {ct: {} for ct in (self.cargo_types or [])}
+
+    def start_edge_cost_shock(self, edge: dict, multiplier, duration: float):
+        """Multiply the edge's cost labels for *duration* steps.
+
+        *multiplier* is a number or a per-cargo dict ({cargo_type: m,
+        "default": m}). Base labels are captured the first time an edge is
+        shocked so that repeated or overlapping shocks never compound.
+        """
+        for ct in (self.cargo_types or []):
+            key = f"cost_per_ton_{ct}"
+            if key not in edge:
+                continue  # blocked cargo type on this edge
+            base_key = f"base_{key}"
+            if base_key not in edge:
+                edge[base_key] = float(edge[key])
+            m = multiplier.get(ct, multiplier.get("default", 1.0)) if isinstance(multiplier, dict) else multiplier
+            edge[key] = float(edge[base_key]) * float(m)
+            edge[f"cost_per_ton_with_capacity_{ct}"] = edge[key]
+        edge["cost_shock_multiplier"] = multiplier
+        edge["cost_shock_duration"] = duration
+        self.invalidate_alternative_routes()
+
+    def clear_edge_cost_shock(self, edge: dict):
+        """Restore the edge's base cost labels."""
+        for ct in (self.cargo_types or []):
+            key = f"cost_per_ton_{ct}"
+            base_key = f"base_{key}"
+            if base_key in edge:
+                edge[key] = float(edge[base_key])
+                edge[f"cost_per_ton_with_capacity_{ct}"] = edge[key]
+        edge["cost_shock_multiplier"] = 1.0
+        edge["cost_shock_duration"] = 0
+
     def _refresh_edge_disruption_state(self, edge: dict):
         """Recompute dynamic capacities from the edge's stored disruption metadata."""
         reduction = float(edge.get("disruption_initial_reduction", 0.0))
@@ -355,19 +403,39 @@ class TransportNetwork(nx.Graph):
                     self.clear_edge_disruption(d)
                 else:
                     self._refresh_edge_disruption_state(d)
+        # Cost shocks expire the same way; cached alternatives are stale once
+        # any shock ends.
+        expired = False
+        for u, v in self.edges:
+            d = self[u][v]
+            if d.get("cost_shock_duration", 0) > 0:
+                if math.isinf(d["cost_shock_duration"]):
+                    continue
+                d["cost_shock_duration"] -= 1
+                if d["cost_shock_duration"] <= 0:
+                    self.clear_edge_cost_shock(d)
+                    expired = True
+        if expired:
+            self.invalidate_alternative_routes()
 
     def reinitialize_flows_and_disruptions(self):
         for node_id in self.nodes:
             d = self._node[node_id]
             d["disruption_duration"] = 0
             d["shipments"] = {}
+        shocked = False
         for u, v in self.edges:
             d = self[u][v]
             self.clear_edge_disruption(d)
+            if d.get("cost_shock_duration", 0) or d.get("cost_shock_multiplier", 1.0) != 1.0:
+                self.clear_edge_cost_shock(d)
+                shocked = True
             d["shipments"] = {}
             for ct in (self.cargo_types or []):
                 d[f"current_load_{ct}"] = 0
             d["overused"] = False
+        if shocked:
+            self.invalidate_alternative_routes()
 
     # ------------------------------------------------------------------
     # Shipment placement & load tracking
@@ -755,10 +823,7 @@ def _calculate_cost_per_ton(edge_attr: dict, params: dict, cargo_types: list, ti
         ct_capacity = _get_cargo_capacity(edge_attr, ct)
         if ct_capacity == 0:
             continue
-        if isinstance(cot, dict):
-            ct_cot = float(cot.get(ct, cot.get("default", 0.49)))
-        else:
-            ct_cot = float(cot)
+        ct_cot = _resolve_cost_of_time(cot, ct, edge_attr["type"])
         # dwell_times / loading_fees entries may be per-cargo dicts (see
         # _per_cargo): transfer costs, unlike line-haul costs, differ by
         # cargo class because of dedicated transshipment infrastructure
@@ -766,6 +831,31 @@ def _calculate_cost_per_ton(edge_attr: dict, params: dict, cargo_types: list, ti
                 + (fixed_time + _per_cargo(dwell_time, ct)) * ct_cot * time_scale)
         edge_attr[f"cost_per_ton_{ct}"] = cost
         edge_attr[f"cost_per_ton_with_capacity_{ct}"] = cost
+
+
+def _resolve_cost_of_time(cot, cargo_type: str, edge_type: str) -> float:
+    """Value of time (USD per ton-hour) for a cargo type on an edge of *edge_type*.
+
+    Accepted forms of ``logistics.cost_of_time``:
+      - scalar                                   -> every cargo, every mode
+      - {cargo_type: scalar, default: scalar}    -> per cargo class
+      - {cargo_type: {default: v, <mode>: v}}    -> per cargo AND per mode
+
+    The per-mode form exists because the inland value of time stands in for
+    service quality (frequency, reliability, damage risk) and is calibrated
+    to separate road from rail; applied to a sea leg, where every option is a
+    ship, it priced 100 extra hours Suez->Rotterdam at 160 USD/t for
+    containers (EU scope, 2026-09-03) and pushed Asian imports into the
+    nearest Mediterranean port. Connector edges (type "multimodal") use the
+    cargo's default: terminal dwell is inland handling time.
+    """
+    if isinstance(cot, dict):
+        value = cot.get(cargo_type, cot.get("default", 0.49))
+    else:
+        value = cot
+    if isinstance(value, dict):
+        value = value.get(edge_type, value.get("default", 0.49))
+    return float(value)
 
 
 def _get_cargo_capacity(edge_attr: dict, cargo_type: str) -> float:

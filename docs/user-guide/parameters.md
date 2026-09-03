@@ -131,6 +131,15 @@ country_attachment: roads        # roads (nearest road node) | any (sea-placed b
 agent_attachment: any            # firms/households: any (legacy, nearest node of any mode) | roads (first/last mile by road)
 ```
 
+`logistics.cost_of_time` (USD per ton-hour) is a scalar, a per-cargo dict
+(`{container: 1.6, dry_bulk: 0.08, default: 2.0}`), or per cargo **and per mode**
+(`{container: {default: 1.6, maritime: 0.15}, ...}`): the inland value stands in
+for service quality and separates road from rail; the sea leg gets its own, lower
+value so that a longer voyage to a bigger port is not priced like a slow inland mode.
+
+```yaml
+```
+
 Transport networks are loaded from a GeoPackage configured by
 `filepaths.transport`. Layer names should match `transport_modes`.
 
@@ -165,8 +174,27 @@ disruptions:
 ```
 
 Types: `transport_disruption`, `transport_disruption_probability`,
-`capital_destruction` (uniform via `filter:`, or absolute per canton x sector
-via `description_type: subregion_file` + `file:`), and `productivity_shock`.
+`transport_cost_shock`, `capital_destruction` (uniform via `filter:`, or
+absolute per canton x sector via `description_type: subregion_file` + `file:`),
+and `productivity_shock`.
+
+`transport_cost_shock` keeps the edges open but multiplies their cost labels
+(`cost_multiplier`: a number or `{cargo_type: m, default: m}`) for `duration`
+steps: buyers whose route crosses a shocked edge pay the surcharge (passed into
+the price via `transport_share`), reroute when an alternative is cheaper (with
+the switching penalty), or give up beyond `price_increase_threshold`. This is
+the representation of low water, congestion or tolls that does NOT need
+capacity-constrained routing; combine with a `transport_disruption` for the
+steps where the edge is de facto closed.
+
+```yaml
+  - type: transport_cost_shock
+    attribute: name
+    values: [rhine_mainz_koblenz]
+    cost_multiplier: 4.5      # barges at 22% load -> 1/0.22
+    start_time: 7
+    duration: 1
+```
 Filters accept firm attributes and `subregion_*` keys, and log how many firms
 they matched. Firm-side recovery is threshold-only (`recovery_shape` is
 ignored with a warning); absolute capital destruction recovers only through
