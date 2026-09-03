@@ -227,6 +227,7 @@ class TransportNetwork(nx.Graph):
     def clear_edge_disruption(self, edge: dict):
         """Remove disruption metadata and restore the edge to its base capacity."""
         self.restore_edge_capacity(edge)
+        edge["closure_substitution_share"] = 1.0
         edge["disruption_duration"] = 0
         edge["disruption_total_duration"] = 0
         edge["disruption_elapsed"] = 0
@@ -250,13 +251,19 @@ class TransportNetwork(nx.Graph):
             ct: {} for ct in self.shortest_path_library.get("alternative", {})
         } or {ct: {} for ct in (self.cargo_types or [])}
 
-    def start_edge_cost_shock(self, edge: dict, multiplier, duration: float):
+    def start_edge_cost_shock(self, edge: dict, multiplier, duration: float,
+                              capacity_factor: float = 1.0, substitution_share: float = 1.0):
         """Multiply the edge's cost labels for *duration* steps.
 
         *multiplier* is a number or a per-cargo dict ({cargo_type: m,
         "default": m}). Base labels are captured the first time an edge is
         shocked so that repeated or overlapping shocks never compound.
+        *capacity_factor* (share of each link's tonnage the shocked mode still
+        carries) and *substitution_share* (share of the displaced remainder the
+        substitutes absorb) define the substitution ceiling; 1.0/1.0 = legacy.
         """
+        edge["cost_shock_capacity_factor"] = float(capacity_factor)
+        edge["cost_shock_substitution_share"] = float(substitution_share)
         for ct in (self.cargo_types or []):
             key = f"cost_per_ton_{ct}"
             if key not in edge:
@@ -281,6 +288,8 @@ class TransportNetwork(nx.Graph):
                 edge[f"cost_per_ton_with_capacity_{ct}"] = edge[key]
         edge["cost_shock_multiplier"] = 1.0
         edge["cost_shock_duration"] = 0
+        edge["cost_shock_capacity_factor"] = 1.0
+        edge["cost_shock_substitution_share"] = 1.0
 
     def _refresh_edge_disruption_state(self, edge: dict):
         """Recompute dynamic capacities from the edge's stored disruption metadata."""
@@ -325,7 +334,7 @@ class TransportNetwork(nx.Graph):
     def retrieve_cached_route(self, from_node: int, to_node: int,
                               normal_or_disrupted: str, cargo_type: str) -> Route | None:
         key = tuple(sorted((from_node, to_node)))
-        cached = self.shortest_path_library[normal_or_disrupted][cargo_type].get(key)
+        cached = self.shortest_path_library.setdefault(normal_or_disrupted, {}).setdefault(cargo_type, {}).get(key)
         if cached is None:
             return None
         if from_node == key[0]:
@@ -335,10 +344,11 @@ class TransportNetwork(nx.Graph):
     def cache_route(self, from_node: int, to_node: int,
                     normal_or_disrupted: str, cargo_type: str, route: Route):
         key = tuple(sorted((from_node, to_node)))
+        library = self.shortest_path_library.setdefault(normal_or_disrupted, {}).setdefault(cargo_type, {})
         if from_node == key[0]:
-            self.shortest_path_library[normal_or_disrupted][cargo_type][key] = route
+            library[key] = route
         else:
-            self.shortest_path_library[normal_or_disrupted][cargo_type][key] = route.reversed_copy()
+            library[key] = route.reversed_copy()
 
     def is_route_available(self, route: Route) -> bool:
         """Check if a route's edges are all undisrupted."""

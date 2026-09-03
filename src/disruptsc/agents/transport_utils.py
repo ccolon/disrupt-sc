@@ -124,16 +124,36 @@ def send_shipment(agent_pid, od_point: int,
         alt_cost = (transport_network.compute_route_cost(
             alt_route, link.cargo_type, with_capacity=tp.capacity_constraint_enabled)
             if alt_route is not None else float("inf"))
-        stays_on_main = alt_route is None or alt_cost >= shocked_cost
-        chosen = main_route if stays_on_main else alt_route
-        chosen_cost = shocked_cost if stays_on_main else alt_cost
+        cap, sub = main_route.shock_ceiling(transport_network)
+        if cap >= 1.0 and sub >= 1.0:
+            # unlimited substitutes (legacy): all-or-nothing on the cheaper route
+            stays_on_main = alt_route is None or alt_cost >= shocked_cost
+            main_share = 1.0 if stays_on_main else 0.0
+            alt_share = 0.0 if stays_on_main else 1.0
+        else:
+            # substitution ceiling: the shocked mode still carries `cap` of the
+            # tonnage at the surcharged cost, the substitutes absorb at most
+            # `sub` of the displaced remainder, the rest is not delivered
+            main_share = cap
+            alt_share = sub * (1.0 - cap) if alt_route is not None else 0.0
+        delivered_share = main_share + alt_share
+        if delivered_share <= EPSILON:
+            link.realized_delivery = 0.0
+            link.delivery = 0.0
+            link.payment = 0.0
+            if routing_event_collector:
+                routing_event_collector.record_event(agent_pid, link.buyer_id, "no_route", 0.0)
+            return
+        weighted_cost = (main_share * shocked_cost + alt_share * (alt_cost if alt_share > 0 else 0.0)) / delivered_share
+        chosen = main_route if main_share >= alt_share else alt_route
 
         link.alternative_route = chosen
         link.alternative_found = True
-        link.alternative_route_cost_per_ton = chosen_cost
+        link.alternative_route_cost_per_ton = weighted_cost
         relative_increase = link.calculate_relative_increase_in_transport_cost()
-        if not stays_on_main:
-            relative_increase += link.calculate_switching_cost(tp.switching_costs, transport_network)
+        if alt_share > 0:
+            relative_increase += (alt_share / delivered_share) * link.calculate_switching_cost_between(
+                main_route, alt_route, tp.switching_costs, transport_network)
 
         if too_expensive(tp, relative_increase, transport_share):
             link.realized_delivery = 0.0
@@ -146,18 +166,44 @@ def send_shipment(agent_pid, od_point: int,
             return
 
         link.price = base_price * (1 + transport_share * relative_increase)
-        if stays_on_main:
-            link.current_route = "main"
-            link.main_route_realized_delivery = link.delivery
-        else:
-            link.current_route = "alternative"
-            link.alternative_route_realized_delivery = link.delivery
+        planned = link.delivery
+        planned_tons = link.delivery_in_tons
+        if delivered_share < 1.0:
+            link.delivery = planned * delivered_share
+            link.delivery_in_tons = planned_tons * delivered_share
+        link.current_route = "main" if main_share >= alt_share else "alternative"
+        link.main_route_realized_delivery = planned * main_share
+        link.alternative_route_realized_delivery = planned * alt_share
         if routing_event_collector:
             routing_event_collector.record_event(
                 agent_pid, link.buyer_id,
-                "surcharged" if stays_on_main else "rerouted", relative_increase,
+                "surcharged" if alt_share == 0 else "rerouted", relative_increase,
             )
-        route = chosen
+        # place both parts (accumulated into one shipment at the destination)
+        if planned_tons > EPSILON:
+            if main_share > 0:
+                transport_network.place_shipment(
+                    main_route, link.pid, planned_tons * main_share, link.destination_node,
+                    monetary_quantity=planned * main_share, product_type=link.product_type,
+                    flow_category=link.category, cargo_type=link.cargo_type,
+                    accumulate_at_dest=True, dest_key=link.pid,
+                    capacity_constraint=tp.capacity_constraint_enabled,
+                    capacity_constraint_mode=tp.capacity_constraint_mode,
+                )
+            if alt_share > 0:
+                transport_network.place_shipment(
+                    alt_route, link.pid, planned_tons * alt_share, link.destination_node,
+                    monetary_quantity=planned * alt_share, product_type=link.product_type,
+                    flow_category=link.category, cargo_type=link.cargo_type,
+                    accumulate_at_dest=True, dest_key=link.pid,
+                    capacity_constraint=tp.capacity_constraint_enabled,
+                    capacity_constraint_mode=tp.capacity_constraint_mode,
+                )
+        link.realized_delivery = link.delivery
+        link.payment = link.delivery * link.price
+        if after_shipment:
+            after_shipment(link, chosen)
+        return
     elif main_route and available_transport_network.is_route_available(main_route):
         link.current_route = "main"
         link.price = base_price
@@ -208,6 +254,12 @@ def send_shipment(agent_pid, od_point: int,
         route = alt_route
         price_change = transport_share * relative_increase
         link.price = base_price * (1 + price_change)
+        # substitution ceiling of the closed edge(s): only this share of the
+        # tonnage finds a substitute (1.0 = unlimited, legacy)
+        sub = main_route.closure_substitution_share(transport_network) if main_route else 1.0
+        if sub < 1.0:
+            link.delivery = link.delivery * sub
+            link.delivery_in_tons = link.delivery_in_tons * sub
         link.alternative_route_realized_delivery = link.delivery
         if routing_event_collector:
             routing_event_collector.record_event(

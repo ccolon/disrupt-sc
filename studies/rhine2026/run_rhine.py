@@ -66,7 +66,8 @@ def weekly_reductions(profile: pd.DataFrame, curve) -> list[float]:
 
 def build_disruptions(reductions: list[float], edges: list[str], min_reduction=0.01,
                       closure_threshold: float | None = None,
-                      max_multiplier: float = 20.0) -> list[dict]:
+                      max_multiplier: float = 20.0,
+                      substitution_share: float = 1.0) -> list[dict]:
     """One disruption entry per week.
 
     Without capacity routing (the EU default) a week is either a CLOSURE
@@ -88,10 +89,12 @@ def build_disruptions(reductions: list[float], edges: list[str], min_reduction=0
                         "capacity_reduction": float(r), "start_time": t, "duration": 1})
         elif r >= closure_threshold:
             out.append({"type": "transport_disruption", "attribute": "name", "values": list(edges),
-                        "capacity_reduction": 1.0, "start_time": t, "duration": 1})
+                        "capacity_reduction": 1.0, "start_time": t, "duration": 1,
+                        "substitution_share": substitution_share})
         else:
             out.append({"type": "transport_cost_shock", "attribute": "name", "values": list(edges),
                         "cost_multiplier": round(min(max_multiplier, 1.0 / (1.0 - r)), 3),
+                        "capacity_factor": round(1.0 - r, 4), "substitution_share": substitution_share,
                         "start_time": t, "duration": 1})
     return out
 
@@ -122,6 +125,10 @@ def main():
     ap.add_argument("--price-threshold", type=float, default=None,
                     help="override price_increase_threshold for the scenario (config default 2.0 = give up "
                          "a delivery once its transport bill more than doubles; 2026 shippers paid x5 rates)")
+    ap.add_argument("--substitution-share", type=float, default=1.0,
+                    help="substitution ceiling: share of the tonnage displaced from the Rhine that rail and road "
+                         "can absorb (1.0 = unlimited substitutes, legacy; evidence: DB Cargo ~100 barges of ~1,000, "
+                         "trucks bound by drivers -> 0.2-0.4). Applied to closures and cost shocks alike")
     ap.add_argument("--legacy-give-up", action="store_true",
                     help="sensitivity: drop the delivered-price give-up rule (delivered_price_increase_threshold "
                          "= None) so the legacy freight-bill rule (price_increase_threshold) applies")
@@ -146,7 +153,8 @@ def main():
     if closure is None and args.constraint_mode == "off":
         raise SystemExit("partial capacity reductions need --constraint-mode gradual|binary; "
                          "with capacity routing off use --closure-threshold (default 0.75)")
-    disruptions = build_disruptions(reductions, edges, closure_threshold=closure)
+    disruptions = build_disruptions(reductions, edges, closure_threshold=closure,
+                                    substitution_share=args.substitution_share)
     t_final = len(reductions) + args.recovery_weeks
 
     print(f"profile {args.profile}: {len(reductions)} weeks, {len(disruptions)} disrupted weeks "

@@ -52,6 +52,27 @@ class Route(list):
                 return True
         return False
 
+    def shock_ceiling(self, transport_network: TransportNetwork) -> tuple[float, float]:
+        """(capacity_factor, substitution_share) of the route under active cost
+        shocks: the minimum over its shocked edges (1.0, 1.0 when none)."""
+        cap, sub = 1.0, 1.0
+        for u, v in self.transport_edges:
+            e = transport_network[u][v]
+            if e.get("cost_shock_duration", 0) > 0:
+                cap = min(cap, float(e.get("cost_shock_capacity_factor", 1.0)))
+                sub = min(sub, float(e.get("cost_shock_substitution_share", 1.0)))
+        return cap, sub
+
+    def closure_substitution_share(self, transport_network: TransportNetwork) -> float:
+        """Share of the route's traffic that substitutes can absorb while it is
+        closed: the minimum over its closed edges (1.0 when none is closed)."""
+        sub = 1.0
+        for u, v in self.transport_edges:
+            e = transport_network[u][v]
+            if e.get("closed", False):
+                sub = min(sub, float(e.get("closure_substitution_share", 1.0)))
+        return sub
+
     def has_over_capacity_edges(self, transport_network: TransportNetwork) -> bool:
         for u, v in self.transport_edges:
             if transport_network[u][v].get("overused", False):
