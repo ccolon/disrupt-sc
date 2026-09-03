@@ -31,6 +31,29 @@ def find_nearest_node_id(transport_nodes: gpd.GeoDataFrame, gdf: gpd.GeoDataFram
     return transport_nodes.index.values[indices]
 
 
+def attachment_nodes(transport_nodes: gpd.GeoDataFrame,
+                     transport_edges: gpd.GeoDataFrame | None,
+                     attachment: str, what: str = "Agent") -> gpd.GeoDataFrame:
+    """Candidate nodes for agent placement under ``agent_attachment``.
+
+    ``"any"`` keeps every node (legacy). ``"roads"`` keeps only endpoints of
+    road edges: the first/last mile is by road and rail or barge are reached
+    through the multimodal connectors, so no agent ships from a rail or
+    waterway node with no access leg and no transfer cost.
+    """
+    if attachment != "roads" or transport_edges is None or "type" not in transport_edges.columns:
+        return transport_nodes
+    road_edges = transport_edges[transport_edges["type"] == "roads"]
+    road_node_ids = set(road_edges["end1"].tolist() + road_edges["end2"].tolist())
+    nodes = transport_nodes[transport_nodes.index.isin(road_node_ids)]
+    if nodes.empty:
+        logging.warning(f"{what} placement: no road nodes found - falling back to all transport nodes")
+        return transport_nodes
+    logging.info(f"{what} placement restricted to {len(nodes)} road nodes "
+                 f"(of {len(transport_nodes)}; agent_attachment: roads)")
+    return nodes
+
+
 def _get_long_lat(node_ids: pd.Series, transport_nodes: gpd.GeoDataFrame) -> dict:
     """Get long/lat for given node IDs."""
     longs = node_ids.map(lambda nid: transport_nodes.loc[nid, "geometry"].x)

@@ -128,6 +128,7 @@ price_increase_threshold: 2      # give up delivery if rerouting cost rises beyo
 sectors_no_transport_network: ['utility', 'transport', 'trade', 'services', 'service', 'construction']
 countries_no_transport: []       # country pids whose flows bypass the network entirely
 country_attachment: roads        # roads (nearest road node) | any (sea-placed blocs attach to maritime nodes)
+agent_attachment: any            # firms/households: any (legacy, nearest node of any mode) | roads (first/last mile by road)
 ```
 
 Transport networks are loaded from a GeoPackage configured by

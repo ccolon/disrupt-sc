@@ -25,6 +25,13 @@ class TransportParams:
     # (continental scopes: one "Americas" bloc served through Rotterdam,
     # Le Havre or Algeciras depending on the buyer).
     country_attachment: str = "roads"
+    # Where firms and households attach to the network: "any" (legacy: nearest
+    # node of any mode) or "roads" (nearest ROAD node - first/last mile by
+    # road, rail/barge reached through the multimodal connectors). On a
+    # trunk-only network (EU TEN-T) "any" put 46% of firm output directly on
+    # rail nodes and 12% on waterway/maritime nodes, shipping by rail or barge
+    # with no access leg and no transfer cost.
+    agent_attachment: str = "any"
     # When False, all shipments are tagged with a single cargo type
     # ("any") and the routing pipeline runs Dijkstra/LP once instead of
     # once per cargo type. Useful for studies without pipelines or other

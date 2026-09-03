@@ -178,6 +178,15 @@ countries_no_transport: []
 #           is served by several competing seaboards. Typos raise.
 country_attachment: roads
 
+# Where FIRMS and HOUSEHOLDS attach to the transport network.
+#   any   : nearest node of any mode (legacy). On a trunk-only network this
+#           puts many agents straight on rail or waterway nodes, which then
+#           ship by rail/barge with no access leg and no transfer cost (EU
+#           TEN-T scope: 46% of firm output on rail nodes, 12% on water).
+#   roads : nearest ROAD node - first/last mile by road, other modes reached
+#           through the multimodal connectors. Typos raise.
+agent_attachment: any
+
 # When True (default), each shipment is tagged with a cargo type (container,
 # dry_bulk, liquid_bulk, …) derived from sector_to_cargo_type, and the routing
 # pipeline runs once per cargo type. When False, every shipment uses a single
