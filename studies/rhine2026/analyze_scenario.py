@@ -65,10 +65,28 @@ def fleet_capacity(profile: str, kaub_tpd: float) -> pd.DataFrame:
     return out
 
 
+
+def _price_section(run: Path) -> None:
+    ld = pd.read_csv(run / "link_data.csv", usecols=["time_step", "seller_region", "buyer_region", "order", "realized_delivery",
+                                                     "delivery_in_tons", "cargo_type", "eq_price", "price"])
+    ld["surcharge"] = ld["price"] / ld["eq_price"] - 1
+    active = ld[ld["order"] > 0]
+    ps = active.groupby("time_step")["surcharge"].agg(
+        links="size", above_10pct=lambda s: (100 * (s > 0.10).mean()).round(1),
+        above_25pct=lambda s: (100 * (s > 0.25).mean()).round(1), above_50pct=lambda s: (100 * (s > 0.50).mean()).round(1),
+        max=lambda s: round(100 * s.max(), 0))
+    fill = active.groupby("time_step").apply(lambda d: round(100 * d["realized_delivery"].sum() / d["order"].sum(), 2))
+    ps["fill_rate_%"] = fill
+    print("\n== 4. LINK PRICES: % of active links with delivered-price surcharge above thresholds; max (%); fill rate ==")
+    print("   (2026: logistics costs +25 % for half of the exposed firms, +50 % for a third; freight rates x2-5)")
+    print(ps.to_string())
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("run")
     ap.add_argument("--profile", default="2026")
+    ap.add_argument("--no-links", action="store_true", help="skip the link_data.csv section (multi-GB file)")
     ap.add_argument("--corridor-km", type=float, default=40.0)
     args = ap.parse_args()
     run = Path(args.run)
@@ -149,19 +167,10 @@ def main():
         print("   by sector (all weeks):", coll.groupby("sector").size().sort_values(ascending=False).head(8).to_dict())
 
     # --- 4. price surcharges ---
-    ld = pd.read_csv(run / "link_data.csv", usecols=["time_step", "seller_region", "buyer_region", "order", "realized_delivery",
-                                                     "delivery_in_tons", "cargo_type", "eq_price", "price"])
-    ld["surcharge"] = ld["price"] / ld["eq_price"] - 1
-    active = ld[ld["order"] > 0]
-    ps = active.groupby("time_step")["surcharge"].agg(
-        links="size", above_10pct=lambda s: (100 * (s > 0.10).mean()).round(1),
-        above_25pct=lambda s: (100 * (s > 0.25).mean()).round(1), above_50pct=lambda s: (100 * (s > 0.50).mean()).round(1),
-        max=lambda s: round(100 * s.max(), 0))
-    fill = active.groupby("time_step").apply(lambda d: round(100 * d["realized_delivery"].sum() / d["order"].sum(), 2))
-    ps["fill_rate_%"] = fill
-    print("\n== 4. LINK PRICES: % of active links with delivered-price surcharge above thresholds; max (%); fill rate ==")
-    print("   (2026: logistics costs +25 % for half of the exposed firms, +50 % for a third; freight rates x2-5)")
-    print(ps.to_string())
+    if args.no_links:
+        print("\n== 4. link prices skipped (--no-links) ==")
+    else:
+        _price_section(run)
 
     # --- 5. production / value-added loss by country ---
     va = pd.read_csv(run / "mrio_by_sector.csv").set_index("sector")
