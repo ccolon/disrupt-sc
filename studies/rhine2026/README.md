@@ -117,8 +117,11 @@ with container 12 h/4 and liquid 16 h/4, rail transfers 8 h/5) — running; (3) 
 cargo class against the DE/NL/EU NST targets (Romania procedure: scalars in range first,
 then per-cargo transfer costs, always with `--seed 42`); (4) check the Rhine profile
 against `scenarios/rhine_capacities.csv`. Every iteration is logged in
-`disrupt-sc-data/EU/calibration_log.md`. Runtime: ≈ 42 min per full rebuild, 7 min per
-weekly step (12.6 GB RAM).
+`disrupt-sc-data/EU/calibration_log.md`. Runtime was ≈ 42 min per full rebuild, 7 min per
+weekly step (12.6 GB RAM); since 312de8d a cost iteration is
+`onboarding/scripts/reroute_baseline.py EU` (minutes: re-route the cached supply chain with
+the current costs, same flow columns as a full export) and a confirming full run keeps the
+agent and supply-chain caches (scipy Dijkstra replaces the 7.7-min networkx pass).
 
 Scenario side (independent of the calibration): `baseline_capacities.py` derives finite
 capacities for every rail/road/waterway edge from the calibrated baseline (baseline load ×
