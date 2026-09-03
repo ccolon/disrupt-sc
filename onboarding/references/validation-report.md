@@ -81,6 +81,25 @@ Deliverables: `<data-root>/<Scope>/validation_report.md` (durable copy, next to 
 manifest) + an Artifact page for sharing. Record the run folder, verdicts, and top
 recommendations in the manifest under `p8_validation`.
 
+## Fast calibration loop (2026-09-03)
+
+Mode-cost iterations do not need a full run. For a given supply chain the baseline
+flows depend only on the network and the cost parameters, so:
+
+```bash
+python scripts/reroute_baseline.py <Scope> --name reroute_v7      # ≈ 30 s Romania, minutes EU
+python ../studies/rhine2026/flow_checks.py --run reroute_v7        # or eurostat_mode_targets.py --compare
+```
+
+The first call materialises the routable links (one equilibrium solve on the cached
+`sc_network`, kept as `tmp/<Scope>_reroute_links_<hash>.parquet`); every later call only
+rebuilds the cost labels and re-routes (scipy Dijkstra). Change `logistics.*` in the
+config between calls; a change of the cargo mapping, the network files, the seed or
+the agent data invalidates the parquet through the stage hash. Confirm the final
+parameter set with one full `initial_state` run — the stage caches now survive cost
+changes (agents and the supply chain are keyed on the network geometry only), so that
+run is routing + equilibrium + one step. Caches written before 312de8d are rebuilt once.
+
 ## Recurring recommendation patterns
 
 These came out of Romania and will likely recur; check each against the new scope
