@@ -178,13 +178,28 @@ def build_stage_fingerprint(config: dict, stage: str) -> dict:
             cfg_keys += list(_STAGE_CONFIG_KEYS[s])
         fp_keys += list(_STAGE_FILEPATH_KEYS[s])
     filepaths = config.get("filepaths") or {}
+    cfg = {k: _without_subkeys(k, config.get(k)) for k in cfg_keys}
     payload = {
         "stage": stage,
         "scope": config.get("scope"),
-        "config": {**{k: config.get(k) for k in cfg_keys}, **sub_cfg},
+        "config": {**cfg, **sub_cfg},
         "filepaths": {k: _path_str(filepaths.get(k)) for k in fp_keys},
     }
     return {"hash": fingerprint_hash(payload), "payload": payload}
+
+
+# Sub-keys of watermarked blocks that only act at simulation time and must not
+# invalidate the build caches: the modal-switch penalty is read in
+# send_shipment when a link is rerouted, never during network, agent or route
+# construction (a sensitivity on it re-uses every cache).
+_STAGE_EXCLUDED_SUBKEYS = {"logistics": ("switching_costs",)}
+
+
+def _without_subkeys(key: str, value):
+    drop = _STAGE_EXCLUDED_SUBKEYS.get(key)
+    if drop and isinstance(value, dict):
+        return {k: v for k, v in value.items() if k not in drop}
+    return value
 
 
 def _git_sha() -> str | None:

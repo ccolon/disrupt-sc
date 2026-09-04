@@ -124,10 +124,18 @@ def send_shipment(agent_pid, od_point: int,
         alt_cost = (transport_network.compute_route_cost(
             alt_route, link.cargo_type, with_capacity=tp.capacity_constraint_enabled)
             if alt_route is not None else float("inf"))
+        # The switching penalty (fraction of the normal bill, per cargo type)
+        # is part of the alternative's cost when choosing: a bulk shipper whose
+        # rerouting is prohibitively expensive stays on the surcharged river
+        # instead of giving up.
+        switch_frac = (link.calculate_switching_cost_between(main_route, alt_route, tp.switching_costs,
+                                                             transport_network)
+                       if alt_route is not None else 0.0)
+        alt_cost_with_switch = alt_cost + switch_frac * link.route_cost_per_ton
         cap, sub = main_route.shock_ceiling(transport_network)
         if cap >= 1.0 and sub >= 1.0:
-            # unlimited substitutes (legacy): all-or-nothing on the cheaper route
-            stays_on_main = alt_route is None or alt_cost >= shocked_cost
+            # unlimited substitutes (default): all-or-nothing on the cheaper option
+            stays_on_main = alt_route is None or alt_cost_with_switch >= shocked_cost
             main_share = 1.0 if stays_on_main else 0.0
             alt_share = 0.0 if stays_on_main else 1.0
         else:
@@ -152,8 +160,7 @@ def send_shipment(agent_pid, od_point: int,
         link.alternative_route_cost_per_ton = weighted_cost
         relative_increase = link.calculate_relative_increase_in_transport_cost()
         if alt_share > 0:
-            relative_increase += (alt_share / delivered_share) * link.calculate_switching_cost_between(
-                main_route, alt_route, tp.switching_costs, transport_network)
+            relative_increase += (alt_share / delivered_share) * switch_frac
 
         if too_expensive(tp, relative_increase, transport_share):
             link.realized_delivery = 0.0

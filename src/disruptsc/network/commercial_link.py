@@ -159,11 +159,26 @@ class CommercialLink:
     def has_port_switch(self, transport_network: TransportNetwork) -> bool:
         return self._routes_have_port_switch(self.route, self.alternative_route, transport_network)
 
+    def _switching_penalty(self, switching_costs: dict, key: str, default: float) -> float:
+        """Switching penalty as a fraction of the normal transport bill.
+
+        ``logistics.switching_costs.<key>`` is a scalar or a per-cargo-type dict
+        ({default: 0.15, liquid_bulk: 1000}). A prohibitive value for a cargo
+        class says that its alternative mode does not exist at volume (tank
+        barges, ore trains): the give-up rule then rejects the reroute whatever
+        the price threshold, while the same shipper still pays a surcharge on
+        its usual route when that route stays open.
+        """
+        value = switching_costs.get(key, default)
+        if isinstance(value, dict):
+            value = value.get(self.cargo_type, value.get("default", default))
+        return float(value)
+
     def calculate_switching_cost(self, switching_costs: dict, transport_network: TransportNetwork) -> float:
         if self.has_modal_switch():
-            return switching_costs.get("modal_switch", 0.15)
+            return self._switching_penalty(switching_costs, "modal_switch", 0.15)
         elif self.has_port_switch(transport_network):
-            return switching_costs.get("port_switch", 0.05)
+            return self._switching_penalty(switching_costs, "port_switch", 0.05)
         return 0.0
 
     def calculate_switching_cost_between(self, baseline_route: Route | None,
@@ -171,9 +186,9 @@ class CommercialLink:
                                          switching_costs: dict,
                                          transport_network: TransportNetwork) -> float:
         if self._routes_have_modal_switch(baseline_route, alternative_route):
-            return switching_costs.get("modal_switch", 0.15)
+            return self._switching_penalty(switching_costs, "modal_switch", 0.15)
         if self._routes_have_port_switch(baseline_route, alternative_route, transport_network):
-            return switching_costs.get("port_switch", 0.05)
+            return self._switching_penalty(switching_costs, "port_switch", 0.05)
         return 0.0
 
     # ------------------------------------------------------------------
