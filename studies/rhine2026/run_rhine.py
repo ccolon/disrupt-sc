@@ -135,6 +135,9 @@ def main():
     ap.add_argument("--critical-input-threshold", type=float, default=None,
                     help="sensitivity: override critical_input_threshold (cost-share proxy of the partially-binding "
                          "Leontief; the config value is 0.02 - the main run showed the cascade dominates the result)")
+    ap.add_argument("--input-criticality", default=None,
+                    help="path to a sector x sector criticality matrix (IHS Markit survey, Pichler et al. 2022; build with "
+                         "build_criticality_eu.py) -> filepaths.input_criticality; replaces the cost-share proxy")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--cache", default="auto",
                     help="cache preset passed to execute(); 'auto' reuses every stage whose fingerprint "
@@ -202,6 +205,8 @@ def main():
         n_closed = sum(1 for d in disruptions if d["type"] == "transport_disruption")
         print(f"capacity routing off: {n_closed} closure week(s) + {len(disruptions) - n_closed} "
               f"cost-shock week(s), no capacity overrides")
+    if args.input_criticality:
+        config.setdefault("filepaths", {})["input_criticality"] = str(Path(args.input_criticality).resolve())
     if args.critical_input_threshold is not None:
         config["critical_input_threshold"] = args.critical_input_threshold
     config["disruptions"] = disruptions
