@@ -94,6 +94,16 @@ logistics:
   # intermodal rates 0.02-0.04), road-rail transfers 8 h/5 -> 4 h/3 USD
   # (intermodal terminals), dry bulk 12 h/8 -> 6 h/4 (bulk sidings both ends).
   # Iterated with onboarding/scripts/reroute_baseline.py (routing-only).
+  # Rhine 2026 (4 Sep, user decision): the physical limit on substitutes is expressed as
+  # a COST, not a quantity cap. The modal-switch penalty (fraction of the normal freight
+  # bill, added when a reroute changes mode) is prohibitive for bulk: tank barges and ore
+  # trains have no road/rail equivalent at volume (thyssenkrupp/BASF force majeure 2018
+  # and 2026; DB Cargo ~100 barges replaceable; tank/silo equipment the binding
+  # constraint). Bulk shippers keep paying the low-water surcharge while the river is
+  # open and give up only when it is closed; containers reroute at the default penalty.
+  switching_costs:
+    modal_switch: {default: 0.15, liquid_bulk: 1000, dry_bulk: 1000}
+    port_switch: 0.05
   basic_cost:  # USD per ton*km
     roads: 0.050
     railways: 0.032

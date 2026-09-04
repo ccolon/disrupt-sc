@@ -124,3 +124,52 @@ def test_parse_transport_cost_shock():
     with pytest.raises(ValueError):
         parse_disruptions([{"type": "transport_cost_shock", "attribute": "name", "values": ["rhine_a"]}],
                           edges, None, {}, "mUSD")
+
+
+# ----------------------------------------------------------------------
+# Cargo-type-specific switching costs (EU Rhine study, 4 Sep 2026): a
+# prohibitive modal-switch penalty for a cargo class says that its alternative
+# mode does not exist at volume. The shipper still pays the surcharge on the
+# river while it is open, and gives up only when the river is closed.
+# ----------------------------------------------------------------------
+
+def _tp_bulk_cannot_switch(**kw):
+    return TransportParams(delivered_price_increase_threshold=0.5,
+                           switching_costs={"modal_switch": {"default": 0.15, CT: 1000.0}, "port_switch": 0.05},
+                           **kw)
+
+
+def test_prohibitive_switching_keeps_bulk_on_the_surcharged_river():
+    tn, tp = _network(), _tp_bulk_cannot_switch()
+    link = _link(tn)
+    tn.start_edge_cost_shock(tn[1][2], 3.0, duration=1)   # main 20 -> 40; rail 25 + 1000 x 20 of switching
+    _send(tn, link, tp)
+    assert link.current_route == "main"
+    assert link.realized_delivery == pytest.approx(100.0)
+    assert link.price == pytest.approx(1.0 * (1 + 0.1 * (40 - 20) / 20))
+
+
+def test_prohibitive_switching_blocks_bulk_when_the_river_is_closed():
+    tn, tp = _network(), _tp_bulk_cannot_switch()
+    link = _link(tn)
+    tn.start_edge_disruption(tn[1][2], 1.0, duration=1)
+    send_shipment("S", 1, 0.1, link, tn, tn.get_undisrupted_network(), tp)
+    assert link.realized_delivery == 0.0 and link.delivery == 0.0
+
+
+def test_default_switching_cost_still_reroutes_other_cargo():
+    tn = _network()
+    other = "container"
+    tn.cargo_types = [CT, other]
+    for u, v in tn.edges:
+        tn[u][v][f"cost_per_ton_{other}"] = tn[u][v][f"cost_per_ton_{CT}"]
+        tn[u][v][f"cost_per_ton_with_capacity_{other}"] = tn[u][v][f"cost_per_ton_{CT}"]
+        tn[u][v][f"current_load_{other}"] = 0
+    tp = _tp_bulk_cannot_switch()
+    link = _link(tn)
+    link.cargo_type = other
+    tn.start_edge_disruption(tn[1][2], 1.0, duration=1)
+    send_shipment("S", 1, 0.1, link, tn, tn.get_undisrupted_network(), tp)
+    assert link.current_route == "alternative"
+    assert link.realized_delivery == pytest.approx(100.0)
+    assert link.price == pytest.approx(1.0 * (1 + 0.1 * ((25 - 20) / 20 + 0.15)))

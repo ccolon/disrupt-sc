@@ -184,7 +184,11 @@ and `productivity_shock`.
 (`cost_multiplier`: a number or `{cargo_type: m, default: m}`) for `duration`
 steps: buyers whose route crosses a shocked edge pay the surcharge (passed into
 the price via `transport_share`), reroute when an alternative is cheaper (with
-the switching penalty), or give up beyond `price_increase_threshold`. This is
+the switching penalty), or give up beyond `price_increase_threshold`. The switching
+penalty `logistics.switching_costs.modal_switch` is a scalar or a per-cargo-type dict
+(`{default: 0.15, liquid_bulk: 1000}`): a prohibitive value for a cargo class says that its
+alternative mode does not exist at volume, so that class pays the surcharge while the shocked
+edge is open and gives up only when it is closed, whatever the price threshold. This is
 the representation of low water, congestion or tolls that does NOT need
 capacity-constrained routing; combine with a `transport_disruption` for the
 steps where the edge is de facto closed.

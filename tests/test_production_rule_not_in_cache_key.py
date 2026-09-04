@@ -31,3 +31,14 @@ def test_changing_them_keeps_every_stage_fingerprint():
         assert build_stage_fingerprint(crit, stage)["hash"] == h
     # a real build input still invalidates
     assert build_stage_fingerprint(_config(flow_coverage=0.8), "agents")["hash"] != base["agents"]
+
+
+def test_switching_costs_do_not_invalidate_any_stage():
+    base = _config(logistics={"basic_cost": {"roads": 0.05}, "switching_costs": {"modal_switch": 0.15}})
+    changed = _config(logistics={"basic_cost": {"roads": 0.05},
+                                 "switching_costs": {"modal_switch": {"default": 0.15, "dry_bulk": 1000}}})
+    for stage in ("transport_network", "agents", "sc_network", "logistic_routes"):
+        assert build_stage_fingerprint(changed, stage)["hash"] == build_stage_fingerprint(base, stage)["hash"]
+    # a line-haul cost change still invalidates the transport network and the routes
+    costlier = _config(logistics={"basic_cost": {"roads": 0.06}, "switching_costs": {"modal_switch": 0.15}})
+    assert build_stage_fingerprint(costlier, "transport_network")["hash"] != build_stage_fingerprint(base, "transport_network")["hash"]
