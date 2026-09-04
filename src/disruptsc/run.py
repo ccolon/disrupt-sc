@@ -46,7 +46,7 @@ from disruptsc.init_pipeline.load_data import (
 from disruptsc.init_pipeline.transport import build_transport_network
 from disruptsc.init_pipeline.agents import (
     attachment_nodes,
-    create_firm_table, create_firms, load_tech_coefs, load_input_criticality,
+    create_firm_table, create_firms, load_tech_coefs, load_input_criticality, import_bundle_shares,
     load_inventories, configure_household_inventories, report_inventory_to_gdp,
     create_household_table, create_households, create_countries,
     add_representative_demand_agents,
@@ -224,16 +224,20 @@ def execute(config: dict, *, cache: str | None = None,
         """
         for firm in firms.values():
             firm.critical_input_threshold = ap.critical_input_threshold
+        # Import bundles ("{BLOC}_imports") lose their sector when the supply
+        # chain folds them; the MRIO still knows the composition.
+        bundle_shares = import_bundle_shares(mrio)
         crit_path = filepaths.get("input_criticality")
         if crit_path and Path(crit_path).exists():
-            load_input_criticality(firms, pd.read_csv(crit_path, index_col=0))
+            load_input_criticality(firms, pd.read_csv(crit_path, index_col=0), bundle_shares=bundle_shares)
         else:
             for firm in firms.values():
                 firm.input_criticality = {}
         # Inventory targets are keyed by input; the import bundles created by
         # the supply-chain build only exist after the agents stage, so the
         # targets are (re)computed here, on the final input mix.
-        load_inventories(firms, ap.inventory_duration_targets, sp.time_resolution, sector_table)
+        load_inventories(firms, ap.inventory_duration_targets, sp.time_resolution, sector_table,
+                         bundle_shares=bundle_shares)
 
     # ------------------------------------------------------------------
     # Stage 1: Transport network
