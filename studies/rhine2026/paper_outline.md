@@ -49,10 +49,14 @@ data file it comes from, so the pipeline can produce it without re-deciding.
 ## 4. The 2026 scenario
 - Inputs: weekly Kaub gauge (PEGELONLINE/BfG) → draught table → capacity factor → cost multiplier
   or closure (Figure 4: gauge, capacity factor and schedule, 22 Jun – 5 Oct 2026).
-- Runs: baseline; 2026 profile with the substitution ceiling 0.30 (main); bounds and
-  sensitivities: unlimited substitutes (run 2), ceiling 0.15 and 0.50, legacy give-up rule;
-  counterfactuals: 2018 profile at 0.30; no-disruption control (drift check). Seed sensitivity
-  if time allows.
+- Runs (baseline definition of 4 Sep, user decisions): survey criticality, import bundles by MRIO
+  composition, firm inventories by buying industry (Bundesbank stock days), cargo-specific switching
+  costs, one delivered-price give-up threshold (5), no quantity cap: `2026_seed42_base`; the 2018
+  profile with the same baseline; the cost-only bound (unlimited substitution, 3 Sep) as reference;
+  the substitution-ceiling experiments (0.30, 0.70, survey variant) reported as what a quantity cap
+  does; sector-specific give-up thresholds evaluated from the 2018/2026 evidence and not adopted;
+  no-disruption control (drift check). Sensitivities for the cluster: closure threshold (per cargo),
+  lean-2019 inventories, halved/doubled switching costs, seeds.
 - Two modelling decisions to state up front, both forced by the scale of the scope: the
   criticality threshold (2 % cost-share proxy for the partially-binding Leontief; strict
   Leontief let a negligible cross-border service input cascade — KI-29) and the give-up rule on
