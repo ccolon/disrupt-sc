@@ -184,7 +184,11 @@ and `productivity_shock`.
 (`cost_multiplier`: a number or `{cargo_type: m, default: m}`) for `duration`
 steps: buyers whose route crosses a shocked edge pay the surcharge (passed into
 the price via `transport_share`), reroute when an alternative is cheaper (with
-the switching penalty), or give up beyond `price_increase_threshold`. The switching
+the switching penalty), or give up beyond `price_increase_threshold`. With
+`delivered_price_increase_threshold` set, the give-up test is on the delivered price
+(transport share x relative cost increase); it is a scalar or a dict keyed by product type
+(the supplier sector's type) and/or cargo type with `default`, e.g. `{mining: 0.3, default: 5}`:
+low-value bulk is abandoned at a smaller increase than feedstocks or manufactured goods. The switching
 penalty `logistics.switching_costs.modal_switch` is a scalar or a per-cargo-type dict
 (`{default: 0.15, liquid_bulk: 1000}`): a prohibitive value for a cargo class says that its
 alternative mode does not exist at volume, so that class pays the surcharge while the shocked

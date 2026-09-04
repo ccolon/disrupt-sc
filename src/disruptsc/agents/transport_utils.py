@@ -55,15 +55,34 @@ def _base_route_cost(route: Route,
     return route.sum_indicator(transport_network, f"cost_per_ton_{cargo_type}")
 
 
-def too_expensive(tp: TransportParams, relative_increase: float, transport_share: float) -> bool:
+def _delivered_price_threshold(tp: TransportParams, link=None):
+    """Give-up threshold on the delivered price for *link*.
+
+    ``delivered_price_increase_threshold`` is a scalar, or a dict keyed by
+    product type (the supplier sector's type: mining, agriculture,
+    oil_and_gas, manufacturing, ...) and/or cargo type, with ``default``:
+    low-value bulk is abandoned at a smaller delivered-price increase than
+    feedstocks or manufactured goods (Rhine 2018/2026 evidence).
+    """
+    value = tp.delivered_price_increase_threshold
+    if isinstance(value, dict):
+        for key in ((getattr(link, "product_type", None), getattr(link, "cargo_type", None)) if link is not None else ()):
+            if key in value:
+                return value[key]
+        return value.get("default")
+    return value
+
+
+def too_expensive(tp: TransportParams, relative_increase: float, transport_share: float, link=None) -> bool:
     """Give-up rule for a delivery whose transport cost rose by *relative_increase*.
 
     With ``delivered_price_increase_threshold`` set, the test is on the delivered
     price (transport_share x relative increase); otherwise the legacy test on the
     freight bill (1 + relative increase > price_increase_threshold) applies.
     """
-    if tp.delivered_price_increase_threshold is not None:
-        return transport_share * relative_increase > tp.delivered_price_increase_threshold
+    threshold = _delivered_price_threshold(tp, link)
+    if threshold is not None:
+        return transport_share * relative_increase > threshold
     return tp.price_increase_threshold is not None and 1.0 + relative_increase > tp.price_increase_threshold
 
 
@@ -166,7 +185,7 @@ def send_shipment(agent_pid, od_point: int,
         if alt_share > 0:
             relative_increase += (alt_share / delivered_share) * switch_frac
 
-        if too_expensive(tp, relative_increase, transport_share):
+        if too_expensive(tp, relative_increase, transport_share, link):
             link.realized_delivery = 0.0
             link.delivery = 0.0
             link.payment = 0.0
@@ -251,7 +270,7 @@ def send_shipment(agent_pid, od_point: int,
         )
         relative_increase += switching_penalty
 
-        if too_expensive(tp, relative_increase, transport_share):
+        if too_expensive(tp, relative_increase, transport_share, link):
             link.realized_delivery = 0.0
             link.delivery = 0.0
             link.payment = 0.0
@@ -364,7 +383,7 @@ def _send_chunked_shipment(
                 planned_route, alt_route, tp.switching_costs, transport_network,
             )
             relative_increase += switching_penalty
-            if too_expensive(tp, relative_increase, transport_share):
+            if too_expensive(tp, relative_increase, transport_share, link):
                 if routing_event_collector:
                     routing_event_collector.record_event(
                         agent_pid, link.buyer_id, "too_expensive",
