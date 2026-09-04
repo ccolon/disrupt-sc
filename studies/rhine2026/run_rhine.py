@@ -143,6 +143,9 @@ def main():
                     help="override delivered_price_increase_threshold: a number, or 'key=value,...' by product type "
                          "and/or cargo type with a default (e.g. 'mining=0.3,agriculture=0.5,default=5'). Give up when "
                          "transport_share x relative cost increase exceeds it. Not a cache key.")
+    ap.add_argument("--inventory-targets", default=None,
+                    help="YAML file replacing inventory_duration_targets (e.g. additional_data/inventory_targets_by_buyer.yaml, "
+                         "days of goods-input stock per buying sector with overrides). Re-applied on load, not a cache key.")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--cache", default="auto",
                     help="cache preset passed to execute(); 'auto' reuses every stage whose fingerprint "
@@ -212,11 +215,19 @@ def main():
               f"cost-shock week(s), no capacity overrides")
     if args.delivered_price_threshold is not None:
         raw = str(args.delivered_price_threshold)
-        if "=" in raw:
+        if raw.endswith((".yaml", ".yml")):
+            import yaml as _yaml
+            with open(raw, encoding="utf-8") as fh:
+                config["delivered_price_increase_threshold"] = {str(k): float(v) for k, v in _yaml.safe_load(fh).items()}
+        elif "=" in raw:
             config["delivered_price_increase_threshold"] = {
                 k.strip(): float(v) for k, v in (item.split("=") for item in raw.split(",") if item.strip())}
         else:
             config["delivered_price_increase_threshold"] = float(raw)
+    if args.inventory_targets:
+        import yaml as _yaml
+        with open(args.inventory_targets, encoding="utf-8") as fh:
+            config["inventory_duration_targets"] = _yaml.safe_load(fh)
     if args.input_criticality:
         config.setdefault("filepaths", {})["input_criticality"] = str(Path(args.input_criticality).resolve())
     if args.critical_input_threshold is not None:

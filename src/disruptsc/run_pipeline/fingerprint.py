@@ -117,11 +117,12 @@ _STAGE_CONFIG_KEYS = {
         "countries_to_include", "countries_no_transport", "country_attachment",
         "agent_attachment", "firm_data_type",
         "explicit_service_firm", "utilization_rate",
-        # NOT critical_input_threshold / input_criticality: production-rule
-        # parameters re-applied on every cache load (run.py _configure_firms),
-        # like the household-inventory config — a sensitivity on them must not
-        # rebuild the agents (EU scope: ~1 h per run).
-        "inventory_duration_targets", "inventory_restoration_time",
+        # NOT critical_input_threshold / input_criticality /
+        # inventory_duration_targets: production-rule parameters and firm
+        # inventory targets are re-applied on every cache load (run.py
+        # _configure_firms), like the household-inventory config — a
+        # sensitivity on them must not rebuild the agents (EU: ~1 h per run).
+        "inventory_restoration_time",
         "capital_to_value_added_ratio", "country_transport_share",
         "firm_transport_share",
     ),

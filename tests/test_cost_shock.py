@@ -207,3 +207,18 @@ def test_delivered_price_threshold_by_product_type():
     tn.start_edge_cost_shock(tn[1][2], 3.0, duration=1)
     _send(tn, link, tp, transport_share=1.0)
     assert link.realized_delivery == pytest.approx(100.0)  # 0.40 < 5: delivered
+
+
+def test_delivered_price_threshold_resolves_sector_then_type():
+    from disruptsc.agents.transport_utils import _delivered_price_threshold
+    tp = TransportParams(delivered_price_increase_threshold={
+        "C10T12:dry_bulk": 0.25, "C10T12": 0.30, "B08": 0.2, "mining": 0.25, "default": 5.0})
+    class L:  # minimal link
+        def __init__(self, product, product_type, cargo_type):
+            self.product, self.product_type, self.cargo_type = product, product_type, cargo_type
+    assert _delivered_price_threshold(tp, L("DEU_C10T12", "manufacturing", "dry_bulk")) == 0.25
+    assert _delivered_price_threshold(tp, L("DEU_C10T12", "manufacturing", "container")) == 0.30
+    assert _delivered_price_threshold(tp, L("DEU_B08", "mining", "dry_bulk")) == 0.2
+    assert _delivered_price_threshold(tp, L("RUS_imports", "mining", "dry_bulk")) == 0.25   # bundle -> dominant type
+    assert _delivered_price_threshold(tp, L("DEU_C17_18", "manufacturing", "container")) == 5.0
+    assert _delivered_price_threshold(TransportParams(delivered_price_increase_threshold=0.5), L("x", "y", "z")) == 0.5

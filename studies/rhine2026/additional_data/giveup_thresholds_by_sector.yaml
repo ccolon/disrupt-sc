@@ -1,0 +1,42 @@
+# Give-up threshold on the DELIVERED price (transport share x relative freight increase), by the
+# supplier's ICIO sector, product type (for import bundles: the bundle's dominant type) or cargo
+# class. Central values from studies/rhine2026/evidence/giveup_thresholds_by_cargo.md, section 7
+# (4 Sep 2026): Eurostat/CCNR 2018 volumes by goods group, 2018/2026 freight multiples, company
+# statements. Grades A-C as in the dossier. Keys "<sector>:<cargo>" beat "<sector>", which beats the
+# product type, which beats the cargo class. Thresholds bite only in surcharge weeks; in closure
+# weeks the give-up of bulk is physical (switching costs) whatever the threshold.
+# Use with run_rhine.py --delivered-price-threshold <this file>.
+default: 0.30           # containers / manufactured goods: non-binding in practice (A)
+A01: 0.20               # grain, oilseeds (B)
+A02: 0.20               # wood in the rough (C, as mid/low-value bulk)
+A03: 0.25               # fish (C)
+B05: 0.25               # coal: 0.20 to power plants, 0.35 to steelworks; destination unknown here (B)
+B06: 0.50               # crude oil, pipeline-fed refineries (C)
+B07: 0.35               # iron ore (B)
+B08: 0.20               # sand, gravel, stone (B/C)
+B09: 0.25               # mining support (C)
+C10T12:dry_bulk: 0.25   # feed, oil meals, bulk food (B/C)
+C10T12: 0.30            # packaged food (A)
+C13T15: 0.30
+C16: 0.25               # wood products (C)
+C17_18: 0.25            # paper (C)
+C19: 0.50               # refined products: paid x7-x10 (A)
+C20: 0.50               # naphtha, basic chemicals: paid rail/road at 2-7x (A); fertiliser would be 0.25 if split
+C21: 0.30
+C22: 0.30               # 0.50 for primary forms in bulk; the model ships C22 as containers
+C23: 0.20               # clinker, cement, building materials (B/C)
+C24A: 0.35              # steel (B)
+C24B: 0.35              # non-ferrous (B)
+C25: 0.30
+C26: 0.30
+C27: 0.30
+C28: 0.30
+C29: 0.30
+C301: 0.30
+C302T309: 0.30
+C31T33: 0.30
+# import bundles (no sector on the link): by the bundle's dominant product type
+mining: 0.25
+oil_and_gas: 0.50
+agriculture: 0.20
+manufacturing: 0.30

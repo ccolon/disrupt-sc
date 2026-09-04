@@ -1,0 +1,87 @@
+# Days of goods-input inventory by BUYING industry (ICIO sector), central case.
+# Source: studies/rhine2026/evidence/inventory_durations_by_industry.md (4 Sep 2026), table 6.2:
+# Bundesbank extrapolated balance sheets 2023 (raw-material stocks "RHB" / Materialaufwand x 365),
+# Banque de France FIBEN sector sheets, physical stock data (Eurostat/BAFA crude, EKBG coal rule,
+# Duisburg ore yards, mills), US Census M3 as a cross-check. Grades: A/B data-based,
+# C indirect, D assumed. Service inputs keep the model's coping duration (service_days), utilities
+# are non-storable (overrides "*"). Use with run_rhine.py --inventory-targets <this file>.
+definition: per_buying_sector
+unit: day
+service_days: 90
+service_types: [service, services, trade, transport]
+values:
+  default: 30
+  A01: 30        # C
+  A02: 30        # C (as A01)
+  A03: 30        # C
+  B05: 30        # C
+  B06: 30        # C
+  B07: 30        # C
+  B08: 30        # C
+  B09: 30        # C
+  C10T12: 18     # A  Bundesbank 18.4 d; mills 14 d, oil mills 5-10 d
+  C13T15: 40     # A  41.9 d
+  C16: 33        # B
+  C17_18: 33     # B
+  C19: 12        # B  refiners' crude = 10 d of primary supply (Eurostat/BAFA), EU27 operators <= 19 d
+  C20: 30        # A  30.7 d
+  C21: 60        # B
+  C22: 40        # B  38.9 d
+  C23: 30        # B
+  C24A: 40       # B  36.4 d; Duisburg yards "one to two months"
+  C24B: 40       # C
+  C25: 36        # B
+  C26: 60        # B  70 d in 2023 vs 37 d in 2019
+  C27: 60        # B
+  C28: 55        # A  58.7 d
+  C29: 18        # A  18.4 d
+  C301: 60       # D
+  C302T309: 60   # D
+  C31T33: 40     # C
+  D: 20          # B  blend; see overrides (coal 30, oil 10, gas 2)
+  E: 10          # C
+  F: 10          # A  8.9 d
+  G: 5           # B  2.2 d of material costs (goods for resale are not an ICIO input)
+  H49: 7         # B  7.3 d (fuel, tyres, spares)
+  H50: 7         # B
+  H51: 7         # B
+  H52: 7         # B
+  H53: 7         # B
+  I: 5           # B
+  J58T60: 10     # C
+  J61: 10        # C
+  J62_63: 10     # C
+  K: 7           # D
+  L: 10          # D
+  M: 10          # C
+  N: 10          # C
+  O: 15          # D
+  P: 15          # D
+  Q: 20          # C
+  R: 7           # D
+  S: 7           # D
+  T: 7           # D
+overrides:
+  "*":            # every buyer: non-storable utilities
+    D: 2
+    E: 2
+    utility: 2
+  D:              # power plants (EKBG 30-day coal rule, 10 d oil, pipeline gas)
+    B05: 30
+    B06: 2
+    C19: 10
+  C19:            # refineries: crude
+    B06: 12
+  C24A:           # integrated steelworks: ore and coking coal yards
+    B07: 40
+    B05: 40
+  C20:            # chemical sites: liquid feedstocks (2026 force-majeure timing; grade C)
+    C19: 14
+    B06: 14
+  C10T12:         # mills and feed plants: grain and oilseeds
+    A01: 10
+  C23:            # cement: externally supplied fuels
+    B05: 25
+    C19: 25
+  H49:            # hauliers: fuel
+    C19: 7

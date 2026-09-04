@@ -66,9 +66,14 @@ def _delivered_price_threshold(tp: TransportParams, link=None):
     """
     value = tp.delivered_price_increase_threshold
     if isinstance(value, dict):
-        for key in ((getattr(link, "product_type", None), getattr(link, "cargo_type", None)) if link is not None else ()):
-            if key in value:
-                return value[key]
+        if link is not None:
+            product = getattr(link, "product", "") or ""
+            sector = product.split("_", 1)[-1] if "_" in product else product   # "DEU_C17_18" -> "C17_18"
+            cargo = getattr(link, "cargo_type", None)
+            # most specific first: "<sector>:<cargo>", sector, product type, cargo type
+            for key in (f"{sector}:{cargo}", sector, getattr(link, "product_type", None), cargo):
+                if key in value:
+                    return value[key]
         return value.get("default")
     return value
 
