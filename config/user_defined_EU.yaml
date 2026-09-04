@@ -176,3 +176,96 @@ logistics:
 # capacity-constrained routing (heuristic candidate generation over ~200k OD groups)
 # does not scale to this scope - killed after 80 CPU-min on 2026-09-03. Port choice is
 # a cost question in this scope; capacity_constraint stays off (default).
+
+# Rhine 2026 (4 Sep, user decision): firm inventory targets by BUYING industry, days of goods-input stock
+# from the Bundesbank 2023 corporate balance sheets (raw-material stocks / material costs x 365), FIBEN,
+# and physical stock data (refiners' crude 10 d, EKBG 30-day coal rule, ore yards 40 d, mills 10-14 d);
+# utilities non-storable (2 d), service inputs keep a 90-day coping duration, import bundles follow their
+# MRIO composition. Source and grades: studies/rhine2026/evidence/inventory_durations_by_industry.md;
+# the same table is kept in studies/rhine2026/additional_data/inventory_targets_by_buyer.yaml.
+# Re-applied on every cache load (not a cache key).
+inventory_duration_targets:
+  definition: per_buying_sector
+  unit: day
+  service_days: 90
+  service_types:
+  - service
+  - services
+  - trade
+  - transport
+  values:
+    default: 30
+    A01: 30
+    A02: 30
+    A03: 30
+    B05: 30
+    B06: 30
+    B07: 30
+    B08: 30
+    B09: 30
+    C10T12: 18
+    C13T15: 40
+    C16: 33
+    C17_18: 33
+    C19: 12
+    C20: 30
+    C21: 60
+    C22: 40
+    C23: 30
+    C24A: 40
+    C24B: 40
+    C25: 36
+    C26: 60
+    C27: 60
+    C28: 55
+    C29: 18
+    C301: 60
+    C302T309: 60
+    C31T33: 40
+    D: 20
+    E: 10
+    F: 10
+    G: 5
+    H49: 7
+    H50: 7
+    H51: 7
+    H52: 7
+    H53: 7
+    I: 5
+    J58T60: 10
+    J61: 10
+    J62_63: 10
+    K: 7
+    L: 10
+    M: 10
+    N: 10
+    O: 15
+    P: 15
+    Q: 20
+    R: 7
+    S: 7
+    T: 7
+  overrides:
+    '*':
+      D: 2
+      E: 2
+      utility: 2
+    D:
+      B05: 30
+      B06: 2
+      C19: 10
+    C19:
+      B06: 12
+    C24A:
+      B07: 40
+      B05: 40
+    C20:
+      C19: 14
+      B06: 14
+    C10T12:
+      A01: 10
+    C23:
+      B05: 25
+      C19: 25
+    H49:
+      C19: 7
