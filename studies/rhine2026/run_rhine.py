@@ -94,7 +94,8 @@ def build_disruptions(reductions: list[float], edges: list[str], min_reduction=0
         else:
             out.append({"type": "transport_cost_shock", "attribute": "name", "values": list(edges),
                         "cost_multiplier": round(min(max_multiplier, 1.0 / (1.0 - r)), 3),
-                        "capacity_factor": round(1.0 - r, 4), "substitution_share": substitution_share,
+                        "capacity_factor": (round(1.0 - r, 4) if substitution_share < 1.0 else 1.0),
+                        "substitution_share": substitution_share,
                         "start_time": t, "duration": 1})
     return out
 
