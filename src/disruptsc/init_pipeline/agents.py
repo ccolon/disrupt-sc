@@ -230,7 +230,54 @@ def load_tech_coefs(firms: dict[str, Firm], mrio: Mrio, selection: Selection):
         firm.input_mix = coefs
 
 
-def load_input_criticality(firms: dict[str, Firm], criticality: pd.DataFrame):
+def import_bundle_shares(mrio) -> dict:
+    """Sector composition of each firm-level import bundle, from the MRIO.
+
+    The supply-chain build folds a buyer's sector-resolved import needs into
+    one ``{BLOC}_imports`` input per partner bloc (supply_chain.
+    _aggregate_import_inputs), which loses the sector that the inventory
+    target and the criticality weight are keyed on. The MRIO still has it:
+    the import rows (BLOC, sector) of the buyer's column. Returns
+    ``{(region, sector): {bloc: {sector: share}}}`` with shares summing to 1
+    per bloc (blocs with no import flow to that buyer are absent).
+    """
+    shares: dict = {}
+    try:
+        imp = mrio.get_import_rows()
+    except Exception:  # legacy MRIO without import rows
+        return shares
+    ext = set(getattr(mrio, "external_selling_countries", []) or [])
+    import_label = getattr(mrio, "import_label", "imports")
+    for col in imp.columns:
+        series = imp[col]
+        series = series[series > 0]
+        if series.empty:
+            continue
+        by_bloc: dict = {}
+        for (bloc, sector), value in series.items():
+            if bloc not in ext and sector != import_label:
+                continue
+            by_bloc.setdefault(bloc, {})[sector] = by_bloc.get(bloc, {}).get(sector, 0.0) + float(value)
+        out = {}
+        for bloc, comp in by_bloc.items():
+            tot = sum(comp.values())
+            if tot > 0:
+                out[bloc] = {s: v / tot for s, v in comp.items()}
+        if out:
+            shares[tuple(col)] = out
+    return shares
+
+
+def _bundle_composition(firm, input_id: str, bundle_shares: dict | None) -> dict | None:
+    """{sector: share} of a ``{BLOC}_imports`` input of *firm*, or None."""
+    if not bundle_shares or not input_id.endswith("_imports"):
+        return None
+    bloc = input_id[: -len("_imports")]
+    return (bundle_shares.get((firm.region, firm.sector)) or {}).get(bloc)
+
+
+def load_input_criticality(firms: dict[str, Firm], criticality: pd.DataFrame,
+                           bundle_shares: dict | None = None):
     """Attach per-input criticality weights (Pichler adapted Leontief) to firms.
 
     ``criticality`` is a sector-by-sector matrix (index = input sector, columns =
@@ -238,6 +285,10 @@ def load_input_criticality(firms: dict[str, Firm], criticality: pd.DataFrame):
     its input_mix we look up ``criticality.loc[input_sector, buyer_sector]``. Sectors
     absent from the matrix default to 1.0 (critical) so coverage gaps stay
     conservative (strict-Leontief behaviour), never silently non-binding.
+
+    Import bundles (``{BLOC}_imports``, see import_bundle_shares) get the
+    share-weighted mean of their sectors' weights when *bundle_shares* is
+    given; otherwise they default to critical.
     """
     # (input_sector, buyer_sector) -> weight, for O(1) lookups
     lookup = {(i, j): float(criticality.at[i, j])
@@ -247,11 +298,21 @@ def load_input_criticality(firms: dict[str, Firm], criticality: pd.DataFrame):
         return region_sector.split("_", 1)[-1] if "_" in region_sector else region_sector
 
     missing_sectors = set()
+    n_bundles = n_resolved = 0
     for firm in firms.values():
         buyer = _sector(firm.region_sector)
         weights = {}
         for input_id in firm.input_mix:
             inp = _sector(input_id)
+            if inp == "imports":
+                n_bundles += 1
+                comp = _bundle_composition(firm, input_id, bundle_shares)
+                if comp:
+                    n_resolved += 1
+                    weights[input_id] = sum(share * lookup.get((s, buyer), 1.0) for s, share in comp.items())
+                else:
+                    weights[input_id] = 1.0
+                continue
             key = (inp, buyer)
             if key in lookup:
                 weights[input_id] = lookup[key]
@@ -260,6 +321,9 @@ def load_input_criticality(firms: dict[str, Firm], criticality: pd.DataFrame):
                 if inp not in criticality.index or buyer not in criticality.columns:
                     missing_sectors.add(inp if inp not in criticality.index else buyer)
         firm.input_criticality = weights
+    if n_bundles:
+        logging.info(f"input_criticality: {n_resolved}/{n_bundles} import bundles resolved from their "
+                     f"MRIO sector composition (the rest default to critical)")
 
     if missing_sectors:
         logging.warning(
@@ -277,8 +341,14 @@ def load_input_criticality(firms: dict[str, Firm], criticality: pd.DataFrame):
 
 
 def load_inventories(firms: dict[str, Firm], inventory_targets: dict,
-                     time_resolution: str, sector_table: pd.DataFrame = None):
-    """Set inventory duration targets per input sector."""
+                     time_resolution: str, sector_table: pd.DataFrame = None,
+                     bundle_shares: dict | None = None):
+    """Set inventory duration targets per input sector.
+
+    Import bundles (``{BLOC}_imports``) get the share-weighted mean of their
+    sectors' type durations when *bundle_shares* (import_bundle_shares) is
+    given, else the ``imports`` value or the default.
+    """
     definition = inventory_targets.get("definition", "per_input_type")
     values = inventory_targets.get("values", {"default": 30})
     target_unit = inventory_targets.get("unit", "day")
@@ -308,9 +378,15 @@ def load_inventories(firms: dict[str, Firm], inventory_targets: dict,
                     # target and fell back to one time step (EU Rhine study,
                     # 4 Sep 2026: one closed week zeroed the power plants'
                     # coal and the hauliers' fuel). Re-applied on every cache
-                    # load (run.py _configure_firms) so the bundle gets the
+                    # load (run.py _configure_firms): the bundle gets the mean
+                    # duration of its MRIO sector composition, else the
                     # `imports` value, or the default, of the config.
-                    duration = values.get("imports", values.get("default", 30))
+                    comp = _bundle_composition(firm, input_id, bundle_shares)
+                    if comp:
+                        duration = sum(share * values.get(sector_type_map.get(s, "default"), values.get("default", 30))
+                                       for s, share in comp.items())
+                    else:
+                        duration = values.get("imports", values.get("default", 30))
                     n_imports += 1
                 else:
                     input_type = sector_type_map.get(input_sector, "default")

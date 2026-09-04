@@ -44,6 +44,9 @@ def test_switching_costs_do_not_invalidate_any_stage():
     assert build_stage_fingerprint(costlier, "transport_network")["hash"] != build_stage_fingerprint(base, "transport_network")["hash"]
 
 
+import pytest
+
+
 def test_import_bundles_get_an_inventory_target():
     # "{BLOC}_imports" keys are created after load_inventories ran on the agents;
     # they must receive the `imports` value (or the default), not one time step.
@@ -66,3 +69,31 @@ def test_import_bundles_get_an_inventory_target():
     load_inventories(firms, {"definition": "per_input_type", "unit": "day",
                              "values": {"default": 30, "imports": 45}}, "week", sector_table)
     assert firms["f"].inventory_duration_target["RUS_imports"] == pytest.approx(45 / 7)
+
+
+def test_import_bundles_resolve_criticality_and_inventory_from_their_composition():
+    import pandas as pd
+    from disruptsc.init_pipeline.agents import load_inventories, load_input_criticality
+
+    class F:
+        def __init__(self, mix):
+            self.input_mix = mix
+            self.region, self.sector, self.region_sector = "DEU", "C19", "DEU_C19"
+            self.inventory_duration_target = {}
+            self.input_criticality = {}
+
+    sector_table = pd.DataFrame({"sector": ["A01", "B06", "C19", "C28"], "type": ["agriculture", "mining", "oil_and_gas", "manufacturing"]})
+    firms = {"f": F({"DEU_A01": 0.2, "RUS_imports": 0.5, "USA_imports": 0.3})}
+    # RUS sends crude (B06) and machinery (C28) 80/20; USA is unknown -> fallback
+    shares = {("DEU", "C19"): {"RUS": {"B06": 0.8, "C28": 0.2}}}
+    crit = pd.DataFrame(1.0, index=["A01", "B06", "C19", "C28"], columns=["A01", "B06", "C19", "C28"])
+    crit.loc["C28", "C19"] = 0.0     # machinery is non-critical for refining
+    crit.loc["A01", "C19"] = 0.5
+    load_input_criticality(firms, crit, bundle_shares=shares)
+    w = firms["f"].input_criticality
+    assert w["DEU_A01"] == 0.5 and w["RUS_imports"] == pytest.approx(0.8 * 1.0 + 0.2 * 0.0) and w["USA_imports"] == 1.0
+    load_inventories(firms, {"definition": "per_input_type", "unit": "day",
+                             "values": {"default": 30, "mining": 40, "manufacturing": 10, "imports": 20}},
+                     "week", sector_table, bundle_shares=shares)
+    t = firms["f"].inventory_duration_target
+    assert t["RUS_imports"] == pytest.approx((0.8 * 40 + 0.2 * 10) / 7) and t["USA_imports"] == pytest.approx(20 / 7)
