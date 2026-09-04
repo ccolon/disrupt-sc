@@ -14,6 +14,12 @@
 filepaths:
   mrio: "Economic/mrio.csv"
   sector_table: "Economic/sector_table.csv"
+  # Rhine 2026 (4 Sep, user decision): the IHS Markit survey criticality (Pichler et al. 2022,
+  # 55 WIOD industries mapped to the 50 ICIO sectors by studies/rhine2026/build_criticality_eu.py)
+  # IS the baseline production rule: an input binds output only if the survey rates it critical
+  # (1) or important (0.5). The 2 % cost-share proxy (critical_input_threshold) is ignored when
+  # this file is set; it made tiny service shortfalls bind on every buyer.
+  input_criticality: "repo:studies/rhine2026/additional_data/input_criticality.csv"
   # firm-level file from firm-extractor (EU/firm_extractor_config.yaml);
   # Spatial/firms_population.geojson = NUTS2 population fallback for A/B tests
   firms_spatial: "Spatial/firms.geojson"
