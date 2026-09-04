@@ -133,8 +133,12 @@ def send_shipment(agent_pid, od_point: int,
                        if alt_route is not None else 0.0)
         alt_cost_with_switch = alt_cost + switch_frac * link.route_cost_per_ton
         cap, sub = main_route.shock_ceiling(transport_network)
-        if cap >= 1.0 and sub >= 1.0:
-            # unlimited substitutes (default): all-or-nothing on the cheaper option
+        if sub >= 1.0:
+            # Cost approach (default): all-or-nothing on the cheaper option. The
+            # capacity factor only matters under a substitution ceiling; with
+            # unlimited substitutes it must not split the tonnage, or a bulk
+            # link whose reroute is prohibitive would give up on the split
+            # share while the river is open (EU Rhine run, 4 Sep 2026).
             stays_on_main = alt_route is None or alt_cost_with_switch >= shocked_cost
             main_share = 1.0 if stays_on_main else 0.0
             alt_share = 0.0 if stays_on_main else 1.0

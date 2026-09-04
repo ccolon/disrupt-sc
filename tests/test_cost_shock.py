@@ -173,3 +173,19 @@ def test_default_switching_cost_still_reroutes_other_cargo():
     assert link.current_route == "alternative"
     assert link.realized_delivery == pytest.approx(100.0)
     assert link.price == pytest.approx(1.0 * (1 + 0.1 * ((25 - 20) / 20 + 0.15)))
+
+
+def test_capacity_factor_without_ceiling_does_not_split_or_give_up():
+    # EU Rhine, 4 Sep 2026: the driver passed capacity_factor = 1 - r with
+    # substitution_share 1.0; the ceiling split then put 18 % of a bulk link on
+    # the alternative, whose prohibitive switching penalty made the whole link
+    # give up while the river was open. Without a ceiling the choice must be
+    # all-or-nothing on the cheaper option.
+    tn, tp = _network(), _tp_bulk_cannot_switch()
+    link = _link(tn)
+    tn.start_edge_cost_shock(tn[1][2], 1.22, duration=1, capacity_factor=0.82, substitution_share=1.0)
+    _send(tn, link, tp)
+    assert link.current_route == "main"
+    assert link.realized_delivery == pytest.approx(100.0)
+    assert link.main_route_realized_delivery == pytest.approx(100.0)
+    assert link.price == pytest.approx(1.0 * (1 + 0.1 * (22.2 - 20) / 20))
