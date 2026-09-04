@@ -62,16 +62,16 @@ values:
   S: 7           # D
   T: 7           # D
 overrides:
-  "*":            # every buyer: non-storable utilities
-    D: 2
-    E: 2
-    utility: 2
+  "*":            # utilities: physically 2 d, kept at the coping duration (no grid substitution in the model)
+    D: 90
+    E: 90
+    utility: 90
   D:              # power plants (EKBG 30-day coal rule, 10 d oil, pipeline gas)
     B05: 30
-    B06: 2
+    B06: 90     # pipeline gas: the model has no pipeline mode
     C19: 10
-  C19:            # refineries: crude
-    B06: 12
+  C19:            # refineries: crude arrives by pipeline in reality (physical cover 10-12 d)
+    B06: 90
   C24A:           # integrated steelworks: ore and coking coal yards
     B07: 40
     B05: 40

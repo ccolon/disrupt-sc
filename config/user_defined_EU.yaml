@@ -247,15 +247,22 @@ inventory_duration_targets:
     T: 7
   overrides:
     '*':
-      D: 2
-      E: 2
-      utility: 2
+      # electricity, gas, water are physically non-storable (2 d), but the model has no grid
+      # substitution between plants, so a 2-day buffer turned any plant cut into an economy-wide
+      # cascade (run of 4 Sep 22:08); kept at the coping duration like services
+      D: 90
+      E: 90
+      utility: 90
     D:
       B05: 30
-      B06: 2
+      # gas to power plants is pipeline-fed; the model routes B06 flows as barge cargo (no
+      # pipeline mode), so the buffer neutralises a river closure that cannot touch them
+      B06: 90
       C19: 10
     C19:
-      B06: 12
+      # crude to the Rhine refineries arrives by pipeline (TAL, RRP, NWO), not by barge; same
+      # reason as above (physical cover is 10-12 d)
+      B06: 90
     C24A:
       B07: 40
       B05: 40
