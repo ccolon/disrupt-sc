@@ -138,6 +138,9 @@ def main():
     ap.add_argument("--input-criticality", default=None,
                     help="path to a sector x sector criticality matrix (IHS Markit survey, Pichler et al. 2022; build with "
                          "build_criticality_eu.py) -> filepaths.input_criticality; replaces the cost-share proxy")
+    ap.add_argument("--delivered-price-threshold", type=float, default=None,
+                    help="override delivered_price_increase_threshold (give up when transport_share x relative cost "
+                         "increase exceeds it; config 0.5). Not a cache key.")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--cache", default="auto",
                     help="cache preset passed to execute(); 'auto' reuses every stage whose fingerprint "
@@ -205,6 +208,8 @@ def main():
         n_closed = sum(1 for d in disruptions if d["type"] == "transport_disruption")
         print(f"capacity routing off: {n_closed} closure week(s) + {len(disruptions) - n_closed} "
               f"cost-shock week(s), no capacity overrides")
+    if args.delivered_price_threshold is not None:
+        config["delivered_price_increase_threshold"] = args.delivered_price_threshold
     if args.input_criticality:
         config.setdefault("filepaths", {})["input_criticality"] = str(Path(args.input_criticality).resolve())
     if args.critical_input_threshold is not None:
