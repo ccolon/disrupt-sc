@@ -294,15 +294,32 @@ def load_inventories(firms: dict[str, Firm], inventory_targets: dict,
             sector_type_map = (sector_table.drop_duplicates("sector")
                                            .set_index("sector")["type"].to_dict())
 
+        n_imports = 0
         for firm in firms.values():
             targets = {}
             for input_id in firm.input_mix:
                 # input_id is a region_sector like "ARM_mining"
                 input_sector = input_id.split("_", 1)[-1] if "_" in input_id else input_id
-                input_type = sector_type_map.get(input_sector, "default")
-                duration = values.get(input_type, values.get("default", 30))
+                if input_sector == "imports":
+                    # Sector-resolved import needs are folded into one
+                    # "{BLOC}_imports" bundle per partner when the supply chain
+                    # is built (supply_chain._aggregate_import_inputs), AFTER
+                    # this function ran on the agents; the bundle then had no
+                    # target and fell back to one time step (EU Rhine study,
+                    # 4 Sep 2026: one closed week zeroed the power plants'
+                    # coal and the hauliers' fuel). Re-applied on every cache
+                    # load (run.py _configure_firms) so the bundle gets the
+                    # `imports` value, or the default, of the config.
+                    duration = values.get("imports", values.get("default", 30))
+                    n_imports += 1
+                else:
+                    input_type = sector_type_map.get(input_sector, "default")
+                    duration = values.get(input_type, values.get("default", 30))
                 targets[input_id] = duration * factor
             firm.inventory_duration_target = targets
+        if n_imports:
+            logging.info(f"Inventory targets: {n_imports} import bundles set to "
+                         f"{values.get('imports', values.get('default', 30))} {target_unit}s")
 
 
 def configure_household_inventories(households: dict[str, Household],
