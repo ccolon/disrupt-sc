@@ -97,3 +97,42 @@ def test_import_bundles_resolve_criticality_and_inventory_from_their_composition
                      "week", sector_table, bundle_shares=shares)
     t = firms["f"].inventory_duration_target
     assert t["RUS_imports"] == pytest.approx((0.8 * 40 + 0.2 * 10) / 7) and t["USA_imports"] == pytest.approx(20 / 7)
+
+
+def test_inventory_targets_do_not_invalidate_the_agents_stage():
+    base = _config(inventory_duration_targets={"definition": "per_input_type", "values": {"default": 30}})
+    other = _config(inventory_duration_targets={"definition": "per_buying_sector", "values": {"default": 20, "C19": 12}})
+    for stage in ("agents", "sc_network", "logistic_routes"):
+        assert build_stage_fingerprint(other, stage)["hash"] == build_stage_fingerprint(base, stage)["hash"]
+
+
+def test_per_buying_sector_inventories_with_overrides_and_bundles():
+    import pandas as pd
+    from disruptsc.init_pipeline.agents import load_inventories
+
+    class F:
+        def __init__(self, sector, mix):
+            self.region, self.sector, self.region_sector = "DEU", sector, f"DEU_{sector}"
+            self.input_mix = mix
+            self.inventory_duration_target = {}
+
+    sector_table = pd.DataFrame({"sector": ["A01", "B05", "B06", "C19", "C28", "D", "G", "H49"],
+                                 "type": ["agriculture", "mining", "mining", "oil_and_gas", "manufacturing", "utility", "trade", "transport"]})
+    targets = {"definition": "per_buying_sector", "unit": "day", "service_days": 90,
+               "values": {"default": 30, "C19": 12, "D": 20, "C10T12": 18},
+               "overrides": {"*": {"D": 2, "utility": 2}, "D": {"B05": 30, "B06": 2}, "C19": {"B06": 12}, "C10T12": {"A01": 10}}}
+    refinery = F("C19", {"NOR_B06": 0.5, "DEU_C28": 0.1, "DEU_D": 0.05, "DEU_G": 0.05, "RUS_imports": 0.3})
+    plant = F("D", {"DEU_B05": 0.4, "DEU_B06": 0.3, "DEU_H49": 0.1})
+    mill = F("C10T12", {"DEU_A01": 0.6, "DEU_C28": 0.1})
+    shares = {("DEU", "C19"): {"RUS": {"B06": 0.75, "C28": 0.25}}}
+    load_inventories({"r": refinery, "p": plant, "m": mill}, targets, "week", sector_table, bundle_shares=shares)
+    r = refinery.inventory_duration_target
+    assert r["NOR_B06"] == pytest.approx(12 / 7)            # buyer override
+    assert r["DEU_C28"] == pytest.approx(12 / 7)            # buyer's goods-input days
+    assert r["DEU_D"] == pytest.approx(2 / 7)               # non-storable utility (any buyer)
+    assert r["DEU_G"] == pytest.approx(90 / 7)              # service input: coping duration
+    assert r["RUS_imports"] == pytest.approx((0.75 * 12 + 0.25 * 12) / 7)
+    p = plant.inventory_duration_target
+    assert p["DEU_B05"] == pytest.approx(30 / 7) and p["DEU_B06"] == pytest.approx(2 / 7) and p["DEU_H49"] == pytest.approx(90 / 7)
+    m = mill.inventory_duration_target
+    assert m["DEU_A01"] == pytest.approx(10 / 7) and m["DEU_C28"] == pytest.approx(18 / 7)

@@ -357,13 +357,56 @@ def load_inventories(firms: dict[str, Firm], inventory_targets: dict,
     time_days = {"day": 1, "week": 7, "month": 30, "year": 365}
     factor = time_days.get(target_unit, 1) / time_days.get(time_resolution, 7)
 
-    if definition == "per_input_type":
-        # Map sector to sector_type
-        sector_type_map = {}
-        if sector_table is not None:
-            sector_type_map = (sector_table.drop_duplicates("sector")
-                                           .set_index("sector")["type"].to_dict())
+    sector_type_map = {}
+    if sector_table is not None:
+        sector_type_map = (sector_table.drop_duplicates("sector")
+                                       .set_index("sector")["type"].to_dict())
 
+    if definition == "per_buying_sector":
+        # Days of goods-input stock keyed on the BUYER's sector (balance-sheet
+        # raw-material stocks over material costs, e.g. Bundesbank RHB days),
+        # with optional overrides per (buyer, input sector or input type) and
+        # a "*" buyer for overrides that hold for every buyer (non-storable
+        # utilities). Service inputs keep a coping duration, not a stock.
+        # See studies/rhine2026/evidence/inventory_durations_by_industry.md.
+        overrides = inventory_targets.get("overrides", {}) or {}
+        service_types = set(inventory_targets.get("service_types", ("service", "services", "trade", "transport")))
+        service_days = inventory_targets.get("service_days", 90)
+        default_days = values.get("default", 30)
+
+        def _days(buyer_sector: str, input_sector: str) -> float:
+            itype = sector_type_map.get(input_sector, "default")
+            for scope in (overrides.get(buyer_sector, {}), overrides.get("*", {})):
+                if input_sector in scope:
+                    return float(scope[input_sector])
+                if itype in scope:
+                    return float(scope[itype])
+            if itype in service_types:
+                return float(service_days)
+            return float(values.get(buyer_sector, default_days))
+
+        n_imports = n_resolved = 0
+        for firm in firms.values():
+            targets = {}
+            for input_id in firm.input_mix:
+                input_sector = input_id.split("_", 1)[-1] if "_" in input_id else input_id
+                if input_sector == "imports":
+                    n_imports += 1
+                    comp = _bundle_composition(firm, input_id, bundle_shares)
+                    if comp:
+                        n_resolved += 1
+                        duration = sum(share * _days(firm.sector, s) for s, share in comp.items())
+                    else:
+                        duration = float(values.get(firm.sector, default_days))
+                else:
+                    duration = _days(firm.sector, input_sector)
+                targets[input_id] = duration * factor
+            firm.inventory_duration_target = targets
+        logging.info(f"Inventory targets per buying sector: {len(values)} sectors, {len(overrides)} override blocks; "
+                     f"{n_resolved}/{n_imports} import bundles resolved from their composition")
+        return
+
+    if definition == "per_input_type":
         n_imports = 0
         for firm in firms.values():
             targets = {}
