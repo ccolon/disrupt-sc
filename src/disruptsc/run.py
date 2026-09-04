@@ -213,6 +213,24 @@ def execute(config: dict, *, cache: str | None = None,
             sector_table,
         )
 
+    def _configure_firms(firms):
+        """Re-apply the production-rule parameters to cache-loaded firms.
+
+        `critical_input_threshold` and the `input_criticality` matrix shape how
+        a firm's output binds to its inputs, not how firms are built, so they
+        are not part of the agents cache fingerprint; a cache written under
+        another value is corrected here (same contract as the household
+        inventory config).
+        """
+        for firm in firms.values():
+            firm.critical_input_threshold = ap.critical_input_threshold
+        crit_path = filepaths.get("input_criticality")
+        if crit_path and Path(crit_path).exists():
+            load_input_criticality(firms, pd.read_csv(crit_path, index_col=0))
+        else:
+            for firm in firms.values():
+                firm.input_criticality = {}
+
     # ------------------------------------------------------------------
     # Stage 1: Transport network
     # ------------------------------------------------------------------
@@ -240,6 +258,7 @@ def execute(config: dict, *, cache: str | None = None,
         mrio, sector_table, firms, firm_table, households, household_table, countries = load_cached_agents(
             scope=scope, stage_fp=stage_fps["agents"])
         _configure_households(households)
+        _configure_firms(firms)
     else:
         logging.info("Building agents")
         mrio = load_mrio(filepaths.get("mrio"), ap.monetary_units_in_data)
@@ -282,6 +301,7 @@ def execute(config: dict, *, cache: str | None = None,
         households = add_representative_demand_agents(
             households, mrio, selection, ap, sp.time_resolution)
         _configure_households(households)
+        _configure_firms(firms)
 
         # Countries
         countries = create_countries(
@@ -319,6 +339,7 @@ def execute(config: dict, *, cache: str | None = None,
         sc_network, firms, households, countries = load_cached_sc_network(
             scope=scope, stage_fp=stage_fps["sc_network"])
         _configure_households(households)
+        _configure_firms(firms)
     else:
         logging.info("Building supply chain network")
         # RNGs were seeded at the top of execute() (when sp.seed is set).
@@ -366,6 +387,7 @@ def execute(config: dict, *, cache: str | None = None,
         sc_network, transport_network, cl_table, firms, households, countries = load_cached_logistic_routes(
             scope=scope, stage_fp=stage_fps["logistic_routes"])
         _configure_households(households)
+        _configure_firms(firms)
         report_inventory_to_gdp(firms, households, sp.time_resolution)
         # Caches written before route sharing (KI-30) hold one Route per link;
         # share them now and re-save once so the next load is small.

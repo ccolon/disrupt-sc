@@ -116,7 +116,11 @@ _STAGE_CONFIG_KEYS = {
         "flow_coverage", "sectors_to_include", "sectors_to_exclude",
         "countries_to_include", "countries_no_transport", "country_attachment",
         "agent_attachment", "firm_data_type",
-        "explicit_service_firm", "utilization_rate", "critical_input_threshold",
+        "explicit_service_firm", "utilization_rate",
+        # NOT critical_input_threshold / input_criticality: production-rule
+        # parameters re-applied on every cache load (run.py _configure_firms),
+        # like the household-inventory config — a sensitivity on them must not
+        # rebuild the agents (EU scope: ~1 h per run).
         "inventory_duration_targets", "inventory_restoration_time",
         "capital_to_value_added_ratio", "country_transport_share",
         "firm_transport_share",
@@ -143,7 +147,7 @@ _TRANSPORT_INHERITED_SUBKEYS = {"logistics": ("sector_to_cargo_type",)}
 _STAGE_FILEPATH_KEYS = {
     "transport_network": ("transport", "multimodal"),
     "agents": ("mrio", "sector_table", "households_spatial", "firms_spatial",
-               "countries_spatial", "input_criticality"),
+               "countries_spatial"),
     "sc_network": (),
     "logistic_routes": (),
 }
