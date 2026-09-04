@@ -42,3 +42,27 @@ def test_switching_costs_do_not_invalidate_any_stage():
     # a line-haul cost change still invalidates the transport network and the routes
     costlier = _config(logistics={"basic_cost": {"roads": 0.06}, "switching_costs": {"modal_switch": 0.15}})
     assert build_stage_fingerprint(costlier, "transport_network")["hash"] != build_stage_fingerprint(base, "transport_network")["hash"]
+
+
+def test_import_bundles_get_an_inventory_target():
+    # "{BLOC}_imports" keys are created after load_inventories ran on the agents;
+    # they must receive the `imports` value (or the default), not one time step.
+    import pandas as pd
+    from disruptsc.init_pipeline.agents import load_inventories
+
+    class F:
+        def __init__(self, mix):
+            self.input_mix = mix
+            self.inventory_duration_target = {}
+
+    sector_table = pd.DataFrame({"sector": ["A01", "C19"], "type": ["agriculture", "oil_and_gas"]})
+    firms = {"f": F({"DEU_A01": 0.2, "DEU_C19": 0.3, "RUS_imports": 0.5})}
+    load_inventories(firms, {"definition": "per_input_type", "unit": "day",
+                             "values": {"default": 30, "agriculture": 15}}, "week", sector_table)
+    t = firms["f"].inventory_duration_target
+    import pytest
+    assert t["DEU_A01"] == pytest.approx(15 / 7) and t["DEU_C19"] == pytest.approx(30 / 7)
+    assert t["RUS_imports"] == pytest.approx(30 / 7)
+    load_inventories(firms, {"definition": "per_input_type", "unit": "day",
+                             "values": {"default": 30, "imports": 45}}, "week", sector_table)
+    assert firms["f"].inventory_duration_target["RUS_imports"] == pytest.approx(45 / 7)

@@ -230,6 +230,10 @@ def execute(config: dict, *, cache: str | None = None,
         else:
             for firm in firms.values():
                 firm.input_criticality = {}
+        # Inventory targets are keyed by input; the import bundles created by
+        # the supply-chain build only exist after the agents stage, so the
+        # targets are (re)computed here, on the final input mix.
+        load_inventories(firms, ap.inventory_duration_targets, sp.time_resolution, sector_table)
 
     # ------------------------------------------------------------------
     # Stage 1: Transport network
@@ -413,6 +417,10 @@ def execute(config: dict, *, cache: str | None = None,
     # The commercial-link table only feeds the cache; on the EU scope it is a
     # 0.65 GB DataFrame that the simulation never reads.
     del cl_table
+    # Final pass on the production-rule parameters and inventory targets: the
+    # input mix is complete only now (import bundles are created by the
+    # supply-chain build), whichever stages came from cache.
+    _configure_firms(firms)
 
     # ------------------------------------------------------------------
     # Stage 5: Run simulation
