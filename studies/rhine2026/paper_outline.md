@@ -26,7 +26,13 @@ data file it comes from, so the pipeline can produce it without re-deciding.
   per-cargo terminal transfer costs; winner-take-all routing per OD pair. Table: calibrated
   parameters (final config).
 - Disruption mechanics used here: cost shocks (surcharge → pass-through / reroute / give-up) and
-  closures; inventories, rationing, price propagation. No capacity-constrained routing (state why).
+  closures; cargo-type-specific switching costs (tank barges and ore trains have no road/rail
+  equivalent at volume, so bulk pays the surcharge while the river is open and gives up when it is
+  closed; containers reroute); inventories (30 days for goods, import bundles included), rationing,
+  price propagation; partially-binding Leontief with the IHS Markit survey criticality (baseline
+  since 4 Sep). No capacity-constrained routing and no quantity cap on substitutes (state why: the
+  substitution-ceiling experiment of 3–4 Sep withheld 16 bn USD directly and cascaded to 30 % of a
+  quarter — a quantity constraint is not the model's philosophy).
 - Figure 1: the network and the firm geography (map; Rhine chain highlighted, Kaub edge).
 
 ## 3. Calibration and validation of the baseline
@@ -62,6 +68,17 @@ data file it comes from, so the pipeline can produce it without re-deciding.
   losses by country); role of inventories (sensitivity on `inventory_duration_targets`).
 
 ## 5. Discussion
+- Three kinds of production restriction in the evidence, one of which the model resolves:
+  (i) physical stoppages where no alternative mode exists at volume (refineries, steel, power,
+  agri-food fed by barge) — captured by the switching-cost mechanism, 3.8 % of corridor firms vs
+  the survey's 33 % restricting / 6 % stopped; (ii) cost-driven cuts of marginal output at 3–7×
+  freight rates (gravel, fertiliser, grain, low-value chemicals) — only through the give-up rule,
+  which needs cargo- or margin-specific thresholds; (iii) precautionary throttling to stretch stocks
+  under an uncertain closure length (BASF mid-Aug, thyssenkrupp force majeure 16 Jul, Kehl) — NOT
+  modelled (firms run at full rate until an input runs out): state this as the main reason why the
+  model's direct macro loss is an order of magnitude below the ex-ante estimates, and as the
+  natural next mechanism (a stock-stretching rule).
+
 - What the model adds to the ex post econometrics: spatial and sectoral incidence, the
   substitution margins and their limits, the price channel.
 - Limits: winner-take-all routing, no capacity rationing on the substitutes (rail slots, trucks/
