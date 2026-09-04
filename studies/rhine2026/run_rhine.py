@@ -132,6 +132,9 @@ def main():
     ap.add_argument("--legacy-give-up", action="store_true",
                     help="sensitivity: drop the delivered-price give-up rule (delivered_price_increase_threshold "
                          "= None) so the legacy freight-bill rule (price_increase_threshold) applies")
+    ap.add_argument("--critical-input-threshold", type=float, default=None,
+                    help="sensitivity: override critical_input_threshold (cost-share proxy of the partially-binding "
+                         "Leontief; the config value is 0.02 - the main run showed the cascade dominates the result)")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--cache", default="auto",
                     help="cache preset passed to execute(); 'auto' reuses every stage whose fingerprint "
@@ -199,6 +202,8 @@ def main():
         n_closed = sum(1 for d in disruptions if d["type"] == "transport_disruption")
         print(f"capacity routing off: {n_closed} closure week(s) + {len(disruptions) - n_closed} "
               f"cost-shock week(s), no capacity overrides")
+    if args.critical_input_threshold is not None:
+        config["critical_input_threshold"] = args.critical_input_threshold
     config["disruptions"] = disruptions
 
     export_folder = Path(args.out) if args.out else RUNS_DIR / f"{args.profile}_seed{args.seed}"
