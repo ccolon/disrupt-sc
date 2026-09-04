@@ -21,7 +21,7 @@ class TransportParams:
     # half). A tripled freight bill on goods whose transport is 3% of value is
     # a 6% price rise that shippers pay (Rhine 2026: x5 rates were paid); the
     # legacy rule drops it. None = legacy rule only.
-    delivered_price_increase_threshold: float | None = None
+    delivered_price_increase_threshold: float | dict | None = None  # scalar, or {product_type|cargo_type: x, default: x}
     sectors_no_transport: tuple = ("utility", "transport", "trade", "services", "service", "construction")
     countries_no_transport: tuple = ()
     # Where external Country agents attach to the transport network:

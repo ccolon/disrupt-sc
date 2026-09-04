@@ -189,3 +189,21 @@ def test_capacity_factor_without_ceiling_does_not_split_or_give_up():
     assert link.realized_delivery == pytest.approx(100.0)
     assert link.main_route_realized_delivery == pytest.approx(100.0)
     assert link.price == pytest.approx(1.0 * (1 + 0.1 * (22.2 - 20) / 20))
+
+
+def test_delivered_price_threshold_by_product_type():
+    # low-value bulk (product type "mining") gives up at +30 % of delivered value; the
+    # same shipment as a manufactured good does not (default 5)
+    tn = _network()
+    tp = TransportParams(delivered_price_increase_threshold={"mining": 0.3, "default": 5.0},
+                         switching_costs={"modal_switch": 0.15, "port_switch": 0.05})
+    link = _link(tn)
+    tn.start_edge_cost_shock(tn[1][2], 3.0, duration=1)   # cheapest option: rail 25 -> +25 % + 15 % switch = +40 %
+    _send(tn, link, tp, transport_share=1.0)               # transport is the whole delivered value here
+    assert link.realized_delivery == 0.0                   # 0.40 > 0.3: given up
+    tn.reinitialize_flows_and_disruptions()
+    link = _link(tn)
+    link.product_type = "manufacturing"
+    tn.start_edge_cost_shock(tn[1][2], 3.0, duration=1)
+    _send(tn, link, tp, transport_share=1.0)
+    assert link.realized_delivery == pytest.approx(100.0)  # 0.40 < 5: delivered
