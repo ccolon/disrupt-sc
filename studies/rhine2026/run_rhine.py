@@ -17,6 +17,21 @@ cheaper, or give up beyond ``price_increase_threshold`` — or a CLOSURE in
 the weeks where the fleet cannot sail (reduction >= --closure-threshold).
 Partial capacity reductions remain available for capacity-routing modes.
 
+CLOSURE FLOORS BY CARGO CLASS (5 Sep 2026, user decision): the fleet does not
+stop at one gauge. Large container vessels (CEMT V/VI, empty draught 1.4-1.5 m
+plus 20 cm under-keel clearance) stop at Kaub <= 40 cm (Contargo: "freight
+navigation practically impossible" at 40 cm; 5 of 40 ships still ran at 42 cm
+on 16 Oct 2018), tank barges (30 cm clearance) at <= 50 cm, the small dry-bulk
+units (CEMT II-IV, 1.2-1.3 m) at <= 30 cm (only Class II/III sailed at the
+25 cm record; van Dorsser et al. 2020, Table 1; depth = gauge + 1.12 m). A
+week is therefore a CLOSURE for the cargo classes at or below their floor and
+a COST SHOCK for the others: one ``transport_cost_shock`` per week with a
+per-cargo multiplier dict, the closed classes getting a prohibitive multiplier
+(``CLOSED_MULTIPLIER``) so that bulk gives up (prohibitive switching costs)
+while containers reroute; when every class is closed the week is a plain
+``transport_disruption`` as before. ``--closure-floors none`` restores the
+single floor of ``--closure-threshold`` (the runs before 5 Sep 2026).
+
 Inputs (studies/rhine2026/scenarios/):
   <profile>.csv      week_start, kaub_cm  (weekly mean Kaub gauge, cm)  [or load_factor]
   draught_table.csv  kaub_cm, load_factor (vessel loading vs gauge; evidence-based)
@@ -47,6 +62,13 @@ HERE = Path(__file__).resolve().parent
 SCEN = HERE / "scenarios"
 RUNS_DIR = ROOT / "runs" / "rhine2026"
 KAUB_EDGE = "rhine_mainz_koblenz"
+# Per-cargo "closed": a prohibitive cost on the Kaub edge for that cargo class. Large enough that
+# the delivered-price rule (threshold 5 on transport share x relative increase) rejects any link
+# that cannot leave the river; containers find rail/road cheaper and reroute.
+CLOSED_MULTIPLIER = 1.0e6
+# Kaub gauge (cm) at or below which a cargo class can no longer pass (see the module docstring).
+DEFAULT_CLOSURE_FLOORS = "container=40,liquid_bulk=50,dry_bulk=30,default=30"
+DEFAULT_CARGO_TYPES = ("container", "dry_bulk", "liquid_bulk")
 
 
 def load_factor_curve(path: Path):
@@ -64,11 +86,43 @@ def weekly_reductions(profile: pd.DataFrame, curve) -> list[float]:
     return [round(1.0 - v, 4) for v in lf]
 
 
+def parse_closure_floors(raw) -> dict[str, float] | None:
+    """'container=40,liquid_bulk=50,dry_bulk=30,default=30' -> {class: cm}; None/'none'/'off' -> None."""
+    if raw is None or str(raw).strip().lower() in ("", "none", "off"):
+        return None
+    floors = {k.strip(): float(v) for k, v in (item.split("=") for item in str(raw).split(",") if item.strip())}
+    if not floors:
+        return None
+    floors.setdefault("default", min(floors.values()))
+    return floors
+
+
+def cargo_types_from_config(config) -> list[str]:
+    mapping = (config.get("logistics") or {}).get("sector_to_cargo_type") or {}
+    cts = sorted({str(v) for v in mapping.values()})
+    return cts or list(DEFAULT_CARGO_TYPES)
+
+
+def closed_classes(kaub_cm: float, floors: dict[str, float], cargo_types: list[str]) -> list[str]:
+    """Cargo classes whose vessels cannot pass Kaub at this gauge (at or below their floor)."""
+    return [ct for ct in cargo_types if float(kaub_cm) <= floors.get(ct, floors["default"])]
+
+
 def build_disruptions(reductions: list[float], edges: list[str], min_reduction=0.01,
                       closure_threshold: float | None = None,
                       max_multiplier: float = 20.0,
-                      substitution_share: float = 1.0) -> list[dict]:
+                      substitution_share: float = 1.0,
+                      gauges: list[float] | None = None,
+                      closure_floors: dict[str, float] | None = None,
+                      cargo_types: list[str] | None = None) -> list[dict]:
     """One disruption entry per week.
+
+    With *closure_floors* (cm per cargo class) and the weekly *gauges*, a week
+    closes the edge for the classes at or below their floor (per-cargo
+    multiplier dict with CLOSED_MULTIPLIER) and surcharges the others with
+    1/(1 - reduction); a week where every class is closed is a plain
+    ``transport_disruption``. Without floors the single-floor rule below
+    applies unchanged (runs before 5 Sep 2026).
 
     Without capacity routing (the EU default) a week is either a CLOSURE
     (capacity reduction at or above *closure_threshold*: the fleet cannot
@@ -81,7 +135,32 @@ def build_disruptions(reductions: list[float], edges: list[str], min_reduction=0
     such — meaningful only under capacity-constrained routing.
     """
     out = []
+    use_floors = closure_floors is not None and gauges is not None
+    cargo_types = list(cargo_types or DEFAULT_CARGO_TYPES)
     for t, r in enumerate(reductions, start=1):
+        if use_floors:
+            mult = round(min(max_multiplier, 1.0 / (1.0 - r)), 3) if r < 1.0 else float(max_multiplier)
+            closed = closed_classes(gauges[t - 1], closure_floors, cargo_types)
+            if closed and len(closed) == len(cargo_types):
+                out.append({"type": "transport_disruption", "attribute": "name", "values": list(edges),
+                            "capacity_reduction": 1.0, "start_time": t, "duration": 1,
+                            "substitution_share": substitution_share})
+            elif closed:
+                m_open = mult if r >= min_reduction else 1.0
+                mdict = {ct: (CLOSED_MULTIPLIER if ct in closed else m_open) for ct in cargo_types}
+                mdict["default"] = m_open
+                out.append({"type": "transport_cost_shock", "attribute": "name", "values": list(edges),
+                            "cost_multiplier": mdict,
+                            "capacity_factor": (round(1.0 - r, 4) if substitution_share < 1.0 else 1.0),
+                            "substitution_share": substitution_share,
+                            "start_time": t, "duration": 1})
+            elif r >= min_reduction:
+                out.append({"type": "transport_cost_shock", "attribute": "name", "values": list(edges),
+                            "cost_multiplier": mult,
+                            "capacity_factor": (round(1.0 - r, 4) if substitution_share < 1.0 else 1.0),
+                            "substitution_share": substitution_share,
+                            "start_time": t, "duration": 1})
+            continue
         if r < min_reduction:
             continue
         if closure_threshold is None:
@@ -123,6 +202,13 @@ def main():
                          "cost shocks x1/(1-reduction) (transport_cost_shock). Set to a negative value "
                          "to emit partial capacity reductions instead (needs --constraint-mode "
                          "gradual|binary)")
+    ap.add_argument("--closure-floors", default=DEFAULT_CLOSURE_FLOORS,
+                    help="Kaub gauge (cm) at or below which each cargo class can no longer pass: "
+                         "'container=40,liquid_bulk=50,dry_bulk=30,default=30' (large container vessels "
+                         "stop at 40 cm, tank barges with 30 cm under-keel clearance at 50 cm, small "
+                         "dry-bulk units at 30 cm; van Dorsser 2020, Contargo). A week closes the edge "
+                         "for the classes at or below their floor (prohibitive per-cargo multiplier) and "
+                         "surcharges the others; 'none' = single floor (--closure-threshold)")
     ap.add_argument("--price-threshold", type=float, default=None,
                     help="override price_increase_threshold for the scenario (config default 2.0 = give up "
                          "a delivery once its transport bill more than doubles; 2026 shippers paid x5 rates)")
@@ -167,17 +253,33 @@ def main():
     if closure is None and args.constraint_mode == "off":
         raise SystemExit("partial capacity reductions need --constraint-mode gradual|binary; "
                          "with capacity routing off use --closure-threshold (default 0.75)")
+    config = load_config(args.scope)
+    floors = parse_closure_floors(args.closure_floors) if closure is not None else None
+    cargo_types = cargo_types_from_config(config)
+    gauges = profile["kaub_cm"].astype(float).tolist() if "kaub_cm" in profile.columns else None
+    if floors is not None and gauges is None:
+        print("profile has no kaub_cm column: closure floors by cargo class not applicable, single floor used")
+        floors = None
     disruptions = build_disruptions(reductions, edges, closure_threshold=closure,
-                                    substitution_share=args.substitution_share)
+                                    substitution_share=args.substitution_share,
+                                    gauges=gauges, closure_floors=floors, cargo_types=cargo_types)
     t_final = len(reductions) + args.recovery_weeks
 
-    print(f"profile {args.profile}: {len(reductions)} weeks, {len(disruptions)} disrupted weeks "
-          f"({'closure >= ' + format(closure, '.0%') if closure is not None else 'partial reductions'}), "
+    if floors is not None:
+        rule = "closure floors " + ", ".join(f"{ct} <= {floors.get(ct, floors['default']):.0f} cm" for ct in cargo_types)
+    else:
+        rule = ("closure >= " + format(closure, ".0%")) if closure is not None else "partial reductions"
+    print(f"profile {args.profile}: {len(reductions)} weeks, {len(disruptions)} disrupted weeks ({rule}), "
           f"max reduction {max(reductions):.0%}, t_final={t_final}, edges={edges}")
     for d in disruptions:
         wk = profile.iloc[d["start_time"] - 1]
         if d["type"] == "transport_cost_shock":
-            what = f"cost x{d['cost_multiplier']:.2f}"
+            m = d["cost_multiplier"]
+            if isinstance(m, dict):
+                shut = [ct for ct in cargo_types if m.get(ct, m["default"]) >= CLOSED_MULTIPLIER]
+                what = f"cost x{m['default']:.2f}; CLOSED for {', '.join(shut)}"
+            else:
+                what = f"cost x{m:.2f}"
         elif d["capacity_reduction"] >= 1.0:
             what = "CLOSED"
         else:
@@ -187,7 +289,6 @@ def main():
     if args.dry_run:
         return
 
-    config = load_config(args.scope)
     config["simulation_type"] = "disruption"
     config["t_final"] = t_final
     config["epsilon_stop_condition"] = 0

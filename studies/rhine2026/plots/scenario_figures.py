@@ -32,7 +32,8 @@ ROOT = Path(__file__).resolve().parents[3]
 HERE = Path(__file__).resolve().parents[1]
 DATA = ROOT.parent / "disrupt-sc-data" / "EU"
 sys.path.insert(0, str(HERE))
-from run_rhine import build_disruptions, load_factor_curve, weekly_reductions  # noqa: E402
+from run_rhine import (CLOSED_MULTIPLIER, DEFAULT_CARGO_TYPES, DEFAULT_CLOSURE_FLOORS,  # noqa: E402
+                       build_disruptions, load_factor_curve, parse_closure_floors, weekly_reductions)
 
 SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"]
 SEQ = ["#cde2fb", "#b7d3f6", "#9ec5f4", "#86b6ef", "#6da7ec", "#5598e7", "#3987e5", "#2a78d6", "#256abf",
@@ -57,18 +58,35 @@ def style(ax, title=None, ylabel=None):
         ax.set_ylabel(ylabel, fontsize=8, color=INK2)
 
 
-def fig_shock(profile: str, closure_threshold: float, out: Path):
+def fig_shock(profile: str, closure_threshold: float, out: Path, closure_floors: str | None = DEFAULT_CLOSURE_FLOORS):
     prof = pd.read_csv(HERE / "scenarios" / f"{profile}.csv")
     curve = load_factor_curve(HERE / "scenarios" / "draught_table.csv")
     red = weekly_reductions(prof, curve)
-    sched = {d["start_time"]: d for d in build_disruptions(red, ["rhine_mainz_koblenz"], closure_threshold=closure_threshold)}
+    floors = parse_closure_floors(closure_floors) if "kaub_cm" in prof.columns else None
+    cts = list(DEFAULT_CARGO_TYPES)
+    sched = {d["start_time"]: d for d in build_disruptions(
+        red, ["rhine_mainz_koblenz"], closure_threshold=closure_threshold,
+        gauges=prof["kaub_cm"].astype(float).tolist() if floors else None, closure_floors=floors, cargo_types=cts)}
     weeks = pd.to_datetime(prof["week_start"])
     factor = [1 - r for r in red]
-    mult = [sched[t]["cost_multiplier"] if t in sched and sched[t]["type"] == "transport_cost_shock" else np.nan
+
+    def _mult(d):
+        m = d["cost_multiplier"]
+        return m["default"] if isinstance(m, dict) else m
+
+    def _closed_for(d):
+        if d["type"] == "transport_disruption":
+            return list(cts)
+        m = d["cost_multiplier"]
+        return [ct for ct in cts if m.get(ct, m["default"]) >= CLOSED_MULTIPLIER] if isinstance(m, dict) else []
+
+    mult = [_mult(sched[t]) if t in sched and sched[t]["type"] == "transport_cost_shock" else np.nan
             for t in range(1, len(red) + 1)]
     closed = [t in sched and sched[t]["type"] == "transport_disruption" for t in range(1, len(red) + 1)]
+    closed_for = [_closed_for(sched[t]) if t in sched else [] for t in range(1, len(red) + 1)]
 
-    fig, axes = plt.subplots(3, 1, figsize=(8.5, 7), sharex=True)
+    fig, axes = plt.subplots(4 if floors else 3, 1, figsize=(8.5, 8.2 if floors else 7), sharex=True,
+                             gridspec_kw={"height_ratios": [1, 1, 1, 0.45]} if floors else None)
     fig.patch.set_facecolor(SURFACE)
     ax = axes[0]
     ax.plot(weeks, prof["kaub_cm"], color=SERIES[0], linewidth=2, marker="o", markersize=5)
@@ -88,7 +106,17 @@ def fig_shock(profile: str, closure_threshold: float, out: Path):
             ax.bar(w, ymax, width=5.5, color=SERIES[1], alpha=0.35, linewidth=0)
             ax.text(w, ymax * 0.55, "closed", rotation=90, ha="center", va="center", fontsize=7, color=INK2)
     ax.axhline(1, color=INK3, linewidth=0.8)
-    style(ax, "What the model receives: cost multiplier on the Kaub edge (orange = closure week)", "× baseline cost")
+    style(ax, "What the model receives: cost multiplier on the Kaub edge (orange = closed for every class)", "× baseline cost")
+    if floors:
+        ax = axes[3]
+        for i, ct in enumerate(cts):
+            ys = [i for w, cf in zip(weeks, closed_for) if ct in cf]
+            xs = [w for w, cf in zip(weeks, closed_for) if ct in cf]
+            ax.scatter(xs, ys, marker="s", s=60, color=SERIES[1], linewidths=0)
+        ax.set_yticks(range(len(cts)))
+        ax.set_yticklabels([f"{ct} (≤ {floors.get(ct, floors['default']):.0f} cm)" for ct in cts], fontsize=7, color=INK2)
+        ax.set_ylim(-0.7, len(cts) - 0.3)
+        style(ax, "Closed for the cargo class (gauge at or below its sailing floor)", "")
     ax.set_xlabel("week", fontsize=8, color=INK2)
     fig.tight_layout()
     for ext in ("png", "pdf"):
@@ -166,11 +194,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--profile", default="2026")
     ap.add_argument("--closure-threshold", type=float, default=0.75)
+    ap.add_argument("--closure-floors", default=DEFAULT_CLOSURE_FLOORS,
+                    help="per-cargo sailing floors as in run_rhine.py; 'none' = single floor")
     ap.add_argument("--run", default=None, help="scenario run folder for F5/F6")
     ap.add_argument("--out", default=str(HERE / "figures"))
     args = ap.parse_args()
     out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
-    fig_shock(args.profile, args.closure_threshold, out)
+    fig_shock(args.profile, args.closure_threshold, out, closure_floors=args.closure_floors)
     print(f"F4 written for profile {args.profile}")
     if args.run:
         run = Path(args.run)

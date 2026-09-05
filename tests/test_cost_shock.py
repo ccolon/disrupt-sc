@@ -222,3 +222,52 @@ def test_delivered_price_threshold_resolves_sector_then_type():
     assert _delivered_price_threshold(tp, L("RUS_imports", "mining", "dry_bulk")) == 0.25   # bundle -> dominant type
     assert _delivered_price_threshold(tp, L("DEU_C17_18", "manufacturing", "container")) == 5.0
     assert _delivered_price_threshold(TransportParams(delivered_price_increase_threshold=0.5), L("x", "y", "z")) == 0.5
+
+
+# ----------------------------------------------------------------------
+# Closure floors by cargo class (EU Rhine study, 5 Sep 2026): the fleet does
+# not stop at one gauge. The driver sends one cost shock per week with a
+# per-cargo multiplier dict; a prohibitive multiplier closes the edge for that
+# class only - bulk, which cannot switch mode, gives up; containers, open on the
+# same edge, keep sailing, or reroute when it is their class that is closed.
+# ----------------------------------------------------------------------
+
+def _two_cargo_network():
+    tn = _network()
+    other = "container"
+    tn.cargo_types = [CT, other]
+    for u, v in tn.edges:
+        tn[u][v][f"cost_per_ton_{other}"] = tn[u][v][f"cost_per_ton_{CT}"]
+        tn[u][v][f"cost_per_ton_with_capacity_{other}"] = tn[u][v][f"cost_per_ton_{CT}"]
+        tn[u][v][f"current_load_{other}"] = 0
+    return tn, other
+
+
+def test_prohibitive_per_cargo_multiplier_closes_the_edge_for_bulk_only():
+    tn, other = _two_cargo_network()
+    tp = _tp_bulk_cannot_switch()
+    bulk, box = _link(tn), _link(tn)         # links (and their normal route cost) exist before the shock
+    box.cargo_type = other
+    tn.start_edge_cost_shock(tn[1][2], {CT: 1e6, other: 1.0, "default": 1.0}, duration=1)
+    _send(tn, bulk, tp)                      # river 20 -> 10,000,010; rail 25 + 1000 x 20: both beyond 0.5
+    assert bulk.realized_delivery == 0.0 and bulk.delivery == 0.0
+    _send(tn, box, tp)                       # its own label is untouched: stays on the river at the base cost
+    assert box.current_route == "main"
+    assert box.realized_delivery == pytest.approx(100.0)
+    assert box.price == pytest.approx(1.0)
+
+
+def test_prohibitive_per_cargo_multiplier_makes_containers_reroute():
+    tn, other = _two_cargo_network()
+    tp = _tp_bulk_cannot_switch()
+    bulk, box = _link(tn), _link(tn)
+    box.cargo_type = other
+    tn.start_edge_cost_shock(tn[1][2], {CT: 3.0, other: 1e6, "default": 3.0}, duration=1)
+    _send(tn, box, tp)                       # rail 25 + 0.15 x 20 beats the closed river
+    assert box.current_route == "alternative"
+    assert box.realized_delivery == pytest.approx(100.0)
+    assert box.price == pytest.approx(1.0 * (1 + 0.1 * ((25 - 20) / 20 + 0.15)))
+    _send(tn, bulk, tp)                      # bulk is still open: pays the x3 surcharge on the river
+    assert bulk.current_route == "main"
+    assert bulk.realized_delivery == pytest.approx(100.0)
+    assert bulk.price == pytest.approx(1.0 * (1 + 0.1 * (40 - 20) / 20))
