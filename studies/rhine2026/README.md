@@ -215,7 +215,10 @@ line closure, Dutch port strikes.
 | 11 | Sailing floors by vessel class | minimum operational draught CEMT II/III 1.20 m, IV 1.30, V 1.40, VI 1.50, pusher barge 1.70; under-keel clearance 10–20 cm (dry bulk, containers), 20–30 cm (tankers, pushers); depth at Kaub = gauge + 1.12 m → Class V+ stop near 1.5 m depth (42 cm: 5 of 40 Contargo ships), only Class II/III at 25 cm; coal barges to Staudinger stop at Kaub < 40 cm (2022) | van Dorsser et al. 2020; Contargo; Reuters |
 
 Scenario tables built from this evidence (in `scenarios/`): `2026.csv` (weekly
-Kaub profile 22 Jun → 28 Sep, observed/press/forecast/assumption flagged),
+Kaub profile 22 Jun → 28 Sep: PEGELONLINE daily means to 4 Sep, then forecast and
+assumptions, flagged), `2018.csv` (BfG DGJ daily means, 16 Jul → 10 Dec 2018; the
+daily series `kaub_daily_2018.csv` / `kaub_daily_2026.csv` carry their source, and
+`kaub_daily_crosscheck.csv` compares the yearbook with the raw 15-min data: MAE 0.3 cm),
 `draught_table.csv` (Kaub cm → aggregate capacity factor past Kaub, with the
 per-vessel GMS load factor and the anchoring source per row);
 `rhine_capacities.csv` (normal-year Mt/yr and tons/day per named segment: CCNR
@@ -258,9 +261,10 @@ Capacity-constrained routing does not scale to this scope (197k OD groups; kille
   per-cargo multiplier dict (closed classes × 10⁶ on the Kaub edge → bulk gives up through its
   switching costs, containers reroute at the usual penalty); a week where every class is closed
   stays a `transport_disruption`. `--closure-floors none` reproduces the single-floor runs.
-  Schedule (`--dry-run`, F4): 2026 — tank barges closed 6 weeks (13 Jul, 27 Jul–23 Aug, 7 Sep),
-  containers 4, dry bulk 3; 2018 — tank barges 9 weeks (20 Aug, 8 Oct–2 Dec), containers 6, dry
-  bulk 1 (the record week). The Lower Rhine (Duisburg–Ruhrort, push convoys) is not shocked.
+  Schedule on the daily-data profiles (`--dry-run`, F4): 2026 — every class closed 27 Jul–23 Aug
+  (4 weeks; the observed week of 27 Jul averages 29 cm), tank barges also in the 7 Sep assumption
+  week; 2018 — tank barges 6 weeks (15–28 Oct, 5 Nov–2 Dec), containers 4 (15–28 Oct, 19 Nov–2
+  Dec), dry bulk 1 (22 Oct). The Lower Rhine (Duisburg–Ruhrort, push convoys) is not shocked.
 `run_rhine.py --profile 2026 --dry-run` prints the schedule (×1.2 in late June, ×3 mid-July,
 ×3.8 the week of 27 July, closed 3–23 August, ×2–3 through September).
 Verified end to end on the bundled Testkistan scope (3 Sep): a ×1.5 shock on the main road for
@@ -302,7 +306,7 @@ hine20266_seed42_sub30` (outside OneDrive), queue `EU/runs/queue_rhine.ps1` |
 | **cost approach with cargo-specific switching costs (user decision 04 Sep, disrupt-sc 3e1a4a6)** | `run_rhine.py --profile 2026` with the config's `logistics.switching_costs.modal_switch: {default: 0.15, liquid_bulk: 1000, dry_bulk: 1000}`: no quantity cap; a bulk shipper pays the low-water surcharge while the river is open and gives up only when it is closed (3–23 Aug), containers reroute at the usual penalty → `C:\dsc_runs\rhine2026\2026_seed42_switch`; then the 2018 profile with the same mechanism → `2018_seed42_switch` | **done 18:56** after two false starts (threshold 0.5 let low-value bulk give up under the surcharge; then two data-plumbing bugs, 5eb26c9 and d3c5a2c/KI-32). Result: DEU value-added loss cumulated 0.82 bn USD (0.09 % of a quarter), of which only 0.09 bn in the closure weeks and their aftermath (weeks 8–13) — the rest is a diffuse late wave (weeks 14–23, thousands of firms at 99.5–99.9 %, still rising in FIN/SWE/CHE at week 23) that the 2 % criticality proxy produces from tiny service-input shortfalls; the direct physical channel is ≈ 0.01 % of a quarter, an order of magnitude below the ex-ante estimates (−0.1 to −0.4 pp, IfW EUR 1–2 bn); EU 2.2 bn (0.4 bn direct); consumption loss peak 0.09 %; closure weeks block 1.2–2.4 % of routed bulk value, containers reroute; 2.6 % of all firms and 3.8 % of Rhine-corridor firms below baseline at the peak (DIHK: 33 % restricting, 6 % stopped — the survey's extensive margin is not reproduced), fill rate 99.9 % at the trough, max delivered-price surcharge +6 %; a small second wave in services (weeks 14–22) is the 2 % proxy's signature. Survey-criticality variant running, 2018 next (queue v6) |
 | **baseline since 04 Sep 22:10 (user decisions)** | survey criticality (IHS Markit, `filepaths.input_criticality`), import bundles resolved from their MRIO composition, firm inventories by BUYING industry (Bundesbank raw-material stock days, `inventory_duration_targets` in the config), cargo-specific switching costs (bulk prohibitive), one delivered-price give-up threshold (5, non-binding under surcharges; sector-specific thresholds were evaluated — `additional_data/giveup_thresholds_by_sector.yaml` — and NOT adopted), no quantity cap → `C:\dsc_runs
 hine20266_seed42_base`, then `2018_seed42_base` | **done 05 Sep 03:30**: DEU value-added loss 0.73 bn USD = 0.077 % of a quarter, all in weeks 8–13 (peak 0.33 % of a week, week 10), no late wave; EU 1.18 bn (DEU 733, AUT 180, NLD 143); losses in road and barge operators, fuel-oil power plants, farms, refineries; consumption loss peak 0.08 %; 2.6 % of firms below baseline at the peak. Evidence: −0.1 to −0.35 pp of Q3 GDP, IfW EUR 1–2 bn → the physical channel gives about half of IfW's lower bound. First attempt (22:08) with the physical 2-day utility/gas and 12-day crude buffers cascaded (no pipeline mode, no grid substitution in the model) and was archived as `…_base_2dayutil_partial11`. **2018 counterfactual done 07:55** (`2018_seed42_base`, reconstructed profile): one closure week (the 25 cm record), DEU loss 0.25 bn = 0.026 % of a quarter, peak 0.27 % of a week, EU 0.42 bn — far below the ex-post 2018 effect (−0.4 % GDP at the peak) because large vessels stopped below 40–50 cm for weeks in 2018 while the single closure floor (≈ 30 cm) closes the model's river only in the record week → cargo-specific closure floors are the next driver change |
-| **closure floors by cargo class (5 Sep, user decision)** | `run_rhine.py --profile 2026 --no-open --seed 42 --delivered-price-threshold 5` with the new default `--closure-floors container=40,liquid_bulk=50,dry_bulk=30` → `C:\dsc_runs\rhine2026\2026_seed42_floors`; then `--profile 2018` → `2018_seed42_floors` (queue v9, sequential, ≈ 3.5 h + 4.3 h; watcher v2 writes `analysis.txt` and figures into the run folders) | **running since 05 Sep 14:55** (2026 ≈ 18:30, 2018 ≈ 23:00). Expected: the liquid-bulk channel (refineries, fuel-fed operators, chemicals) doubles in 2026 and dominates 2018 (tank barges closed 9 weeks, containers 6); the reconstructed 2018 profile is still in use — daily PEGELONLINE/BfG data being sought |
+| **closure floors by cargo class (5 Sep, user decision)** | `run_rhine.py --profile 2026 --no-open --seed 42 --delivered-price-threshold 5` with the new default `--closure-floors container=40,liquid_bulk=50,dry_bulk=30` → `C:\dsc_runs\rhine2026\2026_seed42_floors`; then `--profile 2018` → `2018_seed42_floors` (queue v9, sequential, ≈ 3.5 h + 4.3 h; watcher v2 writes `analysis.txt` and figures into the run folders) | first launch 14:55 stopped after 25 min when the daily gauge data arrived (weekly means differed from the press/reconstructed values by up to 80 cm); **restarted 15:45 on the daily-data profiles** (queue v10: 2026 ≈ 19:10, 2018 ≈ 23:30, then `2026_seed42_obs_singlefloor` = `--closure-floors none` on the observed 2026 profile ≈ 03:00, to separate the effect of the floors from that of the data). Expected: the liquid-bulk channel (refineries, fuel-fed operators, chemicals) dominates 2018 (tank barges closed 6 weeks, containers 4) |
 | give-up rule sensitivity | `--legacy-give-up` (freight-bill rule, threshold 2) → `…_legacy` | later |
 | analysis | `analyze_scenario.py <run>` — Kaub tonnage vs fleet capacity, corridor substitution, corridor firms below baseline vs DIHK, price surcharges, value-added loss vs the macro range | after each run |
 
@@ -334,8 +338,12 @@ hine2026`), because the
 
 ### 2.2 Scenario construction
 
-1. Weekly Kaub levels (`scenarios/2026.csv`, PEGELONLINE daily means for
-   August–September, press readings for June–July, BfG forecast beyond) →
+1. Weekly Kaub levels (`scenarios/2026.csv`: PEGELONLINE daily means 22 Jun – 4 Sep 2026
+   from the gauge's long-term raw download, `kaub_daily_2026.csv`; the BfG forecast for
+   6 Sep; assumptions from 7 Sep, flagged; the press-based first version is kept as
+   `2026_press.csv`. `scenarios/2018.csv`: weekly means of the verified BfG yearbook (DGJ)
+   daily means, `kaub_daily_2018.csv`, 16 Jul – 10 Dec 2018; the reconstructed series is
+   kept as `2018_reconstructed.csv`) →
    `scenarios/draught_table.csv` (aggregate capacity factor past Kaub: 0.60 at GlW,
    0.30 at 40 cm, 0.22 at 25 cm, 0.05 at 5 cm) → weekly `capacity_reduction` on
    `rhine_mainz_koblenz` via `run_rhine.py`; since 5 Sep the weekly gauge is also compared
