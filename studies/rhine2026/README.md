@@ -212,6 +212,7 @@ line closure, Dutch port strikes.
 | 8 | Modal substitution | rail +0.07 % per low-water day (weak); 2026: DB Cargo 400–900 wagons ≈ 200 barges, Kombiverkehr +2,000 TEU | Ademmer; DB Cargo |
 | 9 | Firm level 2018 | BASF EBIT −EUR 250 m; chem-pharma production Q4 2018 −10 % q/q | BASF; VCI |
 | 10 | 2026 throughput at Kaub | 60+30 kt/week vs 300+100 normal (−77 %) at Kaub 10–17 cm; rates 45 → 215 EUR/t | KBN; Argus |
+| 11 | Sailing floors by vessel class | minimum operational draught CEMT II/III 1.20 m, IV 1.30, V 1.40, VI 1.50, pusher barge 1.70; under-keel clearance 10–20 cm (dry bulk, containers), 20–30 cm (tankers, pushers); depth at Kaub = gauge + 1.12 m → Class V+ stop near 1.5 m depth (42 cm: 5 of 40 Contargo ships), only Class II/III at 25 cm; coal barges to Staudinger stop at Kaub < 40 cm (2022) | van Dorsser et al. 2020; Contargo; Reuters |
 
 Scenario tables built from this evidence (in `scenarios/`): `2026.csv` (weekly
 Kaub profile 22 Jun → 28 Sep, observed/press/forecast/assumption flagged),
@@ -247,6 +248,19 @@ Capacity-constrained routing does not scale to this scope (197k OD groups; kille
   penalty), or gives up beyond `price_increase_threshold`.
 - **closure** for the weeks below the sailing floor (`--closure-threshold 0.75`: Kaub 24, 11
   and 27 cm, 3–23 Aug 2026): existing `transport_disruption` mechanics.
+- **closure floors by cargo class** (5 Sep, user decision; driver commit f726fa5): the fleet does
+  not stop at one gauge. Large container vessels (CEMT V/VI, empty draught 1.4–1.5 m plus 20 cm
+  under-keel clearance) stop at Kaub ≤ 40 cm (Contargo: "practically impossible" at 40 cm; 5 of
+  40 ships still ran at 42 cm on 16 Oct 2018), tank barges (30 cm clearance) at ≤ 50 cm, the small
+  dry-bulk units (CEMT II–IV) at ≤ 30 cm (only Class II/III sailed at the 25 cm record; van Dorsser
+  et al. 2020, Table 1; depth at Kaub = gauge + 1.12 m). A week is a closure for the classes at or
+  below their floor and a cost shock for the others: one `transport_cost_shock` per week with a
+  per-cargo multiplier dict (closed classes × 10⁶ on the Kaub edge → bulk gives up through its
+  switching costs, containers reroute at the usual penalty); a week where every class is closed
+  stays a `transport_disruption`. `--closure-floors none` reproduces the single-floor runs.
+  Schedule (`--dry-run`, F4): 2026 — tank barges closed 6 weeks (13 Jul, 27 Jul–23 Aug, 7 Sep),
+  containers 4, dry bulk 3; 2018 — tank barges 9 weeks (20 Aug, 8 Oct–2 Dec), containers 6, dry
+  bulk 1 (the record week). The Lower Rhine (Duisburg–Ruhrort, push convoys) is not shocked.
 `run_rhine.py --profile 2026 --dry-run` prints the schedule (×1.2 in late June, ×3 mid-July,
 ×3.8 the week of 27 July, closed 3–23 August, ×2–3 through September).
 Verified end to end on the bundled Testkistan scope (3 Sep): a ×1.5 shock on the main road for
@@ -288,6 +302,7 @@ hine20266_seed42_sub30` (outside OneDrive), queue `EU/runs/queue_rhine.ps1` |
 | **cost approach with cargo-specific switching costs (user decision 04 Sep, disrupt-sc 3e1a4a6)** | `run_rhine.py --profile 2026` with the config's `logistics.switching_costs.modal_switch: {default: 0.15, liquid_bulk: 1000, dry_bulk: 1000}`: no quantity cap; a bulk shipper pays the low-water surcharge while the river is open and gives up only when it is closed (3–23 Aug), containers reroute at the usual penalty → `C:\dsc_runs\rhine2026\2026_seed42_switch`; then the 2018 profile with the same mechanism → `2018_seed42_switch` | **done 18:56** after two false starts (threshold 0.5 let low-value bulk give up under the surcharge; then two data-plumbing bugs, 5eb26c9 and d3c5a2c/KI-32). Result: DEU value-added loss cumulated 0.82 bn USD (0.09 % of a quarter), of which only 0.09 bn in the closure weeks and their aftermath (weeks 8–13) — the rest is a diffuse late wave (weeks 14–23, thousands of firms at 99.5–99.9 %, still rising in FIN/SWE/CHE at week 23) that the 2 % criticality proxy produces from tiny service-input shortfalls; the direct physical channel is ≈ 0.01 % of a quarter, an order of magnitude below the ex-ante estimates (−0.1 to −0.4 pp, IfW EUR 1–2 bn); EU 2.2 bn (0.4 bn direct); consumption loss peak 0.09 %; closure weeks block 1.2–2.4 % of routed bulk value, containers reroute; 2.6 % of all firms and 3.8 % of Rhine-corridor firms below baseline at the peak (DIHK: 33 % restricting, 6 % stopped — the survey's extensive margin is not reproduced), fill rate 99.9 % at the trough, max delivered-price surcharge +6 %; a small second wave in services (weeks 14–22) is the 2 % proxy's signature. Survey-criticality variant running, 2018 next (queue v6) |
 | **baseline since 04 Sep 22:10 (user decisions)** | survey criticality (IHS Markit, `filepaths.input_criticality`), import bundles resolved from their MRIO composition, firm inventories by BUYING industry (Bundesbank raw-material stock days, `inventory_duration_targets` in the config), cargo-specific switching costs (bulk prohibitive), one delivered-price give-up threshold (5, non-binding under surcharges; sector-specific thresholds were evaluated — `additional_data/giveup_thresholds_by_sector.yaml` — and NOT adopted), no quantity cap → `C:\dsc_runs
 hine20266_seed42_base`, then `2018_seed42_base` | **done 05 Sep 03:30**: DEU value-added loss 0.73 bn USD = 0.077 % of a quarter, all in weeks 8–13 (peak 0.33 % of a week, week 10), no late wave; EU 1.18 bn (DEU 733, AUT 180, NLD 143); losses in road and barge operators, fuel-oil power plants, farms, refineries; consumption loss peak 0.08 %; 2.6 % of firms below baseline at the peak. Evidence: −0.1 to −0.35 pp of Q3 GDP, IfW EUR 1–2 bn → the physical channel gives about half of IfW's lower bound. First attempt (22:08) with the physical 2-day utility/gas and 12-day crude buffers cascaded (no pipeline mode, no grid substitution in the model) and was archived as `…_base_2dayutil_partial11`. **2018 counterfactual done 07:55** (`2018_seed42_base`, reconstructed profile): one closure week (the 25 cm record), DEU loss 0.25 bn = 0.026 % of a quarter, peak 0.27 % of a week, EU 0.42 bn — far below the ex-post 2018 effect (−0.4 % GDP at the peak) because large vessels stopped below 40–50 cm for weeks in 2018 while the single closure floor (≈ 30 cm) closes the model's river only in the record week → cargo-specific closure floors are the next driver change |
+| **closure floors by cargo class (5 Sep, user decision)** | `run_rhine.py --profile 2026 --no-open --seed 42 --delivered-price-threshold 5` with the new default `--closure-floors container=40,liquid_bulk=50,dry_bulk=30` → `C:\dsc_runs\rhine2026\2026_seed42_floors`; then `--profile 2018` → `2018_seed42_floors` (queue v9, sequential, ≈ 3.5 h + 4.3 h; watcher v2 writes `analysis.txt` and figures into the run folders) | **running since 05 Sep 14:55** (2026 ≈ 18:30, 2018 ≈ 23:00). Expected: the liquid-bulk channel (refineries, fuel-fed operators, chemicals) doubles in 2026 and dominates 2018 (tank barges closed 9 weeks, containers 6); the reconstructed 2018 profile is still in use — daily PEGELONLINE/BfG data being sought |
 | give-up rule sensitivity | `--legacy-give-up` (freight-bill rule, threshold 2) → `…_legacy` | later |
 | analysis | `analyze_scenario.py <run>` — Kaub tonnage vs fleet capacity, corridor substitution, corridor firms below baseline vs DIHK, price surcharges, value-added loss vs the macro range | after each run |
 
@@ -323,7 +338,8 @@ hine2026`), because the
    August–September, press readings for June–July, BfG forecast beyond) →
    `scenarios/draught_table.csv` (aggregate capacity factor past Kaub: 0.60 at GlW,
    0.30 at 40 cm, 0.22 at 25 cm, 0.05 at 5 cm) → weekly `capacity_reduction` on
-   `rhine_mainz_koblenz` via `run_rhine.py`.
+   `rhine_mainz_koblenz` via `run_rhine.py`; since 5 Sep the weekly gauge is also compared
+   with the sailing floor of each cargo class (`--closure-floors`, §2.2a).
 2. Waterway capacities in tons/day for the Rhine chain (`scenarios/rhine_capacities.csv`,
    CCNR cross-sections Emmerich 117.9 Mt and Iffezheim 16.0 Mt in 2023, Kaub ≈ 50 Mt
    estimated) so that a 70 % capacity loss actually binds. **Open design point**: the
