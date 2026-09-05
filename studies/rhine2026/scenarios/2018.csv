@@ -1,22 +1,23 @@
-week_start,kaub_cm,source
-2018-07-23,95,reconstructed weekly mean; anchors: Kaub < 78 cm from ~30 Jul (Aug 30 days below)
-2018-07-30,80,reconstructed
-2018-08-06,65,reconstructed
-2018-08-13,55,reconstructed
-2018-08-20,50,reconstructed
-2018-08-27,55,reconstructed
-2018-09-03,60,reconstructed (Sep ~15 days below 78 cm)
-2018-09-10,70,reconstructed
-2018-09-17,85,reconstructed (brief mid-September rise)
-2018-09-24,75,reconstructed
-2018-10-01,60,reconstructed (Oct 30 days below)
-2018-10-08,50,reconstructed
-2018-10-15,38,anchor: 42 cm on 16 Oct 2018 (BfG)
-2018-10-22,28,anchor: record 25 cm on 22 Oct 2018
-2018-10-29,33,reconstructed (24-31 Oct near record)
-2018-11-05,40,reconstructed (Nov 30 days below)
-2018-11-12,45,reconstructed
-2018-11-19,35,anchor: second trough 21 Nov-3 Dec 2018
-2018-11-26,40,reconstructed
-2018-12-03,60,reconstructed (Dec 3 days below; rise from ~5 Dec)
-2018-12-10,110,reconstructed (recovery)
+week_start,kaub_cm,kaub_min_cm,kaub_max_cm,n_days,source
+2018-07-16,104.6,101,106,7,"BfG DGJ Pegel Kaub 25700100, daily means 2018 (dgj-daten.bafg.de/Rhein/Kaub/25700100_WQ.pdf p.15), weekly mean"
+2018-07-23,102.3,89,117,7,"BfG DGJ Pegel Kaub 25700100, daily means 2018 (dgj-daten.bafg.de/Rhein/Kaub/25700100_WQ.pdf p.15), weekly mean"
+2018-07-30,78.3,76,84,7,"BfG DGJ Pegel Kaub 25700100, daily means 2018 (dgj-daten.bafg.de/Rhein/Kaub/25700100_WQ.pdf p.15), weekly mean"
+2018-08-06,71.7,65,79,7,"BfG DGJ Pegel Kaub 25700100, daily means 2018 (dgj-daten.bafg.de/Rhein/Kaub/25700100_WQ.pdf p.15), weekly mean"
+2018-08-13,71.0,65,73,7,"BfG DGJ Pegel Kaub 25700100, daily means 2018 (dgj-daten.bafg.de/Rhein/Kaub/25700100_WQ.pdf p.15), weekly mean"
+2018-08-20,62.3,56,68,7,"BfG DGJ Pegel Kaub 25700100, daily means 2018 (dgj-daten.bafg.de/Rhein/Kaub/25700100_WQ.pdf p.15), weekly mean"
+2018-08-27,73.3,68,81,7,"BfG DGJ Pegel Kaub 25700100, daily means 2018 (dgj-daten.bafg.de/Rhein/Kaub/25700100_WQ.pdf p.15), weekly mean"
+2018-09-03,101.4,93,113,7,"BfG DGJ Pegel Kaub 25700100, daily means 2018 (dgj-daten.bafg.de/Rhein/Kaub/25700100_WQ.pdf p.15), weekly mean"
+2018-09-10,82.1,73,92,7,"BfG DGJ Pegel Kaub 25700100, daily means 2018 (dgj-daten.bafg.de/Rhein/Kaub/25700100_WQ.pdf p.15), weekly mean"
+2018-09-17,67.1,61,76,7,"BfG DGJ Pegel Kaub 25700100, daily means 2018 (dgj-daten.bafg.de/Rhein/Kaub/25700100_WQ.pdf p.15), weekly mean"
+2018-09-24,76.0,64,84,7,"BfG DGJ Pegel Kaub 25700100, daily means 2018 (dgj-daten.bafg.de/Rhein/Kaub/25700100_WQ.pdf p.15), weekly mean"
+2018-10-01,66.1,56,77,7,"BfG DGJ Pegel Kaub 25700100, daily means 2018 (dgj-daten.bafg.de/Rhein/Kaub/25700100_WQ.pdf p.15), weekly mean"
+2018-10-08,57.7,48,68,7,"BfG DGJ Pegel Kaub 25700100, daily means 2018 (dgj-daten.bafg.de/Rhein/Kaub/25700100_WQ.pdf p.15), weekly mean"
+2018-10-15,35.1,27,42,7,"BfG DGJ Pegel Kaub 25700100, daily means 2018 (dgj-daten.bafg.de/Rhein/Kaub/25700100_WQ.pdf p.15), weekly mean"
+2018-10-22,28.7,25,31,7,"BfG DGJ Pegel Kaub 25700100, daily means 2018 (dgj-daten.bafg.de/Rhein/Kaub/25700100_WQ.pdf p.15), weekly mean"
+2018-10-29,52.6,33,59,7,"BfG DGJ Pegel Kaub 25700100, daily means 2018 (dgj-daten.bafg.de/Rhein/Kaub/25700100_WQ.pdf p.15), weekly mean"
+2018-11-05,43.3,38,54,7,"BfG DGJ Pegel Kaub 25700100, daily means 2018 (dgj-daten.bafg.de/Rhein/Kaub/25700100_WQ.pdf p.15), weekly mean"
+2018-11-12,43.6,34,50,7,"BfG DGJ Pegel Kaub 25700100, daily means 2018 (dgj-daten.bafg.de/Rhein/Kaub/25700100_WQ.pdf p.15), weekly mean"
+2018-11-19,30.9,28,32,7,"BfG DGJ Pegel Kaub 25700100, daily means 2018 (dgj-daten.bafg.de/Rhein/Kaub/25700100_WQ.pdf p.15), weekly mean"
+2018-11-26,31.9,30,37,7,"BfG DGJ Pegel Kaub 25700100, daily means 2018 (dgj-daten.bafg.de/Rhein/Kaub/25700100_WQ.pdf p.15), weekly mean"
+2018-12-03,137.3,60,179,7,"BfG DGJ Pegel Kaub 25700100, daily means 2018 (dgj-daten.bafg.de/Rhein/Kaub/25700100_WQ.pdf p.15), weekly mean"
+2018-12-10,175.0,150,205,7,"BfG DGJ Pegel Kaub 25700100, daily means 2018 (dgj-daten.bafg.de/Rhein/Kaub/25700100_WQ.pdf p.15), weekly mean"
