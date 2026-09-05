@@ -57,8 +57,9 @@ data file it comes from, so the pipeline can produce it without re-deciding.
   does; sector-specific give-up thresholds evaluated from the 2018/2026 evidence and not adopted;
   no-disruption control (drift check). Closure floors by cargo class (5 Sep: container ≤ 40 cm,
   tank barges ≤ 50 cm, dry bulk ≤ 30 cm; van Dorsser 2020, Contargo): `2026_seed42_floors`,
-  `2018_seed42_floors` — the candidate final baseline if the 2018 result lands in the ex-post
-  range (−0.3 to −0.4 % GDP at the peak). Sensitivities for the cluster: closure floors ± 10 cm,
+  `2018_seed42_floors` — results 5 Sep: 2026 DEU 1.20 bn (0.125 % of a quarter, inside IfW's EUR 1–2
+  bn), 2018 DEU 2.03 bn (0.21 % of a quarter, peak 0.58 % of a week in late November, about two-thirds
+  of the ex-post −0.3/−0.4 % GDP) → candidate final baseline, user decision pending. Sensitivities for the cluster: closure floors ± 10 cm,
   lean-2019 inventories, halved/doubled switching costs, seeds.
 - Two modelling decisions to state up front, both forced by the scale of the scope: the
   criticality threshold (2 % cost-share proxy for the partially-binding Leontief; strict
