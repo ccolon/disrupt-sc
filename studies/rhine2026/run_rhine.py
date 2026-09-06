@@ -232,6 +232,9 @@ def main():
     ap.add_argument("--inventory-targets", default=None,
                     help="YAML file replacing inventory_duration_targets (e.g. additional_data/inventory_targets_by_buyer.yaml, "
                          "days of goods-input stock per buying sector with overrides). Re-applied on load, not a cache key.")
+    ap.add_argument("--light-export", action="store_true",
+                    help="skip link_data.csv (4-6 GB) and inventory_data.csv (2-3 GB); firm/household/country "
+                         "series, routing summary and flows are still written (sensitivity grids, KI-33)")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--cache", default="auto",
                     help="cache preset passed to execute(); 'auto' reuses every stage whose fingerprint "
@@ -333,6 +336,9 @@ def main():
         config.setdefault("filepaths", {})["input_criticality"] = str(Path(args.input_criticality).resolve())
     if args.critical_input_threshold is not None:
         config["critical_input_threshold"] = args.critical_input_threshold
+    if args.light_export:
+        config["export_link_data"] = False
+        config["export_inventory_data"] = False
     config["disruptions"] = disruptions
 
     export_folder = Path(args.out) if args.out else RUNS_DIR / f"{args.profile}_seed{args.seed}"

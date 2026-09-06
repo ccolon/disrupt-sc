@@ -21,6 +21,12 @@ t_final: 10  # in time_resolution unit
 
 # Whether to export files
 export_files: False
+# Per-file switches for the two multi-GB per-step exports (KI-33): link_data.csv (one row per
+# commercial link and step) and inventory_data.csv (one row per firm input and step). Default
+# True; set False for sensitivity grids where only firm/household/country series, the routing
+# summary and the flows are needed.
+export_link_data: True
+export_inventory_data: True
 
 
 # Logistic parameters

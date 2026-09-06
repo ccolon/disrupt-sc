@@ -75,6 +75,11 @@ class SimParams:
     # active mothballed), so a firm reaches full mobilization in ~tau.
     time_to_activate_idle_capital: float = 30.0
     sensitivity: dict = field(default_factory=dict)
+    # Per-file export switches (KI-33): link_data.csv (one row per commercial
+    # link and step, 4-6 GB on the EU scope) and inventory_data.csv (one row per
+    # firm input and step, 2-3 GB) can be skipped; the other exports stay.
+    export_link_data: bool = True
+    export_inventory_data: bool = True
     # Seed both Python's `random` and `numpy.random` before stochastic
     # stages (currently: supply-chain build, Monte-Carlo disruption arrival).
     # None ⇒ no seeding (legacy non-reproducible behavior).

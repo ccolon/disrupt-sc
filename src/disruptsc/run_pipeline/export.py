@@ -127,15 +127,18 @@ TRADE_COLUMNS = [
 class AgentWriters:
     """Manage the set of CSV writers for agent time-series data."""
 
-    def __init__(self, export_folder: Path, days_per_timestep: float = 7.0):
+    def __init__(self, export_folder: Path, days_per_timestep: float = 7.0,
+                 export_link_data: bool = True, export_inventory_data: bool = True):
         self.firm = CsvWriter(export_folder / "firm_data.csv", FIRM_COLUMNS)
         self.household = CsvWriter(export_folder / "household_data.csv", HOUSEHOLD_COLUMNS)
         self.household_by_sector = CsvWriter(
             export_folder / "household_data_by_sector.csv", HOUSEHOLD_BY_SECTOR_COLUMNS,
         )
         self.country = CsvWriter(export_folder / "country_data.csv", COUNTRY_COLUMNS)
-        self.inventory = CsvWriter(export_folder / "inventory_data.csv", INVENTORY_COLUMNS)
-        self.link = CsvWriter(export_folder / "link_data.csv", LINK_COLUMNS)
+        # KI-33: the two multi-GB files are optional (export_link_data / export_inventory_data)
+        self.inventory = (CsvWriter(export_folder / "inventory_data.csv", INVENTORY_COLUMNS)
+                          if export_inventory_data else None)
+        self.link = CsvWriter(export_folder / "link_data.csv", LINK_COLUMNS) if export_link_data else None
         self.trade = CsvWriter(export_folder / "trade_data.csv", TRADE_COLUMNS)
         self._days_per_timestep = days_per_timestep
 
@@ -171,6 +174,8 @@ class AgentWriters:
             self.country.write_row(c.collect_data(time_step))
 
         # Firm inventories — one row per (firm, input_sector)
+        if self.inventory is None:
+            return
         for firm in firms.values():
             for input_sector, inv_qty in firm.inventory.items():
                 eq_need = firm.eq_needs.get(input_sector, 0.0)
@@ -186,6 +191,8 @@ class AgentWriters:
 
     def write_links(self, sc_network, time_step: int):
         """Write one row per commercial link for this time step."""
+        if self.link is None:
+            return
         for u, v, data in sc_network.edges(data=True):
             link = data["object"]
             seller_type = type(u).__name__
@@ -253,8 +260,10 @@ class AgentWriters:
         self.household.close()
         self.household_by_sector.close()
         self.country.close()
-        self.inventory.close()
-        self.link.close()
+        if self.inventory is not None:
+            self.inventory.close()
+        if self.link is not None:
+            self.link.close()
         self.trade.close()
 
     def __enter__(self):

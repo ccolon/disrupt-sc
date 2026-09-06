@@ -287,6 +287,8 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
         capacity_constrained_orders=config.get("capacity_constrained_orders", False),
         time_to_activate_idle_capital=config.get("time_to_activate_idle_capital", 30.0),
         sensitivity=config.get("sensitivity") or {},
+        export_link_data=bool(config.get("export_link_data", True)),
+        export_inventory_data=bool(config.get("export_inventory_data", True)),
         seed=(int(config["seed"]) if config.get("seed") is not None else None),
     )
 
