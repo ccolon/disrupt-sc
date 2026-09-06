@@ -63,7 +63,10 @@ critical_input_threshold: 0.02
 # (freight bill more than doubled) dropped Rhine legs whose whole route is the
 # Kaub edge at x3 while their freight is a few percent of the goods' value;
 # 2026 shippers paid x5 rates.
-delivered_price_increase_threshold: 0.5
+# Baseline since 5-6 Sep 2026 (Rhine study): 5 - non-binding under the x2-4 low-water surcharges
+# (a delivered price rise of 500 % of the transport share); the physical stoppages act through the
+# cargo-specific switching costs and closure floors instead. 0.5 let low-value bulk give up at x3.
+delivered_price_increase_threshold: 5.0
 
 simulation_type: initial_state
 export_files: True
