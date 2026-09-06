@@ -46,7 +46,9 @@ def run_initial_state(sc_network, transport_network, firms, households, countrie
 
     # Write CSVs if exporting
     if export_folder:
-        with AgentWriters(export_folder, _days_per_timestep(sp.time_resolution)) as writers:
+        with AgentWriters(export_folder, _days_per_timestep(sp.time_resolution),
+                          export_link_data=sp.export_link_data,
+                          export_inventory_data=sp.export_inventory_data) as writers:
             writers.write_step(firms, households, countries, 0)
             writers.write_trade(sc_network, 0)
 
@@ -71,7 +73,10 @@ def run_disruption(sc_network, transport_network, firms, households, countries,
                    monitored_edges: list[str] | None = None,
                    observer=None):
     """Full disruption simulation.  Returns lists of per-timestep data."""
-    writers = AgentWriters(export_folder, _days_per_timestep(sp.time_resolution)) if export_folder else None
+    writers = (AgentWriters(export_folder, _days_per_timestep(sp.time_resolution),
+                            export_link_data=sp.export_link_data,
+                            export_inventory_data=sp.export_inventory_data)
+               if export_folder else None)
 
     try:
         all_data, logistics_reports, all_routing_summaries = prepare_disruption_baseline(
