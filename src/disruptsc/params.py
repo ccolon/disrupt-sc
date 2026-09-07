@@ -102,6 +102,11 @@ class AgentParams:
     nb_suppliers_per_input: float = 1
     weight_localization_firm: float = 1.0
     weight_localization_household: float = 4.0
+    # Distance elasticity of IMPORT sourcing: buyers nearer a partner's gateway
+    # tilt their import mix toward that partner (border effect), RAS-rebalanced
+    # so national MRIO totals per partner stay exact. 0 = off (national
+    # coefficients for every buyer, the legacy behavior).
+    weight_localization_import: float = 0.0
     utilization_rate: float = 0.8
     # Partially-Binding Leontief: inputs below this share of a firm's intermediate
     # cost are non-critical (don't constrain output). 0.0 = strict Leontief.

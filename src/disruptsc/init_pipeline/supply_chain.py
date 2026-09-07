@@ -29,6 +29,7 @@ def build_supply_chain_network(
     weight_localization_household: float,
     sector_to_cargo_type: dict,
     transport_network=None,
+    weight_localization_import: float = 0.0,
 ) -> ScNetwork:
     """Build full supply-chain graph.  Returns populated ScNetwork."""
     sc = ScNetwork()
@@ -52,14 +53,35 @@ def build_supply_chain_network(
     rs_cache, node_lon, node_lat = _build_rs_cache(firms, rs_to_firms, transport_network)
     use_tn = transport_network is not None
 
+    # 0b. Aggregate per-product import inputs into one entry per partner for
+    # every buyer, then (optionally) tilt each buyer's import mix by distance
+    # to the partners' gateways - RAS-rebalanced so national MRIO totals per
+    # partner are conserved. Buyers near a border source more from the country
+    # behind it (border effect), which is what makes partner-specific border
+    # disruptions regionally differentiated.
+    firm_import_ptype = {
+        f.pid: _aggregate_import_inputs(f.input_mix, country_pids, sector_types)
+        for f in firms.values()
+    }
+    hh_import_ptype = {
+        hh.pid: _aggregate_import_inputs(hh.sector_consumption, country_pids, sector_types)
+        for hh in households.values()
+    }
+    if weight_localization_import > 0:
+        _localize_import_mixes(firms, countries, weight_localization_import,
+                               value_key="input_mix",
+                               scale=lambda f: getattr(f, "importance", 1.0) or 1.0)
+        _localize_import_mixes(households, countries, weight_localization_import,
+                               value_key="sector_consumption", scale=lambda h: 1.0)
+
     # 1. Households select retailers (domestic B2C + import B2C)
     logging.info("Households selecting retailers")
     for hh in progress(households.values(), "Households", total=len(households)):
         _household_select_suppliers(
             hh, sc, firms, countries, rs_cache,
             nb_suppliers_per_input, weight_localization_household,
-            sector_to_cargo_type, country_pids, sector_types, transport_network,
-            node_lon, node_lat, use_tn,
+            sector_to_cargo_type, country_pids, hh_import_ptype[hh.pid],
+            transport_network, node_lon, node_lat, use_tn,
         )
 
     # 2. Countries select exporters and create transit links
@@ -80,8 +102,8 @@ def build_supply_chain_network(
         _firm_select_suppliers(
             firm, sc, firms, countries, rs_cache,
             nb_suppliers_per_input, weight_localization_firm,
-            sector_to_cargo_type, country_pids, sector_types, transport_network,
-            node_lon, node_lat, use_tn,
+            sector_to_cargo_type, country_pids, firm_import_ptype[firm.pid],
+            transport_network, node_lon, node_lat, use_tn,
         )
 
     # 4. Cleanup: remove disconnected agents
@@ -116,7 +138,7 @@ def build_supply_chain_network(
 
 def _household_select_suppliers(hh, sc, firms, countries, rs_cache,
                                 nb_suppliers_per_input, weight_loc,
-                                sector_to_cargo_type, country_pids, sector_types,
+                                sector_to_cargo_type, country_pids, import_ptype,
                                 transport_network, node_lon, node_lat, use_tn):
     hh.purchase_plan = {}
     hh.retailers = {}
@@ -125,7 +147,6 @@ def _household_select_suppliers(hh, sc, firms, countries, rs_cache,
     # a single aggregate buyer spreads demand by firm size and sees localized disruption.
     w_loc = weight_loc if hh.weight_localization is None else hh.weight_localization
     nb = nb_suppliers_per_input if hh.nb_suppliers is None else hh.nb_suppliers
-    import_ptype = _aggregate_import_inputs(hh.sector_consumption, country_pids, sector_types)
     for region_sector, amount in hh.sector_consumption.items():
         supplier_type, ids, weights, distances = _identify_suppliers(
             hh, region_sector, rs_cache,
@@ -251,11 +272,96 @@ def _aggregate_import_inputs(needs: dict, country_pids: set, sector_types: dict)
     return dominant_ptype
 
 
+def _localize_import_mixes(buyers: dict, countries: dict, gamma: float,
+                           value_key: str, scale) -> None:
+    """Tilt each buyer's per-partner import entries by distance to the
+    partner's gateway (weight d^-gamma relative to the partner's mean buyer
+    distance), then RAS-rebalance so that (a) each buyer's TOTAL import value
+    is unchanged (production technology / consumption budget preserved) and
+    (b) each partner's size-weighted national total is unchanged (MRIO totals
+    conserved). Buyers with no entry for a partner stay at zero.
+
+    There is no observed regional-import-mix dataset to calibrate gamma
+    against (FIGARO-REG's regional differentiation is itself assumption);
+    gamma expresses the border effect needed for partner-specific border
+    disruption scenarios to hit near-border regions harder.
+    """
+    import math
+
+    def hav_km(lo1, la1, lo2, la2):
+        lo1, la1, lo2, la2 = map(math.radians, (lo1, la1, lo2, la2))
+        return 6371 * 2 * math.asin(math.sqrt(
+            math.sin((la2 - la1) / 2) ** 2
+            + math.cos(la1) * math.cos(la2) * math.sin((lo2 - lo1) / 2) ** 2))
+
+    partners = [c for c in countries.values()
+                if c.long is not None and c.lat is not None]
+    if not partners:
+        return
+    b_list = [b for b in buyers.values()
+              if getattr(b, "long", None) is not None]
+    keys = {c.pid: f"{c.pid}_imports" for c in partners}
+    # matrices as dicts of dicts (sparse over buyers' actual partners)
+    W, D = {}, {}
+    for b in b_list:
+        vals = getattr(b, value_key)
+        row = {c.pid: vals[k] for c, k in ((c, keys[c.pid]) for c in partners)
+               if keys[c.pid] in vals and vals[keys[c.pid]] > 0}
+        if not row:
+            continue
+        W[b.pid] = row
+        D[b.pid] = {pid: max(hav_km(b.long, b.lat,
+                                    countries[pid].long, countries[pid].lat), 25.0)
+                    for pid in row}
+    if not W:
+        return
+    s = {b.pid: float(scale(b)) for b in b_list if b.pid in W}
+    # per-partner mean distance (unweighted) for a scale-free tilt
+    dmean = {}
+    for pid in keys:
+        ds = [D[bp][pid] for bp in W if pid in W[bp]]
+        if ds:
+            dmean[pid] = sum(ds) / len(ds)
+    T = {bp: {pid: w * (D[bp][pid] / dmean[pid]) ** (-gamma)
+              for pid, w in row.items()}
+         for bp, row in W.items()}
+    row_target = {bp: sum(row.values()) for bp, row in W.items()}
+    col_target = {}
+    for bp, row in W.items():
+        for pid, w in row.items():
+            col_target[pid] = col_target.get(pid, 0.0) + w * s[bp]
+    for _ in range(40):
+        for bp, row in T.items():
+            f = row_target[bp] / (sum(row.values()) or 1.0)
+            for pid in row:
+                row[pid] *= f
+        colsum = {}
+        for bp, row in T.items():
+            for pid, w in row.items():
+                colsum[pid] = colsum.get(pid, 0.0) + w * s[bp]
+        maxdev = 0.0
+        for bp, row in T.items():
+            for pid in row:
+                f = col_target[pid] / (colsum[pid] or 1.0)
+                row[pid] *= f
+                maxdev = max(maxdev, abs(f - 1.0))
+        if maxdev < 1e-6:
+            break
+    # write back
+    by_pid = {b.pid: b for b in b_list}
+    for bp, row in T.items():
+        vals = getattr(by_pid[bp], value_key)
+        for pid, w in row.items():
+            vals[keys[pid]] = w
+    logging.info(
+        f"Import localization (gamma={gamma}): tilted {len(W)} buyers' import "
+        f"mixes across {len(dmean)} partners; national totals conserved by RAS")
+
+
 def _firm_select_suppliers(firm, sc, firms, countries, rs_cache,
                            nb_suppliers_per_input, weight_loc,
-                           sector_to_cargo_type, country_pids, sector_types,
+                           sector_to_cargo_type, country_pids, import_ptype,
                            transport_network, node_lon, node_lat, use_tn):
-    import_ptype = _aggregate_import_inputs(firm.input_mix, country_pids, sector_types)
     for sector_id, sector_weight in firm.input_mix.items():
         supplier_type, ids, weights, distances = _identify_suppliers(
             firm, sector_id, rs_cache,

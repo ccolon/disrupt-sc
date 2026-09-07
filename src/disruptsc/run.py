@@ -362,6 +362,7 @@ def execute(config: dict, *, cache: str | None = None,
             ap.nb_suppliers_per_input, ap.weight_localization_firm,
             ap.weight_localization_household,
             effective_cargo_mapping, transport_network,
+            weight_localization_import=ap.weight_localization_import,
         )
         cache_sc_network(sc_network, firms, households, countries,
                          scope=scope, stage_fp=stage_fps["sc_network"])
