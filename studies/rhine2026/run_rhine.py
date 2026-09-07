@@ -32,6 +32,17 @@ while containers reroute; when every class is closed the week is a plain
 ``transport_disruption`` as before. ``--closure-floors none`` restores the
 single floor of ``--closure-threshold`` (the runs before 5 Sep 2026).
 
+VOYAGE-LEVEL SURCHARGE (7 Sep 2026, user decision): a vessel is loaded to the Kaub
+draught for its whole voyage and the Kleinwasserzuschlag is charged per ton on the
+whole trip, so the week's multiplier is applied to EVERY Rhine edge from Koblenz
+upstream (the reach a Kaub-limited vessel sails: Basel ... Mainz-Koblenz), and a
+milder multiplier 1 + (m - 1) x lower_rhine_factor to the edges from Koblenz
+downstream to Rotterdam (their own gauges: Duisburg-Ruhrort loads ~25 % vs ~10 % at
+Kaub in Aug 2026, ~50 % vs 22 % in Oct 2018 -> factor 1/3, an assumption to refine
+with a Lower Rhine draught table). Closures and the class floors stay on the Kaub
+edge. ``--surcharge-scope kaub`` reproduces the edge-local runs of 3-7 Sep, whose
+surcharge was a seventh of the real one (85 km of a ~600 km voyage).
+
 Inputs (studies/rhine2026/scenarios/):
   <profile>.csv      week_start, kaub_cm  (weekly mean Kaub gauge, cm)  [or load_factor]
   draught_table.csv  kaub_cm, load_factor (vessel loading vs gauge; evidence-based)
@@ -69,6 +80,11 @@ CLOSED_MULTIPLIER = 1.0e6
 # Kaub gauge (cm) at or below which a cargo class can no longer pass (see the module docstring).
 DEFAULT_CLOSURE_FLOORS = "container=40,liquid_bulk=50,dry_bulk=30,default=30"
 DEFAULT_CARGO_TYPES = ("container", "dry_bulk", "liquid_bulk")
+# First edge of the Lower Rhine in the Basel -> Rotterdam order of scenarios/rhine_capacities.csv:
+# edges before it (Basel ... Mainz-Koblenz) are sailed by Kaub-limited vessels, edges from it on
+# (Koblenz ... Rotterdam) by vessels limited by the Lower Rhine gauges.
+LOWER_RHINE_FIRST = "rhine_koblenz"
+DEFAULT_LOWER_RHINE_FACTOR = 1.0 / 3.0
 
 
 def load_factor_curve(path: Path):
@@ -108,14 +124,49 @@ def closed_classes(kaub_cm: float, floors: dict[str, float], cargo_types: list[s
     return [ct for ct in cargo_types if float(kaub_cm) <= floors.get(ct, floors["default"])]
 
 
+def rhine_chain(capacities_csv) -> tuple[list[str], list[str]]:
+    """(upstream edges incl. the Kaub edge, Lower Rhine edges) from the chain order of rhine_capacities.csv."""
+    names = pd.read_csv(capacities_csv)["name"].astype(str).tolist()
+    if LOWER_RHINE_FIRST not in names:
+        raise ValueError(f"{LOWER_RHINE_FIRST} not in {capacities_csv}")
+    k = names.index(LOWER_RHINE_FIRST)
+    return names[:k], names[k:]
+
+
+def kaub_entries(disruptions: list[dict], edge: str = KAUB_EDGE) -> list[dict]:
+    """The entries acting on the Kaub edge (closures, class floors, its surcharge) - one per week."""
+    return [d for d in disruptions if edge in d.get("values", [])]
+
+
+def _voyage_entries(t: int, mult: float, upstream_other: list[str], lower: list[str],
+                    factor: float, min_mult: float = 1.01) -> list[dict]:
+    out = []
+    if upstream_other and mult >= min_mult:
+        out.append({"type": "transport_cost_shock", "attribute": "name", "values": list(upstream_other),
+                    "cost_multiplier": round(float(mult), 3), "capacity_factor": 1.0,
+                    "substitution_share": 1.0, "start_time": t, "duration": 1})
+    m_lower = 1.0 + (float(mult) - 1.0) * float(factor)
+    if lower and m_lower >= min_mult:
+        out.append({"type": "transport_cost_shock", "attribute": "name", "values": list(lower),
+                    "cost_multiplier": round(m_lower, 3), "capacity_factor": 1.0,
+                    "substitution_share": 1.0, "start_time": t, "duration": 1})
+    return out
+
+
 def build_disruptions(reductions: list[float], edges: list[str], min_reduction=0.01,
                       closure_threshold: float | None = None,
                       max_multiplier: float = 20.0,
                       substitution_share: float = 1.0,
                       gauges: list[float] | None = None,
                       closure_floors: dict[str, float] | None = None,
-                      cargo_types: list[str] | None = None) -> list[dict]:
-    """One disruption entry per week.
+                      cargo_types: list[str] | None = None,
+                      surcharge_edges: list[str] | None = None,
+                      lower_rhine_edges: list[str] | None = None,
+                      lower_rhine_factor: float = DEFAULT_LOWER_RHINE_FACTOR) -> list[dict]:
+    """One disruption entry per week on the Kaub edge (*edges*), plus - with
+    *surcharge_edges* (voyage-level surcharge) - one scalar cost shock on the
+    other upstream edges at the week's multiplier and one on *lower_rhine_edges*
+    at 1 + (m - 1) x lower_rhine_factor.
 
     With *closure_floors* (cm per cargo class) and the weekly *gauges*, a week
     closes the edge for the classes at or below their floor (per-cargo
@@ -137,9 +188,14 @@ def build_disruptions(reductions: list[float], edges: list[str], min_reduction=0
     out = []
     use_floors = closure_floors is not None and gauges is not None
     cargo_types = list(cargo_types or DEFAULT_CARGO_TYPES)
+    upstream_other = [e for e in (surcharge_edges or []) if e not in edges]
+    lower = list(lower_rhine_edges or []) if surcharge_edges is not None else []
+    voyage = surcharge_edges is not None
     for t, r in enumerate(reductions, start=1):
+        mult = round(min(max_multiplier, 1.0 / (1.0 - r)), 3) if r < 1.0 else float(max_multiplier)
+        if voyage and r >= min_reduction:
+            out.extend(_voyage_entries(t, mult, upstream_other, lower, lower_rhine_factor))
         if use_floors:
-            mult = round(min(max_multiplier, 1.0 / (1.0 - r)), 3) if r < 1.0 else float(max_multiplier)
             closed = closed_classes(gauges[t - 1], closure_floors, cargo_types)
             if closed and len(closed) == len(cargo_types):
                 out.append({"type": "transport_disruption", "attribute": "name", "values": list(edges),
@@ -202,6 +258,13 @@ def main():
                          "cost shocks x1/(1-reduction) (transport_cost_shock). Set to a negative value "
                          "to emit partial capacity reductions instead (needs --constraint-mode "
                          "gradual|binary)")
+    ap.add_argument("--surcharge-scope", choices=["voyage", "kaub"], default="voyage",
+                    help="voyage (default since 7 Sep 2026): the week's multiplier on every Rhine edge from Koblenz "
+                         "upstream (scenarios/rhine_capacities.csv order) and 1 + (m - 1) x --lower-rhine-factor on "
+                         "the Lower Rhine edges; kaub: the Kaub edge only (runs of 3-7 Sep, surcharge under-priced)")
+    ap.add_argument("--lower-rhine-factor", type=float, default=DEFAULT_LOWER_RHINE_FACTOR,
+                    help="share of the Kaub excess cost charged on the Lower Rhine edges (Duisburg-Ruhrort loads "
+                         "~25 %% vs ~10 %% at Kaub in Aug 2026, ~50 %% vs 22 %% in Oct 2018 -> 1/3; assumption)")
     ap.add_argument("--closure-floors", default=DEFAULT_CLOSURE_FLOORS,
                     help="Kaub gauge (cm) at or below which each cargo class can no longer pass: "
                          "'container=40,liquid_bulk=50,dry_bulk=30,default=30' (large container vessels "
@@ -263,18 +326,27 @@ def main():
     if floors is not None and gauges is None:
         print("profile has no kaub_cm column: closure floors by cargo class not applicable, single floor used")
         floors = None
+    if args.surcharge_scope == "voyage" and closure is not None:
+        upstream, lower_rhine = rhine_chain(args.capacities)
+    else:
+        upstream, lower_rhine = None, None
     disruptions = build_disruptions(reductions, edges, closure_threshold=closure,
                                     substitution_share=args.substitution_share,
-                                    gauges=gauges, closure_floors=floors, cargo_types=cargo_types)
+                                    gauges=gauges, closure_floors=floors, cargo_types=cargo_types,
+                                    surcharge_edges=upstream, lower_rhine_edges=lower_rhine,
+                                    lower_rhine_factor=args.lower_rhine_factor)
+    kaub = kaub_entries(disruptions, edges[0]) if edges else disruptions
     t_final = len(reductions) + args.recovery_weeks
 
     if floors is not None:
         rule = "closure floors " + ", ".join(f"{ct} <= {floors.get(ct, floors['default']):.0f} cm" for ct in cargo_types)
     else:
         rule = ("closure >= " + format(closure, ".0%")) if closure is not None else "partial reductions"
-    print(f"profile {args.profile}: {len(reductions)} weeks, {len(disruptions)} disrupted weeks ({rule}), "
+    scope = (f"voyage surcharge: {len(upstream)} upstream edges at m, {len(lower_rhine)} Lower Rhine edges at "
+             f"1+(m-1)x{args.lower_rhine_factor:.2f}" if upstream else "surcharge on the Kaub edge only")
+    print(f"profile {args.profile}: {len(reductions)} weeks, {len(kaub)} disrupted weeks ({rule}; {scope}), "
           f"max reduction {max(reductions):.0%}, t_final={t_final}, edges={edges}")
-    for d in disruptions:
+    for d in kaub:
         wk = profile.iloc[d["start_time"] - 1]
         if d["type"] == "transport_cost_shock":
             m = d["cost_multiplier"]
@@ -314,9 +386,10 @@ def main():
         config["transport_capacity_overrides"] = overrides
         print(f"transport_capacity_overrides: {len(overrides)} edges; capacity_constraint: {args.constraint_mode}")
     else:
-        n_closed = sum(1 for d in disruptions if d["type"] == "transport_disruption")
-        print(f"capacity routing off: {n_closed} closure week(s) + {len(disruptions) - n_closed} "
-              f"cost-shock week(s), no capacity overrides")
+        n_closed = sum(1 for d in kaub if d["type"] == "transport_disruption")
+        print(f"capacity routing off: {n_closed} closure week(s) + {len(kaub) - n_closed} "
+              f"cost-shock week(s) on the Kaub edge, {len(disruptions) - len(kaub)} voyage-surcharge entries, "
+              f"no capacity overrides")
     if args.delivered_price_threshold is not None:
         raw = str(args.delivered_price_threshold)
         if raw.endswith((".yaml", ".yml")):

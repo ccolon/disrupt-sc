@@ -33,7 +33,8 @@ HERE = Path(__file__).resolve().parents[1]
 DATA = ROOT.parent / "disrupt-sc-data" / "EU"
 sys.path.insert(0, str(HERE))
 from run_rhine import (CLOSED_MULTIPLIER, DEFAULT_CARGO_TYPES, DEFAULT_CLOSURE_FLOORS,  # noqa: E402
-                       build_disruptions, load_factor_curve, parse_closure_floors, weekly_reductions)
+                       build_disruptions, kaub_entries, load_factor_curve, parse_closure_floors,
+                       weekly_reductions)
 
 SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"]
 SEQ = ["#cde2fb", "#b7d3f6", "#9ec5f4", "#86b6ef", "#6da7ec", "#5598e7", "#3987e5", "#2a78d6", "#256abf",
@@ -64,9 +65,9 @@ def fig_shock(profile: str, closure_threshold: float, out: Path, closure_floors:
     red = weekly_reductions(prof, curve)
     floors = parse_closure_floors(closure_floors) if "kaub_cm" in prof.columns else None
     cts = list(DEFAULT_CARGO_TYPES)
-    sched = {d["start_time"]: d for d in build_disruptions(
+    sched = {d["start_time"]: d for d in kaub_entries(build_disruptions(
         red, ["rhine_mainz_koblenz"], closure_threshold=closure_threshold,
-        gauges=prof["kaub_cm"].astype(float).tolist() if floors else None, closure_floors=floors, cargo_types=cts)}
+        gauges=prof["kaub_cm"].astype(float).tolist() if floors else None, closure_floors=floors, cargo_types=cts))}
     weeks = pd.to_datetime(prof["week_start"])
     factor = [1 - r for r in red]
 

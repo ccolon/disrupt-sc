@@ -9,7 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "studies" / "rhine2026"))
 
 from run_rhine import (CLOSED_MULTIPLIER, DEFAULT_CLOSURE_FLOORS, build_disruptions,  # noqa: E402
-                       closed_classes, parse_closure_floors)
+                       closed_classes, kaub_entries, parse_closure_floors)
 
 CTS = ["container", "dry_bulk", "liquid_bulk"]
 
@@ -52,3 +52,27 @@ def test_single_floor_rule_unchanged_without_floors():
     assert legacy[2]["cost_multiplier"] == 3.774
     same = build_disruptions(reductions, ["kaub"], closure_threshold=0.75, closure_floors=None, gauges=[1, 2, 3, 4])
     assert same == legacy
+
+
+def test_voyage_surcharge_entries():
+    """7 Sep 2026: the week's multiplier on the other upstream edges, a third of the excess on the
+    Lower Rhine, the Kaub edge keeps its own entry (class dict or closure)."""
+    f = parse_closure_floors(DEFAULT_CLOSURE_FLOORS)
+    up = ["rhine_basel", "rhine_mainz", "kaub"]
+    low = ["rhine_koblenz", "rhine_rotterdam"]
+    d = build_disruptions([0.6, 0.78, 0.0], ["kaub"], closure_threshold=0.75, gauges=[45, 24, 200],
+                          closure_floors=f, cargo_types=CTS, surcharge_edges=up, lower_rhine_edges=low,
+                          lower_rhine_factor=1 / 3)
+    k = kaub_entries(d, "kaub")
+    assert [x["start_time"] for x in k] == [1, 2]
+    assert k[0]["cost_multiplier"]["liquid_bulk"] == CLOSED_MULTIPLIER and k[1]["type"] == "transport_disruption"
+    others = [x for x in d if x not in k]
+    w1 = [x for x in others if x["start_time"] == 1]
+    assert [x["values"] for x in w1] == [["rhine_basel", "rhine_mainz"], low]
+    assert w1[0]["cost_multiplier"] == 2.5 and w1[1]["cost_multiplier"] == 1.5      # 1 + 1.5/3
+    w2 = [x for x in others if x["start_time"] == 2]                                # closure week: x4.545 upstream
+    assert w2[0]["cost_multiplier"] == 4.545 and w2[1]["cost_multiplier"] == round(1 + 3.545 / 3, 3)
+    assert not [x for x in d if x["start_time"] == 3]                                # nothing at 200 cm
+    legacy = build_disruptions([0.6, 0.78], ["kaub"], closure_threshold=0.75, gauges=[45, 24],
+                               closure_floors=f, cargo_types=CTS)
+    assert legacy == [x for x in d if x["start_time"] <= 2 and "kaub" in x["values"]]
