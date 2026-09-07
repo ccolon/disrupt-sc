@@ -50,6 +50,7 @@ def run_initial_state(sc_network, transport_network, firms, households, countrie
                           export_link_data=sp.export_link_data,
                           export_inventory_data=sp.export_inventory_data) as writers:
             writers.write_step(firms, households, countries, 0)
+            writers.write_links(sc_network, 0)
             writers.write_trade(sc_network, 0)
 
     # Still return in-memory data for callers that need it
