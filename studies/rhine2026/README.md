@@ -306,14 +306,19 @@ VOT from pricing the sea leg, which had sent Asian imports into the nearest Adri
 
 ### 2.2b Runs (3 Sep, after the v12 baseline)
 
-**Final baseline (adopted 06 Sep 2026):** `run_rhine.py --profile 2026 --no-open --seed 42` and `--profile 2018`
-with the tracked config (survey criticality, import bundles by MRIO composition, buyer-industry inventories
-with grid/pipeline inputs at the coping duration, cargo-specific switching costs, delivered-price threshold 5
-— now the config value —, no quantity cap) and the driver defaults (closure floors container ≤ 40 cm, tank
-barges ≤ 50 cm, dry bulk ≤ 30 cm; daily-data profiles `scenarios/2026.csv`, `scenarios/2018.csv`). Runs
-`C:\dsc_runs\rhine2026\2026_seed42_floors` and `2018_seed42_floors`; figures F4–F6 in `figures/` come from
-them (`F5_loss_map_2018.*`, `F6_loss_by_country_2018.*` for the counterfactual). Results: DEU 1.20 bn USD
-(0.125 % of a quarter) in 2026, 2.03 bn (0.21 %) in 2018; see the table below for the ladder that led there.
+**Final baseline (adopted 06 Sep 2026, voyage-level surcharge added 07 Sep):** `run_rhine.py --profile 2026
+--no-open --seed 42` and `--profile 2018` with the tracked config (survey criticality, import bundles by MRIO
+composition, buyer-industry inventories with grid/pipeline inputs at the coping duration, cargo-specific
+switching costs, delivered-price threshold 5 — now the config value —, no quantity cap) and the driver
+defaults (closure floors container ≤ 40 cm, tank barges ≤ 50 cm, dry bulk ≤ 30 cm; voyage-level surcharge:
+the week's multiplier on the ten Rhine edges from Koblenz upstream and a third of the excess on the twenty
+Lower Rhine edges; daily-data profiles `scenarios/2026.csv`, `scenarios/2018.csv`). Runs
+`C:\dsc_runs\rhine2026\2026_seed42_voyage` and `2018_seed42_voyage`; the edge-local predecessors
+`…_floors` give the same losses within 1 % and the figures F4–F6 in `figures/` still come from those
+(visually identical — regenerate from the voyage runs at paper time; `F5_loss_map_2018.*`,
+`F6_loss_by_country_2018.*` for the counterfactual). Results: DEU 1.21 bn USD (0.126 % of a quarter) in
+2026, 2.03 bn (0.213 %) in 2018; delivered prices up to +10 % in surcharge weeks and +22 % in a closure
+week; see the table below for the ladder that led there.
 
 | Run | Command | Status |
 |---|---|---|
