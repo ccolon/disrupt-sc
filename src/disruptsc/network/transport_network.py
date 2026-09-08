@@ -818,14 +818,17 @@ def _calculate_cost_per_ton(edge_attr: dict, params: dict, cargo_types: list, ti
     # freight statistics (Eurostat NST breakdown).
     cot = params["cost_of_time"]
 
-    basic_cost = km * params["basic_cost"].get(edge_attr["type"], 0.01)
+    # basic_cost per mode may itself be a per-cargo dict ({default: v, <cargo>: v}): line-haul
+    # rates differ by vessel type on the Rhine (push-convoy bulk ~0.010, tank barges ~0.038,
+    # container vessels ~0.022 EUR/tkm - evidence/waterway_rates_by_vessel_type.md, 8 Sep 2026).
+    mode_basic_cost = params["basic_cost"].get(edge_attr["type"], 0.01)
     transport_time = km / speed
     dwell_time, loading_fee = _get_dwell_time_and_fee(edge_attr, params.get("dwell_times", {}), params.get("loading_fees", {}))
     border_time, border_fee = _get_border_crossing_time_and_fee(edge_attr, params.get("border_crossing_times", {}), params.get("border_crossing_fees", {}))
     fixed_time = transport_time + border_time
     special_cost = params.get("name-specific", {}).get(edge_attr.get("name", ""), 0)
 
-    fixed_base = basic_cost + special_cost + border_fee
+    fixed_base = special_cost + border_fee
 
     for ct in cargo_types:
         # Skip blocked cargo types — no cost label means the edge is
@@ -837,7 +840,7 @@ def _calculate_cost_per_ton(edge_attr: dict, params: dict, cargo_types: list, ti
         # dwell_times / loading_fees entries may be per-cargo dicts (see
         # _per_cargo): transfer costs, unlike line-haul costs, differ by
         # cargo class because of dedicated transshipment infrastructure
-        cost = (fixed_base + _per_cargo(loading_fee, ct)
+        cost = (fixed_base + km * _per_cargo(mode_basic_cost, ct) + _per_cargo(loading_fee, ct)
                 + (fixed_time + _per_cargo(dwell_time, ct)) * ct_cot * time_scale)
         edge_attr[f"cost_per_ton_{ct}"] = cost
         edge_attr[f"cost_per_ton_with_capacity_{ct}"] = cost
