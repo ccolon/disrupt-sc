@@ -67,16 +67,28 @@ def fleet_capacity(profile: str, kaub_tpd: float) -> pd.DataFrame:
 
 
 def _price_section(run: Path) -> None:
-    ld = pd.read_csv(run / "link_data.csv", usecols=["time_step", "seller_region", "buyer_region", "order", "realized_delivery",
-                                                     "delivery_in_tons", "cargo_type", "eq_price", "price"])
-    ld["surcharge"] = ld["price"] / ld["eq_price"] - 1
-    active = ld[ld["order"] > 0]
-    ps = active.groupby("time_step")["surcharge"].agg(
-        links="size", above_10pct=lambda s: (100 * (s > 0.10).mean()).round(1),
-        above_25pct=lambda s: (100 * (s > 0.25).mean()).round(1), above_50pct=lambda s: (100 * (s > 0.50).mean()).round(1),
-        max=lambda s: round(100 * s.max(), 0))
-    fill = active.groupby("time_step").apply(lambda d: round(100 * d["realized_delivery"].sum() / d["order"].sum(), 2))
-    ps["fill_rate_%"] = fill
+    """Delivered-price surcharges per week from link_data.csv, streamed in chunks (the file is
+    4-6 GB on the EU scope; loading it whole needs > 16 GB of RAM - KI-33)."""
+    cols = ["time_step", "order", "realized_delivery", "eq_price", "price"]
+    acc = {}
+    for chunk in pd.read_csv(run / "link_data.csv", usecols=cols, dtype={c: "float32" for c in cols[1:]},
+                             chunksize=2_000_000):
+        active = chunk[chunk["order"] > 0]
+        sur = active["price"] / active["eq_price"] - 1
+        for t, idx in active.groupby("time_step").indices.items():
+            s_t = sur.iloc[idx]
+            a = acc.setdefault(int(t), {"links": 0, "n10": 0, "n25": 0, "n50": 0, "max": 0.0, "deliv": 0.0, "order": 0.0})
+            a["links"] += len(idx)
+            a["n10"] += int((s_t > 0.10).sum()); a["n25"] += int((s_t > 0.25).sum()); a["n50"] += int((s_t > 0.50).sum())
+            a["max"] = max(a["max"], float(s_t.max()) if len(s_t) else 0.0)
+            a["deliv"] += float(active["realized_delivery"].iloc[idx].sum()); a["order"] += float(active["order"].iloc[idx].sum())
+    rows = []
+    for t in sorted(acc):
+        a = acc[t]
+        rows.append({"time_step": t, "links": a["links"], "above_10pct": round(100 * a["n10"] / a["links"], 1),
+                     "above_25pct": round(100 * a["n25"] / a["links"], 1), "above_50pct": round(100 * a["n50"] / a["links"], 1),
+                     "max": round(100 * a["max"], 0), "fill_rate_%": round(100 * a["deliv"] / a["order"], 2) if a["order"] else float("nan")})
+    ps = pd.DataFrame(rows).set_index("time_step")
     print("\n== 4. LINK PRICES: % of active links with delivered-price surcharge above thresholds; max (%); fill rate ==")
     print("   (2026: logistics costs +25 % for half of the exposed firms, +50 % for a third; freight rates x2-5)")
     print(ps.to_string())
