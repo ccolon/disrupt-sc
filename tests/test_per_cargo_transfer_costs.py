@@ -50,3 +50,19 @@ def test_non_multimodal_edges_ignore_transfer_costs():
         edge, _params({"default": 8.0, "liquid_bulk": 1.0}, 5.0), CARGOS, "week")
     assert edge["cost_per_ton_container"] == pytest.approx(0.6 + (10 / 50) * 1.0)
     assert edge["cost_per_ton_liquid_bulk"] == pytest.approx(0.6 + (10 / 50) * 0.1)
+
+
+def test_per_cargo_basic_cost():
+    """8 Sep 2026: logistics.basic_cost entries may be per-cargo dicts (waterway rates by vessel type)."""
+    from disruptsc.network.transport_network import _calculate_cost_per_ton
+    edge = {"id": 1, "type": "waterways", "km": 100.0, "capacity": 1e9}
+    params = {"speeds": {"waterways": 10.0}, "basic_cost": {"waterways": {"default": 0.010, "liquid_bulk": 0.038}},
+              "cost_of_time": 0.0}
+    _calculate_cost_per_ton(edge, params, ["dry_bulk", "liquid_bulk", "container"], "week")
+    assert edge["cost_per_ton_dry_bulk"] == 1.0            # 100 km x 0.010
+    assert edge["cost_per_ton_container"] == 1.0           # default
+    assert edge["cost_per_ton_liquid_bulk"] == 3.8         # 100 km x 0.038
+    scalar = {"id": 2, "type": "waterways", "km": 100.0, "capacity": 1e9}
+    _calculate_cost_per_ton(scalar, {"speeds": {"waterways": 10.0}, "basic_cost": {"waterways": 0.010}, "cost_of_time": 0.0},
+                            ["dry_bulk"], "week")
+    assert scalar["cost_per_ton_dry_bulk"] == 1.0
