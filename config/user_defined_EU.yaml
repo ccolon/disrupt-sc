@@ -113,10 +113,27 @@ logistics:
   switching_costs:
     modal_switch: {default: 0.15, liquid_bulk: 1000, dry_bulk: 1000}
     port_switch: 0.05
-  basic_cost:  # USD per ton*km
-    roads: 0.050
-    railways: 0.032
-    waterways: 0.010
+  basic_cost:  # USD per ton*km; a mode may carry a per-cargo dict (disrupt-sc >= 2026-09-08)
+    # v13 (8 Sep 2026): liquids by rail and road are tank-car / road-tanker traffic, dearer than bulk
+    # wagons and tippers (dedicated equipment, cleaning) - no rate evidence collected [E]; the values
+    # are calibrated with the routing harness so that the DE liquid split matches Eurostat (28/42/30)
+    # once tank barges cost 0.038: with bulk-level rail/road 99.9 % of liquid tkm left the river
+    # (reroute_v13); rail 0.062 / road 0.095 -> 32/60/8; rail 0.078 / road 0.105 -> 38/43/18; road
+    # 0.130 -> 26/56/18; rail 0.085 + liquid river terminals 8 h / 3.5 USD -> 28/41/31 (reroute_v13e,
+    # ADOPTED 11:33): containers 67/28/4.5 (67.5/27.5/5), dry bulk 55/27/17 (53/27/20), Emmerich 115 Mt
+    # (118), Koeln-Duesseldorf 86 (88), Kaub 62 (50; v12 68), Mannheim 29 (36), Basel 3.2 (5.5).
+    roads: {default: 0.050, liquid_bulk: 0.130}
+    railways: {default: 0.032, liquid_bulk: 0.085}
+    # v13 (8 Sep 2026, user decision): waterway line-haul by vessel type, from
+    # studies/rhine2026/evidence/waterway_rates_by_vessel_type.md. Push-convoy bulk (ore, coal,
+    # aggregates) costs 0.008-0.010 EUR/tkm (Panteia/KiM 2023) = the v12 rate; tank barges cost
+    # 0.029 and earn 0.037-0.042 (ARA-Karlsruhe 27-29 EUR/t, ARA-Cologne 15-17, 2025; ~20 in 2022);
+    # container vessels cost ~0.025 (INFRAS 2015: 162-178 EUR/TEU Rotterdam-Basel). Single-vessel
+    # dry bulk (grain, fertiliser) would be 0.018-0.020 but shares the dry_bulk class with the
+    # convoys - kept at 0.010 (under-priced, noted). The fixed per-voyage element (tankers 4-5,
+    # container lifts 7-8 USD/t) sits in the river loading fees below. v12 was a uniform 0.010,
+    # which capped delivered-price rises near +10 % under a x2.5 low-water surcharge.
+    waterways: {default: 0.010, dry_bulk: 0.010, liquid_bulk: 0.038, container: 0.022}
     maritime: 0.0015
   # v5 (2026-09-03): per-MODE value of time for containers. The inland 1.6
   # USD/t.h stands in for service quality and separates road from rail; on the
@@ -133,7 +150,11 @@ logistics:
     # container-on-barge was 0.1% (DE target 5%, NL 26%; Rotterdam-Duisburg
     # container barges are a fifth of Emmerich's tonnage). 0.3 = 7 USD/t/day.
     # v12: 0.3 flooded the Rhine with boxes (container IWW 14%, Kaub 121 Mt); bracket at 0.45
-    container: {default: 1.0, maritime: 0.15, waterways: 0.45}   # v8: 1.2 -> 1.0 with rail at 45 km/h
+    # v13: with the container line-haul at 0.022 USD/tkm the waterway VOT no longer has to carry the
+    # missing container rate; 0.45 (v12) put Rotterdam-Basel at ~80 USD/t vs a 15-25 USD/t tariff
+    # (0.15 with the 0.022 rate sent 16 % of container tkm to the river, Kaub 114 Mt: the discriminator
+    # between ~40-47 USD/t road, rail and barge options is the time term - 0.35 targets the v12 split)
+    container: {default: 1.0, maritime: 0.15, waterways: 0.35}   # v8: 1.2 -> 1.0 with rail at 45 km/h
     dry_bulk: 0.08
     liquid_bulk: 0.08
     default: 2.0
@@ -152,16 +173,19 @@ logistics:
     # v10: river terminals a notch dearer (v9: DE inland waterways 81 bn tkm vs 45 real,
     # Kaub 68 Mt vs 50 while per-cargo IWW shares sat on target - judge IWW by tkm)
     # v12: container river terminals 8 -> 4 h (Rotterdam/Duisburg barge terminals turn boxes in hours)
-    roads-waterways: {default: 24, container: 4, dry_bulk: 20, liquid_bulk: 10}
+    roads-waterways: {default: 24, container: 4, dry_bulk: 20, liquid_bulk: 8}
     roads-maritime: 24
-    railways-waterways: {default: 24, container: 4, dry_bulk: 20, liquid_bulk: 10}
+    railways-waterways: {default: 24, container: 4, dry_bulk: 20, liquid_bulk: 8}
     railways-maritime: 24
     waterways-maritime: 8
   loading_fees:  # USD/ton
     roads-railways: {default: 3, container: 2, dry_bulk: 3, liquid_bulk: 1}
-    roads-waterways: {default: 6, container: 3, dry_bulk: 5, liquid_bulk: 3}
+    # v13: fixed per-voyage element of the rate evidence - tank terminals 3-7 EUR/t per voyage, i.e.
+    # ~3.5 per transfer (liquid 3 -> 3.5, dwell 10 -> 8 h), container lifts 7-8 USD/t for the two ends
+    # (container 3 -> 4)
+    roads-waterways: {default: 6, container: 4, dry_bulk: 5, liquid_bulk: 3.5}
     roads-maritime: 7
-    railways-waterways: {default: 6, container: 3, dry_bulk: 5, liquid_bulk: 3}
+    railways-waterways: {default: 6, container: 4, dry_bulk: 5, liquid_bulk: 3.5}
     railways-maritime: 7
     waterways-maritime: 2
   border_crossing_fees:   # Schengen/EU internal borders are ~free; keep tiny
