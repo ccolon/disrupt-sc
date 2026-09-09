@@ -46,7 +46,7 @@ from disruptsc.init_pipeline.load_data import (
 from disruptsc.init_pipeline.transport import build_transport_network
 from disruptsc.init_pipeline.agents import (
     attachment_nodes,
-    create_firm_table, create_firms, load_tech_coefs, load_input_criticality, import_bundle_shares,
+    create_firm_table, create_firms, load_tech_coefs, load_input_criticality, load_input_pooling, import_bundle_shares,
     load_inventories, configure_household_inventories, report_inventory_to_gdp,
     create_household_table, create_households, create_countries,
     add_representative_demand_agents,
@@ -238,6 +238,17 @@ def execute(config: dict, *, cache: str | None = None,
         # targets are (re)computed here, on the final input mix.
         load_inventories(firms, ap.inventory_duration_targets, sp.time_resolution, sector_table,
                          bundle_shares=bundle_shares)
+        # Pooling of the same product across regions (input_pooling.enabled + the
+        # substitutability table); not a cache key, re-applied like the rules above.
+        pooling = config.get("input_pooling") or {}
+        pool_path = filepaths.get("product_substitutability")
+        if pooling.get("enabled") and pool_path and Path(pool_path).exists():
+            table = pd.read_csv(pool_path)
+            poolable = set(table.loc[table["poolable"].astype(int) == 1, "sector"].astype(str))
+            load_input_pooling(firms, poolable)
+        else:
+            for firm in firms.values():
+                firm.input_pools = {}
 
     # ------------------------------------------------------------------
     # Stage 1: Transport network

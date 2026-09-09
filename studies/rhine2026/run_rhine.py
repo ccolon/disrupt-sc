@@ -298,6 +298,9 @@ def main():
     ap.add_argument("--light-export", action="store_true",
                     help="skip link_data.csv (4-6 GB) and inventory_data.csv (2-3 GB); firm/household/country "
                          "series, routing summary and flows are still written (sensitivity grids, KI-33)")
+    ap.add_argument("--no-pooling", action="store_true",
+                    help="sensitivity: no pooling of the same product across regions (input_pooling.enabled False, "
+                         "adaptive_supplier_weight False): the region-keyed rule of the runs before 9 Sep 2026")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--cache", default="auto",
                     help="cache preset passed to execute(); 'auto' reuses every stage whose fingerprint "
@@ -409,6 +412,9 @@ def main():
         config.setdefault("filepaths", {})["input_criticality"] = str(Path(args.input_criticality).resolve())
     if args.critical_input_threshold is not None:
         config["critical_input_threshold"] = args.critical_input_threshold
+    if args.no_pooling:
+        config["input_pooling"] = {"enabled": False}
+        config["adaptive_supplier_weight"] = False
     if args.light_export:
         config["export_link_data"] = False
         config["export_inventory_data"] = False

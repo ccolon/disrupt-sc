@@ -214,6 +214,17 @@ def main():
         de = by["DEU"].sum()
         print(f"   DEU: cumulated {de:,.0f} mUSD = {100*de/(weekly_va['DEU']*13):.2f} % of one quarter of German VA "
               f"(ex ante estimates: -0.1 to -0.4 pp of Q3 GDP)")
+    # gross / net / delay accounting (compare_runs.loss_accounting): goods and construction work off
+    # their backlog after the event, services do not
+    try:
+        from compare_runs import loss_accounting
+        acc = loss_accounting(fd.assign(va_share=fd["va_share"]), 0.13)
+        for name, a in (("EU", acc), ("DEU", acc[acc["region"] == "DEU"])):
+            print(f"   {name} accounting: gross {a['gross'].sum():,.0f} | net {a['net'].sum():,.0f} "
+                  f"(goods+construction backlog left {a.loc[a['deferrable'], 'net'].sum():,.0f}, perishable gross "
+                  f"{a.loc[~a['deferrable'], 'gross'].sum():,.0f}) | delay cost {a['delay'].sum():,.1f} mUSD at 13 %/yr")
+    except Exception as exc:  # accounting is optional
+        print(f"   (accounting skipped: {exc})")
 
     # --- 6. routing summary ---
     if not (run / "routing_summary.csv").exists():

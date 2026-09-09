@@ -20,6 +20,9 @@ filepaths:
   # (1) or important (0.5). The 2 % cost-share proxy (critical_input_threshold) is ignored when
   # this file is set; it made tiny service shortfalls bind on every buyer.
   input_criticality: "repo:studies/rhine2026/additional_data/input_criticality.csv"
+  # v14 (9 Sep 2026, user decision): which products pool across regions (commodity-like, Rauch
+  # homogeneous / reference-priced) - see input_pooling below
+  product_substitutability: "repo:studies/rhine2026/additional_data/product_substitutability.csv"
   # firm-level file from firm-extractor (EU/firm_extractor_config.yaml);
   # Spatial/firms_population.geojson = NUTS2 population fallback for A/B tests
   firms_spatial: "Spatial/firms.geojson"
@@ -56,6 +59,21 @@ flow_coverage: 0.9
 # production (cost-share proxy for criticality; the Ecuador study uses the PBL
 # survey matrix instead - a candidate upgrade, see Pichler et al. 2022).
 critical_input_threshold: 0.02
+
+# v14 (9 Sep 2026, user decision, evidence/input_substitution_literature.md): the same product
+# from several regions is ONE input for the commodity-like products (fuel, crude, coal, ore,
+# grain, food, cement, basic chemicals, metals, electricity): stocks and coefficients pool in the
+# Leontief constraint and the pool's orders follow the fill-rate signal of each supplier
+# (adaptive_supplier_weight), so a region that under-delivers loses orders to the others up to
+# their spare capacity (Guan et al. 2020; Inoue & Todo 2019). Differentiated products (machinery,
+# vehicles, electronics, pharma; sigma ~0.2 across sources, Boehm et al. 2019) and services stay
+# region-keyed. Before 9 Sep every region-sector input bound on its own: 24 of the 29 firms at
+# zero in the 2018 second wave held the missing product from another region.
+input_pooling:
+  enabled: True
+# Fill-rate signal per supplier (EMA of delivery / order) re-weights orders among the suppliers of
+# an input - and, with input_pooling, of a product across regions.
+adaptive_supplier_weight: True
 
 # Give-up rule on the DELIVERED price (disrupt-sc >= 2026-09-03): a delivery is
 # dropped only when transport_share x relative transport-cost increase exceeds
