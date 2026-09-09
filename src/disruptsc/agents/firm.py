@@ -60,6 +60,16 @@ class Firm:
     # half of eq output), 0.0 = non-critical (never binds). Empty ⇒ fall back to
     # critical_input_threshold / strict Leontief. Missing key defaults to 1.0.
     input_criticality: dict[str, float] = field(default_factory=dict)
+    # Pooling of the same product across regions (Rhine study, 9 Sep 2026): input_id -> pool
+    # id. Inputs that share a pool are perfect substitutes: their stocks and coefficients are
+    # summed in the production constraint, and the pool's order is split across ALL its
+    # suppliers by baseline share x fill-rate signal (adaptive_supplier_weight), so a region
+    # that under-delivers loses orders to the others, up to their spare capacity (Guan et al.
+    # 2020, Inoue & Todo 2019). Empty = every input its own pool (region-keyed, the rule
+    # before 9 Sep 2026). Set by init_pipeline.agents.load_input_pooling for the commodity-like
+    # products of the substitutability table; differentiated products and import bundles stay
+    # region-keyed.
+    input_pools: dict[str, str] = field(default_factory=dict)
     production: float = 0.0
     production_target: float = 0.0
     product_stock: float = 0.0
@@ -293,16 +303,18 @@ class Firm:
         need_share = thr > 0.0
         total_coef = (sum(c for c in self.input_mix.values() if c > EPSILON)
                       if need_share else 0.0)
-        for input_id, coef in self.input_mix.items():
+        pools = self._pooled_inputs()
+        for pool, members in pools.items():
+            coef = sum(self.input_mix.get(i, 0.0) for i in members)
             if coef <= EPSILON:
                 continue
             if need_share and (coef / total_coef if total_coef > 0 else 1.0) < thr:
                 weight = 0.0                                   # immaterial ⇒ non-critical
             elif use_matrix:
-                weight = self.input_criticality.get(input_id, 1.0)
+                weight = max(self.input_criticality.get(i, 1.0) for i in members)
             else:
                 weight = 1.0                                   # material (or strict): binds
-            available = self.inventory.get(input_id, 0.0)
+            available = sum(self.inventory.get(i, 0.0) for i in members)
             if weight >= 1.0:                                  # critical: hard bind
                 max_production = min(max_production, available / coef)
             elif weight >= 0.5:                                # important: soft floor
@@ -312,12 +324,24 @@ class Firm:
 
         self.production = max(0.0, min(self.production_target, max_production))
 
-        # Consume inputs (a depleted non-critical input caps its own use at what is left)
-        for input_id, coef in self.input_mix.items():
-            consumed = coef * self.production
-            available = self.inventory.get(input_id, 0.0)
-            self.input_consumed += min(consumed, available)
-            self.inventory[input_id] = max(0.0, available - consumed)
+        # Consume inputs (a depleted non-critical input caps its own use at what is left);
+        # a multi-region pool draws from its members in proportion to their stocks
+        for pool, members in pools.items():
+            if len(members) == 1:
+                input_id = members[0]
+                consumed = self.input_mix[input_id] * self.production
+                available = self.inventory.get(input_id, 0.0)
+                self.input_consumed += min(consumed, available)
+                self.inventory[input_id] = max(0.0, available - consumed)
+                continue
+            consumed = sum(self.input_mix.get(i, 0.0) for i in members) * self.production
+            stocks = {i: self.inventory.get(i, 0.0) for i in members}
+            total = sum(stocks.values())
+            take = min(consumed, total)
+            self.input_consumed += take
+            for i in members:
+                self.inventory[i] = max(0.0, stocks[i] - (take * stocks[i] / total if total > EPSILON else 0.0))
+        # inputs with a zero coefficient are left untouched (never in a pool)
 
         self.product_stock += self.production
 
@@ -577,45 +601,66 @@ class Firm:
             for input_id, coef in self.input_mix.items()
         }
 
+    def _pooled_inputs(self) -> dict[str, list[str]]:
+        """{pool id: [input ids]} over the inputs with a positive coefficient (see input_pools)."""
+        pools: dict[str, list[str]] = {}
+        for input_id, coef in self.input_mix.items():
+            if coef <= EPSILON:
+                continue
+            pools.setdefault(self.input_pools.get(input_id, input_id), []).append(input_id)
+        return pools
+
     def _decide_purchase_plan(self, adaptive_inventories: bool, adaptive_weight: bool):
-        """Compute purchase_plan per supplier, accounting for inventory targets."""
+        """Compute purchase_plan per supplier, accounting for inventory targets.
+
+        Inputs that share a pool (the same product from several regions) are ordered
+        as one: the pool's need plus the restoration of the POOLED stock towards the
+        pooled target, split across all the pool's suppliers by baseline share and, with
+        adaptive_weight, by their fill-rate signal. A single-input pool is the legacy rule.
+        """
         self.purchase_plan = {}
         self.purchase_plan_per_input = {}
+        pools = self._pooled_inputs()
+        pool_total: dict[str, float] = {}
+        pool_of: dict[str, str] = {}
+        for pool, members in pools.items():
+            need = desired = current = 0.0
+            for input_id in members:
+                pool_of[input_id] = pool
+                duration = self.inventory_duration_target.get(input_id, 1)
+                n = self.input_needs.get(input_id, 0.0)
+                need += n
+                current += self.inventory.get(input_id, 0.0)
+                desired += (n * duration) if adaptive_inventories else self.eq_needs.get(input_id, 0.0) * duration
+            restoration = max(0.0, desired - current) / max(self.inventory_restoration_time, 1.0)
+            total = need + restoration
+            pool_total[pool] = total
+            eq_pool = sum(self.eq_needs.get(i, 0.0) for i in members)
+            for input_id in members:
+                share = (self.eq_needs.get(input_id, 0.0) / eq_pool) if (len(members) > 1 and eq_pool > EPSILON) else 1.0
+                self.purchase_plan_per_input[input_id] = total * share
 
-        for input_id, coef in self.input_mix.items():
-            if coef < EPSILON:
-                continue
-            # Target = needs + inventory restoration
-            target_inventory = self.eq_needs.get(input_id, 0.0) * self.inventory_duration_target.get(input_id, 1)
-            current_inv = self.inventory.get(input_id, 0.0)
-            need = self.input_needs.get(input_id, 0.0)
-
-            if adaptive_inventories:
-                desired_inventory = need * self.inventory_duration_target.get(input_id, 1)
-            else:
-                desired_inventory = target_inventory
-
-            restoration = max(0.0, desired_inventory - current_inv) / max(self.inventory_restoration_time, 1.0)
-            total_purchase = need + restoration
-            self.purchase_plan_per_input[input_id] = total_purchase
-
-        # Distribute across suppliers (weighted by supplier weights)
-        for supplier_id, supplier_info in self.suppliers.items():
-            input_id = supplier_info["sector"]
-            weight = supplier_info.get("weight", 1.0)
+        # Distribute across suppliers: baseline share of the supplier within its input, times
+        # the input's baseline share within its pool, times the fill-rate signal if adaptive.
+        input_weight = {}
+        for info in self.suppliers.values():
+            input_weight[info["sector"]] = input_weight.get(info["sector"], 0.0) + info.get("weight", 1.0)
+        eq_pool_need = {p: sum(self.eq_needs.get(i, 0.0) for i in members) for p, members in pools.items()}
+        effective: dict[str, tuple[str, float]] = {}
+        pool_weight: dict[str, float] = {}
+        for supplier_id, info in self.suppliers.items():
+            input_id = info["sector"]
+            pool = pool_of.get(input_id, input_id)
+            w = info.get("weight", 1.0) / input_weight[input_id] if input_weight.get(input_id, 0.0) > EPSILON else 0.0
+            if len(pools.get(pool, [])) > 1 and eq_pool_need.get(pool, 0.0) > EPSILON:
+                w *= self.eq_needs.get(input_id, 0.0) / eq_pool_need[pool]
             if adaptive_weight:
-                satisfaction = supplier_info.get("satisfaction", 1.0)
-                weight *= satisfaction
-            total_for_input = self.purchase_plan_per_input.get(input_id, 0.0)
-            # Get total weight for this input
-            total_weight = sum(
-                self.suppliers[sid].get("weight", 1.0) * (
-                    self.suppliers[sid].get("satisfaction", 1.0) if adaptive_weight else 1.0)
-                for sid in self.suppliers
-                if self.suppliers[sid]["sector"] == input_id
-            )
-            share = weight / total_weight if total_weight > EPSILON else 0.0
-            self.purchase_plan[supplier_id] = total_for_input * share
+                w *= info.get("satisfaction", 1.0)
+            effective[supplier_id] = (pool, w)
+            pool_weight[pool] = pool_weight.get(pool, 0.0) + w
+        for supplier_id, (pool, w) in effective.items():
+            total_w = pool_weight.get(pool, 0.0)
+            self.purchase_plan[supplier_id] = pool_total.get(pool, 0.0) * (w / total_w if total_w > EPSILON else 0.0)
 
     def _calculate_price(self, sc_network: ScNetwork):
         """Pass through the change in the *unit* cost of inputs.

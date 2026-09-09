@@ -276,6 +276,36 @@ def _bundle_composition(firm, input_id: str, bundle_shares: dict | None) -> dict
     return (bundle_shares.get((firm.region, firm.sector)) or {}).get(bloc)
 
 
+def load_input_pooling(firms: dict[str, Firm], poolable_products: set[str]) -> tuple[int, int]:
+    """Pool the same product across regions for the commodity-like products.
+
+    For every firm, each input ``<REGION>_<sector>`` whose sector is in *poolable_products*
+    joins the pool ``<sector>``; differentiated products and import bundles
+    (``{BLOC}_imports``, whose composition mixes products) keep their own pool. Returns
+    (number of firms with at least one multi-region pool, number of pooled inputs).
+    """
+    n_firms = n_inputs = 0
+    for firm in firms.values():
+        pools: dict[str, str] = {}
+        for input_id in firm.input_mix:
+            if input_id.endswith("_imports"):
+                continue
+            sector = input_id.split("_", 1)[-1] if "_" in input_id else input_id
+            if sector in poolable_products:
+                pools[input_id] = sector
+        firm.input_pools = pools
+        members = {}
+        for input_id, pool in pools.items():
+            members[pool] = members.get(pool, 0) + 1
+        multi = sum(v for v in members.values() if v > 1)
+        if multi:
+            n_firms += 1
+            n_inputs += multi
+    logging.info(f"input_pooling: {len(poolable_products)} poolable products; {n_firms}/{len(firms)} firms hold "
+                 f"a product from several regions ({n_inputs} pooled inputs)")
+    return n_firms, n_inputs
+
+
 def load_input_criticality(firms: dict[str, Firm], criticality: pd.DataFrame,
                            bundle_shares: dict | None = None):
     """Attach per-input criticality weights (Pichler adapted Leontief) to firms.
