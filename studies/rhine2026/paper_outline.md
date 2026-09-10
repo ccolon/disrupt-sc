@@ -69,7 +69,10 @@ data file it comes from, so the pipeline can produce it without re-deciding.
   candidate final baseline (10 Sep, confirmation pending); the ladder v12 floors → v13 rates → pooling is
   the paper's sensitivity story (Table T2). The September 2026 trough (Kaub 26 cm on 9 Sep) → forecast-based
   profile (BfG 6-week medians, 19 weeks to 26 Oct) and the rerun `2026_seed42_pool_fc0910` (10 Sep) as the
-  2026 baseline run; refresh when observations replace the forecast weeks. Sensitivities
+  2026 baseline run: DEU 8.57 bn = 0.90 % of a quarter (Q3 0.51 %, Q4 0.39 %), peak 1.38 % of a week in
+  mid-October — the September trough's second wave exceeds the August one because stocks had two weeks to
+  refill and the tank-barge closures run to mid-October (a paper point: sequence and spacing of troughs);
+  refresh when observations replace the forecast weeks. Sensitivities
   for the cluster: tanker floor 40/50/60 cm, inventories ± 50 %, Lower Rhine factor, v12 vs v13 rates,
   seeds.
 - Two modelling decisions to state up front, both forced by the scale of the scope: the
