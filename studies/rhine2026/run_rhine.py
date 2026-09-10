@@ -68,6 +68,7 @@ sys.setrecursionlimit(50000)
 
 from disruptsc.config import load_config, setup_logging  # noqa: E402
 from disruptsc.run import execute                        # noqa: E402
+from disruptsc.run_pipeline.cache import setup_cache_isolation  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 SCEN = HERE / "scenarios"
@@ -136,6 +137,67 @@ def rhine_chain(capacities_csv) -> tuple[list[str], list[str]]:
 def kaub_entries(disruptions: list[dict], edge: str = KAUB_EDGE) -> list[dict]:
     """The entries acting on the Kaub edge (closures, class floors, its surcharge) - one per week."""
     return [d for d in disruptions if edge in d.get("values", [])]
+
+
+RAIL_RELIEF_CLASSES = ("liquid_bulk", "dry_bulk")
+COPING_DAYS = 90.0   # inventory entries at or above this are coping proxies (services, pipeline inputs), not stocks
+
+
+def rail_relief_entries(reductions: list[float], multiplier: float, cargo_types: list[str],
+                        min_reduction: float = 0.01) -> list[dict]:
+    """Adaptation counterfactual: every rail edge carries liquid and dry bulk at *multiplier* x its cost
+    in the shock weeks (tank-car trains and extra paths at the bulk rate); containers unchanged. The
+    alternative-route search of the Rhine links reads the shocked labels, so bulk reroutes instead of
+    giving up where rail is now cheap enough."""
+    mdict = {ct: (float(multiplier) if ct in RAIL_RELIEF_CLASSES else 1.0) for ct in cargo_types}
+    mdict["default"] = 1.0
+    return [{"type": "transport_cost_shock", "attribute": "type", "values": ["railways"],
+             "cost_multiplier": dict(mdict), "start_time": t, "duration": 1}
+            for t, r in enumerate(reductions, start=1) if r >= min_reduction]
+
+
+def parse_inventory_add_days(raw) -> tuple[float, list[str] | None]:
+    """'7' -> (7.0, None); '7:H49,D' -> (7.0, ['H49', 'D'])."""
+    if raw is None:
+        return 0.0, None
+    text = str(raw)
+    if ":" in text:
+        days, sectors = text.split(":", 1)
+        return float(days), [x.strip() for x in sectors.split(",") if x.strip()]
+    return float(text), None
+
+
+def adjust_inventory_targets(targets, add_days: float = 0.0, scale: float | None = None,
+                             sectors: list[str] | None = None) -> dict:
+    """Copy of a per_buying_sector inventory-target dict with the goods-stock days of the buyers in
+    *sectors* (None = every buyer, the default included) multiplied by *scale* and then shifted by
+    *add_days*. Entries at or above COPING_DAYS and the '*' override block are left untouched."""
+    import copy
+    if not isinstance(targets, dict) or targets.get("definition") != "per_buying_sector":
+        raise SystemExit("inventory adjustments need per_buying_sector inventory_duration_targets")
+    out = copy.deepcopy(targets)
+
+    def adj(v):
+        v = float(v)
+        if v >= COPING_DAYS:
+            return v
+        if scale is not None:
+            v = v * float(scale)
+        return round(v + float(add_days), 2)
+
+    values = out.setdefault("values", {})
+    if sectors is None:
+        for k, v in list(values.items()):
+            values[k] = adj(v)
+    else:
+        for k in sectors:
+            values[k] = adj(values.get(k, values.get("default", 30)))
+    for buyer, block in list(out.get("overrides", {}).items()):
+        if buyer == "*" or not isinstance(block, dict):
+            continue
+        if sectors is None or buyer in sectors:
+            out["overrides"][buyer] = {k: adj(v) for k, v in block.items()}
+    return out
 
 
 def _voyage_entries(t: int, mult: float, upstream_other: list[str], lower: list[str],
@@ -295,6 +357,21 @@ def main():
     ap.add_argument("--inventory-targets", default=None,
                     help="YAML file replacing inventory_duration_targets (e.g. additional_data/inventory_targets_by_buyer.yaml, "
                          "days of goods-input stock per buying sector with overrides). Re-applied on load, not a cache key.")
+    ap.add_argument("--gauge-offset", type=float, default=0.0,
+                    help="adaptation counterfactual: cm added to every weekly gauge before the draught table and "
+                         "the class floors (fairway deepening; Abladeoptimierung Mittelrhein = +20); the profile "
+                         "file stays the observed record")
+    ap.add_argument("--inventory-add-days", default=None,
+                    help="adaptation counterfactual: 'D' or 'D:SECTOR,SECTOR,...' adds D days of goods-input stock "
+                         "to every buying sector (or to the listed buyers) of the loaded inventory targets; coping "
+                         "proxies (>= 90 d) and the '*' utilities block untouched")
+    ap.add_argument("--inventory-scale", type=float, default=None,
+                    help="sensitivity: multiply the goods-input stock days of every buying sector (same exclusions)")
+    ap.add_argument("--rail-relief", type=float, default=None,
+                    help="adaptation counterfactual: cost multiplier (< 1) on every rail edge for liquid and dry bulk "
+                         "in the shock weeks (tank-car trains and paths at the bulk rate: 0.4 = 0.085 -> 0.034 USD/tkm)")
+    ap.add_argument("--cache-isolation", action="store_true",
+                    help="private cache directory for this process (cluster batches with several seeds)")
     ap.add_argument("--light-export", action="store_true",
                     help="skip link_data.csv (4-6 GB) and inventory_data.csv (2-3 GB); firm/household/country "
                          "series, routing summary and flows are still written (sensitivity grids, KI-33)")
@@ -315,6 +392,10 @@ def main():
 
     setup_logging(args.log_level)
     profile = pd.read_csv(SCEN / f"{args.profile}.csv")
+    if args.gauge_offset:
+        profile = profile.assign(kaub_cm=profile["kaub_cm"].astype(float) + args.gauge_offset)
+        print(f"gauge offset {args.gauge_offset:+.0f} cm on every week (fairway counterfactual; the table and the "
+              f"floors see the shifted gauge)")
     curve = load_factor_curve(Path(args.draught_table))
     reductions = weekly_reductions(profile, curve)
     edges = [e.strip() for e in args.edges.split(",") if e.strip()]
@@ -338,6 +419,10 @@ def main():
                                     gauges=gauges, closure_floors=floors, cargo_types=cargo_types,
                                     surcharge_edges=upstream, lower_rhine_edges=lower_rhine,
                                     lower_rhine_factor=args.lower_rhine_factor)
+    if args.rail_relief is not None:
+        rail = rail_relief_entries(reductions, args.rail_relief, cargo_types)
+        disruptions.extend(rail)
+        print(f"rail relief: liquid and dry bulk on every rail edge at x{args.rail_relief:.2f} in {len(rail)} shock week(s)")
     kaub = kaub_entries(disruptions, edges[0]) if edges else disruptions
     t_final = len(reductions) + args.recovery_weeks
 
@@ -408,6 +493,14 @@ def main():
         import yaml as _yaml
         with open(args.inventory_targets, encoding="utf-8") as fh:
             config["inventory_duration_targets"] = _yaml.safe_load(fh)
+    if args.inventory_add_days is not None or args.inventory_scale is not None:
+        add, sectors = parse_inventory_add_days(args.inventory_add_days)
+        config["inventory_duration_targets"] = adjust_inventory_targets(
+            config.get("inventory_duration_targets"), add_days=add, scale=args.inventory_scale, sectors=sectors)
+        print(f"inventory targets adjusted: +{add:g} d" + (f" x{args.inventory_scale:g}" if args.inventory_scale else "")
+              + (f" for {', '.join(sectors)}" if sectors else " for every buying sector")
+              + f"; H49 now {config['inventory_duration_targets']['values'].get('H49')} d, default "
+                f"{config['inventory_duration_targets']['values'].get('default')} d")
     if args.input_criticality:
         config.setdefault("filepaths", {})["input_criticality"] = str(Path(args.input_criticality).resolve())
     if args.critical_input_threshold is not None:
@@ -420,6 +513,8 @@ def main():
         config["export_inventory_data"] = False
     config["disruptions"] = disruptions
 
+    if args.cache_isolation:
+        setup_cache_isolation(args.scope)
     export_folder = Path(args.out) if args.out else RUNS_DIR / f"{args.profile}_seed{args.seed}"
     print(f"Export folder: {export_folder}")
     execute(config, cache=(args.cache or None), export_folder=export_folder, open_report=not args.no_open)

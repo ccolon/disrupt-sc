@@ -1,0 +1,28 @@
+# Rhine 2026 cluster batch (10 Sep 2026): adaptation counterfactuals + sensitivity grid on the
+# forecast-based 2026 profile (scenarios/2026.csv of commit 30c5601: observations to 10 Sep, BfG 6-week
+# medians to 18 Oct, assumptions to 26 Oct). One line per run: <name> | <extra flags>.
+# Common flags (launch_rhine_batch.sh): --profile 2026 --no-open --seed 42 --recovery-weeks 12 --light-export
+# The base run goes first (it validates or builds the shared caches); the others depend on it, except the
+# seed runs, which rebuild the supply chain in an isolated cache (--cache-isolation).
+#
+# --- baseline of the pairs (confirmed baseline settings) ---
+2026_fc0910_base |
+# --- adaptation counterfactuals (adaptation_counterfactuals.md) ---
+2026_fc0910_deep20   | --gauge-offset 20
+2026_fc0910_fleet40  | --closure-floors container=40,liquid_bulk=40,dry_bulk=30,default=30
+2026_fc0910_fleet20  | --closure-floors container=40,liquid_bulk=20,dry_bulk=20,default=20 --draught-table studies/rhine2026/scenarios/draught_table_lowwater.csv
+2026_fc0910_stock7   | --inventory-add-days 7
+2026_fc0910_stock7t  | --inventory-add-days 7:H49,H50,H51,H52,H53,D,C20,C23,C24A
+2026_fc0910_rail04   | --rail-relief 0.4
+2026_fc0910_package  | --gauge-offset 20 --closure-floors container=40,liquid_bulk=20,dry_bulk=20,default=20 --draught-table studies/rhine2026/scenarios/draught_table_lowwater.csv --inventory-add-days 7
+# --- sensitivity grid (uncertainty band; fleet40 doubles as the tanker-floor-40 point) ---
+2026_fc0910_liq60    | --closure-floors container=40,liquid_bulk=60,dry_bulk=30,default=30
+2026_fc0910_floors_m10 | --closure-floors container=30,liquid_bulk=40,dry_bulk=20,default=20
+2026_fc0910_floors_p10 | --closure-floors container=50,liquid_bulk=60,dry_bulk=40,default=40
+2026_fc0910_inv050   | --inventory-scale 0.5
+2026_fc0910_inv150   | --inventory-scale 1.5
+2026_fc0910_lr0      | --lower-rhine-factor 0
+2026_fc0910_lr1      | --lower-rhine-factor 1
+2026_fc0910_nopool   | --no-pooling
+2026_fc0910_seed1    | --seed 1 --cache-isolation
+2026_fc0910_seed2    | --seed 2 --cache-isolation

@@ -11,9 +11,9 @@ with what load, what buffers exist, what the alternative modes offer); they do n
 | # | lever | real-world counterpart | model implementation | runs |
 |---|---|---|---|---|
 | A | fairway deepening | Abladeoptimierung Mittelrhein (WSV): +20 cm fairway depth Budenheim–St. Goar, planned for the 2030s | evaluate the draught table and the class floors at gauge + 20 cm: new driver flag `--gauge-offset 20` (`--gauge-offset 10` as the half-built variant if wanted) | 1 (+1) |
-| B | low-water fleet | purpose-built shallow-draught tankers and bulkers (Stolt Ludwigshafen ~800 t at 30 cm, 9 such ships in Aug 2026; HGK's EUR 12.5 bn fleet call) | tank-barge floor 50 → 40 cm (fleet partly renewed) and 50 → 30 cm with the low-water draught table `draught_table_lowwater.csv` (+0.10 load factor in the 15–55 cm band; anchors from the table's notes) | 2 |
+| B | low-water fleet | purpose-built shallow-draught tankers and bulkers (Stolt Ludwigshafen ~800 t at 30 cm, 9 such ships in Aug 2026; HGK's EUR 12.5 bn fleet call) | tank-barge floor 50 → 40 cm (fleet partly renewed: the 42–49 cm tail weeks open) and a renewed bulk fleet sailing to 20 cm (`liquid_bulk=20,dry_bulk=20`, containers unchanged) with the low-water draught table `draught_table_lowwater.csv` (+0.10 load factor in the 15–55 cm band): the 22–29 cm weeks become surcharge weeks for bulk, the 11–12 cm weeks stay closed. A 30 cm floor would change nothing at 27–29 cm (dry-run check) | 2 |
 | C | input stocks | one more week of raw-material stock (strategic fuel stocks for hauliers and power plants; refinery and chemical feedstock) | `--inventory-add-days 7` on every goods input (new flag; global variant) and a targeted YAML variant: buyers of barge-borne fuel, feedstock and cement (H49/H50/H52, D, C20, C23, C24A) +7 d only | 2 |
-| D | rail relief | tank-car trains and extra paths on the Rhine valley lines (DB Cargo's ≈ 100-barge ceiling; the second track debate) | option A (cost, scenario-time): cost shock × 0.4 on rail edges for liquid and dry bulk during the shock weeks (tank-car rail at the bulk rate 0.085 → 0.032 USD/tkm); needs a check that the alternative-route search sees the shocked rail cost. Option B (capacity): `--constraint-mode gradual` with `baseline_capacities.py --rail 1.3` vs `--rail 1.8`, a pair whose difference is the rail lever — a quantity cap, i.e. outside the baseline's philosophy, so a boxed robustness item | 1 (A) or 2 (B) |
+| D | rail relief | tank-car trains and extra paths on the Rhine valley lines (DB Cargo's ≈ 100-barge ceiling; the second track debate) | DECIDED 10 Sep: the cost version. `--rail-relief 0.4` = a `transport_cost_shock` × 0.4 on every rail edge for liquid and dry bulk in every shock week (tank-car rail at the bulk rate, 0.085 → 0.034 USD/tkm), containers unchanged. Code check: `send_shipment` searches the alternative route on the network with the current cost labels (`provide_shortest_route`, `start_edge_cost_shock` rewrites `cost_per_ton_<cargo>`), so a Rhine link facing a closure sees the cheaper rail and gives up less. The capacity version (`--constraint-mode gradual`, headroom 1.3 vs 1.8) is not run: a quantity cap, outside the baseline's philosophy | 1 |
 | E | package | A + B (floor 30) + C (global) | all three switches | 1 |
 
 Expected direction: A and B shorten the closure spells (the 27–42 cm weeks become surcharge weeks for the
@@ -37,6 +37,14 @@ D lowers the give-up of bulk in closure weeks, E shows complementarity (package 
   on the cluster all pairs in one batch of ≈ 6 h. The sensitivity grid for the uncertainty band (seeds
   × 3, tanker floor ± 10 cm, inventories ± 50 %, Lower Rhine factor 0 and 1, no pooling, v12 rates)
   belongs in the same batch: ≈ 8 more runs.
+
+## Status (10 Sep, 11:30)
+
+Implemented and tested (driver commit of 10 Sep): `--gauge-offset`, `--inventory-add-days D[:SECTORS]`,
+`--inventory-scale`, `--rail-relief`, `--cache-isolation`; `scenarios/draught_table_lowwater.csv`. Cluster batch:
+`cluster/jobs_20260910.txt` (1 base + 7 counterfactuals + 10 grid runs), `cluster/launch_rhine_batch.sh` (Slurm,
+`--wrap` jobs, base first then afterok; postprocess per run; compare job at the end), `cluster/sync_to_cluster.sh`,
+`cluster/collect_from_cluster.sh`. 12 recovery weeks (user decision). The user submits on the cluster.
 
 ## Code changes (small, driver-side)
 
