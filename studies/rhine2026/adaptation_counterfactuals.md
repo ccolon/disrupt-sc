@@ -14,7 +14,7 @@ with what load, what buffers exist, what the alternative modes offer); they do n
 | B | low-water fleet | purpose-built shallow-draught tankers and bulkers (Stolt Ludwigshafen ~800 t at 30 cm, 9 such ships in Aug 2026; HGK's EUR 12.5 bn fleet call) | tank-barge floor 50 → 40 cm (fleet partly renewed: the 42–49 cm tail weeks open) and a renewed bulk fleet sailing to 20 cm (`liquid_bulk=20,dry_bulk=20`, containers unchanged) with the low-water draught table `draught_table_lowwater.csv` (+0.10 load factor in the 15–55 cm band): the 22–29 cm weeks become surcharge weeks for bulk, the 11–12 cm weeks stay closed. A 30 cm floor would change nothing at 27–29 cm (dry-run check) | 2 |
 | C | input stocks | one more week of raw-material stock (strategic fuel stocks for hauliers and power plants; refinery and chemical feedstock) | `--inventory-add-days 7` on every goods input (new flag; global variant) and a targeted YAML variant: buyers of barge-borne fuel, feedstock and cement (H49/H50/H52, D, C20, C23, C24A) +7 d only | 2 |
 | D | rail relief | tank-car trains and extra paths on the Rhine valley lines (DB Cargo's ≈ 100-barge ceiling; the second track debate) | DECIDED 10 Sep: the cost version. `--rail-relief 0.4` = a `transport_cost_shock` × 0.4 on every rail edge for liquid and dry bulk in every shock week (tank-car rail at the bulk rate, 0.085 → 0.034 USD/tkm), containers unchanged. Code check: `send_shipment` searches the alternative route on the network with the current cost labels (`provide_shortest_route`, `start_edge_cost_shock` rewrites `cost_per_ton_<cargo>`), so a Rhine link facing a closure sees the cheaper rail and gives up less. The capacity version (`--constraint-mode gradual`, headroom 1.3 vs 1.8) is not run: a quantity cap, outside the baseline's philosophy | 1 |
-| E | package | A + B (floor 30) + C (global) | all three switches | 1 |
+| E | package | A + B (renewed fleet, 20 cm) + C (global) | all three switches | 1 |
 
 Expected direction: A and B shorten the closure spells (the 27–42 cm weeks become surcharge weeks for the
 classes concerned), C moves the fuel-driven losses of the first closure weeks later or removes them,
@@ -31,8 +31,8 @@ D lowers the give-up of bulk in closure weeks, E shows complementarity (package 
 - Metrics per pair: DEU and EU value-added loss (gross, net, delay), peak week and its level, weeks with
   losses, corridor firms below 99 % of baseline at the peak, household consumption loss, Kaub tonnage
   by week (A and B also change the physical throughput — the ex post consistency check).
-- Names: `2026_seed42_pool_fc0910_<lever>` with lever ∈ {deep20, fleet40, fleet30, stock7, stock7t,
-  rail04 (or railcap13 / railcap18), package}.
+- Names: `2026_fc0910_<lever>` with lever ∈ {base, deep20, fleet40, fleet20, stock7, stock7t, rail04, package}
+  and the grid runs (`cluster/jobs_20260910.txt`).
 - Cost: 32 steps ≈ 5 h each on the laptop (one run at a time, ≈ 12.6 GB RAM) → 7–8 runs ≈ 4 nights;
   on the cluster all pairs in one batch of ≈ 6 h. The sensitivity grid for the uncertainty band (seeds
   × 3, tanker floor ± 10 cm, inventories ± 50 %, Lower Rhine factor 0 and 1, no pooling, v12 rates)
@@ -55,11 +55,11 @@ Implemented and tested (driver commit of 10 Sep): `--gauge-offset`, `--inventory
 3. `scenarios/draught_table_lowwater.csv`: the central table with the load factor raised by 0.10 between
    15 and 55 cm (a fleet in which low-water vessels carry a tenth of the normal tonnage at those gauges),
    anchors documented in the file.
-4. Rail relief option A: `run_rhine.py --rail-relief <multiplier>`: a `transport_cost_shock` on every rail
-   edge for liquid and dry bulk in every shock week; verify on a two-week test that a Rhine link facing a
-   closure picks the cheaper rail alternative (compare the give-up share with and without the flag).
-   Option B needs no code: `baseline_capacities.py --rail 1.3 --apply` and `--rail 1.8`, then
-   `--constraint-mode gradual`.
+4. Rail relief: `run_rhine.py --rail-relief <multiplier>`: a `transport_cost_shock` on every rail edge for
+   liquid and dry bulk in every shock week. Verified by code reading (the alternative-route search uses the
+   current cost labels), not yet by a run: the `rail04` pair must show a lower blocked share and give-up in
+   closure weeks than `base` (routing_summary / section 6 of the analysis); if it does not, the lever is inert
+   and the reason must be found before the paper uses it.
 5. Queue v17 (laptop) or a cluster job list; the watcher analyses each run; `compare_runs.py` on the pairs;
    a figure "avoided loss by lever" (`plots/scenario_figures.py`, new panel).
 
