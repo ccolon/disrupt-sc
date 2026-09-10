@@ -48,7 +48,7 @@ data file it comes from, so the pipeline can produce it without re-deciding.
 
 ## 4. The 2026 scenario
 - Inputs: weekly Kaub gauge (PEGELONLINE/BfG) → draught table → capacity factor → cost multiplier
-  or closure (Figure 4: gauge, capacity factor and schedule, 22 Jun – 5 Oct 2026).
+  or closure (Figure 4: gauge, capacity factor and schedule, 22 Jun – 26 Oct 2026, forecast weeks flagged).
 - Runs (baseline definition of 4 Sep, user decisions): survey criticality, import bundles by MRIO
   composition, firm inventories by buying industry (Bundesbank stock days), cargo-specific switching
   costs, one delivered-price give-up threshold (5), no quantity cap: `2026_seed42_base`; the 2018
@@ -67,8 +67,9 @@ data file it comes from, so the pipeline can produce it without re-deciding.
   products across regions (`2026_seed42_pool` 3.55 bn = 0.37 %, peak in the 11 cm week; `2018_seed42_pool`
   5.57 bn = 0.58 %, peak 1.2 % of a week in the first week of December, cascade cut by two-thirds) →
   candidate final baseline (10 Sep, confirmation pending); the ladder v12 floors → v13 rates → pooling is
-  the paper's sensitivity story (Table T2). CAVEAT: the September 2026 trough (Kaub 26 cm on 9 Sep, a
-  full closure week not in the profile) → profile refresh and one rerun at the event end. Sensitivities
+  the paper's sensitivity story (Table T2). The September 2026 trough (Kaub 26 cm on 9 Sep) → forecast-based
+  profile (BfG 6-week medians, 19 weeks to 26 Oct) and the rerun `2026_seed42_pool_fc0910` (10 Sep) as the
+  2026 baseline run; refresh when observations replace the forecast weeks. Sensitivities
   for the cluster: tanker floor 40/50/60 cm, inventories ± 50 %, Lower Rhine factor, v12 vs v13 rates,
   seeds.
 - Two modelling decisions to state up front, both forced by the scale of the scope: the
