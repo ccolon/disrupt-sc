@@ -1,0 +1,17 @@
+# downloaded 2026-09-10 09:45 CEST from https://vorhersage.bafg.de/6-Wochen-Vorhersage/Rhein-Kaub_6Wochen_Wasserstand_QuansBox.csv
+# 6-Wochen-Vorhersage vom 2026-09-07
+# Quelle: Bundesanstalt fuer Gewaesserkunde <vorhersage@bafg.de>
+# Wasserstand in cm
+# Wochenmittelwerte
+# Boxplot-Quantile
+# ENS (Spalte 2-6) = aktuelle Vorhersage des Wasserstandes auf Grundlage der ECMWF-ENS extended Wettervorhersage (rot)
+# ESP (Spalte 7-11) = modellierte Szenarien des Wasserstandes auf Basis der Klimatologie von 1991-2020 (blau)
+# OBS (Spalte 12-16) = langjaehrige Mittel der historisch beobachteten Wasserstaende der Jahre 1991-2020 (schwarz)
+Kaub
+Woche;ENS_5%;ENS_25%;ENS_50%;ENS_75%;ENS_95%;ESP_5%;ESP_25%;ESP_50%;ESP_75%;ESP_95%;OBS_5%;OBS_25%;OBS_50%;OBS_75%;OBS_95%
+07.09.2026 - 13.09.2026;10;13;16;19;23;12;14;17;29;51;80;135;170;212;283
+14.09.2026 - 20.09.2026;-3;6;12;19;30;-5;12;26;79;156;76;126;167;212;278
+21.09.2026 - 27.09.2026;-15;5;22;43;77;-1;28;47;82;185;70;115;166;211;285
+28.09.2026 - 04.10.2026;-16;12;42;78;137;-1;44;63;120;165;66;112;166;203;265
+05.10.2026 - 11.10.2026;-12;19;49;85;144;1;48;110;150;211;66;116;162;200;260
+12.10.2026 - 18.10.2026;5;38;68;102;157;14;54;107;150;241;72;124;165;200;265

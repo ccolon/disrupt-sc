@@ -347,6 +347,12 @@ of 7 Sep (time step 12) is a full closure under the floors, not the 45 cm tank-o
 September weeks are refreshed at the event end and the 2026 baseline rerun once: `fetch_kaub.py --dry-run`
 shows the change (PEGELONLINE REST API, daily means in legal time, weekly rows, closure schedule before and
 after); `evidence/kaub_september_2026_outlook.md` collects the BfG/ELWIS forecasts and the September reporting.
+Outlook (10 Sep): the BfG 6-week forecast of 7 Sep gives weekly medians (5–95 %) of 16 (10–23) cm for 7–13 Sep,
+12 (−3–30) for 14–20 Sep, 22 (−15–77) for 21–27 Sep, 42 for 28 Sep–4 Oct, 49 for 5–11 Oct and 68 for 12–18 Oct
+(`scenarios/bfg_6week_kaub_20260907.csv`); the 14-day forecast of 9 Sep keeps Kaub below GlW with 100 %
+probability through 22 Sep and the 4-day forecast of 10 Sep stays at 22–28 cm to 14 Sep. Under the floors the
+median path closes every class through 27 Sep and tank barges into October, so the 2026 profile has to be
+extended to mid-October and the event end is unlikely before late October.
 
 | Run | Command | Status |
 |---|---|---|

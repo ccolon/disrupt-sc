@@ -1,0 +1,15 @@
+# downloaded 2026-09-10 09:45 CEST from https://vorhersage.bafg.de/6-Wochen-Vorhersage/Rhein-Kaub_6Wochen_Wasserstand_Pie.csv
+# 6-Wochen-Vorhersage vom 2026-09-07
+# Quelle: Bundesanstalt fuer Gewaesserkunde <vorhersage@bafg.de>
+# Wochenmittelwerte
+# ENS = aktuelle Vorhersage des Wasserstandes auf Grundlage der ECMWF-ENS extended Wettervorhersage
+# Pie_* (Spalte 2-5) = Grenzen der Wasserstandsklassen (Wasserstand in cm), wie in der Tabelle angegeben (Referenzzeitraum: 1991-2020)
+# Prob_ENS* (Spalte 6-10) = Eintrittswahrscheinlichkeiten der Wasserstandsklassen
+Kaub
+Woche;Pie_20%;Pie_40%;Pie_60%;Pie_80%;Prob_ENS_0%-20%;Prob_ENS_20%-40%;Prob_ENS_40%-60%;Prob_ENS_60%-80%;Prob_ENS_80%-100%
+07.09.2026 - 13.09.2026;128;159;183;222;1;0;0;0;0
+14.09.2026 - 20.09.2026;115;145;182;224;0.9;0;0;0;0
+21.09.2026 - 27.09.2026;107;137;178;226;0.8;0.01;0;0;0
+28.09.2026 - 04.10.2026;105;141;178;217;0.72;0.08;0.04;0.01;0
+05.10.2026 - 11.10.2026;107;144;179;207;0.73;0.1;0.03;0.02;0
+12.10.2026 - 18.10.2026;111;147;180;207;0.76;0.13;0.05;0.01;0.01
