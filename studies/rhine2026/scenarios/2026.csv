@@ -1,16 +1,20 @@
 week_start,kaub_cm,status,note
-2026-06-22,91.6,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 81, max 106; press-based value was 105"
-2026-06-29,101.0,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 80, max 121; press-based value was 90"
-2026-07-06,80.5,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 58, max 108; press-based value was 75"
-2026-07-13,54.9,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 42, max 78; press-based value was 45"
-2026-07-20,60.4,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 38, max 84; press-based value was 75"
-2026-07-27,29.3,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 27, max 34; press-based value was 33"
-2026-08-03,23.4,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 20, max 27; press-based value was 24"
-2026-08-10,11.0,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 7, max 16; press-based value was 11"
-2026-08-17,27.6,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 6, max 45; press-based value was 27"
-2026-08-24,67.0,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 60, max 72; press-based value was 66"
-2026-08-31,53.3,observed+forecast,"31 Aug-4 Sep observed daily means (73, 68, 59, 51, 43), 5 Sep partial day 40.4, BfG forecast 6 Sep 37-40 -> 7-day estimate; press/forecast value was 54"
-2026-09-07,45.0,assumption,"BfG 21 Aug: return to extreme low water 'unlikely until early October' but deficit 'immense'; 6-week median rising toward ~100 cm by late Sep - central assumption, replace with observations"
-2026-09-14,60.0,assumption,assumption (see above)
-2026-09-21,80.0,assumption,assumption (see above)
-2026-09-28,100.0,assumption,assumption: back above GlW by late September per the BfG 6-week median; replace with observations
+2026-06-22,91.6,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 81, max 106; previous value 91.6 (observed)"
+2026-06-29,101.0,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 80, max 121; previous value 101.0 (observed)"
+2026-07-06,80.5,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 58, max 108; previous value 80.5 (observed)"
+2026-07-13,54.9,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 42, max 78; previous value 54.9 (observed)"
+2026-07-20,60.4,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 38, max 84; previous value 60.4 (observed)"
+2026-07-27,29.3,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 27, max 34; previous value 29.3 (observed)"
+2026-08-03,23.4,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 20, max 27; previous value 23.4 (observed)"
+2026-08-10,11.0,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 7, max 16; previous value 11.0 (observed)"
+2026-08-17,27.6,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 6, max 45; previous value 27.6 (observed)"
+2026-08-24,67.0,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 60, max 72; previous value 67.0 (observed)"
+2026-08-31,52.1,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 33, max 73; previous value 53.3 (observed+forecast)"
+2026-09-07,27.1,observed+forecast,"2026-09-07 to 2026-09-10 observed daily means (33, 29, 26, 24, last day partial), remaining 3 days at 26 cm (ELWIS/BfG 4-day forecast of 10 Sep 07:00: 24-28 cm on 11-13 Sep); previous value 45.0 (assumption)"
+2026-09-14,12.0,forecast,"BfG 6-week forecast issued 2026-09-07: ENS median 12 cm (5-95 % -3 to 30, 25-75 % 6 to 19); previous value 60.0 (assumption)"
+2026-09-21,22.0,forecast,"BfG 6-week forecast issued 2026-09-07: ENS median 22 cm (5-95 % -15 to 77, 25-75 % 5 to 43); previous value 80.0 (assumption)"
+2026-09-28,42.0,forecast,"BfG 6-week forecast issued 2026-09-07: ENS median 42 cm (5-95 % -16 to 137, 25-75 % 12 to 78); previous value 100.0 (assumption)"
+2026-10-05,49.0,forecast,"BfG 6-week forecast issued 2026-09-07: ENS median 49 cm (5-95 % -12 to 144, 25-75 % 19 to 85); new week"
+2026-10-12,68.0,forecast,"BfG 6-week forecast issued 2026-09-07: ENS median 68 cm (5-95 % 5 to 157, 25-75 % 38 to 102); new week"
+2026-10-19,85.0,assumption,assumption: recovery continuing at the trend of the BfG ENS median (about +20 cm a week); replace with observations
+2026-10-26,105.0,assumption,assumption: recovery continuing at the trend of the BfG ENS median (about +20 cm a week); replace with observations

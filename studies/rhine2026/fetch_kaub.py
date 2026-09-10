@@ -4,22 +4,29 @@ Daily means in legal time (Europe/Berlin), the convention of scenarios/kaub_dail
 with fewer than 90 of the 96 values is flagged PARTIAL. The weekly rows of scenarios/2026.csv are
 rebuilt: a fully observed week -> status 'observed'; a week with some observed days ->
 'observed+forecast' (observed days + --fill-cm for the missing days, default = persistence of the
-last observed day); later weeks keep their assumption rows. The closure classes per week under the
-driver's default floors are printed for the old and the new profile, so a schedule change is visible.
+last observed day); a later week -> the BfG 6-week ENS median when --forecast-6week is given
+(status 'forecast', the 5-95 % band in the note), otherwise its previous assumption row. With
+--forecast-6week the profile is continued to the last forecast week, and --extend appends
+assumption weeks after that. The closure classes per week under the driver's default floors are
+printed for the old and the new profile, so a schedule change is visible.
 
     python studies/rhine2026/fetch_kaub.py --dry-run              # show what would change
-    python studies/rhine2026/fetch_kaub.py --fill-cm 24           # write, filling the open week with 24 cm
+    python studies/rhine2026/fetch_kaub.py --fill-cm 26 --fill-note "ELWIS 4-day forecast of 10 Sep, 24-28 cm" \
+        --forecast-6week studies/rhine2026/scenarios/bfg_6week_kaub_20260907.csv \
+        --extend "2026-10-19=80,2026-10-26=95"                    # write scenarios/2026.csv + kaub_daily_2026.csv
     python studies/rhine2026/fetch_kaub.py --out-dir <dir>        # write the two files elsewhere (staging)
 
 The REST API serves at most the last 30 days; older days come from the long-term download already
-in kaub_daily_2026.csv (identical values: cross-checked 29 Aug - 4 Sep 2026).
+in kaub_daily_2026.csv (identical values: cross-checked 29 Aug - 4 Sep 2026). The 6-week CSV is the
+BfG 'QuansBox' file (https://vorhersage.bafg.de/6-Wochen-Vorhersage/Rhein-Kaub_6Wochen_Wasserstand_QuansBox.csv).
 """
 import argparse
 import json
+import re
 import sys
 import urllib.request
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -34,6 +41,8 @@ API = "https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations/KAUB/W/me
 SOURCE = ("PEGELONLINE REST API measurements.json (ungepruefte Rohdaten, DL-DE->Zero-2.0), daily mean of "
           "15-min W values in legal time, https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations/KAUB/W")
 FULL_DAY = 90
+DEFAULT_EXTEND_NOTE = ("assumption: recovery continuing at the trend of the BfG ENS median (about +20 cm a week); "
+                       "replace with observations")
 
 
 def fetch_daily(days: int) -> pd.DataFrame:
@@ -73,14 +82,55 @@ def merge_daily(existing: pd.DataFrame, fetched: pd.DataFrame, fetched_on: str) 
     return out.sort_index().reset_index()
 
 
-def rebuild_profile(profile: pd.DataFrame, daily: pd.DataFrame, fill_cm: float | None) -> pd.DataFrame:
+def parse_forecast_6week(path) -> tuple[str, dict[str, dict]]:
+    """BfG QuansBox CSV -> (issue date, {week_start iso: {p5, p25, median, p75, p95}})."""
+    issued, rows = "?", {}
+    for line in Path(path).read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if line.startswith("#"):
+            m = re.search(r"Vorhersage vom (\d{4}-\d{2}-\d{2})", line)
+            if m:
+                issued = m.group(1)
+            continue
+        parts = line.split(";")
+        if len(parts) < 6 or " - " not in parts[0]:
+            continue
+        start = datetime.strptime(parts[0].split(" - ")[0].strip(), "%d.%m.%Y").date().isoformat()
+        rows[start] = {"p5": float(parts[1]), "p25": float(parts[2]), "median": float(parts[3]),
+                       "p75": float(parts[4]), "p95": float(parts[5])}
+    return issued, rows
+
+
+def parse_extend(raw: str | None) -> list[tuple[str, float]]:
+    if not raw:
+        return []
+    out = []
+    for item in raw.split(","):
+        d, cm = item.split("=")
+        out.append((pd.Timestamp(d.strip()).date().isoformat(), float(cm)))
+    return sorted(out)
+
+
+def rebuild_profile(profile: pd.DataFrame, daily: pd.DataFrame, fill_cm: float | None, fill_note: str | None = None,
+                    forecast: tuple[str, dict] | None = None, extend: list[tuple[str, float]] | None = None,
+                    extend_note: str = DEFAULT_EXTEND_NOTE) -> pd.DataFrame:
     d = daily.copy()
     d["date"] = pd.to_datetime(d["date"])
     d["partial"] = d["source"].str.contains("PARTIAL")
     d = d.set_index("date")
     last_full = d[~d["partial"]]["kaub_cm"].iloc[-1]
     fill = last_full if fill_cm is None else fill_cm
-    fill_note = "persistence of the last observed day" if fill_cm is None else "--fill-cm"
+    fill_src = fill_note or ("persistence of the last observed day" if fill_cm is None else "--fill-cm")
+    issued, fc = forecast if forecast else ("?", {})
+
+    def forecast_row(ws: str, prev: str) -> dict:
+        q = fc[ws]
+        return {"week_start": ws, "kaub_cm": q["median"], "status": "forecast",
+                "note": f"BfG 6-week forecast issued {issued}: ENS median {q['median']:.0f} cm "
+                        f"(5-95 % {q['p5']:.0f} to {q['p95']:.0f}, 25-75 % {q['p25']:.0f} to {q['p75']:.0f}); {prev}"}
+
     out = []
     for _, r in profile.iterrows():
         w0 = pd.Timestamp(r["week_start"])
@@ -96,9 +146,24 @@ def rebuild_profile(profile: pd.DataFrame, daily: pd.DataFrame, fill_cm: float |
             est = (float(v["kaub_cm"].sum()) + fill * (7 - len(v))) / 7
             out.append({"week_start": r["week_start"], "kaub_cm": round(est, 1), "status": "observed+forecast",
                         "note": f"{v.index[0].date()} to {v.index[-1].date()} observed daily means ({obs}{partial_tag}), "
-                                f"remaining {7 - len(v)} days at {fill:.0f} cm ({fill_note}); {prev}"})
+                                f"remaining {7 - len(v)} days at {fill:.0f} cm ({fill_src}); {prev}"})
+        elif r["week_start"] in fc:
+            out.append(forecast_row(r["week_start"], prev))
         else:
             out.append({"week_start": r["week_start"], "kaub_cm": r["kaub_cm"], "status": r["status"], "note": r["note"]})
+
+    def next_week(ws: str) -> str:
+        return (pd.Timestamp(ws) + pd.Timedelta(days=7)).date().isoformat()
+
+    while next_week(out[-1]["week_start"]) in fc:                      # continue to the last forecast week
+        ws = next_week(out[-1]["week_start"])
+        out.append(forecast_row(ws, "new week"))
+    for ws, cm in extend or []:                                         # then the tail assumption
+        if ws <= out[-1]["week_start"]:
+            raise SystemExit(f"--extend week {ws} is not after the last profile week {out[-1]['week_start']}")
+        if ws != next_week(out[-1]["week_start"]):
+            raise SystemExit(f"--extend week {ws} does not follow {out[-1]['week_start']} (weeks must be consecutive Mondays)")
+        out.append({"week_start": ws, "kaub_cm": cm, "status": "assumption", "note": extend_note})
     return pd.DataFrame(out)
 
 
@@ -106,6 +171,10 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--days", type=int, default=30, help="days of 15-min data to fetch (API maximum 30)")
     ap.add_argument("--fill-cm", type=float, default=None, help="gauge assumed for the missing days of the open week")
+    ap.add_argument("--fill-note", default=None, help="source of --fill-cm, written into the week's note")
+    ap.add_argument("--forecast-6week", default=None, help="BfG 6-week QuansBox CSV: ENS medians for the weeks without observations")
+    ap.add_argument("--extend", default=None, help="assumption weeks after the forecast, 'YYYY-MM-DD=cm,...' (consecutive Mondays)")
+    ap.add_argument("--extend-note", default=DEFAULT_EXTEND_NOTE)
     ap.add_argument("--profile", default="2026")
     ap.add_argument("--out-dir", default=str(SCEN), help="where to write kaub_daily_<profile>.csv and <profile>.csv")
     ap.add_argument("--dry-run", action="store_true")
@@ -114,27 +183,38 @@ def main():
     fetched_on = datetime.now(ZoneInfo("Europe/Berlin")).strftime("%Y-%m-%d %H:%M")
     fetched = fetch_daily(args.days)
     print(f"fetched {len(fetched)} days ({fetched['date'].iloc[0]} to {fetched['date'].iloc[-1]}, {fetched_on}):")
-    print(fetched.to_string(index=False))
+    print(fetched.tail(10).to_string(index=False))
 
     daily_path = SCEN / f"kaub_daily_{args.profile}.csv"
     existing = pd.read_csv(daily_path)
     daily = merge_daily(existing, fetched, fetched_on)
     profile = pd.read_csv(SCEN / f"{args.profile}.csv")
-    new = rebuild_profile(profile, daily, args.fill_cm)
+    forecast = parse_forecast_6week(args.forecast_6week) if args.forecast_6week else None
+    if forecast:
+        print(f"6-week forecast issued {forecast[0]}: weeks {', '.join(forecast[1])}")
+    new = rebuild_profile(profile, daily, args.fill_cm, args.fill_note, forecast, parse_extend(args.extend), args.extend_note)
 
     floors = parse_closure_floors(DEFAULT_CLOSURE_FLOORS)
     cts = list(DEFAULT_CARGO_TYPES)
+    old = profile.set_index("week_start")
+
+    def closed(cm) -> str:
+        return "-" if pd.isna(cm) else (",".join(closed_classes(cm, floors, cts)) or "open")
+
     tab = pd.DataFrame({
-        "week_start": profile["week_start"], "old_cm": profile["kaub_cm"], "old_status": profile["status"],
+        "week_start": new["week_start"],
+        "old_cm": [old["kaub_cm"].get(ws, float("nan")) for ws in new["week_start"]],
+        "old_status": [old["status"].get(ws, "(new)") for ws in new["week_start"]],
         "new_cm": new["kaub_cm"], "new_status": new["status"],
-        "old_closed": [",".join(closed_classes(c, floors, cts)) or "-" for c in profile["kaub_cm"]],
-        "new_closed": [",".join(closed_classes(c, floors, cts)) or "-" for c in new["kaub_cm"]],
     })
+    tab["old_closed"] = [closed(c) for c in tab["old_cm"]]
+    tab["new_closed"] = [closed(c) for c in tab["new_cm"]]
     print()
-    print(f"weekly profile {args.profile} (closure floors {DEFAULT_CLOSURE_FLOORS}):")
+    print(f"weekly profile {args.profile} (closure floors {DEFAULT_CLOSURE_FLOORS}; t = row + 1):")
     print(tab.to_string(index=False))
-    changed = tab[(tab["old_cm"] != tab["new_cm"]) | (tab["old_closed"] != tab["new_closed"])]
-    print(f"{len(changed)} week(s) changed; schedule changed for {int((tab['old_closed'] != tab['new_closed']).sum())} week(s)")
+    changed = int(((tab["old_cm"] != tab["new_cm"]) & ~(tab["old_cm"].isna() & tab["new_cm"].isna())).sum())
+    print(f"{changed} week(s) changed, {len(new) - len(profile)} added; schedule changed for "
+          f"{int((tab['old_closed'] != tab['new_closed']).sum())} week(s)")
 
     if args.dry_run:
         print("dry run: nothing written")
