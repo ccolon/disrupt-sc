@@ -52,6 +52,34 @@ GRID_LABELS = {
 }
 
 
+def summarise_from_batch(csv_path: Path, prefix: str, names: list[str]) -> tuple[pd.DataFrame, dict[str, pd.Series]]:
+    """Batch summary written by compare_runs.py --csv (one row per run) plus the weekly DEU table of the
+    companion .txt (compare_runs.py --weekly DEU): the cluster archive carries firm-level series for a few
+    runs only."""
+    tab = pd.read_csv(csv_path)
+    tab["run"] = tab["run"].astype(str).str.replace(prefix, "", regex=False)
+    tab = tab.set_index("run")
+    weekly = {}
+    txt = csv_path.with_suffix(".txt")
+    if txt.exists():
+        lines = txt.read_text(encoding="utf-8", errors="replace").splitlines()
+        start = next((i for i, l in enumerate(lines) if "weekly value-added loss of DEU" in l), None)
+        if start is not None:
+            block = [l for l in lines[start + 1:] if l.strip()]
+            header = block[0].split()
+            rows = []
+            for l in block[2:]:
+                parts = l.split()
+                if not parts or not parts[0].isdigit():
+                    break
+                rows.append([float(x) if x != "NaN" else float("nan") for x in parts])
+            w = pd.DataFrame(rows, columns=["time_step"] + header).set_index("time_step")
+            for c in w.columns:
+                weekly[c.replace(prefix, "")] = w[c]
+    keep = [n for n in names if n in tab.index]
+    return tab.loc[keep], weekly
+
+
 def summarise(runs_dir: Path, prefix: str, names: list[str], rate: float) -> tuple[pd.DataFrame, dict[str, pd.Series]]:
     rows, weekly = {}, {}
     for n in names:
@@ -161,13 +189,18 @@ def main():
     ap.add_argument("--first-week", default="22 June 2026")
     ap.add_argument("--out", default=str(HERE / "figures"))
     ap.add_argument("--csv", default=None)
+    ap.add_argument("--summary-csv", default=None,
+                    help="batch summary from compare_runs.py --csv (+ .txt with --weekly DEU) instead of run folders")
     args = ap.parse_args()
 
     runs_dir = Path(args.runs_dir)
     levers = [x for x in args.levers.split(",") if x]
     grid = [x for x in args.grid.split(",") if x]
     names = [args.base] + [n for n in levers + grid if n != args.base]
-    table_all, weekly = summarise(runs_dir, args.prefix, list(dict.fromkeys(names)), args.rate)
+    if args.summary_csv:
+        table_all, weekly = summarise_from_batch(Path(args.summary_csv), args.prefix, list(dict.fromkeys(names)))
+    else:
+        table_all, weekly = summarise(runs_dir, args.prefix, list(dict.fromkeys(names)), args.rate)
     if args.base not in table_all.index:
         raise SystemExit(f"base run {args.prefix}{args.base} not found or incomplete")
     base = table_all.loc[args.base]
