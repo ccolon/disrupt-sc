@@ -41,7 +41,11 @@ SEQ = ["#cde2fb", "#b7d3f6", "#9ec5f4", "#86b6ef", "#6da7ec", "#5598e7", "#3987e
        "#1c5cab", "#184f95", "#104281", "#0d366b"]
 INK, INK2, INK3, GRID, SURFACE = "#0b0b0b", "#52514e", "#8a8985", "#e6e5e1", "#fcfcfb"
 COUNTRY = {"DEU": "Germany", "NLD": "Netherlands", "CHE": "Switzerland", "FRA": "France", "BEL": "Belgium",
-           "AUT": "Austria", "ITA": "Italy", "POL": "Poland", "LUX": "Luxembourg", "CZE": "Czechia"}
+           "AUT": "Austria", "ITA": "Italy", "POL": "Poland", "LUX": "Luxembourg", "CZE": "Czechia",
+           "ESP": "Spain", "PRT": "Portugal", "DNK": "Denmark", "SWE": "Sweden", "FIN": "Finland",
+           "IRL": "Ireland", "HUN": "Hungary", "SVK": "Slovakia", "SVN": "Slovenia", "HRV": "Croatia",
+           "ROU": "Romania", "BGR": "Bulgaria", "GRC": "Greece", "LTU": "Lithuania", "LVA": "Latvia",
+           "EST": "Estonia", "CYP": "Cyprus", "MLT": "Malta"}
 
 
 def style(ax, title=None, ylabel=None):
@@ -171,7 +175,7 @@ def fig_loss_map(run: Path, out: Path):
     return peak
 
 
-def fig_loss_by_country(run: Path, out: Path):
+def fig_loss_by_country(run: Path, out: Path, profile: str = "2026"):
     fd = _loss_by_firm(run)
     by = fd.groupby(["time_step", "region"])["va_loss"].sum().unstack("region").fillna(0)
     va_region = pd.read_csv(run / "mrio_by_region.csv").set_index("region")["mrio_va"] / 52.0
@@ -179,11 +183,14 @@ def fig_loss_by_country(run: Path, out: Path):
     top = by.sum().sort_values(ascending=False).head(6).index.tolist()
     fig, ax = plt.subplots(figsize=(8.5, 4.2))
     fig.patch.set_facecolor(SURFACE)
+    top_peak = pct[top].max().max() if top else 0.0
     for i, c in enumerate(top):
         ax.plot(pct.index, pct[c], color=SERIES[i % len(SERIES)], linewidth=2, label=COUNTRY.get(c, c))
-        ax.text(pct.index[-1] + 0.2, pct[c].iloc[-1], COUNTRY.get(c, c), fontsize=7, color=INK2, va="center")
+        if pct[c].max() >= 0.1 * top_peak:            # direct label at the peak of the visible series only
+            ax.text(pct[c].idxmax() + 0.3, pct[c].max(), COUNTRY.get(c, c), fontsize=7, color=INK2, va="bottom")
     style(ax, "Weekly value-added loss by country, % of the country's weekly value added", "% of weekly VA")
-    ax.set_xlabel("week of the run (1 = 22 June 2026)", fontsize=8, color=INK2)
+    first_week = pd.Timestamp(pd.read_csv(HERE / "scenarios" / f"{profile}.csv")["week_start"].iloc[0])
+    ax.set_xlabel(f"week of the run (1 = {first_week.day} {first_week.strftime('%B %Y')})", fontsize=8, color=INK2)
     ax.legend(frameon=False, fontsize=8, labelcolor=INK2, ncol=3, loc="upper left")
     fig.tight_layout()
     for ext in ("png", "pdf"):
@@ -209,7 +216,7 @@ def main():
             run = ROOT / "runs" / "rhine2026" / args.run
         if (run / "firm_data.csv").exists() and (run / "firm_data.csv").stat().st_size > 0:
             peak = fig_loss_map(run, out)
-            fig_loss_by_country(run, out)
+            fig_loss_by_country(run, out, profile=args.profile)
             print(f"F5/F6 written from {run} (peak week {peak})")
         else:
             print(f"no firm_data yet in {run}")

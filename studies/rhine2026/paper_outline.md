@@ -61,8 +61,16 @@ data file it comes from, so the pipeline can produce it without re-deciding.
   bn), 2018 DEU 2.03 bn (0.21 % of a quarter, peak 0.58 % of a week in late November, about two-thirds
   of the ex-post −0.3/−0.4 % GDP) → ADOPTED as the final baseline on 6 Sep (physical-stoppage
   baseline); the earlier runs are reported as the ladder (single floor, press profile) and the
-  floors-plus-thresholds variant as the upper-bound reading. Sensitivities for the cluster: closure floors ± 10 cm,
-  lean-2019 inventories, halved/doubled switching costs, seeds.
+  floors-plus-thresholds variant as the upper-bound reading. Then two calibration steps (8–10 Sep): cargo-specific
+  waterway rates (v13: liquids on the river at the Eurostat share → 2026 DEU 3.56 bn = 0.37 %, 2018 8.60 bn =
+  0.90 % with a second-round cascade in late November/December) and input pooling of commodity-like
+  products across regions (`2026_seed42_pool` 3.55 bn = 0.37 %, peak in the 11 cm week; `2018_seed42_pool`
+  5.57 bn = 0.58 %, peak 1.2 % of a week in the first week of December, cascade cut by two-thirds) →
+  candidate final baseline (10 Sep, confirmation pending); the ladder v12 floors → v13 rates → pooling is
+  the paper's sensitivity story (Table T2). CAVEAT: the September 2026 trough (Kaub 26 cm on 9 Sep, a
+  full closure week not in the profile) → profile refresh and one rerun at the event end. Sensitivities
+  for the cluster: tanker floor 40/50/60 cm, inventories ± 50 %, Lower Rhine factor, v12 vs v13 rates,
+  seeds.
 - Two modelling decisions to state up front, both forced by the scale of the scope: the
   criticality threshold (2 % cost-share proxy for the partially-binding Leontief; strict
   Leontief let a negligible cross-border service input cascade — KI-29) and the give-up rule on
@@ -80,14 +88,14 @@ data file it comes from, so the pipeline can produce it without re-deciding.
 ## 5. Discussion
 - Three kinds of production restriction in the evidence, one of which the model resolves:
   (i) physical stoppages where no alternative mode exists at volume (refineries, steel, power,
-  agri-food fed by barge) — captured by the switching-cost mechanism, 3.8 % of corridor firms vs
+  agri-food fed by barge) — captured by the switching-cost mechanism, 5.7 % of corridor firms (pooled baseline; 3.8 % under v12 logistics) vs
   the survey's 33 % restricting / 6 % stopped; (ii) cost-driven cuts of marginal output at 3–7×
   freight rates (gravel, fertiliser, grain, low-value chemicals) — only through the give-up rule,
   which needs cargo- or margin-specific thresholds; (iii) precautionary throttling to stretch stocks
   under an uncertain closure length (BASF mid-Aug, thyssenkrupp force majeure 16 Jul, Kehl) — NOT
-  modelled (firms run at full rate until an input runs out): state this as the main reason why the
-  model's direct macro loss is an order of magnitude below the ex-ante estimates, and as the
-  natural next mechanism (a stock-stretching rule).
+  modelled (firms run at full rate until an input runs out): state this as the reason why the
+  model's corridor-firm share stays far below the survey's 33 % although its macro loss now sits at the
+  top of the ex-ante range, and as the natural next mechanism (a stock-stretching rule).
 
 - What the model adds to the ex post econometrics: spatial and sectoral incidence, the
   substitution margins and their limits, the price channel.
