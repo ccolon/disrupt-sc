@@ -8,8 +8,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "studies" / "rhine2026"))
 
-from run_rhine import (CLOSED_MULTIPLIER, DEFAULT_CLOSURE_FLOORS, build_disruptions,  # noqa: E402
-                       closed_classes, kaub_entries, parse_closure_floors)
+from run_rhine import (CLOSED_MULTIPLIER, DEFAULT_CLOSURE_FLOORS, adjust_inventory_targets,  # noqa: E402
+                       build_disruptions, closed_classes, kaub_entries, parse_closure_floors,
+                       parse_inventory_add_days, rail_relief_entries)
 
 CTS = ["container", "dry_bulk", "liquid_bulk"]
 
@@ -76,3 +77,51 @@ def test_voyage_surcharge_entries():
     legacy = build_disruptions([0.6, 0.78], ["kaub"], closure_threshold=0.75, gauges=[45, 24],
                                closure_floors=f, cargo_types=CTS)
     assert legacy == [x for x in d if x["start_time"] <= 2 and "kaub" in x["values"]]
+
+
+# --- adaptation counterfactual switches (10 Sep 2026) ---
+
+def test_gauge_offset_moves_the_closure_classes():
+    # fairway deepening: the same week is read 20 cm higher, tank barges alone stay closed at 27 + 20 = 47 cm
+    f = parse_closure_floors(DEFAULT_CLOSURE_FLOORS)
+    assert closed_classes(27.0, f, CTS) == CTS
+    assert closed_classes(27.0 + 20.0, f, CTS) == ['liquid_bulk']
+    assert closed_classes(42.0 + 20.0, f, CTS) == []
+
+
+def test_rail_relief_entries_cover_the_shock_weeks_for_bulk_only():
+    entries = rail_relief_entries([0.0, 0.3, 0.75, 1.0], 0.4, CTS)
+    assert [e['start_time'] for e in entries] == [2, 3, 4]           # week 1 has no shock
+    e = entries[0]
+    assert e['type'] == 'transport_cost_shock' and e['attribute'] == 'type' and e['values'] == ['railways']
+    assert e['cost_multiplier'] == {'container': 1.0, 'dry_bulk': 0.4, 'liquid_bulk': 0.4, 'default': 1.0}
+    assert e['duration'] == 1
+    assert kaub_entries(entries) == []                                 # not Kaub entries
+
+
+_TARGETS = {
+    'definition': 'per_buying_sector', 'unit': 'day', 'service_days': 90,
+    'values': {'default': 30, 'H49': 7, 'D': 20, 'C20': 30},
+    'overrides': {'*': {'D': 90, 'E': 90}, 'D': {'B05': 30, 'B06': 90, 'C19': 10}, 'C20': {'C19': 14}},
+}
+
+
+def test_inventory_add_days_global_leaves_coping_proxies_alone():
+    out = adjust_inventory_targets(_TARGETS, add_days=7)
+    assert out['values'] == {'default': 37, 'H49': 14, 'D': 27, 'C20': 37}
+    assert out['overrides']['*'] == {'D': 90, 'E': 90}                 # utilities block untouched
+    assert out['overrides']['D'] == {'B05': 37, 'B06': 90, 'C19': 17}  # pipeline proxy (90) untouched
+    assert _TARGETS['values']['H49'] == 7                               # input not mutated
+
+
+def test_inventory_add_days_targeted_and_scale():
+    days, sectors = parse_inventory_add_days('7:H49,D,C23')
+    assert days == 7.0 and sectors == ['H49', 'D', 'C23']
+    out = adjust_inventory_targets(_TARGETS, add_days=days, sectors=sectors)
+    assert out['values']['H49'] == 14 and out['values']['D'] == 27 and out['values']['C20'] == 30
+    assert out['values']['C23'] == 37                                   # inherits the default, then +7
+    assert out['values']['default'] == 30
+    assert out['overrides']['C20'] == {'C19': 14} and out['overrides']['D']['C19'] == 17
+    scaled = adjust_inventory_targets(_TARGETS, scale=0.5)
+    assert scaled['values'] == {'default': 15, 'H49': 3.5, 'D': 10, 'C20': 15}
+    assert parse_inventory_add_days(None) == (0.0, None)
