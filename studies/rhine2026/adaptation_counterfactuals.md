@@ -38,6 +38,14 @@ D lowers the give-up of bulk in closure weeks, E shows complementarity (package 
   × 3, tanker floor ± 10 cm, inventories ± 50 %, Lower Rhine factor 0 and 1, no pooling, v12 rates)
   belongs in the same batch: ≈ 8 more runs.
 
+## Status (11 Sep, 07:00)
+
+The 10 Sep batch ran (18 runs) but was a pre-fix draw (KI-34: the build was order-dependent, so cluster and
+laptop worlds differed by 3x). Relaunched as `cluster/jobs_20260911.txt` on the deterministic build: the two
+baselines (20 recovery weeks), their no-pooling twins, a 10-seed ensemble of the 2026 baseline, the seven levers
+and the seven grid runs. Lever effects on the pre-fix draw, for orientation only: fleet20 −90 %, stock7 −62 %,
+deep20 −32 %, fleet40 −31 %, stock7t −24 %, package −100 %, rail04 +8 % (to be understood before use).
+
 ## Status (10 Sep, 11:30)
 
 Implemented and tested (driver commit of 10 Sep): `--gauge-offset`, `--inventory-add-days D[:SECTORS]`,

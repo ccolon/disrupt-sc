@@ -22,12 +22,12 @@ PYTHON_ENV="/projects/disruptsc/miniforge3/envs/dsc"
 DATA_PATH="/projects/disruptsc/disrupt-sc-data"
 OUTPUT_DIR="/projects/disruptsc/runs/rhine2026"
 SLURM_LOG_DIR="${SCRIPT_DIR}/slurm_logs/rhine2026"
-TIME_RUN="12:00:00";  MEM_RUN="20G";  CPUS_RUN=2      # 32 weekly steps at ~10 min, ~13 GB RAM on the laptop
+TIME_RUN="16:00:00";  MEM_RUN="20G";  CPUS_RUN=2      # up to 43 weekly steps at ~10 min (+ build), ~13 GB RAM on the laptop
 TIME_POST="01:00:00"; MEM_POST="12G"
 # ===========================================================================
 
 COMMON="--profile 2026 --no-open --seed 42 --recovery-weeks 12 --light-export"
-JOBS_FILE="${SCRIPT_DIR}/studies/rhine2026/cluster/jobs_20260910.txt"
+JOBS_FILE="${SCRIPT_DIR}/studies/rhine2026/cluster/jobs_20260911.txt"
 DRY_RUN=false
 ONLY=""
 while [[ $# -gt 0 ]]; do
@@ -75,11 +75,13 @@ while IFS='|' read -r name flags; do
     else
         dep="$BASE_ID"
     fi
+    profile="2026"
+    if [[ "$flags" =~ --profile[[:space:]]+([^[:space:]]+) ]]; then profile="${BASH_REMATCH[1]}"; fi
     id=$(submit "$name" "$TIME_RUN" "$MEM_RUN" "$CPUS_RUN" "$dep" "$payload")
     [[ "$name" == *_base ]] && BASE_ID="$id"
     echo "  ${name}: job ${id}${dep:+ (afterok:$dep)}" >&2
-    post="python studies/rhine2026/analyze_scenario.py ${out} --profile 2026 --no-links > ${out}/analysis.txt 2>&1; \
-python studies/rhine2026/plots/scenario_figures.py --profile 2026 --run ${out} --out ${out}/figures > ${out}/figures.log 2>&1; \
+    post="python studies/rhine2026/analyze_scenario.py ${out} --profile ${profile} --no-links > ${out}/analysis.txt 2>&1; \
+python studies/rhine2026/plots/scenario_figures.py --profile ${profile} --run ${out} --out ${out}/figures > ${out}/figures.log 2>&1; \
 rm -f ${out}/household_data_by_sector.csv"
     pid=$(submit "post_${name}" "$TIME_POST" "$MEM_POST" 1 "$id" "$post")
     ALL_IDS="${ALL_IDS}${ALL_IDS:+:}${pid}"

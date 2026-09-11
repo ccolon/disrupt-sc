@@ -1,0 +1,42 @@
+# Rhine 2026 cluster batch (11 Sep 2026): everything recomputed on the deterministic build (KI-34 fixed,
+# commit dd7d7ba): the two baselines with 20 recovery weeks, their no-pooling twins, a 10-seed ensemble of
+# the 2026 baseline, the adaptation counterfactuals and the sensitivity grid. One line per run:
+# <name> | <extra flags>. Common flags (launch_rhine_batch.sh): --profile 2026 --no-open --seed 42
+# --recovery-weeks 12 --light-export; a later flag on the line overrides the common one (argparse keeps
+# the last occurrence). The first line is the cache-building run; every other run depends on it except
+# the seed runs, which rebuild in an isolated cache (--cache-isolation). Postprocess reads --profile
+# from the line (default 2026).
+#
+# --- baselines (paper numbers; 20 recovery weeks for the net/delay accounting) ---
+2026_fc0910_base   | --recovery-weeks 20
+2018_baseline      | --profile 2018 --recovery-weeks 20
+# --- no-pooling twins (the pooling story; region-keyed inputs) ---
+2026_fc0910_nopool | --no-pooling
+2018_nopool        | --profile 2018 --no-pooling --recovery-weeks 20
+# --- ensemble over supply-chain draws (uncertainty band of the 2026 baseline) ---
+2026_fc0910_seed1  | --seed 1 --cache-isolation
+2026_fc0910_seed2  | --seed 2 --cache-isolation
+2026_fc0910_seed3  | --seed 3 --cache-isolation
+2026_fc0910_seed4  | --seed 4 --cache-isolation
+2026_fc0910_seed5  | --seed 5 --cache-isolation
+2026_fc0910_seed6  | --seed 6 --cache-isolation
+2026_fc0910_seed7  | --seed 7 --cache-isolation
+2026_fc0910_seed8  | --seed 8 --cache-isolation
+2026_fc0910_seed9  | --seed 9 --cache-isolation
+2026_fc0910_seed10 | --seed 10 --cache-isolation
+# --- adaptation counterfactuals (adaptation_counterfactuals.md), paired with 2026_fc0910_base ---
+2026_fc0910_deep20   | --gauge-offset 20
+2026_fc0910_fleet40  | --closure-floors container=40,liquid_bulk=40,dry_bulk=30,default=30
+2026_fc0910_fleet20  | --closure-floors container=40,liquid_bulk=20,dry_bulk=20,default=20 --draught-table studies/rhine2026/scenarios/draught_table_lowwater.csv
+2026_fc0910_stock7   | --inventory-add-days 7
+2026_fc0910_stock7t  | --inventory-add-days 7:H49,H50,H51,H52,H53,D,C20,C23,C24A
+2026_fc0910_rail04   | --rail-relief 0.4
+2026_fc0910_package  | --gauge-offset 20 --closure-floors container=40,liquid_bulk=20,dry_bulk=20,default=20 --draught-table studies/rhine2026/scenarios/draught_table_lowwater.csv --inventory-add-days 7
+# --- sensitivity grid (fleet40 doubles as the tanker-floor-40 point) ---
+2026_fc0910_liq60      | --closure-floors container=40,liquid_bulk=60,dry_bulk=30,default=30
+2026_fc0910_floors_m10 | --closure-floors container=30,liquid_bulk=40,dry_bulk=20,default=20
+2026_fc0910_floors_p10 | --closure-floors container=50,liquid_bulk=60,dry_bulk=40,default=40
+2026_fc0910_inv050     | --inventory-scale 0.5
+2026_fc0910_inv150     | --inventory-scale 1.5
+2026_fc0910_lr0        | --lower-rhine-factor 0
+2026_fc0910_lr1        | --lower-rhine-factor 1
