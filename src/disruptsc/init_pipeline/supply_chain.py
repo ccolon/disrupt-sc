@@ -147,7 +147,7 @@ def _household_select_suppliers(hh, sc, firms, countries, rs_cache,
     # a single aggregate buyer spreads demand by firm size and sees localized disruption.
     w_loc = weight_loc if hh.weight_localization is None else hh.weight_localization
     nb = nb_suppliers_per_input if hh.nb_suppliers is None else hh.nb_suppliers
-    for region_sector, amount in hh.sector_consumption.items():
+    for region_sector, amount in sorted(hh.sector_consumption.items()):   # deterministic draw order (KI-34)
         supplier_type, ids, weights, distances = _identify_suppliers(
             hh, region_sector, rs_cache,
             nb, w_loc, country_pids,
@@ -187,7 +187,7 @@ def _household_select_suppliers(hh, sc, firms, countries, rs_cache,
 def _country_select_suppliers(country, sc, firms, countries, rs_to_firms,
                               share_exporting, sector_to_cargo_type):
     # Transit links
-    for selling_pid, quantity in country.transit_from.items():
+    for selling_pid, quantity in sorted(country.transit_from.items()):   # deterministic draw order (KI-34)
         seller = countries[selling_pid]
         link = CommercialLink(
             pid=f"{selling_pid}->{country.pid}", product="transit",
@@ -202,7 +202,7 @@ def _country_select_suppliers(country, sc, firms, countries, rs_to_firms,
 
     # Export links: country buys from domestic firms
     present_rs = set(rs_to_firms.keys())
-    for region_sector in list(country.qty_purchased.keys()):
+    for region_sector in sorted(country.qty_purchased.keys()):   # deterministic draw order (KI-34)
         if region_sector not in present_rs:
             continue
         potential = rs_to_firms[region_sector]
@@ -362,7 +362,7 @@ def _firm_select_suppliers(firm, sc, firms, countries, rs_cache,
                            nb_suppliers_per_input, weight_loc,
                            sector_to_cargo_type, country_pids, import_ptype,
                            transport_network, node_lon, node_lat, use_tn):
-    for sector_id, sector_weight in firm.input_mix.items():
+    for sector_id, sector_weight in sorted(firm.input_mix.items()):   # deterministic draw order (KI-34)
         supplier_type, ids, weights, distances = _identify_suppliers(
             firm, sector_id, rs_cache,
             nb_suppliers_per_input, weight_loc, country_pids,

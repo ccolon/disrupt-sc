@@ -227,7 +227,7 @@ def load_tech_coefs(firms: dict[str, Firm], mrio: Mrio, selection: Selection):
         # another firm in the same region_sector will act as supplier.
         if rs_counts[firm.region_sector] < 2:
             coefs.pop(firm.region_sector, None)
-        firm.input_mix = coefs
+        firm.input_mix = dict(sorted(coefs.items()))   # deterministic key order (KI-34)
 
 
 def import_bundle_shares(mrio) -> dict:
@@ -1069,7 +1069,7 @@ def _integrate_spatial_firms(ft: gpd.GeoDataFrame, filepath: Path, mrio: Mrio) -
     # distance-only within a region_sector (KI-17).
     total_output = mrio.get_total_output()
     spatial_rows = []
-    for rs in available_rs:
+    for rs in sorted(available_rs):   # deterministic firm order (KI-34: set iteration followed the hash seed)
         rs_spatial = spatial[spatial["region_sector"] == rs].copy()
         rs_tuple = tuple(rs.split("_", 1))
         total_out = total_output.get(rs_tuple, 0)
@@ -1114,7 +1114,7 @@ def _handle_internal_flows(ft: gpd.GeoDataFrame,
     )
 
     new_rows = []
-    for rs_name in internal_rs_names:
+    for rs_name in sorted(internal_rs_names):   # deterministic order (KI-34)
         rs_firms = ft[ft["region_sector"] == rs_name]
         if len(rs_firms) == 1:
             # Duplicate the single firm so intra-sector trade is possible
