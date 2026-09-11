@@ -2073,7 +2073,7 @@ def _build_commercial_link_table(sc_network) -> pd.DataFrame:
             "use_transport_network": link.use_transport_network,
             "from": link.route.transport_nodes[0] if link.use_transport_network and link.route else None,
             "to": link.route.transport_nodes[-1] if link.use_transport_network and link.route else None,
-            "transport_modes": link.route.transport_modes if link.use_transport_network and link.route else None,
+            "transport_modes": (sorted(link.route.transport_modes) if link.use_transport_network and link.route else None),   # deterministic listing (KI-34)
             "n_routes": len(link.route_plan) if link.route_plan else 1,
         }
     df = pd.DataFrame.from_dict(rows, orient="index")
