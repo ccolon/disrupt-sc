@@ -4,11 +4,12 @@
 # grid ran on the pre-fix draw while the ten isolated seed runs were fixed-code draws. The seed runs are
 # NOT repeated (they stand). One line per run: <name> | <extra flags>. Common flags: --profile 2026
 # --no-open --seed 42 --recovery-weeks 12 --light-export (a later flag on the line overrides).
-# The first line rebuilds agents, supply chain and routes (--cache same_transport_network_new_agents);
-# every other run depends on it and reuses the rebuilt caches (fingerprints now carry the build version).
+# The first line rebuilds every stage: the stage fingerprints carry the build version since commit 88219c7,
+# so --cache auto finds the caches of 10 Sep stale and rebuilds (a cache PRESET would instead fail on the
+# fingerprint mismatch - that is what stopped the first launch of 13 Sep). The other runs reuse the rebuilt caches.
 #
 # --- baselines (paper numbers; 20 recovery weeks) ---
-2026_fc0910_base   | --recovery-weeks 20 --cache same_transport_network_new_agents
+2026_fc0910_base   | --recovery-weeks 20
 2018_baseline      | --profile 2018 --recovery-weeks 20
 # --- no-pooling twins ---
 2026_fc0910_nopool | --no-pooling
