@@ -1,5 +1,5 @@
 # Rhine 2026 cluster batch (13 Sep 2026): the shared-cache runs of the 11 Sep batch again, this time on
-# caches REBUILT with the deterministic code. On 11 Sep the base job found the cluster's caches of 10 Sep
+# caches REBUILT with the deterministic code. On 11 Sep the base job found the cluster caches of 10 Sep
 # (built by the order-dependent code) fingerprint-valid and reused them, so base, 2018, twins, levers and
 # grid ran on the pre-fix draw while the ten isolated seed runs were fixed-code draws. The seed runs are
 # NOT repeated (they stand). One line per run: <name> | <extra flags>. Common flags: --profile 2026

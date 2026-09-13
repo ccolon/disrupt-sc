@@ -62,7 +62,9 @@ BASE_ID=""
 ALL_IDS=""
 RUN_DIRS=""
 while IFS='|' read -r name flags; do
-    name="$(echo "$name" | xargs)"; flags="$(echo "${flags:-}" | xargs)"
+    # trim with parameter expansion (xargs would choke on quotes in comment lines)
+    name="${name#"${name%%[![:space:]]*}"}"; name="${name%"${name##*[![:space:]]}"}"
+    flags="${flags:-}"; flags="${flags#"${flags%%[![:space:]]*}"}"; flags="${flags%"${flags##*[![:space:]]}"}"
     [[ -z "$name" || "$name" == \#* ]] && continue
     wanted "$name" || continue
     out="${OUTPUT_DIR}/${name}"
