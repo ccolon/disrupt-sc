@@ -27,7 +27,7 @@ TIME_POST="01:00:00"; MEM_POST="12G"
 # ===========================================================================
 
 COMMON="--profile 2026 --no-open --seed 42 --recovery-weeks 12 --light-export"
-JOBS_FILE="${SCRIPT_DIR}/studies/rhine2026/cluster/jobs_20260911.txt"
+JOBS_FILE="${SCRIPT_DIR}/studies/rhine2026/cluster/jobs_20260913.txt"
 DRY_RUN=false
 ONLY=""
 while [[ $# -gt 0 ]]; do

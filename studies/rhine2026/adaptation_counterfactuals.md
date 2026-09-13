@@ -38,6 +38,16 @@ D lowers the give-up of bulk in closure weeks, E shows complementarity (package 
   × 3, tanker floor ± 10 cm, inventories ± 50 %, Lower Rhine factor 0 and 1, no pooling, v12 rates)
   belongs in the same batch: ≈ 8 more runs.
 
+## Status (13 Sep)
+
+The 11 Sep batch reused the cluster's pre-fix caches for every shared-cache run (base, 2018, twins, levers,
+grid): those numbers equal the 10 Sep ones and are the pre-fix draw. The ten isolated seed runs are valid
+fixed-code draws (German loss 1.28–2.87 % of a quarter, mean 2.25). Relaunch of the 18 shared-cache runs with
+rebuilt caches: `cluster/jobs_20260913.txt`; the stage fingerprints now carry a build version. Rail relief
+(`rail04`) on the pre-fix draw: more bulk reroutes to rail (liquid alternative share 1.4 → 6.7 %) but the blocked
+share does not fall and the loss is 8 % higher, mostly in the post-closure tail — not understood; a laptop
+diagnostic pair with full exports on the first ten weeks is the next step before the lever is used.
+
 ## Status (11 Sep, 07:00)
 
 The 10 Sep batch ran (18 runs) but was a pre-fix draw (KI-34: the build was order-dependent, so cluster and

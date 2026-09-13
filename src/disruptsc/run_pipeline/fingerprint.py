@@ -154,6 +154,13 @@ _STAGE_FILEPATH_KEYS = {
 }
 
 
+# Build-algorithm version per stage: bump when the CODE that builds a stage changes its output for
+# the same inputs (KI-34, 11 Sep 2026: the firm table and the supply-chain draws became
+# deterministic - caches written by the order-dependent code must not be reused). The transport
+# network stage is untouched by that fix and keeps version 1.
+_STAGE_BUILD_VERSION = {"transport_network": 1, "agents": 2, "sc_network": 2, "logistic_routes": 2}
+
+
 def build_stage_fingerprint(config: dict, stage: str) -> dict:
     """Return ``{"hash", "payload"}`` for one cache stage.
 
@@ -182,6 +189,7 @@ def build_stage_fingerprint(config: dict, stage: str) -> dict:
     cfg = {k: _without_subkeys(k, config.get(k)) for k in cfg_keys}
     payload = {
         "stage": stage,
+        "build_version": _STAGE_BUILD_VERSION.get(stage, 1),
         "scope": config.get("scope"),
         "config": {**cfg, **sub_cfg},
         "filepaths": {k: _path_str(filepaths.get(k)) for k in fp_keys},
