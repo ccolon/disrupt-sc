@@ -153,8 +153,8 @@ class CommercialLink:
             raise ValueError(f"Link {self.supplier_id}→{self.buyer_id}: cost increase is {result}")
         return result
 
-    def has_modal_switch(self) -> bool:
-        return self._routes_have_modal_switch(self.route, self.alternative_route)
+    def has_modal_switch(self, transport_network: TransportNetwork, switching_costs: dict | None = None) -> bool:
+        return self._routes_have_modal_switch(self.route, self.alternative_route, transport_network, switching_costs)
 
     def has_port_switch(self, transport_network: TransportNetwork) -> bool:
         return self._routes_have_port_switch(self.route, self.alternative_route, transport_network)
@@ -175,7 +175,7 @@ class CommercialLink:
         return float(value)
 
     def calculate_switching_cost(self, switching_costs: dict, transport_network: TransportNetwork) -> float:
-        if self.has_modal_switch():
+        if self.has_modal_switch(transport_network, switching_costs):
             return self._switching_penalty(switching_costs, "modal_switch", 0.15)
         elif self.has_port_switch(transport_network):
             return self._switching_penalty(switching_costs, "port_switch", 0.05)
@@ -185,7 +185,7 @@ class CommercialLink:
                                          alternative_route: Route | None,
                                          switching_costs: dict,
                                          transport_network: TransportNetwork) -> float:
-        if self._routes_have_modal_switch(baseline_route, alternative_route):
+        if self._routes_have_modal_switch(baseline_route, alternative_route, transport_network, switching_costs):
             return self._switching_penalty(switching_costs, "modal_switch", 0.15)
         if self._routes_have_port_switch(baseline_route, alternative_route, transport_network):
             return self._switching_penalty(switching_costs, "port_switch", 0.05)
@@ -196,15 +196,46 @@ class CommercialLink:
     # ------------------------------------------------------------------
 
     @staticmethod
+    def _km_by_mode(route: Route, transport_network: TransportNetwork) -> dict:
+        """Kilometres of *route* per edge type, multimodal connectors excluded."""
+        km: dict = {}
+        for u, v in route.transport_edges:
+            e = transport_network[u][v]
+            mode = e.get("type")
+            if mode == "multimodal":
+                continue
+            km[mode] = km.get(mode, 0.0) + float(e.get("km", 0.0) or 0.0)
+        return km
+
+    @staticmethod
     def _routes_have_modal_switch(baseline_route: Route | None,
-                                  alternative_route: Route | None) -> bool:
+                                  alternative_route: Route | None,
+                                  transport_network: TransportNetwork | None = None,
+                                  switching_costs: dict | None = None) -> bool:
+        """Line-haul rule (14 Sep 2026): the alternative switches mode when it puts line-haul
+        kilometres on a mode that only served access in the normal route - for some mode m,
+        km_alt(m) - km_base(m) > access_km while km_base(m) < line_haul_km. More kilometres on
+        a mode the shipper already uses for line haul (a canal detour on the water) is not a
+        switch, nor is a longer access leg within the allowance; a dropped mode is not one
+        either. Every route in a road-attached scope carries road access legs, so neither
+        set equality (a longer road leg passes) nor 'no new mode' (an all-road path passes)
+        separates access from line haul; this rule does. Thresholds: switching_costs
+        access_km (default 50) and line_haul_km (default 100). Without a network the legacy
+        set comparison applies."""
         if baseline_route is None or alternative_route is None:
             return False
-        # Set equality: a route that adds OR drops a mode is a switch. Every route carries
-        # road access legs (agent_attachment: roads), so a 'no new mode' rule would let an
-        # all-road path replace a barge line-haul without penalty (tried and reverted 14 Sep
-        # 2026: 93 % of the Kaub-crossing bulk trucked round the closure).
-        return set(baseline_route.transport_modes) != set(alternative_route.transport_modes)
+        if transport_network is None:
+            return set(baseline_route.transport_modes) != set(alternative_route.transport_modes)
+        costs = switching_costs or {}
+        access_km = float(costs.get("access_km", 50.0))
+        line_haul_km = float(costs.get("line_haul_km", 100.0))
+        base_km = CommercialLink._km_by_mode(baseline_route, transport_network)
+        alt_km = CommercialLink._km_by_mode(alternative_route, transport_network)
+        for mode, km in alt_km.items():
+            b = base_km.get(mode, 0.0)
+            if b < line_haul_km and km - b > access_km:
+                return True
+        return False
 
     @staticmethod
     def _routes_have_port_switch(baseline_route: Route | None,

@@ -16,8 +16,9 @@ if TYPE_CHECKING:
 
 def _discover(od_point: int, link: CommercialLink, transport_network: TransportNetwork,
               available_transport_network: TransportNetwork, weight: str, use_cache: bool,
-              library: str, allowed_modes=None) -> Route | None:
-    """One shortest-path search (optionally restricted to *allowed_modes*), cached under *library*."""
+              library: str, allowed_modes=None, mode_weights=None) -> Route | None:
+    """One shortest-path search (optionally restricted to *allowed_modes*, with *mode_weights*
+    scaling modes in the search), cached under *library*."""
     if use_cache:
         cached = transport_network.retrieve_cached_route(
             od_point, link.destination_node, library, link.cargo_type,
@@ -26,7 +27,7 @@ def _discover(od_point: int, link: CommercialLink, transport_network: TransportN
             return cached
     route = available_transport_network.provide_shortest_route(
         od_point, link.destination_node, link.cargo_type, route_weight=weight,
-        allowed_modes=allowed_modes,
+        allowed_modes=allowed_modes, mode_weights=mode_weights,
     )
     if route and use_cache:
         transport_network.cache_route(
@@ -62,9 +63,21 @@ def discover_route(od_point: int,
                      effective_cache, "alternative")
     if switching_costs is None or baseline is None or not getattr(baseline, "transport_modes", None):
         return free
+    # Same-mode candidate: the shipper's own modes only, and within them the modes that carried
+    # no line haul on the normal route (road access legs) weighted by 1 + penalty in the
+    # search, so that the path keeps to the line-haul mode wherever one exists (a canal
+    # detour) and uses the access modes only where unavoidable. The line-haul rule then
+    # judges the result like any other candidate.
+    costs = switching_costs or {}
+    line_haul_km = float(costs.get("line_haul_km", 100.0))
+    base_km = link._km_by_mode(baseline, transport_network)
+    line_haul = {m for m, km in base_km.items() if km >= line_haul_km}
+    penalty = link._switching_penalty(costs, "modal_switch", 0.15)
+    baseline_modes = set(baseline.transport_modes)
+    weights = {m: 1.0 + penalty for m in baseline_modes if m not in line_haul and m != "multimodal"}
+    library = "alternative_same_modes:" + "+".join(sorted(line_haul)) + f":{penalty:g}"
     same = _discover(od_point, link, transport_network, available_transport_network, weight,
-                     effective_cache, "alternative_same_modes",
-                     allowed_modes=set(baseline.transport_modes))
+                     effective_cache, library, allowed_modes=baseline_modes, mode_weights=weights or None)
     candidates = [r for r in (same, free) if r is not None]
     if not candidates:
         return None
