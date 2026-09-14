@@ -38,6 +38,22 @@ D lowers the give-up of bulk in closure weeks, E shows complementarity (package 
   × 3, tanker floor ± 10 cm, inventories ± 50 %, Lower Rhine factor 0 and 1, no pooling, v12 rates)
   belongs in the same batch: ≈ 8 more runs.
 
+## Status (14 Sep, 23:30)
+
+The 13 Sep batch numbers are read (base 2.74 %, ensemble 2.29 ± 0.47 %, levers, grid: README §2.2b, `calibration_log.md`)
+but the batch carries the KI-35 artefact: the alternative-route search was penalty-blind, so any Lower Rhine surcharge
+sent Kaub-crossing bulk to a rail path that the modal-switch penalty then rejected (factor 1/3 = factor 1 = base, factor
+0 different; closure losses roughly doubled). Fixed on 14 Sep (penalty-aware search + line-haul modal-switch rule,
+disrupt-sc 0d085ef) and verified on the ten-week laptop pair: German closure-week losses 28–33 % below the old base
+(0.39 vs 0.55 % of a quarter over ten weeks), the run reproduced link by link by an offline classification of the
+2,831 Kaub-crossing bulk OD pairs. Before the batch is relaunched the user decides the two thresholds: the 88 km road
+bypass of the closed Kaub reach is a switch only because it exceeds the 50 km access allowance (at 90 km almost no
+Kaub bulk gives up), and routes with 100 km or more of road already may lengthen that leg without limit (35 % of the
+Kaub-crossing bulk pairs, median +206 km). Then: relaunch the 28 runs (`cluster/jobs_20260911.txt`, base with
+`--cache auto`; caches valid, run-time change only), pack with `--with-firms 2026_fc0910_base,2018_baseline,2026_fc0910_package`,
+redraw F4–F8 and rewrite the ladder on the new numbers. Rail relief (`rail04`) stays unexplained; the crude-by-barge
+representation (no pipeline mode) is a paper limitation.
+
 ## Status (13 Sep)
 
 The 11 Sep batch reused the cluster's pre-fix caches for every shared-cache run (base, 2018, twins, levers,
