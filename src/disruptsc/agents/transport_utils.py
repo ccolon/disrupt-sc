@@ -14,38 +14,68 @@ if TYPE_CHECKING:
     from disruptsc.params import TransportParams
 
 
+def _discover(od_point: int, link: CommercialLink, transport_network: TransportNetwork,
+              available_transport_network: TransportNetwork, weight: str, use_cache: bool,
+              library: str, allowed_modes=None) -> Route | None:
+    """One shortest-path search (optionally restricted to *allowed_modes*), cached under *library*."""
+    if use_cache:
+        cached = transport_network.retrieve_cached_route(
+            od_point, link.destination_node, library, link.cargo_type,
+        )
+        if cached:
+            return cached
+    route = available_transport_network.provide_shortest_route(
+        od_point, link.destination_node, link.cargo_type, route_weight=weight,
+        allowed_modes=allowed_modes,
+    )
+    if route and use_cache:
+        transport_network.cache_route(
+            od_point, link.destination_node, library, link.cargo_type, route,
+        )
+    return route
+
+
 def discover_route(od_point: int,
                    link: CommercialLink,
                    transport_network: TransportNetwork,
                    available_transport_network: TransportNetwork,
                    capacity_constraint: bool,
-                   use_route_cache: bool) -> Route | None:
-    """Find a shortest-path route from *od_point* to the link's destination."""
+                   use_route_cache: bool,
+                   switching_costs: dict | None = None) -> Route | None:
+    """Find the best alternative route from *od_point* to the link's destination.
+
+    Penalty-aware (14 Sep 2026): the cheapest path by transport cost alone can introduce a
+    mode the shipper does not use - on the Rhine, a rail leg replacing surcharged river km -
+    which the modal-switch penalty then rejects, although a detour on the shipper's own modes
+    (barge to the next port, road for the rest) exists and would pass. With *switching_costs*
+    two candidates are searched, one restricted to the modes of the link's normal route and
+    one free, and the cheaper INCLUDING the switching penalty (a fraction of the normal bill)
+    is returned. Without *switching_costs* (or without a normal route) the free search is used.
+    """
     weight = "cost_per_ton"
     if capacity_constraint:
         weight = "cost_per_ton_with_capacity"
 
     effective_cache = use_route_cache and not capacity_constraint
+    baseline = getattr(link, "route", None)
+    free = _discover(od_point, link, transport_network, available_transport_network, weight,
+                     effective_cache, "alternative")
+    if switching_costs is None or baseline is None or not getattr(baseline, "transport_modes", None):
+        return free
+    same = _discover(od_point, link, transport_network, available_transport_network, weight,
+                     effective_cache, "alternative_same_modes",
+                     allowed_modes=set(baseline.transport_modes))
+    candidates = [r for r in (same, free) if r is not None]
+    if not candidates:
+        return None
+    normal_cost = float(getattr(link, "route_cost_per_ton", 0.0) or 0.0)
 
-    if effective_cache:
-        cached = transport_network.retrieve_cached_route(
-            od_point, link.destination_node,
-            "alternative", link.cargo_type,
-        )
-        if cached:
-            return cached
+    def total_cost(route: Route) -> float:
+        cost = transport_network.compute_route_cost(route, link.cargo_type, with_capacity=capacity_constraint)
+        penalty = link.calculate_switching_cost_between(baseline, route, switching_costs, transport_network)
+        return cost + penalty * normal_cost
 
-    route = available_transport_network.provide_shortest_route(
-        od_point, link.destination_node, link.cargo_type, route_weight=weight,
-    )
-
-    if route and effective_cache:
-        transport_network.cache_route(
-            od_point, link.destination_node,
-            "alternative", link.cargo_type, route,
-        )
-
-    return route
+    return min(candidates, key=total_cost)
 
 
 def _base_route_cost(route: Route,
@@ -144,6 +174,7 @@ def send_shipment(agent_pid, od_point: int,
         alt_route = discover_route(
             od_point, link, transport_network, available_transport_network,
             tp.capacity_constraint_enabled, tp.use_route_cache,
+            switching_costs=tp.switching_costs,
         )
         alt_cost = (transport_network.compute_route_cost(
             alt_route, link.cargo_type, with_capacity=tp.capacity_constraint_enabled)
@@ -250,6 +281,7 @@ def send_shipment(agent_pid, od_point: int,
             od_point, link,
             transport_network, available_transport_network,
             tp.capacity_constraint_enabled, tp.use_route_cache,
+            switching_costs=tp.switching_costs,
         )
         if alt_route is None:
             link.realized_delivery = 0.0
@@ -366,6 +398,7 @@ def _send_chunked_shipment(
                 od_point, link,
                 transport_network, available_transport_network,
                 tp.capacity_constraint_enabled, tp.use_route_cache,
+                switching_costs=tp.switching_costs,
             )
             if alt_route is None:
                 # This portion is lost
