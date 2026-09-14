@@ -200,11 +200,11 @@ class CommercialLink:
                                   alternative_route: Route | None) -> bool:
         if baseline_route is None or alternative_route is None:
             return False
-        # A switch is the use of a mode the shipper did not use on its normal route (new
-        # equipment, new contracts); dropping one of its modes is not a switch. Until 14 Sep
-        # 2026 the rule was set inequality, which also rejected a river+road detour that
-        # skipped a leg of the normal route.
-        return not set(alternative_route.transport_modes) <= set(baseline_route.transport_modes)
+        # Set equality: a route that adds OR drops a mode is a switch. Every route carries
+        # road access legs (agent_attachment: roads), so a 'no new mode' rule would let an
+        # all-road path replace a barge line-haul without penalty (tried and reverted 14 Sep
+        # 2026: 93 % of the Kaub-crossing bulk trucked round the closure).
+        return set(baseline_route.transport_modes) != set(alternative_route.transport_modes)
 
     @staticmethod
     def _routes_have_port_switch(baseline_route: Route | None,
