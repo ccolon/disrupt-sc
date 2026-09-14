@@ -312,10 +312,12 @@ class TransportNetwork(nx.Graph):
 
     def provide_shortest_route(self, origin: int, destination: int,
                                cargo_type: str, route_weight: str,
-                               allowed_modes=None) -> Route | None:
+                               allowed_modes=None, mode_weights: dict | None = None) -> Route | None:
         """Cheapest route for *cargo_type* under *route_weight*; *allowed_modes* (an iterable
-        of edge types) restricts the search to those modes - used by the penalty-aware
-        alternative discovery to look for a detour that keeps the shipper's own modes."""
+        of edge types) restricts the search to those modes and *mode_weights* ({type: factor})
+        scales the cost of the edges of a mode in the search only - used by the penalty-aware
+        alternative discovery to look for a detour on the shipper's line-haul mode, with its
+        access modes made as dear as the modal-switch penalty."""
         if origin not in self.nodes:
             logging.debug(f"Origin {origin} not in available network")
             return None
@@ -333,8 +335,15 @@ class TransportNetwork(nx.Graph):
             return weight in e and (modes is None or e.get("type") in modes)
 
         subgraph = nx.subgraph_view(self, filter_edge=edge_ok)
+        if mode_weights:
+            factors = dict(mode_weights)
+
+            def search_weight(u, v, d, _w=weight, _f=factors):
+                return d[_w] * _f.get(d.get("type"), 1.0)
+        else:
+            search_weight = weight
         try:
-            sp = nx.shortest_path(subgraph, origin, destination, weight=weight)
+            sp = nx.shortest_path(subgraph, origin, destination, weight=search_weight)
             return Route(sp, self, cargo_type)
         except (nx.NetworkXNoPath, nx.NodeNotFound):
             logging.debug(f"No path {origin} → {destination} for {weight}")

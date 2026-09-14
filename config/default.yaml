@@ -55,6 +55,8 @@ logistics:
   switching_costs:
     modal_switch: 0.15  # Additional cost percentage when switching transport modes (e.g., rail to road)
     port_switch: 0.05
+    access_km: 50       # a mode gains line-haul km when the alternative adds more than this on it ...
+    line_haul_km: 100   # ... and the normal route carried less than this on that mode (line-haul rule)
   # dwell_times / loading_fees: keyed by the edge's multimodes string; each
   # value is a scalar or a per-cargo-type dict ({container: 12, liquid_bulk: 1,
   # default: 12}) - per-cargo transfer costs express dedicated transshipment

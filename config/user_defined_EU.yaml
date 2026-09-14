@@ -131,6 +131,12 @@ logistics:
   switching_costs:
     modal_switch: {default: 0.15, liquid_bulk: 1000, dry_bulk: 1000}
     port_switch: 0.05
+    # Line-haul rule (14 Sep 2026): a modal switch is line-haul distance on a mode that only
+    # served access in the normal route - more than access_km extra on a mode carrying less
+    # than line_haul_km there. Barge to the next open port plus 150 km by truck is a switch;
+    # a longer water detour or a 30 km longer road access leg is not.
+    access_km: 50
+    line_haul_km: 100
   basic_cost:  # USD per ton*km; a mode may carry a per-cargo dict (disrupt-sc >= 2026-09-08)
     # v13 (8 Sep 2026): liquids by rail and road are tank-car / road-tanker traffic, dearer than bulk
     # wagons and tippers (dedicated equipment, cleaning) - no rate evidence collected [E]; the values
