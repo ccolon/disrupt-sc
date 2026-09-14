@@ -246,10 +246,13 @@ class TransportNetwork(nx.Graph):
     # continental scopes (EU: 197k OD groups, killed after 81 CPU-min).
 
     def invalidate_alternative_routes(self):
-        """Forget cached alternative routes: their costs no longer hold."""
-        self.shortest_path_library["alternative"] = {
-            ct: {} for ct in self.shortest_path_library.get("alternative", {})
-        } or {ct: {} for ct in (self.cargo_types or [])}
+        """Forget cached alternative routes - every 'alternative*' library, including the
+        same-mode searches of the penalty-aware discovery: their costs no longer hold."""
+        keys = [k for k in self.shortest_path_library if str(k).startswith("alternative")] or ["alternative"]
+        for key in keys:
+            self.shortest_path_library[key] = {
+                ct: {} for ct in self.shortest_path_library.get(key, {})
+            } or {ct: {} for ct in (self.cargo_types or [])}
 
     def start_edge_cost_shock(self, edge: dict, multiplier, duration: float,
                               capacity_factor: float = 1.0, substitution_share: float = 1.0):
@@ -308,7 +311,11 @@ class TransportNetwork(nx.Graph):
     # ------------------------------------------------------------------
 
     def provide_shortest_route(self, origin: int, destination: int,
-                               cargo_type: str, route_weight: str) -> Route | None:
+                               cargo_type: str, route_weight: str,
+                               allowed_modes=None) -> Route | None:
+        """Cheapest route for *cargo_type* under *route_weight*; *allowed_modes* (an iterable
+        of edge types) restricts the search to those modes - used by the penalty-aware
+        alternative discovery to look for a detour that keeps the shipper's own modes."""
         if origin not in self.nodes:
             logging.debug(f"Origin {origin} not in available network")
             return None
@@ -316,12 +323,14 @@ class TransportNetwork(nx.Graph):
             logging.debug(f"Destination {destination} not in available network")
             return None
         weight = route_weight + "_" + cargo_type
+        modes = set(allowed_modes) if allowed_modes else None
 
         # Use a subgraph view that only includes edges carrying this weight.
         # Edges without the label (blocked cargo type) would otherwise get
         # NetworkX's default weight of 1, making them appear cheapest.
         def edge_ok(u, v):
-            return weight in self[u][v]
+            e = self[u][v]
+            return weight in e and (modes is None or e.get("type") in modes)
 
         subgraph = nx.subgraph_view(self, filter_edge=edge_ok)
         try:
