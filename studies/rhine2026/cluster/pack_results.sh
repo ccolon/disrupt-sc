@@ -38,6 +38,7 @@ for d in $RUNS; do
     [[ -f "$d.log" ]] && echo "$d.log" >> "$list"
     if [[ -n "$WITH_FIRMS" && ",${WITH_FIRMS}," == *",${d},"* && -f "$d/firm_data.csv" ]]; then
         echo "$d/firm_data.csv" >> "$list"
+        for g in firm_table.geojson household_table.geojson; do [[ -f "$d/$g" ]] && echo "$d/$g" >> "$list"; done
     fi
 done
 ls compare_runs_batch.* >> "$list" 2>/dev/null || true

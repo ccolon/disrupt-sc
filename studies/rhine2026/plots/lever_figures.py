@@ -46,8 +46,16 @@ GRID_LABELS = {
     "lr0": "Lower Rhine surcharge factor 0",
     "lr1": "Lower Rhine surcharge factor 1",
     "nopool": "no input pooling (region-keyed inputs)",
-    "seed1": "seed 1",
-    "seed2": "seed 2",
+    "seed1": "supply-chain draw, seed 1",
+    "seed2": "supply-chain draw, seed 2",
+    "seed3": "supply-chain draw, seed 3",
+    "seed4": "supply-chain draw, seed 4",
+    "seed5": "supply-chain draw, seed 5",
+    "seed6": "supply-chain draw, seed 6",
+    "seed7": "supply-chain draw, seed 7",
+    "seed8": "supply-chain draw, seed 8",
+    "seed9": "supply-chain draw, seed 9",
+    "seed10": "supply-chain draw, seed 10",
     "fleet40": "tanker floor 40 cm (base 50)",
 }
 
@@ -117,7 +125,7 @@ def fig_levers(base: pd.Series, table: pd.DataFrame, weekly: dict[str, pd.Series
     order = table.sort_values("DEU_avoided_gross_mUSD").index.tolist()   # largest at the top of a barh
     fig = plt.figure(figsize=(11, 8.2))
     fig.patch.set_facecolor(SURFACE)
-    gs = fig.add_gridspec(2, 2, height_ratios=[1.05, 1.0], hspace=0.55, wspace=0.55)
+    gs = fig.add_gridspec(2, 2, height_ratios=[1.05, 1.0], hspace=0.55, wspace=0.18)
     for j, c in enumerate(("DEU", "EU")):
         ax = fig.add_subplot(gs[0, j])
         y = np.arange(len(order))
@@ -131,7 +139,7 @@ def fig_levers(base: pd.Series, table: pd.DataFrame, weekly: dict[str, pd.Series
             ax.text(max(v, nv, 0) + pad, yi, f"{v:,.0f} ({100 * v / base_g:+.0f} %)",
                     va="center", fontsize=7, color=INK2)
         ax.set_yticks(y)
-        ax.set_yticklabels([table.loc[n, "label"] for n in order], fontsize=7.5, color=INK)
+        ax.set_yticklabels([table.loc[n, "label"] for n in order] if j == 0 else [], fontsize=7.5, color=INK)
         ax.axvline(0, color=INK2, linewidth=0.8)
         name = "Germany" if c == "DEU" else "EU"
         style(ax, f"{name}: value-added loss avoided, mUSD (base {base_g:,.0f})", "")

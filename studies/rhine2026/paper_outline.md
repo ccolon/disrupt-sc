@@ -66,8 +66,14 @@ data file it comes from, so the pipeline can produce it without re-deciding.
   0.90 % with a second-round cascade in late November/December) and input pooling of commodity-like
   products across regions (`2026_seed42_pool` 3.55 bn = 0.37 %, peak in the 11 cm week; `2018_seed42_pool`
   5.57 bn = 0.58 %, peak 1.2 % of a week in the first week of December, cascade cut by two-thirds) →
-  candidate final baseline (10 Sep, confirmation pending); the ladder v12 floors → v13 rates → pooling is
-  the paper's sensitivity story (Table T2). The September 2026 trough (Kaub 26 cm on 9 Sep) → forecast-based
+  candidate final baseline (10 Sep, confirmed); then KI-34 (11 Sep): the supply-chain build was order-dependent,
+  every run before 13 Sep a single unreproducible draw. Reproducible seed-42 draw (cluster, 13 Sep):
+  `2026_fc0910_base` DEU 26.2 bn = 2.74 % of a quarter (ensemble of 11 draws 2.29 ± 0.47), peak 5.3 % of a
+  week in mid-October; `2018_baseline` 16.5 bn = 1.73 %, peak 3.6 % in the second week of December. The model
+  overshoots the 2018 ex post (−0.3/−0.4 %) by ~4x on typical draws: the paper must report the ensemble and
+  treat the propagation strength (pooling, stocks, tanker floor, Lower Rhine surcharge) as the calibration
+  question, not one draw. Levers (seed-42 draw): fleet to 20 cm −91 %, stocks +7 d −62 %, fairway +20 cm −41 %,
+  tank barges 40 cm −41 %, package −100 %; rail at the bulk rate +13 % (not understood, not for the paper yet). The September 2026 trough (Kaub 26 cm on 9 Sep) → forecast-based
   profile (BfG 6-week medians, 19 weeks to 26 Oct) and the rerun `2026_seed42_pool_fc0910` (10 Sep) as the
   2026 baseline run: DEU 8.57 bn = 0.90 % of a quarter (Q3 0.51 %, Q4 0.39 %), peak 1.38 % of a week in
   mid-October — the September trough's second wave exceeds the August one because stocks had two weeks to
