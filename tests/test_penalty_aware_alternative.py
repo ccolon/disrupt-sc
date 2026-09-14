@@ -87,10 +87,10 @@ def test_bulk_is_delivered_on_the_detour_when_the_river_closes():
     assert abs(link.price - 1.0 * (1 + 0.1 * (35.0 / 25.0 - 1.0))) < 1e-9   # +40 % freight, no penalty
 
 
-def test_dropping_a_mode_is_not_a_switch():
+def test_dropping_the_line_haul_mode_is_a_switch():
     tn = _network(); link = _link(tn)
-    road_only = Route([2, 4, 5], tn, CT)                                 # subset of the normal route's modes
-    assert not CommercialLink._routes_have_modal_switch(link.route, road_only)
+    road_only = Route([2, 4, 5], tn, CT)                                 # all-road: the barge line haul is gone
+    assert CommercialLink._routes_have_modal_switch(link.route, road_only)
     rail = Route([1, 3, 5], tn, CT)
     assert CommercialLink._routes_have_modal_switch(link.route, rail)
 
