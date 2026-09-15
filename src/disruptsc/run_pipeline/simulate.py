@@ -293,8 +293,6 @@ def set_initial_conditions(sc_network, firms, households, countries,
             if link.category == "import":
                 import_weights[i] += sc_network[u][v]["weight"]
 
-    transport_shares = np.array([f.transport_share for f in firm_list])
-
     # Final demand vector = household demand + country demand (only from firms)
     fd = np.zeros(n)  # 1-D for spsolve
     for hh in households.values():
@@ -329,23 +327,27 @@ def set_initial_conditions(sc_network, firms, households, countries,
         )
     np.clip(eq_production, 0.0, None, out=eq_production)
 
-    # Cost decomposition
+    # Cost decomposition: intermediate inputs (every kept MRIO input row, transport
+    # sectors included) plus an "other" residual that closes the target margin.
+    # No separate transport line: until 15 Sep 2026 eq_production x transport_share
+    # was subtracted on top of the inputs, re-counting the transport-sector cells
+    # already inside W and understating value added (KI-36).
     w_col_sum = np.asarray(W.sum(axis=0)).ravel().reshape((n, 1))
     domestic_input_cost = w_col_sum * eq_production
     import_input_cost = np.multiply(import_weights.reshape((n, 1)), eq_production)
     input_cost = domestic_input_cost + import_input_cost
-    transport_cost = np.multiply(eq_production, transport_shares.reshape((n, 1)))
     margins = np.array([f.target_margin for f in firm_list]).reshape((n, 1))
-    other_cost = np.multiply(eq_production, (1 - margins)) - input_cost - transport_cost
-    # Negative "other" cost means inputs + transport exceed (1 − margin) of
-    # sales — the margin/transport-share data is inconsistent for those firms
-    # and their profit decomposition flips sign. Not fatal, but say so.
+    other_cost = np.multiply(eq_production, (1 - margins)) - input_cost
+    # Negative "other" cost means inputs exceed (1 − margin) of sales — the
+    # margin (value added / output) and the input coefficients do not close the
+    # column for those firms (taxes or subsidies rows, or a VA row that does not
+    # add up) and their profit decomposition flips sign. Not fatal, but say so.
     n_neg_other = int((other_cost < -EPSILON).sum())
     if n_neg_other:
         logging.warning(
             f"{n_neg_other} firm(s) have negative equilibrium 'other' cost "
-            f"(min {float(other_cost.min()):.4g}): inputs + transport exceed "
-            f"(1 − margin) of sales. Check target_margin / transport_share data."
+            f"(min {float(other_cost.min()):.4g}): inputs exceed (1 − margin) of "
+            f"sales. Check target_margin / MRIO value-added data."
         )
 
     # Initialize firms. Capital is sized on *annual* value added, so convert the
@@ -358,7 +360,6 @@ def set_initial_conditions(sc_network, firms, households, countries,
         firm.initialize_inventory(sp.time_resolution)
         firm.initialize_finance(
             eq_input_cost=float(input_cost[i, 0]),
-            eq_transport_cost=float(transport_cost[i, 0]),
             eq_other_cost=float(other_cost[i, 0]),
             periods_per_year=periods_per_year,
         )

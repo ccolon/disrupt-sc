@@ -536,7 +536,7 @@ def report_inventory_to_gdp(firms: dict, households: dict, time_resolution: str)
         ef = getattr(f, "eq_finance", None) or {}
         s = ef.get("sales", 0.0)
         c = ef.get("costs", {})
-        return (s - c.get("input", 0.0) - c.get("transport", 0.0)) if s > 1e-12 else 0.0
+        return (s - c.get("input", 0.0)) if s > 1e-12 else 0.0
 
     gdp = sum(_va(f) for f in firms.values()) * ppy
     firm_inv = sum(sum(f.inventory.values()) for f in firms.values() if f.inventory)

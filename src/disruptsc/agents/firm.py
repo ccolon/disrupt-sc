@@ -162,9 +162,17 @@ class Firm:
             for input_id, need in self.eq_needs.items()
         }
 
-    def initialize_finance(self, eq_input_cost: float, eq_transport_cost: float, eq_other_cost: float,
+    def initialize_finance(self, eq_input_cost: float, eq_other_cost: float,
                            periods_per_year: float = 1.0):
         """Set up financial state from equilibrium values.
+
+        Costs are the intermediate inputs (every kept MRIO input row, transport
+        sectors included) and an "other" residual that closes the target margin.
+        There is no separate transport line: the firm's freight spending is
+        already among its transport-sector inputs, and subtracting
+        ``eq_production x transport_share`` on top (as the code did until
+        15 Sep 2026) counted the same MRIO cells twice and understated value
+        added (KI-36).
 
         ``periods_per_year`` annualizes the per-time-step value added when sizing
         the capital stock (see ``capital_initial`` below).
@@ -174,7 +182,6 @@ class Firm:
             "sales": eq_sales,
             "costs": {
                 "input": eq_input_cost,
-                "transport": eq_transport_cost,
                 "other": eq_other_cost,
             },
         }
@@ -182,17 +189,17 @@ class Firm:
             "sales": eq_sales,
             "costs": {
                 "input": eq_input_cost,
-                "transport": eq_transport_cost,
                 "other": eq_other_cost,
             },
         }
-        self.eq_profit = eq_sales - eq_input_cost - eq_transport_cost - eq_other_cost
+        self.eq_profit = eq_sales - eq_input_cost - eq_other_cost
         self.profit = self.eq_profit
         # Capital is a *stock*: the capital-to-value-added ratio is an annual ratio,
         # but value added here is a per-time-step flow. Annualize VA so capital_initial
         # is a realistic stock comparable to absolute capital-destruction shocks
-        # (e.g. with daily steps, periods_per_year=365).
-        annual_value_added = (eq_sales - eq_input_cost - eq_transport_cost) * periods_per_year
+        # (e.g. with daily steps, periods_per_year=365). Value added = sales minus
+        # all intermediate inputs, as in the MRIO.
+        annual_value_added = (eq_sales - eq_input_cost) * periods_per_year
         self.capital_initial = self.capital_to_value_added_ratio * annual_value_added
         self.initialize_capital()
 
@@ -442,10 +449,9 @@ class Firm:
             data["object"].payment
             for _, _, data in sc_network.in_edges(self, data=True)
         )
-        transport_cost = self.finance["costs"]["transport"]
         self.finance["sales"] = sales
         self.finance["costs"]["input"] = input_cost
-        self.profit = sales - input_cost - transport_cost - self.finance["costs"]["other"]
+        self.profit = sales - input_cost - self.finance["costs"]["other"]
 
     # ------------------------------------------------------------------
     # Disruption

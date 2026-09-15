@@ -134,5 +134,5 @@ def firm_va_shares(firms: dict) -> dict:
         ef = getattr(f, "eq_finance", None) or {}
         s = ef.get("sales", 0.0)
         c = ef.get("costs", {})
-        return (s - c.get("input", 0.0) - c.get("transport", 0.0)) / s if s > 1e-12 else 0.0
+        return (s - c.get("input", 0.0)) / s if s > 1e-12 else 0.0
     return {pid: _va(f) for pid, f in firms.items()}

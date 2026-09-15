@@ -87,7 +87,7 @@ def build(flow):
 
     def _va(f):
         ef = getattr(f, "eq_finance", None) or {}; s = ef.get("sales", 0.0); c = ef.get("costs", {})
-        return (s - c.get("input", 0.0) - c.get("transport", 0.0)) / s if s > 1e-12 else 0.0
+        return (s - c.get("input", 0.0)) / s if s > 1e-12 else 0.0
     annual_gdp = sum(f.eq_production * _va(f) for f in firms.values()) * ppy
 
     crit_path = fp.get("input_criticality")
