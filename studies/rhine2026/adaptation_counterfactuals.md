@@ -38,6 +38,19 @@ D lowers the give-up of bulk in closure weeks, E shows complementarity (package 
   × 3, tanker floor ± 10 cm, inventories ± 50 %, Lower Rhine factor 0 and 1, no pooling, v12 rates)
   belongs in the same batch: ≈ 8 more runs.
 
+## Status (15 Sep, 21:30) — batch on the settled rule read
+
+All 28 runs of `cluster/jobs_20260911.txt` on 8d26c6c (`rhine_batch_20260915_1904.tgz`). Base 2.16 % of a quarter
+(2.74 before the fix), ensemble 1.85 ± 0.44 %, 2018 1.34 % (1.73). Levers (DEU gross avoided): fleet20 −92 %, stock7 −65 %,
+deep20 −49 %, fleet40 −48 %, stock7t −28 %, rail04 ±0 (the +13 % was the KI-35 artefact; the lever is inert now, as the
+model has no delivery-time channel through which cheaper rail could help bulk that the modal-switch penalty forbids to
+move), package −100 %. Grid: lr0 = lr1 = base (the Lower Rhine factor is a price parameter only), floors −10 cm = deep20
+= fleet40 = 1.11 %, tanker floor 60 = floors +10 = 2.70 %, stocks ×0.5 5.96 %, ×1.5 0.82 %, no pooling 4.67 %. Figures
+F4–F8 and `additional_data/levers_20260915.csv` come from these runs. Open before the paper numbers are frozen: the
+calibration overshoot (three to four times the evidence; stocks ×1.5 and the tanker floor at 40 cm each halve it), the
+event-end profile refresh (November), the rail lever's framing (inert by construction), and the missing pipeline mode
+(crude by barge through Kaub) as a stated limitation.
+
 ## Status (15 Sep, 12:00)
 
 Decision taken on the recommendation: the 50 km access allowance stays and road is never a line-haul mode for bulk

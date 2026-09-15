@@ -73,7 +73,18 @@ data file it comes from, so the pipeline can produce it without re-deciding.
   overshoots the 2018 ex post (−0.3/−0.4 %) by ~4x on typical draws: the paper must report the ensemble and
   treat the propagation strength (pooling, stocks, tanker floor, Lower Rhine surcharge) as the calibration
   question, not one draw. Levers (seed-42 draw): fleet to 20 cm −91 %, stocks +7 d −62 %, fairway +20 cm −41 %,
-  tank barges 40 cm −41 %, package −100 %; rail at the bulk rate +13 % (not understood, not for the paper yet). The September 2026 trough (Kaub 26 cm on 9 Sep) → forecast-based
+  tank barges 40 cm −41 %, package −100 %; rail at the bulk rate +13 % (not understood, not for the paper yet). Then KI-35
+  (14–15 Sep): the alternative-route search was penalty-blind, so any Lower Rhine surcharge sent Kaub-crossing bulk to a
+  rail path that the modal-switch penalty then rejected (the rail lever's +13 % was this artefact) → penalty-aware search
+  and the line-haul modal-switch rule (50 km access allowance, 100 km line-haul threshold, road never a line-haul mode for
+  bulk), verified link by link on ten-week pairs. Batch of 15 Sep on the settled rule (the paper numbers unless the
+  calibration route changes): `2026_fc0910_base` DEU 20.7 bn = 2.16 % of a quarter (ensemble of 11 draws 1.85 ± 0.44,
+  range 1.04–2.49), peak 4.2 % of a week in mid-October; `2018_baseline` 12.8 bn = 1.34 %, peak 2.8 % in the second week
+  of December; no pooling 4.67 / 2.12 %. Levers: fleet to 20 cm −92 %, stocks +7 d −65 %, fairway +20 cm −49 %, tank
+  barges 40 cm −48 %, targeted stocks −28 %, package −100 %, rail at the bulk rate ±0 (inert by construction: no
+  delivery-time channel). Grid: Lower Rhine factor 0 = factor 1 = base (a price parameter only), stocks ×1.5 0.82 %,
+  tanker floor 40 cm 1.12 %. The overshoot against the 2018 ex post is three to four times on typical draws — the
+  calibration question of the paper. The September 2026 trough (Kaub 26 cm on 9 Sep) → forecast-based
   profile (BfG 6-week medians, 19 weeks to 26 Oct) and the rerun `2026_seed42_pool_fc0910` (10 Sep) as the
   2026 baseline run: DEU 8.57 bn = 0.90 % of a quarter (Q3 0.51 %, Q4 0.39 %), peak 1.38 % of a week in
   mid-October — the September trough's second wave exceeds the August one because stocks had two weeks to
