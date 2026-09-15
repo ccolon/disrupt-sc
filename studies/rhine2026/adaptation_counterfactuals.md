@@ -38,6 +38,25 @@ D lowers the give-up of bulk in closure weeks, E shows complementarity (package 
   × 3, tanker floor ± 10 cm, inventories ± 50 %, Lower Rhine factor 0 and 1, no pooling, v12 rates)
   belongs in the same batch: ≈ 8 more runs.
 
+## Status (16 Sep) — calibration route decided (Occam pass)
+
+User decision on the recommendation: freeze every mechanism that is structural or evidence-anchored (survey
+criticality with the 2 % floor, input pooling, cargo closure floors 40/50/30, voyage surcharge with cargo rates,
+the settled modal-switch rule) and calibrate ONE parameter, the input-stock buffer, on the 2018 ex post
+(0.3–0.4 % of a quarter, peak late November / early December). Why stocks: the Bundesbank targets count
+raw-material stocks at the buyer only; the supplier's finished goods, the buyer's work in progress and the
+October 2018 fuel-reserve release are buffers the model lacks, so a multiplier of 1.5–2 is the buffer the
+evidence describes, not a fit; it also reconciles the 2026 August-wave ex ante (model 0.51 % of a quarter
+against IfW EUR 1–2 bn) with the same move. Dropped from the paper set: the delivered-price give-up threshold
+(never binds), the Lower Rhine factor as a lever (price parameter only), rail at the bulk rate (inert by
+construction), floors ±10 cm (duplicate the tanker-floor axis). Stated limitations, not targets: the DIHK
+extensive margin, the missing pipeline mode, binary closures. Stage 1 `cluster/jobs_20260916_cal2018.txt`
+(2018 ladder ×1.25 / 1.5 / 1.75 / 2, ×1.5 with the tanker floor at 40 cm as a cross-check, 2026 at ×2;
+launched with `--independent`, no base chain), stage 2 `cluster/jobs_20260916_paper.txt` (base, twins,
+ensemble, five levers, tanker floor 60; multiplier to set after the pick). Then freeze the numbers, redraw
+F4–F8 with `--prefix 2026_cal_`, rewrite the ladder as evidence-anchored mechanisms + one calibrated buffer
++ structural band (tanker floor, draws).
+
 ## Status (15 Sep, 21:30) — batch on the settled rule read
 
 All 28 runs of `cluster/jobs_20260911.txt` on 8d26c6c (`rhine_batch_20260915_1904.tgz`). Base 2.16 % of a quarter

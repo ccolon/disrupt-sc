@@ -8,7 +8,11 @@
 # rebuild in a private cache). A postprocess job (analyze_scenario.py --no-links + figures) follows each
 # run, and one compare_runs.py job follows the whole batch.
 #
-# Usage:  bash studies/rhine2026/cluster/launch_rhine_batch.sh [--dry-run] [--jobs FILE] [--only NAME,NAME]
+# Usage:  bash studies/rhine2026/cluster/launch_rhine_batch.sh [--dry-run] [--jobs FILE] [--only NAME,NAME] [--independent]
+#
+# --independent (16 Sep 2026): submit every run at once, no afterok chain on the base. Use it when the
+# shared caches are known valid (a run-time or config change that the fingerprints ignore: switching
+# costs, inventory targets, disruptions); a job list without a *_base line behaves the same way.
 #
 # Before the first batch on a new cluster: sync_to_cluster.sh (EU data + caches), git pull to the commit
 # named in the jobs file, and check that config/user_defined_EU.yaml resolves its data through
@@ -30,11 +34,13 @@ COMMON="--profile 2026 --no-open --seed 42 --recovery-weeks 12 --light-export"
 JOBS_FILE="${SCRIPT_DIR}/studies/rhine2026/cluster/jobs_20260913.txt"
 DRY_RUN=false
 ONLY=""
+INDEPENDENT=false
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --dry-run) DRY_RUN=true; shift ;;
-        --jobs)    JOBS_FILE=$2; shift 2 ;;
-        --only)    ONLY=$2; shift 2 ;;
+        --dry-run)     DRY_RUN=true; shift ;;
+        --jobs)        JOBS_FILE=$2; shift 2 ;;
+        --only)        ONLY=$2; shift 2 ;;
+        --independent) INDEPENDENT=true; shift ;;
         *) shift ;;
     esac
 done
@@ -70,7 +76,9 @@ while IFS='|' read -r name flags; do
     out="${OUTPUT_DIR}/${name}"
     payload="python studies/rhine2026/run_rhine.py ${COMMON} ${flags} --out ${out} > ${out}.log 2>&1"
     dep=""
-    if [[ "$name" == *_base ]]; then
+    if $INDEPENDENT; then
+        dep=""
+    elif [[ "$name" == *_base ]]; then
         dep=""
     elif [[ "$flags" == *--cache-isolation* ]]; then
         dep=""

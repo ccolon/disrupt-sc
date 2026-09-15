@@ -1,0 +1,26 @@
+# Rhine 2026 cluster batch, stage 1 of the calibration (16 Sep 2026, user decision on the Occam pass):
+# calibrate the ONE free parameter, the input-stock buffer, on the 2018 ex post. The Bundesbank targets
+# count raw-material stocks at the buyer only; the supplier's finished goods, the buyer's work in progress
+# and the October 2018 fuel-reserve release are buffers the model lacks, so a multiplier of 1.25-2 on the
+# stock days is the buffer the evidence describes. Target: 2018 cumulated German value-added loss of
+# 0.3-0.4 % of a quarter with the peak in late November / early December (Ademmer et al.; press).
+# Everything else frozen at its evidence value (survey criticality, pooling, cargo floors 40/50/30,
+# voyage surcharge with cargo rates, the settled modal-switch rule; disrupt-sc 8d26c6c or later).
+#
+# One line per run: <name> | <extra flags>. Common flags (launch_rhine_batch.sh): --profile 2026 --no-open
+# --seed 42 --recovery-weeks 12 --light-export; a later flag on the line overrides the common one.
+# No *_base line and launched with --independent: the cluster's caches (13 Sep build) are valid, the
+# fingerprints exclude the switching costs and the inventory targets are re-applied on every cache load,
+# so every run is submitted at once (no afterok chain, no wasted base run). Postprocess reads --profile
+# from the line. The 2026 point at x1.5 exists (2026_fc0910_inv150, 15 Sep batch, 0.82 % of a quarter);
+# x2 is added here so that both candidate picks have a 2026 headline before stage 2.
+#
+# --- 2018 stock ladder (20 recovery weeks, the paper convention for the 2018 baseline) ---
+2018_inv125       | --profile 2018 --recovery-weeks 20 --inventory-scale 1.25
+2018_inv150       | --profile 2018 --recovery-weeks 20 --inventory-scale 1.5
+2018_inv175       | --profile 2018 --recovery-weeks 20 --inventory-scale 1.75
+2018_inv200       | --profile 2018 --recovery-weeks 20 --inventory-scale 2.0
+# --- cross-check: does the tanker floor at 40 cm add anything once the buffer is right? ---
+2018_inv150_liq40 | --profile 2018 --recovery-weeks 20 --inventory-scale 1.5 --closure-floors container=40,liquid_bulk=40,dry_bulk=30,default=30
+# --- 2026 headline for the x2 candidate (grid convention, 12 recovery weeks; x1.5 = 2026_fc0910_inv150) ---
+2026_fc0910_inv200 | --inventory-scale 2.0
