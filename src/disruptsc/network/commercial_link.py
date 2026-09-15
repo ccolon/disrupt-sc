@@ -154,7 +154,8 @@ class CommercialLink:
         return result
 
     def has_modal_switch(self, transport_network: TransportNetwork, switching_costs: dict | None = None) -> bool:
-        return self._routes_have_modal_switch(self.route, self.alternative_route, transport_network, switching_costs)
+        return self._routes_have_modal_switch(self.route, self.alternative_route, transport_network, switching_costs,
+                                              self.cargo_type)
 
     def has_port_switch(self, transport_network: TransportNetwork) -> bool:
         return self._routes_have_port_switch(self.route, self.alternative_route, transport_network)
@@ -185,7 +186,8 @@ class CommercialLink:
                                          alternative_route: Route | None,
                                          switching_costs: dict,
                                          transport_network: TransportNetwork) -> float:
-        if self._routes_have_modal_switch(baseline_route, alternative_route, transport_network, switching_costs):
+        if self._routes_have_modal_switch(baseline_route, alternative_route, transport_network, switching_costs,
+                                          self.cargo_type):
             return self._switching_penalty(switching_costs, "modal_switch", 0.15)
         if self._routes_have_port_switch(baseline_route, alternative_route, transport_network):
             return self._switching_penalty(switching_costs, "port_switch", 0.05)
@@ -208,32 +210,63 @@ class CommercialLink:
         return km
 
     @staticmethod
+    def _line_haul_modes(switching_costs: dict | None, cargo_type: str | None) -> set | None:
+        """Modes that may carry line haul for *cargo_type*: ``switching_costs.line_haul_modes``, a
+        list or a per-cargo dict with ``default``; None when every mode may (no setting)."""
+        value = (switching_costs or {}).get("line_haul_modes")
+        if isinstance(value, dict):
+            value = value.get(cargo_type, value.get("default"))
+        if value is None:
+            return None
+        return set(value)
+
+    @staticmethod
+    def _line_haul_of(base_km: dict, switching_costs: dict | None, cargo_type: str | None) -> set:
+        """The line-haul modes of a normal route with *base_km* kilometres per mode: the modes that
+        carry at least ``line_haul_km`` there AND may carry line haul for the cargo class
+        (``line_haul_modes``, 15 Sep 2026: road is never one for bulk). A shipper whose route uses
+        none of its eligible modes (an all-road bulk shipper) keeps the kilometre rule on its own
+        modes, so it can still detour on them."""
+        costs = switching_costs or {}
+        line_haul_km = float(costs.get("line_haul_km", 100.0))
+        by_km = {m for m, km in base_km.items() if km >= line_haul_km and m != "multimodal"}
+        eligible = CommercialLink._line_haul_modes(costs, cargo_type)
+        if eligible is None:
+            return by_km
+        if not any(m in eligible for m in base_km if m != "multimodal"):
+            return by_km
+        return {m for m in by_km if m in eligible}
+
+    @staticmethod
     def _routes_have_modal_switch(baseline_route: Route | None,
                                   alternative_route: Route | None,
                                   transport_network: TransportNetwork | None = None,
-                                  switching_costs: dict | None = None) -> bool:
+                                  switching_costs: dict | None = None,
+                                  cargo_type: str | None = None) -> bool:
         """Line-haul rule (14 Sep 2026): the alternative switches mode when it puts line-haul
-        kilometres on a mode that only served access in the normal route - for some mode m,
-        km_alt(m) - km_base(m) > access_km while km_base(m) < line_haul_km. More kilometres on
-        a mode the shipper already uses for line haul (a canal detour on the water) is not a
-        switch, nor is a longer access leg within the allowance; a dropped mode is not one
-        either. Every route in a road-attached scope carries road access legs, so neither
-        set equality (a longer road leg passes) nor 'no new mode' (an all-road path passes)
-        separates access from line haul; this rule does. Thresholds: switching_costs
-        access_km (default 50) and line_haul_km (default 100). Without a network the legacy
-        set comparison applies."""
+        kilometres on a mode that only served access in the normal route - for some mode m outside
+        the route's line-haul modes, km_alt(m) - km_base(m) > access_km. The line-haul modes are the
+        modes carrying at least line_haul_km in the normal route and allowed to carry line haul
+        for the cargo class (``line_haul_modes``; since 15 Sep 2026 road is never one for bulk, so a
+        bulk shipper may not lengthen a road leg beyond the allowance whatever that leg's length).
+        More kilometres on a line-haul mode (a canal detour) or a longer access leg within the
+        allowance is not a switch, nor is a dropped mode. Every route in a road-attached scope
+        carries road access legs, so neither set equality (a longer road leg passes) nor 'no new
+        mode' (an all-road path passes) separates access from line haul; this rule does.
+        Thresholds: switching_costs access_km (default 50), line_haul_km (default 100),
+        line_haul_modes (default: every mode). Without a network the legacy set comparison
+        applies."""
         if baseline_route is None or alternative_route is None:
             return False
         if transport_network is None:
             return set(baseline_route.transport_modes) != set(alternative_route.transport_modes)
         costs = switching_costs or {}
         access_km = float(costs.get("access_km", 50.0))
-        line_haul_km = float(costs.get("line_haul_km", 100.0))
         base_km = CommercialLink._km_by_mode(baseline_route, transport_network)
         alt_km = CommercialLink._km_by_mode(alternative_route, transport_network)
+        line_haul = CommercialLink._line_haul_of(base_km, costs, cargo_type)
         for mode, km in alt_km.items():
-            b = base_km.get(mode, 0.0)
-            if b < line_haul_km and km - b > access_km:
+            if mode not in line_haul and km - base_km.get(mode, 0.0) > access_km:
                 return True
         return False
 

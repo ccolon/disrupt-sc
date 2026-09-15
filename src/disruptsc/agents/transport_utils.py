@@ -63,15 +63,14 @@ def discover_route(od_point: int,
                      effective_cache, "alternative")
     if switching_costs is None or baseline is None or not getattr(baseline, "transport_modes", None):
         return free
-    # Same-mode candidate: the shipper's own modes only, and within them the modes that carried
-    # no line haul on the normal route (road access legs) weighted by 1 + penalty in the
+    # Same-mode candidate: the shipper's own modes only, and within them the modes that carry
+    # no line haul for it (access legs; road always, for bulk) weighted by 1 + penalty in the
     # search, so that the path keeps to the line-haul mode wherever one exists (a canal
     # detour) and uses the access modes only where unavoidable. The line-haul rule then
     # judges the result like any other candidate.
     costs = switching_costs or {}
-    line_haul_km = float(costs.get("line_haul_km", 100.0))
     base_km = link._km_by_mode(baseline, transport_network)
-    line_haul = {m for m, km in base_km.items() if km >= line_haul_km}
+    line_haul = link._line_haul_of(base_km, costs, link.cargo_type)   # km rule x per-cargo line-haul modes
     penalty = link._switching_penalty(costs, "modal_switch", 0.15)
     baseline_modes = set(baseline.transport_modes)
     weights = {m: 1.0 + penalty for m in baseline_modes if m not in line_haul and m != "multimodal"}

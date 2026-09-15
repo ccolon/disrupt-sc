@@ -57,6 +57,9 @@ logistics:
     port_switch: 0.05
     access_km: 50       # a mode gains line-haul km when the alternative adds more than this on it ...
     line_haul_km: 100   # ... and the normal route carried less than this on that mode (line-haul rule)
+    # line_haul_modes: list or {default: [...], <cargo_type>: [...]} - modes that may carry line haul for a
+    # cargo class; a mode outside the list is an access mode whatever its km (e.g. no road line haul for
+    # bulk). Absent: every mode may carry line haul.
   # dwell_times / loading_fees: keyed by the edge's multimodes string; each
   # value is a scalar or a per-cargo-type dict ({container: 12, liquid_bulk: 1,
   # default: 12}) - per-cargo transfer costs express dedicated transshipment
