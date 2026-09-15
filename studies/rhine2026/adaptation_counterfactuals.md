@@ -38,6 +38,17 @@ D lowers the give-up of bulk in closure weeks, E shows complementarity (package 
   × 3, tanker floor ± 10 cm, inventories ± 50 %, Lower Rhine factor 0 and 1, no pooling, v12 rates)
   belongs in the same batch: ≈ 8 more runs.
 
+## Status (15 Sep, 12:00)
+
+Decision taken on the recommendation: the 50 km access allowance stays and road is never a line-haul mode for bulk
+(`switching_costs.line_haul_modes`, disrupt-sc 8d26c6c). Verified on the ten-week laptop pair: 75 % of the week-6 Kaub
+bulk gives up (kilometre rule 67 %, old code 81 %), predicted link by link by the offline classification; German loss
+over ten weeks 0.40 % of a quarter (0.39 / 0.55). The 28-run cluster batch (`cluster/jobs_20260911.txt`, base with
+`--cache auto`, caches valid since the fingerprints exclude the switching costs) is to be relaunched on this commit
+(advised 15 Sep morning; launch is the user's step); pack with `--with-firms 2026_fc0910_base,2018_baseline,2026_fc0910_package`, then redraw F4–F8 and rewrite the
+ladder. Expect the new base near or somewhat below the 13 Sep 2.74 % and `lr0` equal to the base (the Lower Rhine
+factor is no longer a calibration lever); the overshoot decision rests on the stock and tanker-floor levers.
+
 ## Status (14 Sep, 23:30)
 
 The 13 Sep batch numbers are read (base 2.74 %, ensemble 2.29 ± 0.47 %, levers, grid: README §2.2b, `calibration_log.md`)
