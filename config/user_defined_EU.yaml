@@ -137,6 +137,16 @@ logistics:
     # a longer water detour or a 30 km longer road access leg is not.
     access_km: 50
     line_haul_km: 100
+    # Line-haul modes by cargo class (15 Sep 2026): road is never a line-haul mode for bulk, so a
+    # bulk shipper may not lengthen a road leg by more than access_km whatever that leg's length
+    # (the trunk network gives a third of the Kaub-crossing bulk routes 100 km or more of road
+    # access, which the kilometre rule alone would let grow without limit). Containers keep the
+    # kilometre rule on every mode. A shipper whose normal route uses none of its line-haul modes
+    # (all-road bulk) keeps the kilometre rule on its own modes.
+    line_haul_modes:
+      default: [roads, railways, waterways, maritime]
+      dry_bulk: [railways, waterways, maritime]
+      liquid_bulk: [railways, waterways, maritime]
   basic_cost:  # USD per ton*km; a mode may carry a per-cargo dict (disrupt-sc >= 2026-09-08)
     # v13 (8 Sep 2026): liquids by rail and road are tank-car / road-tanker traffic, dearer than bulk
     # wagons and tippers (dedicated equipment, cleaning) - no rate evidence collected [E]; the values
