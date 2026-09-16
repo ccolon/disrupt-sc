@@ -1,0 +1,17 @@
+# Rhine 2026 cluster batch (16 Sep 2026): ensemble of supply-chain draws for the 2018 validation case on the
+# calibrated buffer (x2), so that the validation figure carries the same draw-to-draw band as the 2026 case
+# (the calibrated 2018 baseline 2018_inv200 is the seed-42 draw). One line per run: <name> | <extra flags>.
+# Common flags (launch_rhine_batch.sh): --profile 2026 --no-open --seed 42 --recovery-weeks 12 --light-export;
+# a later flag on the line overrides the common one. Every run carries --cache-isolation (a private rebuild
+# of the draw), so the launcher submits them at once; --independent is harmless here.
+# Pack: pack_results.sh --jobs studies/rhine2026/cluster/jobs_20260916_ens2018.txt
+2018_cal_seed1  | --profile 2018 --recovery-weeks 20 --seed 1 --cache-isolation --inventory-scale 2.0
+2018_cal_seed2  | --profile 2018 --recovery-weeks 20 --seed 2 --cache-isolation --inventory-scale 2.0
+2018_cal_seed3  | --profile 2018 --recovery-weeks 20 --seed 3 --cache-isolation --inventory-scale 2.0
+2018_cal_seed4  | --profile 2018 --recovery-weeks 20 --seed 4 --cache-isolation --inventory-scale 2.0
+2018_cal_seed5  | --profile 2018 --recovery-weeks 20 --seed 5 --cache-isolation --inventory-scale 2.0
+2018_cal_seed6  | --profile 2018 --recovery-weeks 20 --seed 6 --cache-isolation --inventory-scale 2.0
+2018_cal_seed7  | --profile 2018 --recovery-weeks 20 --seed 7 --cache-isolation --inventory-scale 2.0
+2018_cal_seed8  | --profile 2018 --recovery-weeks 20 --seed 8 --cache-isolation --inventory-scale 2.0
+2018_cal_seed9  | --profile 2018 --recovery-weeks 20 --seed 9 --cache-isolation --inventory-scale 2.0
+2018_cal_seed10 | --profile 2018 --recovery-weeks 20 --seed 10 --cache-isolation --inventory-scale 2.0
