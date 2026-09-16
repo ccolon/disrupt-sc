@@ -331,7 +331,7 @@ def set_initial_conditions(sc_network, firms, households, countries,
     # sectors included) plus an "other" residual that closes the target margin.
     # No separate transport line: until 15 Sep 2026 eq_production x transport_share
     # was subtracted on top of the inputs, re-counting the transport-sector cells
-    # already inside W and understating value added (KI-36).
+    # already inside W and understating value added (KI-38).
     w_col_sum = np.asarray(W.sum(axis=0)).ravel().reshape((n, 1))
     domestic_input_cost = w_col_sum * eq_production
     import_input_cost = np.multiply(import_weights.reshape((n, 1)), eq_production)
