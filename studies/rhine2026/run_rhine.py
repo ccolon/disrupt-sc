@@ -169,29 +169,41 @@ def parse_inventory_add_days(raw) -> tuple[float, list[str] | None]:
 
 def adjust_inventory_targets(targets, add_days: float = 0.0, scale: float | None = None,
                              sectors: list[str] | None = None) -> dict:
-    """Copy of a per_buying_sector inventory-target dict with the goods-stock days of the buyers in
-    *sectors* (None = every buyer, the default included) multiplied by *scale* and then shifted by
-    *add_days*. Entries at or above COPING_DAYS and the '*' override block are left untouched."""
+    """Copy of a per_buying_sector inventory-target dict with the goods-stock days of EVERY buyer (the
+    default included) multiplied by *scale*, then shifted by *add_days* for the buyers in *sectors*
+    (None = every buyer). Entries at or above COPING_DAYS and the '*' override block are left untouched.
+
+    Until 16 Sep 2026 the multiplier followed the sector list of --inventory-add-days, so a targeted
+    stock lever on a calibrated buffer (--inventory-add-days 7:H49,... --inventory-scale 2) scaled the
+    listed sectors only and left every other buyer at the uncalibrated targets (the 16 Sep
+    `2026_cal_stock7t` run: +29 % instead of a saving). The multiplier is the calibration and applies
+    to all; the sector list belongs to the lever alone."""
     import copy
     if not isinstance(targets, dict) or targets.get("definition") != "per_buying_sector":
         raise SystemExit("inventory adjustments need per_buying_sector inventory_duration_targets")
     out = copy.deepcopy(targets)
 
-    def adj(v):
+    def scaled(v):
+        v = float(v)
+        if v >= COPING_DAYS or scale is None:
+            return v
+        return v * float(scale)
+
+    def shifted(v):
         v = float(v)
         if v >= COPING_DAYS:
             return v
-        if scale is not None:
-            v = v * float(scale)
         return round(v + float(add_days), 2)
 
     values = out.setdefault("values", {})
+    for k, v in list(values.items()):
+        values[k] = scaled(v)
     if sectors is None:
         for k, v in list(values.items()):
-            values[k] = adj(v)
+            values[k] = shifted(v)
     else:
         for k in sectors:
-            values[k] = adj(values.get(k, values.get("default", 30)))
+            values[k] = shifted(values.get(k, values.get("default", 30)))
     for buyer, block in list(out.get("overrides", {}).items()):
         if buyer == "*" or not isinstance(block, dict):
             continue

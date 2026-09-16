@@ -1,0 +1,6 @@
+run,label,DEU_gross_mUSD,DEU_net_mUSD,DEU_avoided_gross_mUSD,DEU_avoided_net_mUSD,DEU_avoided_gross_%,EU_gross_mUSD,EU_net_mUSD,EU_avoided_gross_mUSD,EU_avoided_net_mUSD,EU_avoided_gross_%,DEU_peak_%week,DEU_peak_week,DEU_delay_mUSD
+deep20,Fairway +20 cm (Abladeoptimierung Mittelrhein),3080.0,2962.0,2098.0,2040.0,40.51757435303206,3452.0,3251.0,2805.0,2623.0,44.82979063448937,1.023,15.0,18.2
+fleet40,Tank barges sail to 40 cm,3181.0,3045.0,1997.0,1957.0,38.567014291232134,4191.0,3881.0,2066.0,1993.0,33.01901869905706,1.04,15.0,22.5
+fleet20,Low-water bulk fleet (sails to 20 cm),241.0,177.0,4937.0,4825.0,95.34569331788336,487.0,365.0,5770.0,5509.0,92.21671727665016,0.171,14.0,3.4
+stock7,"+7 days of input stocks, all buyers",3158.0,2996.0,2020.0,2006.0,39.011201235998456,4127.0,3764.0,2130.0,2110.0,34.04187310212562,0.872,17.0,23.4
+package,Package: fairway + fleet + stocks,1.0,1.0,5177.0,5001.0,99.98068752414059,5.0,5.0,6252.0,5869.0,99.92008949976027,0.0,27.0,0.0

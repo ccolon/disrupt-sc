@@ -38,7 +38,11 @@ for d in $RUNS; do
     [[ -f "$d.log" ]] && echo "$d.log" >> "$list"
     if [[ -n "$WITH_FIRMS" && ",${WITH_FIRMS}," == *",${d},"* && -f "$d/firm_data.csv" ]]; then
         echo "$d/firm_data.csv" >> "$list"
-        for g in firm_table.geojson household_table.geojson; do [[ -f "$d/$g" ]] && echo "$d/$g" >> "$list"; done
+        # the geojson tables scenario_figures.py needs (F5 draws the network; 16 Sep: transport_edges/nodes and
+        # country_table were missing from the 15-16 Sep archives and had to be copied from an older run)
+        for g in firm_table.geojson household_table.geojson country_table.geojson transport_edges.geojson transport_nodes.geojson; do
+            [[ -f "$d/$g" ]] && echo "$d/$g" >> "$list"
+        done
     fi
 done
 ls compare_runs_batch.* >> "$list" 2>/dev/null || true

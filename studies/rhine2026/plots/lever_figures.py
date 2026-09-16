@@ -43,6 +43,8 @@ GRID_LABELS = {
     "floors_p10": "all floors +10 cm",
     "inv050": "input stocks × 0.5",
     "inv150": "input stocks × 1.5",
+    "stocks_x1": "input stocks × 1 (raw-material stocks only, uncalibrated)",
+    "stocks_x15": "input stocks × 1.5 (calibrated value × 0.75)",
     "lr0": "Lower Rhine surcharge factor 0",
     "lr1": "Lower Rhine surcharge factor 1",
     "nopool": "no input pooling (region-keyed inputs)",
