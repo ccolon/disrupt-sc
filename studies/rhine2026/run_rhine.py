@@ -207,8 +207,10 @@ def adjust_inventory_targets(targets, add_days: float = 0.0, scale: float | None
     for buyer, block in list(out.get("overrides", {}).items()):
         if buyer == "*" or not isinstance(block, dict):
             continue
+        block = {k: scaled(v) for k, v in block.items()}          # the multiplier applies to every buyer's overrides
         if sectors is None or buyer in sectors:
-            out["overrides"][buyer] = {k: adj(v) for k, v in block.items()}
+            block = {k: shifted(v) for k, v in block.items()}     # the shift to the listed buyers only
+        out["overrides"][buyer] = block
     return out
 
 
