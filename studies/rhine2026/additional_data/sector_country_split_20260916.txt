@@ -1,0 +1,196 @@
+
+######## 2026_cal_base ########
+
+== DEU: gross 5,178 mUSD, net 5,002 (97 %); perishable (services etc.) 4,292 = 83 % of gross; deferrable goods 886 gross -> 710 net (80 % left as backlog), delay 50
+                                         name       group   gross     net  share_%  cum_%  firms_hit  firms
+sector                                                                                                     
+H52                    warehousing, logistics  perishable  1492.3  1492.3     28.8   28.8         38     38
+H49                            land transport  perishable  1126.8  1126.8     21.8   50.6         38     38
+D                         electricity and gas  perishable  1017.8  1017.8     19.7   70.2         38     38
+H50                           water transport  perishable   464.2   464.2      9.0   79.2         38     38
+C19                         refined petroleum  deferrable   441.6   323.8      8.5   87.7         13     14
+C20                                 chemicals  deferrable   292.2   277.0      5.6   93.4         15     15
+H51                             air transport  perishable   131.0   131.0      2.5   95.9         38     38
+A01                               agriculture  deferrable    57.0    50.8      1.1   97.0        290    306
+C23     non-metallic minerals (cement, glass)  deferrable    37.2    32.3      0.7   97.7         50     50
+G                  wholesale and retail trade  perishable    23.0    23.0      0.4   98.2         38     38
+B05                               coal mining  deferrable    18.5     6.6      0.4   98.5          9      9
+M                       professional services  perishable    10.0    10.0      0.2   98.7         38     38
+
+== FRA: gross 607 mUSD, net 529 (87 %); perishable (services etc.) 274 = 45 % of gross; deferrable goods 333 gross -> 255 net (77 % left as backlog), delay 20
+                                   name       group  gross    net  share_%  cum_%  firms_hit  firms
+sector                                                                                             
+H49                      land transport  perishable  171.6  171.6     28.3   28.3         27     27
+C10T12         food, beverages, tobacco  deferrable  151.6  127.0     25.0   53.2         25     27
+A01                         agriculture  deferrable  150.1  117.6     24.7   78.0         89     91
+H50                     water transport  perishable   28.6   28.6      4.7   82.7         27     27
+H51                       air transport  perishable   23.4   23.4      3.9   86.6         27     27
+C19                   refined petroleum  deferrable   18.9    7.8      3.1   89.7          6      6
+G            wholesale and retail trade  perishable   16.6   16.6      2.7   92.4         27     27
+I       accommodation and food services  perishable    8.0    8.0      1.3   93.7         26     26
+M                 professional services  perishable    5.1    5.1      0.8   94.5         27     27
+K                               finance  perishable    4.9    4.9      0.8   95.3         26     27
+N               administrative services  perishable    4.8    4.8      0.8   96.1         26     27
+D                   electricity and gas  perishable    3.5    3.5      0.6   96.7         23     23
+
+== NLD: gross 168 mUSD, net 86 (51 %); perishable (services etc.) 25 = 15 % of gross; deferrable goods 142 gross -> 60 net (42 % left as backlog), delay 6
+                              name       group  gross   net  share_%  cum_%  firms_hit  firms
+sector                                                                                       
+C19              refined petroleum  deferrable   63.7  25.2     38.0   38.0          5      5
+B06         oil and gas extraction  deferrable   45.9  12.3     27.3   65.3         84    119
+A01                    agriculture  deferrable   24.8  19.6     14.8   80.1         32     32
+G       wholesale and retail trade  perishable    8.2   8.2      4.9   85.0         12     12
+M            professional services  perishable    3.1   3.1      1.8   86.9         12     12
+H49                 land transport  perishable    2.9   2.9      1.8   88.6         12     12
+D              electricity and gas  perishable    2.5   2.5      1.5   90.1         12     12
+A02                       forestry  deferrable    2.5   2.4      1.5   91.6         12     12
+H52         warehousing, logistics  perishable    2.0   2.0      1.2   92.8         12     12
+C20                      chemicals  deferrable    1.9   0.0      1.2   93.9          7      7
+K                          finance  perishable    1.8   1.8      1.1   95.0         12     12
+N          administrative services  perishable    1.4   1.4      0.8   95.8         12     12
+
+== AUT: gross 17 mUSD, net 15 (86 %); perishable (services etc.) 2 = 15 % of gross; deferrable goods 14 gross -> 12 net (84 % left as backlog), delay 1
+                                   name       group  gross   net  share_%  cum_%  firms_hit  firms
+sector                                                                                            
+A01                         agriculture  deferrable   11.8  10.9     69.3   69.3         26     30
+B08                        other mining  deferrable    1.0   0.7      5.7   75.0          9      9
+G            wholesale and retail trade  perishable    0.6   0.6      3.7   78.8          9      9
+H52              warehousing, logistics  perishable    0.5   0.5      2.8   81.6          9      9
+B09                     mining services  deferrable    0.5   0.4      2.7   84.3          9      9
+B06              oil and gas extraction  deferrable    0.4   0.0      2.6   86.9          2      2
+I       accommodation and food services  perishable    0.4   0.4      2.4   89.3          9      9
+C10T12         food, beverages, tobacco  deferrable    0.2   0.1      1.2   90.6          9      9
+H49                      land transport  perishable    0.2   0.2      1.2   91.7          9      9
+M                 professional services  perishable    0.2   0.2      1.2   92.9          9      9
+C20                           chemicals  deferrable    0.2   0.0      1.0   93.9          2      2
+D                   electricity and gas  perishable    0.2   0.2      1.0   94.9          9      9
+
+== CHE: gross 4 mUSD, net 4 (89 %); perishable (services etc.) 0 = 5 % of gross; deferrable goods 4 gross -> 4 net (89 % left as backlog), delay 0
+                              name       group  gross  net  share_%  cum_%  firms_hit  firms
+sector                                                                                      
+A03                        fishing  deferrable    3.7  3.7     85.2   85.2          7      7
+C20                      chemicals  deferrable    0.3  0.0      7.4   92.6          2      2
+G       wholesale and retail trade  perishable    0.1  0.1      1.6   94.2          7      7
+C19              refined petroleum  deferrable    0.0  0.0      1.0   95.2          2      2
+C21                pharmaceuticals  deferrable    0.0  0.0      0.7   95.9          7      7
+M            professional services  perishable    0.0  0.0      0.6   96.6          7      7
+C10T12    food, beverages, tobacco  deferrable    0.0  0.0      0.6   97.1          7      7
+J62_63                 IT services  perishable    0.0  0.0      0.4   97.5          7      7
+K                          finance  perishable    0.0  0.0      0.3   97.9          7      7
+H53                         postal  perishable    0.0  0.0      0.2   98.1          7      7
+H52         warehousing, logistics  perishable    0.0  0.0      0.2   98.3          7      7
+N          administrative services  perishable    0.0  0.0      0.2   98.4          7      7
+
+== BEL: gross 33 mUSD, net 16 (49 %); perishable (services etc.) 12 = 36 % of gross; deferrable goods 21 gross -> 5 net (21 % left as backlog), delay 1
+                              name       group  gross  net  share_%  cum_%  firms_hit  firms
+sector                                                                                      
+C19              refined petroleum  deferrable   17.0  3.0     51.2   51.2          2      4
+G       wholesale and retail trade  perishable    3.8  3.8     11.4   62.6         11     11
+M            professional services  perishable    2.0  2.0      6.1   68.7         11     11
+A01                    agriculture  deferrable    1.8  1.5      5.5   74.2         39     40
+K                          finance  perishable    1.3  1.3      3.9   78.1         11     11
+C20                      chemicals  deferrable    1.1  0.0      3.4   81.4          5      5
+H52         warehousing, logistics  perishable    1.0  1.0      2.9   84.4         11     11
+N          administrative services  perishable    1.0  1.0      2.9   87.3         11     11
+H49                 land transport  perishable    0.8  0.8      2.4   89.7         11     11
+D              electricity and gas  perishable    0.6  0.6      1.7   91.4         11     11
+L                      real estate  perishable    0.4  0.4      1.3   92.7         11     11
+F                     construction  deferrable    0.3  0.0      1.0   93.7         11     11
+
+######## 2018_inv200 ########
+
+== DEU: gross 3,087 mUSD, net 2,973 (96 %); perishable (services etc.) 2,637 = 85 % of gross; deferrable goods 450 gross -> 336 net (75 % left as backlog), delay 22
+                              name       group  gross    net  share_%  cum_%  firms_hit  firms
+sector                                                                                        
+H52         warehousing, logistics  perishable  985.6  985.6     31.9   31.9         38     38
+H49                 land transport  perishable  647.6  647.6     21.0   52.9         38     38
+D              electricity and gas  perishable  585.3  585.3     19.0   71.9         38     38
+H50                water transport  perishable  290.5  290.5      9.4   81.3         38     38
+C19              refined petroleum  deferrable  288.4  199.8      9.3   90.6         13     14
+C20                      chemicals  deferrable  134.4  126.7      4.4   95.0         15     15
+H51                  air transport  perishable   83.0   83.0      2.7   97.7         38     38
+G       wholesale and retail trade  perishable   15.5   15.5      0.5   98.2         38     38
+M            professional services  perishable    8.3    8.3      0.3   98.4         38     38
+A01                    agriculture  deferrable    7.9    6.6      0.3   98.7        290    306
+K                          finance  perishable    5.5    5.5      0.2   98.9         38     38
+N          administrative services  perishable    5.3    5.3      0.2   99.0         38     38
+
+== FRA: gross 203 mUSD, net 176 (87 %); perishable (services etc.) 164 = 81 % of gross; deferrable goods 39 gross -> 12 net (32 % left as backlog), delay 1
+                                          name       group  gross    net  share_%  cum_%  firms_hit  firms
+sector                                                                                                    
+H49                             land transport  perishable  116.2  116.2     57.3   57.3         27     27
+A01                                agriculture  deferrable   22.0    7.5     10.9   68.1         89     91
+H50                            water transport  perishable   19.2   19.2      9.5   77.6         27     27
+H51                              air transport  perishable   15.5   15.5      7.6   85.2         27     27
+C19                          refined petroleum  deferrable   12.7    4.5      6.3   91.5          6      6
+G                   wholesale and retail trade  perishable    3.9    3.9      1.9   93.4         27     27
+M                        professional services  perishable    1.9    1.9      0.9   94.4         27     27
+N                      administrative services  perishable    1.6    1.6      0.8   95.2         26     27
+K                                      finance  perishable    1.6    1.6      0.8   96.0         26     27
+D                          electricity and gas  perishable    1.3    1.3      0.6   96.6         23     23
+H52                     warehousing, logistics  perishable    0.9    0.9      0.4   97.0         26     27
+C31T33  furniture, other manufacturing, repair  deferrable    0.7    0.1      0.4   97.4         26     27
+
+== NLD: gross 114 mUSD, net 57 (50 %); perishable (services etc.) 21 = 19 % of gross; deferrable goods 92 gross -> 36 net (39 % left as backlog), delay 3
+                              name       group  gross   net  share_%  cum_%  firms_hit  firms
+sector                                                                                       
+C19              refined petroleum  deferrable   48.8  20.9     42.8   42.8          5      5
+B06         oil and gas extraction  deferrable   35.0  10.3     30.8   73.6         84    119
+G       wholesale and retail trade  perishable    6.8   6.8      5.9   79.6         12     12
+A01                    agriculture  deferrable    4.9   4.1      4.3   83.9         32     32
+M            professional services  perishable    2.9   2.9      2.5   86.4         12     12
+H49                 land transport  perishable    2.7   2.7      2.4   88.8         12     12
+D              electricity and gas  perishable    1.9   1.9      1.7   90.6         12     12
+H52         warehousing, logistics  perishable    1.7   1.7      1.5   92.0         12     12
+K                          finance  perishable    1.6   1.6      1.4   93.4         12     12
+C20                      chemicals  deferrable    1.5   0.0      1.3   94.7          7      7
+N          administrative services  perishable    1.2   1.2      1.0   95.8         12     12
+L                      real estate  perishable    0.7   0.7      0.6   96.3         12     12
+
+== AUT: gross 3 mUSD, net 2 (72 %); perishable (services etc.) 1 = 20 % of gross; deferrable goods 3 gross -> 2 net (64 % left as backlog), delay 0
+                              name       group  gross  net  share_%  cum_%  firms_hit  firms
+sector                                                                                      
+A01                    agriculture  deferrable    2.0  1.6     58.0   58.0         26     30
+G       wholesale and retail trade  perishable    0.2  0.2      5.2   63.2          9      9
+B08                   other mining  deferrable    0.2  0.1      5.0   68.2          9      9
+H49                 land transport  perishable    0.2  0.2      4.5   72.8          9      9
+C19              refined petroleum  deferrable    0.1  0.0      3.9   76.7          2      2
+B06         oil and gas extraction  deferrable    0.1  0.0      3.4   80.1          2      2
+B09                mining services  deferrable    0.1  0.1      2.5   82.6          9      9
+D              electricity and gas  perishable    0.1  0.1      2.2   84.8          9      9
+C20                      chemicals  deferrable    0.1  0.0      2.2   87.0          2      2
+M            professional services  perishable    0.1  0.1      2.1   89.1          9      9
+C10T12    food, beverages, tobacco  deferrable    0.0  0.0      1.3   90.4          9      9
+K                          finance  perishable    0.0  0.0      1.3   91.7          9      9
+
+== CHE: gross 1 mUSD, net 1 (75 %); perishable (services etc.) 0 = 26 % of gross; deferrable goods 1 gross -> 1 net (66 % left as backlog), delay 0
+                              name       group  gross  net  share_%  cum_%  firms_hit  firms
+sector                                                                                      
+A03                        fishing  deferrable    0.5  0.5     49.8   49.8          7      7
+C20                      chemicals  deferrable    0.2  0.0     17.7   67.6          2      2
+G       wholesale and retail trade  perishable    0.1  0.1     13.1   80.7          7      7
+M            professional services  perishable    0.0  0.0      2.6   83.3          7      7
+C21                pharmaceuticals  deferrable    0.0  0.0      2.3   85.6          7      7
+C10T12    food, beverages, tobacco  deferrable    0.0  0.0      2.0   87.6          7      7
+K                          finance  perishable    0.0  0.0      2.0   89.5          7      7
+J62_63                 IT services  perishable    0.0  0.0      1.5   91.1          7      7
+H52         warehousing, logistics  perishable    0.0  0.0      0.9   92.0          7      7
+N          administrative services  perishable    0.0  0.0      0.9   92.8          7      7
+H53                         postal  perishable    0.0  0.0      0.8   93.6          7      7
+L                      real estate  perishable    0.0  0.0      0.8   94.4          7      7
+
+== BEL: gross 26 mUSD, net 14 (53 %); perishable (services etc.) 11 = 41 % of gross; deferrable goods 16 gross -> 3 net (20 % left as backlog), delay 0
+                              name       group  gross  net  share_%  cum_%  firms_hit  firms
+sector                                                                                      
+C19              refined petroleum  deferrable   13.1  2.8     49.4   49.4          2      4
+G       wholesale and retail trade  perishable    3.1  3.1     11.9   61.2         11     11
+M            professional services  perishable    1.8  1.8      6.7   68.0         11     11
+K                          finance  perishable    1.2  1.2      4.5   72.4         11     11
+N          administrative services  perishable    1.0  1.0      3.8   76.2         11     11
+C20                      chemicals  deferrable    0.9  0.0      3.5   79.7          5      5
+H52         warehousing, logistics  perishable    0.9  0.9      3.4   83.1         11     11
+H49                 land transport  perishable    0.7  0.7      2.8   85.8         11     11
+D              electricity and gas  perishable    0.5  0.5      2.0   87.9         11     11
+L                      real estate  perishable    0.5  0.5      1.7   89.6         11     11
+F                     construction  deferrable    0.4  0.0      1.5   91.1         11     11
+J62_63                 IT services  perishable    0.3  0.3      1.3   92.4         11     11
