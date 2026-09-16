@@ -38,6 +38,15 @@ D lowers the give-up of bulk in closure weeks, E shows complementarity (package 
   × 3, tanker floor ± 10 cm, inventories ± 50 %, Lower Rhine factor 0 and 1, no pooling, v12 rates)
   belongs in the same batch: ≈ 8 more runs.
 
+## Status (16 Sep, 10:30) — ladder read, multiplier picked
+
+2018 at ×1.25 / 1.5 / 1.75 / 2: 0.67 / 0.51 / 0.41 / 0.32 % of a quarter, peak in week 21 (3 Dec) throughout; ×1.5 with
+the tanker floor at 40 cm 0.22 %. Pick ×2 (all inventories rather than raw materials only; lower edge of the
+0.3–0.4 % target, right peak week); the 2026 August wave falls to 0.13 % of a quarter (≈ EUR 1.2 bn, inside the ex
+ante), the 2026 total to 0.54 % (12 recovery weeks). Stage 2 launched on `jobs_20260916_paper.txt` at
+`--inventory-scale 2.0`: base with 20 recovery weeks, twins, ten seeds, five levers, tanker floor 60; the 2018
+calibrated baseline is `2018_inv200`. The tanker floor stays at 50 cm with 40 / 60 as the structural band.
+
 ## Status (16 Sep) — calibration route decided (Occam pass)
 
 User decision on the recommendation: freeze every mechanism that is structural or evidence-anchored (survey

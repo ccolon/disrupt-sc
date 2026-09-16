@@ -1,10 +1,10 @@
 # Rhine 2026 cluster batch, stage 2 of the calibration (16 Sep 2026): the paper runs on the calibrated
-# input-stock buffer. PROVISIONAL multiplier 1.5 in every line - replace by the value picked from the
-# 2018 ladder (jobs_20260916_cal2018.txt) before launching:
-#     sed -i 's/--inventory-scale 1.5/--inventory-scale <pick>/' studies/rhine2026/cluster/jobs_20260916_paper.txt
-# The 2018 calibrated baseline is the ladder run with the picked multiplier (2018_inv<pick>, 20 recovery
-# weeks) and is not rerun; the stock axis of the grid is the ladder itself (x1.0 = 2026_fc0910_base of
-# 15 Sep, x1.5 = 2026_fc0910_inv150, x2 = 2026_fc0910_inv200), so no extra stock runs here.
+# input-stock buffer, --inventory-scale 2.0 = the pick from the 2018 ladder (jobs_20260916_cal2018.txt,
+# read 16 Sep: x1.25 / 1.5 / 1.75 / 2 give 0.67 / 0.51 / 0.41 / 0.32 % of a quarter against the ex-post
+# 0.3-0.4 %, peak in week 21 throughout; x2 = all inventories rather than raw materials only). The 2018
+# calibrated baseline is the ladder run 2018_inv200 (20 recovery weeks) and is not rerun; the stock axis
+# of the grid is the ladder itself (x1.0 = 2026_fc0910_base of 15 Sep, x1.5 = 2026_fc0910_inv150, x2 =
+# 2026_fc0910_inv200), so no extra stock runs here.
 # Dropped from the paper set after the Occam pass: rail at the bulk rate (inert by construction), the
 # Lower Rhine factor (price parameter only), floors +-10 cm (duplicate the tanker-floor axis).
 # The seed runs carry --cache-isolation (a private rebuild of the draw). --inventory-add-days applies
@@ -16,27 +16,27 @@
 #     pack_results.sh --jobs studies/rhine2026/cluster/jobs_20260916_paper.txt --with-firms 2026_cal_base,2026_cal_package
 #
 # --- 2026 baseline on the calibrated buffer (20 recovery weeks; paired with the 2018 ladder run) ---
-2026_cal_base      | --recovery-weeks 20 --inventory-scale 1.5
+2026_cal_base      | --recovery-weeks 20 --inventory-scale 2.0
 # --- no-pooling twins (the pooling story) ---
-2026_cal_nopool    | --no-pooling --inventory-scale 1.5
-2018_cal_nopool    | --profile 2018 --no-pooling --recovery-weeks 20 --inventory-scale 1.5
+2026_cal_nopool    | --no-pooling --inventory-scale 2.0
+2018_cal_nopool    | --profile 2018 --no-pooling --recovery-weeks 20 --inventory-scale 2.0
 # --- ensemble over supply-chain draws (uncertainty band of the 2026 baseline) ---
-2026_cal_seed1     | --seed 1 --cache-isolation --inventory-scale 1.5
-2026_cal_seed2     | --seed 2 --cache-isolation --inventory-scale 1.5
-2026_cal_seed3     | --seed 3 --cache-isolation --inventory-scale 1.5
-2026_cal_seed4     | --seed 4 --cache-isolation --inventory-scale 1.5
-2026_cal_seed5     | --seed 5 --cache-isolation --inventory-scale 1.5
-2026_cal_seed6     | --seed 6 --cache-isolation --inventory-scale 1.5
-2026_cal_seed7     | --seed 7 --cache-isolation --inventory-scale 1.5
-2026_cal_seed8     | --seed 8 --cache-isolation --inventory-scale 1.5
-2026_cal_seed9     | --seed 9 --cache-isolation --inventory-scale 1.5
-2026_cal_seed10    | --seed 10 --cache-isolation --inventory-scale 1.5
+2026_cal_seed1     | --seed 1 --cache-isolation --inventory-scale 2.0
+2026_cal_seed2     | --seed 2 --cache-isolation --inventory-scale 2.0
+2026_cal_seed3     | --seed 3 --cache-isolation --inventory-scale 2.0
+2026_cal_seed4     | --seed 4 --cache-isolation --inventory-scale 2.0
+2026_cal_seed5     | --seed 5 --cache-isolation --inventory-scale 2.0
+2026_cal_seed6     | --seed 6 --cache-isolation --inventory-scale 2.0
+2026_cal_seed7     | --seed 7 --cache-isolation --inventory-scale 2.0
+2026_cal_seed8     | --seed 8 --cache-isolation --inventory-scale 2.0
+2026_cal_seed9     | --seed 9 --cache-isolation --inventory-scale 2.0
+2026_cal_seed10    | --seed 10 --cache-isolation --inventory-scale 2.0
 # --- adaptation counterfactuals (adaptation_counterfactuals.md), paired with 2026_cal_base ---
-2026_cal_deep20    | --gauge-offset 20 --inventory-scale 1.5
-2026_cal_fleet40   | --closure-floors container=40,liquid_bulk=40,dry_bulk=30,default=30 --inventory-scale 1.5
-2026_cal_fleet20   | --closure-floors container=40,liquid_bulk=20,dry_bulk=20,default=20 --draught-table studies/rhine2026/scenarios/draught_table_lowwater.csv --inventory-scale 1.5
-2026_cal_stock7    | --inventory-add-days 7 --inventory-scale 1.5
-2026_cal_stock7t   | --inventory-add-days 7:H49,H50,H51,H52,H53,D,C20,C23,C24A --inventory-scale 1.5
-2026_cal_package   | --gauge-offset 20 --closure-floors container=40,liquid_bulk=20,dry_bulk=20,default=20 --draught-table studies/rhine2026/scenarios/draught_table_lowwater.csv --inventory-add-days 7 --inventory-scale 1.5
+2026_cal_deep20    | --gauge-offset 20 --inventory-scale 2.0
+2026_cal_fleet40   | --closure-floors container=40,liquid_bulk=40,dry_bulk=30,default=30 --inventory-scale 2.0
+2026_cal_fleet20   | --closure-floors container=40,liquid_bulk=20,dry_bulk=20,default=20 --draught-table studies/rhine2026/scenarios/draught_table_lowwater.csv --inventory-scale 2.0
+2026_cal_stock7    | --inventory-add-days 7 --inventory-scale 2.0
+2026_cal_stock7t   | --inventory-add-days 7:H49,H50,H51,H52,H53,D,C20,C23,C24A --inventory-scale 2.0
+2026_cal_package   | --gauge-offset 20 --closure-floors container=40,liquid_bulk=20,dry_bulk=20,default=20 --draught-table studies/rhine2026/scenarios/draught_table_lowwater.csv --inventory-add-days 7 --inventory-scale 2.0
 # --- structural band: the tanker floor (fleet40 doubles as the 40 cm point) ---
-2026_cal_liq60     | --closure-floors container=40,liquid_bulk=60,dry_bulk=30,default=30 --inventory-scale 1.5
+2026_cal_liq60     | --closure-floors container=40,liquid_bulk=60,dry_bulk=30,default=30 --inventory-scale 2.0
