@@ -102,8 +102,7 @@ class TransportNetwork(nx.Graph):
     # Logistic cost setup
     # ------------------------------------------------------------------
 
-    def ingest_logistic_data(self, logistic_parameters: dict, time_resolution: str,
-                             use_cargo_types: bool = True):
+    def ingest_logistic_data(self, logistic_parameters: dict, use_cargo_types: bool = True):
         # Derive cargo types from sector_to_cargo_type mapping, or fall
         # back to a single "any" bucket when the feature is disabled.
         if use_cargo_types:
@@ -118,7 +117,7 @@ class TransportNetwork(nx.Graph):
             "alternative": {m: {} for m in self.cargo_types},
         }
         for _, attr in self.edges.items():
-            _calculate_cost_per_ton(attr, logistic_parameters, self.cargo_types, time_resolution)
+            _calculate_cost_per_ton(attr, logistic_parameters, self.cargo_types)
         self.capture_base_capacity_state()
 
     def shrink_cargo_types_to(self, used: set[str]) -> None:
@@ -809,8 +808,16 @@ def _get_border_crossing_time_and_fee(edge_attr: dict, border_times: dict, borde
     return 0.0, 0.0
 
 
-def _calculate_cost_per_ton(edge_attr: dict, params: dict, cargo_types: list, time_resolution: str):
+def _calculate_cost_per_ton(edge_attr: dict, params: dict, cargo_types: list):
     """Calculate cost_per_ton for each cargo_type.
+
+    The cost is per ton for the trip and does not depend on the simulation
+    step: distance x rate per tkm, fees, and time in hours x cost_of_time in
+    USD per ton-hour. Until 16 Sep 2026 the time term was also multiplied by
+    days_per_step / 7, so the same trip valued an hour of travel 4.35x more
+    at monthly resolution and 7x less at daily than at weekly (KI-37); the v1
+    code had no such factor. Quantities that do scale with the step (edge
+    capacities in tons per step) are converted in init_pipeline/transport.py.
 
     Cargo types with zero capacity on this edge are skipped — no cost label
     is written, so the edge is invisible to Dijkstra for that cargo type.
@@ -824,9 +831,6 @@ def _calculate_cost_per_ton(edge_attr: dict, params: dict, cargo_types: list, ti
     speed = _get_speed(edge_attr, params["speeds"])
     if speed == 0 or (isinstance(speed, float) and np.isnan(speed)):
         raise ValueError(f"{edge_id}: speed is 0 or nan")
-
-    time_factor = {"day": 1, "week": 7, "month": 365.25 / 12, "year": 365.25}
-    time_scale = time_factor[time_resolution] / 7
 
     # cost_of_time is USD per ton-hour, either a scalar or a per-cargo-type
     # dict ({cargo_type: value, "default": value}). Per-cargo values of time
@@ -859,7 +863,7 @@ def _calculate_cost_per_ton(edge_attr: dict, params: dict, cargo_types: list, ti
         # _per_cargo): transfer costs, unlike line-haul costs, differ by
         # cargo class because of dedicated transshipment infrastructure
         cost = (fixed_base + km * _per_cargo(mode_basic_cost, ct) + _per_cargo(loading_fee, ct)
-                + (fixed_time + _per_cargo(dwell_time, ct)) * ct_cot * time_scale)
+                + (fixed_time + _per_cargo(dwell_time, ct)) * ct_cot)
         edge_attr[f"cost_per_ton_{ct}"] = cost
         edge_attr[f"cost_per_ton_with_capacity_{ct}"] = cost
 

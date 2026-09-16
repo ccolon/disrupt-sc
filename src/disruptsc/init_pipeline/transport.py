@@ -137,8 +137,7 @@ def build_transport_network(transport_modes: list, filepaths: dict,
         _apply_capacity_overrides(tn, capacity_overrides, cargo_types, time_resolution)
 
     # Ingest logistics cost parameters
-    tn.ingest_logistic_data(logistics_params, time_resolution,
-                            use_cargo_types=use_cargo_types)
+    tn.ingest_logistic_data(logistics_params, use_cargo_types=use_cargo_types)
 
     # Set min cost for heuristic
     min_costs = [v for v in logistics_params["basic_cost"].values() if isinstance(v, (int, float))]
