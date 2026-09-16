@@ -172,7 +172,7 @@ class Firm:
         already among its transport-sector inputs, and subtracting
         ``eq_production x transport_share`` on top (as the code did until
         15 Sep 2026) counted the same MRIO cells twice and understated value
-        added (KI-36).
+        added (KI-38).
 
         ``periods_per_year`` annualizes the per-time-step value added when sizing
         the capital stock (see ``capital_initial`` below).
