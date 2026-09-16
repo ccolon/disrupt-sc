@@ -43,8 +43,9 @@ D lowers the give-up of bulk in closure weeks, E shows complementarity (package 
 `2026_cal_base` 0.54 % of a quarter (peak 1.42 % of a week in week 17; August wave 0.13 %, September wave 0.41 %),
 ensemble 0.52 ± 0.14 % (0.31–0.76), `2018_inv200` 0.32 % (peak week 21). Levers (DEU gross avoided): fleet20 −95 %,
 deep20 −41 %, fleet40 −39 %, stock7 −39 %, package −100 %; the fairway and the tanker floor at 40 cm remain one lever
-in the model (they remove the same tank-barge closure weeks). Targeted stocks: the cluster run is wrong (the inventory
-helper scaled the listed sectors only; fixed, KI-36) and reruns on the laptop 16 Sep afternoon. Band: tanker floor 40 /
+in the model (they remove the same tank-barge closure weeks). Targeted stocks: the cluster run was wrong (the inventory
+helper scaled the listed sectors only; fixed, KI-36); the laptop rerun gives −29 % (0.385 %), three quarters of the
+all-buyer lever. Band: tanker floor 40 /
 50 / 60 cm 0.33 / 0.54 / 0.75 %, stocks ×1 / 1.5 / 2 2.16 / 0.82 / 0.54 %, no pooling 0.86 %. Figures F4–F8 and
 `levers_20260916.csv` come from these runs. The paper numbers are these unless the event-end profile refresh
 (November) moves them; the rail lever is out, the Lower Rhine factor a price parameter, the price give-up threshold
