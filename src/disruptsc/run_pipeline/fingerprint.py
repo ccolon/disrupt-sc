@@ -158,7 +158,10 @@ _STAGE_FILEPATH_KEYS = {
 # the same inputs (KI-34, 11 Sep 2026: the firm table and the supply-chain draws became
 # deterministic - caches written by the order-dependent code must not be reused). The transport
 # network stage is untouched by that fix and keeps version 1.
-_STAGE_BUILD_VERSION = {"transport_network": 1, "agents": 2, "sc_network": 2, "logistic_routes": 2}
+# transport_network 2 / logistic_routes 3 (KI-37, 16 Sep 2026): the edge cost lost the
+# days_per_step / 7 factor on its time term, so networks and routes cached before then carry
+# costs that depended on time_resolution (identical at weekly resolution, different elsewhere).
+_STAGE_BUILD_VERSION = {"transport_network": 2, "agents": 2, "sc_network": 2, "logistic_routes": 3}
 
 
 def build_stage_fingerprint(config: dict, stage: str) -> dict:

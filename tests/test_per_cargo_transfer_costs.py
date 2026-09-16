@@ -26,7 +26,7 @@ def _edge():
 
 def test_scalar_values_apply_to_every_cargo_identically():
     edge = _edge()
-    _calculate_cost_per_ton(edge, _params(8.0, 5.0), CARGOS, "week")
+    _calculate_cost_per_ton(edge, _params(8.0, 5.0), CARGOS)
     # multimodal edges ride the ROADS speed (50): transport_time = 10/50 = 0.2h
     # base = km*0.02 + fee 5; time = (0.2 + dwell 8) h * cot
     assert edge["cost_per_ton_container"] == pytest.approx(0.2 + 5 + 8.2 * 1.0)
@@ -38,7 +38,7 @@ def test_per_cargo_dicts_differentiate_transfer_costs():
     _calculate_cost_per_ton(
         edge,
         _params({"default": 8.0, "liquid_bulk": 1.0}, {"default": 5.0, "liquid_bulk": 0.5}),
-        CARGOS, "week")
+        CARGOS)
     # container rides the defaults; liquid gets the siding economics
     assert edge["cost_per_ton_container"] == pytest.approx(0.2 + 5 + 8.2 * 1.0)
     assert edge["cost_per_ton_liquid_bulk"] == pytest.approx(0.2 + 0.5 + 1.2 * 0.1)
@@ -47,7 +47,7 @@ def test_per_cargo_dicts_differentiate_transfer_costs():
 def test_non_multimodal_edges_ignore_transfer_costs():
     edge = {"id": 2, "type": "roads", "km": 10.0}
     _calculate_cost_per_ton(
-        edge, _params({"default": 8.0, "liquid_bulk": 1.0}, 5.0), CARGOS, "week")
+        edge, _params({"default": 8.0, "liquid_bulk": 1.0}, 5.0), CARGOS)
     assert edge["cost_per_ton_container"] == pytest.approx(0.6 + (10 / 50) * 1.0)
     assert edge["cost_per_ton_liquid_bulk"] == pytest.approx(0.6 + (10 / 50) * 0.1)
 
@@ -58,11 +58,11 @@ def test_per_cargo_basic_cost():
     edge = {"id": 1, "type": "waterways", "km": 100.0, "capacity": 1e9}
     params = {"speeds": {"waterways": 10.0}, "basic_cost": {"waterways": {"default": 0.010, "liquid_bulk": 0.038}},
               "cost_of_time": 0.0}
-    _calculate_cost_per_ton(edge, params, ["dry_bulk", "liquid_bulk", "container"], "week")
+    _calculate_cost_per_ton(edge, params, ["dry_bulk", "liquid_bulk", "container"])
     assert edge["cost_per_ton_dry_bulk"] == 1.0            # 100 km x 0.010
     assert edge["cost_per_ton_container"] == 1.0           # default
     assert edge["cost_per_ton_liquid_bulk"] == 3.8         # 100 km x 0.038
     scalar = {"id": 2, "type": "waterways", "km": 100.0, "capacity": 1e9}
     _calculate_cost_per_ton(scalar, {"speeds": {"waterways": 10.0}, "basic_cost": {"waterways": 0.010}, "cost_of_time": 0.0},
-                            ["dry_bulk"], "week")
+                            ["dry_bulk"])
     assert scalar["cost_per_ton_dry_bulk"] == 1.0
