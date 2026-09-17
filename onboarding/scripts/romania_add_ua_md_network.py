@@ -194,7 +194,15 @@ def main():
     rtempl = {c: None for c in layers["railways"].columns if c != "geometry"}
     new_rail = []
 
-    def rail_edge(a, b, name, special=None, cls="foreign_skeleton", factor=1.15):
+    # UA/MD rail is 1520 mm with UZ/CFM tariffs ~half the CFR level: class
+    # rail_1520 resolves to a cheaper basic_cost (config: basic_cost.railways
+    # {attribute: class, rail_1520: ...}). Stamp TEN-T UA/MD rail every run.
+    ten_t_1520 = (layers["railways"]["country_code"].astype(str).str.contains("UA|MD", na=False)
+                  & (layers["railways"]["class"].astype(str) != "stitch"))
+    layers["railways"].loc[ten_t_1520, "class"] = "rail_1520"
+    print(f"railways: {ten_t_1520.sum()} TEN-T UA/MD edges classed rail_1520")
+
+    def rail_edge(a, b, name, special=None, cls="rail_1520", factor=1.15):
         row = dict(rtempl)
         row.update({
             "type": "railways", "class": cls,

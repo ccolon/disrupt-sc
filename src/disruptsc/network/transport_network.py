@@ -843,7 +843,11 @@ def _calculate_cost_per_ton(edge_attr: dict, params: dict, cargo_types: list):
     # basic_cost per mode may itself be a per-cargo dict ({default: v, <cargo>: v}): line-haul
     # rates differ by vessel type on the Rhine (push-convoy bulk ~0.010, tank barges ~0.038,
     # container vessels ~0.022 EUR/tkm - evidence/waterway_rates_by_vessel_type.md, 8 Sep 2026).
-    mode_basic_cost = params["basic_cost"].get(edge_attr["type"], 0.01)
+    # It may also be keyed by an edge attribute, mirroring class-resolved speeds
+    # ({attribute: class, <class>: rate, default: rate}) - e.g. 1520 mm UA/MD rail
+    # tariffs run ~half the CFR level; the selected rate may itself be per-cargo.
+    mode_basic_cost = _resolve_by_attribute(
+        params["basic_cost"].get(edge_attr["type"], 0.01), edge_attr)
     transport_time = km / speed
     dwell_time, loading_fee = _get_dwell_time_and_fee(edge_attr, params.get("dwell_times", {}), params.get("loading_fees", {}))
     border_time, border_fee = _get_border_crossing_time_and_fee(edge_attr, params.get("border_crossing_times", {}), params.get("border_crossing_fees", {}))
@@ -866,6 +870,19 @@ def _calculate_cost_per_ton(edge_attr: dict, params: dict, cargo_types: list):
                 + (fixed_time + _per_cargo(dwell_time, ct)) * ct_cot)
         edge_attr[f"cost_per_ton_{ct}"] = cost
         edge_attr[f"cost_per_ton_with_capacity_{ct}"] = cost
+
+
+def _resolve_by_attribute(value, edge_attr: dict):
+    """Resolve a cost spec keyed by an edge attribute.
+
+    {attribute: <edge attr>, <attr value>: rate, default: rate} picks the
+    rate for this edge's attribute value; any other form passes through.
+    The returned rate may itself be a per-cargo dict (handled downstream).
+    """
+    if isinstance(value, dict) and "attribute" in value:
+        key = str(edge_attr.get(value["attribute"], "default"))
+        return value.get(key, value.get("default", 0.01))
+    return value
 
 
 def _resolve_cost_of_time(cot, cargo_type: str, edge_type: str) -> float:
