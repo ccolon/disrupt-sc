@@ -70,10 +70,10 @@ def main(out: Path):
     ax.set_ylim(0, 1.7)
     for d, txt in [("2018-10-22", "force majeure thyssenkrupp, 22 Oct"), ("2018-10-25", "strategic fuel-reserve release, 24–26 Oct")]:
         x = pd.Timestamp(d); ax.axvline(x, color=ORANGE, linewidth=1, linestyle="--")
-    ax.text(pd.Timestamp("2018-10-21"), 1.05, "force majeure thyssenkrupp, 22 Oct", color=ORANGE, fontsize=7.5, ha="right", va="bottom", rotation=90)
-    ax.text(pd.Timestamp("2018-10-27"), 1.05, "fuel-reserve release, 24–26 Oct", color=ORANGE, fontsize=7.5, ha="left", va="bottom", rotation=90)
+    ax.text(pd.Timestamp("2018-10-21"), 0.5, "force majeure thyssenkrupp, 22 Oct", color=ORANGE, fontsize=7, ha="right", va="bottom", rotation=90)
+    ax.text(pd.Timestamp("2018-10-27"), 0.5, "fuel-reserve release, 24–26 Oct", color=ORANGE, fontsize=7, ha="left", va="bottom", rotation=90)
     ax.axvspan(pd.Timestamp("2018-11-01"), pd.Timestamp("2018-11-30"), color=ORANGE, alpha=0.08, linewidth=0)
-    ax.text(pd.Timestamp("2018-11-15"), 1.66, "industrial-production trough: November", color=ORANGE, fontsize=7.5, ha="center", va="top")
+    ax.text(pd.Timestamp("2018-11-29"), 1.66, "industrial-production trough: November", color=ORANGE, fontsize=7.5, ha="right", va="top")
     ax.set_ylabel("German value-added loss, % of a week", color=MUTED, fontsize=8)
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%d %b"))
     ax.set_xlim(pd.Timestamp("2018-09-24"), pd.Timestamp("2018-12-31"))
@@ -103,7 +103,7 @@ def main(out: Path):
     labels = ["×1", "×1.5", "×2 (calibrated)"]
     aug = [0.512, 0.276, 0.134]
     ax.axhspan(0.1, 0.2, color=GREEN, alpha=0.15, linewidth=0)
-    ax.text(2.45, 0.205, "ex ante, August 2026:\nKiel Institute 0.1–0.2 points of quarterly GDP", color=GREEN, fontsize=7.5, ha="right", va="bottom")
+    ax.text(2.45, 0.455, "shaded: ex ante, August 2026,\nKiel Institute 0.1–0.2 points of quarterly GDP", color=GREEN, fontsize=7.5, ha="right", va="bottom")
     ax.axhline(0.35, color=GREEN, linewidth=1, linestyle=":")
     ax.text(2.45, 0.355, "Commerzbank 0.35", color=GREEN, fontsize=7.5, ha="right", va="bottom")
     bars = ax.bar(range(3), aug, color=[MUTED, MUTED, INK], width=0.55)
