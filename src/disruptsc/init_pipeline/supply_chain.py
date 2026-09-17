@@ -186,8 +186,15 @@ def _household_select_suppliers(hh, sc, firms, countries, rs_cache,
 
 def _country_select_suppliers(country, sc, firms, countries, rs_to_firms,
                               share_exporting, sector_to_cargo_type):
-    # Transit links
-    for selling_pid, quantity in sorted(country.transit_from.items()):   # deterministic draw order (KI-34)
+    # Transit links (loaded from the transit matrix; values are
+    # {"quantity": model-units/step, "cargo_type": str} - a bare float is
+    # accepted for backward compatibility and rides as dry_bulk).
+    for selling_pid, spec in sorted(country.transit_from.items()):   # deterministic draw order (KI-34)
+        if isinstance(spec, dict):
+            quantity = spec["quantity"]
+            cargo_type = spec.get("cargo_type") or "dry_bulk"
+        else:
+            quantity, cargo_type = spec, "dry_bulk"
         seller = countries[selling_pid]
         link = CommercialLink(
             pid=f"{selling_pid}->{country.pid}", product="transit",
@@ -195,6 +202,7 @@ def _country_select_suppliers(country, sc, firms, countries, rs_to_firms,
             origin_node=seller.od_point, destination_node=country.od_point,
             supplier_id=selling_pid, buyer_id=country.pid,
         )
+        link.cargo_type = cargo_type
         sc.add_edge(seller, country, object=link)
         sc[seller][country]["weight"] = 1
         country.purchase_plan[selling_pid] = quantity

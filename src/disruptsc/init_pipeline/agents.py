@@ -1133,3 +1133,66 @@ def _handle_internal_flows(ft: gpd.GeoDataFrame,
     return ft
 
 
+
+# ======================================================================
+# Transit flows
+# ======================================================================
+
+def load_transit_matrix(countries: dict, path, time_resolution: str,
+                        monetary_units_in_model: str) -> None:
+    """Populate ``Country.transit_from`` from a transit-matrix CSV.
+
+    Transit flows are exogenous background load: goods that neither
+    originate nor end in the scope but cross its network (e.g. Ukrainian
+    grain leaving through Constanta). They are off-MRIO by design - the
+    MRIO covers the scope's own trade - so the matrix is physical:
+
+        from,to,tons_per_year,cargo_type[,note]
+
+    ``from``/``to`` are country pids; both must be sited, non-virtual
+    countries or the row is skipped with a warning. The value pushed
+    through the supply chain is tons x the seller's usd_per_ton, so
+    Country.deliver (which divides by the same density) reproduces
+    tons_per_year on the network exactly; the monetary value of transit
+    is approximate and never enters scope totals (the buyer books it
+    from a Country, not a Firm). cargo_type defaults to dry_bulk.
+    """
+    df = pd.read_csv(path, comment="#")
+    required = {"from", "to", "tons_per_year"}
+    if not required.issubset(df.columns):
+        raise ValueError(f"transit matrix {path} must have columns {sorted(required)}")
+    muf = _UNITS.get(monetary_units_in_model, 1e6)
+    days = _DAYS_PER_STEP.get(time_resolution, 7)
+    total_mt, n_rows = 0.0, 0
+    for _, row in df.iterrows():
+        seller_pid, buyer_pid = str(row["from"]).strip(), str(row["to"]).strip()
+        tons_per_year = float(row["tons_per_year"])
+        if tons_per_year <= 0:
+            continue
+        problem = None
+        if seller_pid == buyer_pid:
+            problem = "identical endpoints"
+        elif seller_pid not in countries or buyer_pid not in countries:
+            problem = "country not in model (dropped by flow_coverage or absent from MRIO)"
+        elif countries[seller_pid].virtual or countries[buyer_pid].virtual:
+            problem = "virtual country (no network attachment)"
+        elif countries[seller_pid].od_point == -1 or countries[buyer_pid].od_point == -1:
+            problem = "country has no od_point"
+        if problem:
+            logging.warning(f"Transit row {seller_pid}->{buyer_pid} skipped: {problem}")
+            continue
+        seller = countries[seller_pid]
+        tons_per_step = tons_per_year * days / 365.0
+        quantity = tons_per_step * seller.usd_per_ton / muf  # model units/step
+        cargo = str(row["cargo_type"]).strip() if "cargo_type" in df.columns and pd.notna(row.get("cargo_type")) else "dry_bulk"
+        spec = countries[buyer_pid].transit_from.setdefault(
+            seller_pid, {"quantity": 0.0, "cargo_type": cargo})
+        spec["quantity"] += quantity
+        spec["cargo_type"] = cargo
+        seller.transit_to[buyer_pid] = seller.transit_to.get(buyer_pid, 0.0) + quantity
+        total_mt += tons_per_year / 1e6
+        n_rows += 1
+    logging.info(
+        f"Transit matrix {Path(path).name}: {n_rows} flows, "
+        f"{total_mt:.1f} Mt/yr riding the network as background load"
+    )
