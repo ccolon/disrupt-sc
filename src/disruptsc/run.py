@@ -330,6 +330,7 @@ def execute(config: dict, *, cache: str | None = None,
             transport_edges=transport_edges,
             countries_no_transport=tp.countries_no_transport,
             country_attachment=tp.country_attachment,
+            sector_table=sector_table,
         )
 
         # Exogenous transit flows (off-MRIO background load), if configured
@@ -381,6 +382,7 @@ def execute(config: dict, *, cache: str | None = None,
             ap.weight_localization_household,
             effective_cargo_mapping, transport_network,
             weight_localization_import=ap.weight_localization_import,
+            per_sector_import_links=ap.per_sector_import_links,
         )
         cache_sc_network(sc_network, firms, households, countries,
                          scope=scope, stage_fp=stage_fps["sc_network"])

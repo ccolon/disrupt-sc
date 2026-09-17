@@ -115,6 +115,7 @@ _STAGE_CONFIG_KEYS = {
         "monetary_units_in_data", "monetary_units_in_model",
         "flow_coverage", "sectors_to_include", "sectors_to_exclude",
         "countries_to_include", "countries_no_transport", "country_attachment",
+        "per_sector_import_links",
         "agent_attachment", "firm_data_type",
         "explicit_service_firm", "utilization_rate",
         # NOT critical_input_threshold / input_criticality /
