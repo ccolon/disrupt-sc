@@ -30,6 +30,7 @@ def build_supply_chain_network(
     sector_to_cargo_type: dict,
     transport_network=None,
     weight_localization_import: float = 0.0,
+    per_sector_import_links: bool = False,
 ) -> ScNetwork:
     """Build full supply-chain graph.  Returns populated ScNetwork."""
     sc = ScNetwork()
@@ -59,14 +60,21 @@ def build_supply_chain_network(
     # partner are conserved. Buyers near a border source more from the country
     # behind it (border effect), which is what makes partner-specific border
     # disruptions regionally differentiated.
-    firm_import_ptype = {
-        f.pid: _aggregate_import_inputs(f.input_mix, country_pids, sector_types)
-        for f in firms.values()
-    }
-    hh_import_ptype = {
-        hh.pid: _aggregate_import_inputs(hh.sector_consumption, country_pids, sector_types)
-        for hh in households.values()
-    }
+    if per_sector_import_links:
+        # input_mix / sector_consumption keep their sector-resolved country
+        # entries ("UKRW_A01"): each maps to a per-sector seller sub-agent,
+        # so no aggregation and no dominant-type bookkeeping is needed.
+        firm_import_ptype = {f.pid: {} for f in firms.values()}
+        hh_import_ptype = {hh.pid: {} for hh in households.values()}
+    else:
+        firm_import_ptype = {
+            f.pid: _aggregate_import_inputs(f.input_mix, country_pids, sector_types)
+            for f in firms.values()
+        }
+        hh_import_ptype = {
+            hh.pid: _aggregate_import_inputs(hh.sector_consumption, country_pids, sector_types)
+            for hh in households.values()
+        }
     if weight_localization_import > 0:
         _localize_import_mixes(firms, countries, weight_localization_import,
                                value_key="input_mix",
@@ -157,7 +165,8 @@ def _household_select_suppliers(hh, sc, firms, countries, rs_cache,
             if supplier_type == "country":
                 supplier = countries[sid]
                 category = "import_B2C"
-                ptype = import_ptype.get(sid, "imports")
+                ptype = (supplier.sector_type if supplier.sector_type != "imports"
+                         else import_ptype.get(sid, "imports"))
                 distance = _distance_between(hh, supplier, transport_network)
             else:
                 supplier = firms[sid]
@@ -302,31 +311,42 @@ def _localize_import_mixes(buyers: dict, countries: dict, gamma: float,
             math.sin((la2 - la1) / 2) ** 2
             + math.cos(la1) * math.cos(la2) * math.sin((lo2 - lo1) / 2) ** 2))
 
+    # Partners are the PARENT country blocs (pid == region); per-sector
+    # seller sub-agents ("UKRW_A01") belong to their parent's column. A
+    # buyer's entries for one partner may be a single aggregated
+    # "{PID}_imports" key or several sector-resolved keys - the tilt and
+    # RAS operate on the per-partner SUM, and the resulting factor is
+    # applied to every key of that partner (product mix within the partner
+    # preserved).
     partners = [c for c in countries.values()
-                if c.long is not None and c.lat is not None]
+                if c.long is not None and c.lat is not None and c.region == c.pid]
     if not partners:
         return
     b_list = [b for b in buyers.values()
               if getattr(b, "long", None) is not None]
-    keys = {c.pid: f"{c.pid}_imports" for c in partners}
+    partner_pids = {c.pid for c in partners}
     # matrices as dicts of dicts (sparse over buyers' actual partners)
-    W, D = {}, {}
+    W, D, KMAP = {}, {}, {}
     for b in b_list:
         vals = getattr(b, value_key)
-        row = {c.pid: vals[k] for c, k in ((c, keys[c.pid]) for c in partners)
-               if keys[c.pid] in vals and vals[keys[c.pid]] > 0}
-        if not row:
+        kmap: dict = {}
+        for k, v in vals.items():
+            reg = k.split("_", 1)[0]
+            if reg in partner_pids and v > 0:
+                kmap.setdefault(reg, []).append(k)
+        if not kmap:
             continue
-        W[b.pid] = row
+        KMAP[b.pid] = kmap
+        W[b.pid] = {pid: sum(vals[k] for k in ks) for pid, ks in kmap.items()}
         D[b.pid] = {pid: max(hav_km(b.long, b.lat,
                                     countries[pid].long, countries[pid].lat), 25.0)
-                    for pid in row}
+                    for pid in kmap}
     if not W:
         return
     s = {b.pid: float(scale(b)) for b in b_list if b.pid in W}
     # per-partner mean distance (unweighted) for a scale-free tilt
     dmean = {}
-    for pid in keys:
+    for pid in partner_pids:
         ds = [D[bp][pid] for bp in W if pid in W[bp]]
         if ds:
             dmean[pid] = sum(ds) / len(ds)
@@ -355,12 +375,14 @@ def _localize_import_mixes(buyers: dict, countries: dict, gamma: float,
                 maxdev = max(maxdev, abs(f - 1.0))
         if maxdev < 1e-6:
             break
-    # write back
+    # write back: scale every key of the partner by the RAS factor
     by_pid = {b.pid: b for b in b_list}
     for bp, row in T.items():
         vals = getattr(by_pid[bp], value_key)
         for pid, w in row.items():
-            vals[keys[pid]] = w
+            factor = w / W[bp][pid] if W[bp][pid] > 0 else 1.0
+            for k in KMAP[bp][pid]:
+                vals[k] *= factor
     logging.info(
         f"Import localization (gamma={gamma}): tilted {len(W)} buyers' import "
         f"mixes across {len(dmean)} partners; national totals conserved by RAS")
@@ -380,7 +402,8 @@ def _firm_select_suppliers(firm, sc, firms, countries, rs_cache,
             if supplier_type == "country":
                 supplier = countries[sid]
                 category = "import"
-                ptype = import_ptype.get(sid, "imports")
+                ptype = (supplier.sector_type if supplier.sector_type != "imports"
+                         else import_ptype.get(sid, "imports"))
             else:
                 supplier = firms[sid]
                 category = "domestic_B2B"
@@ -418,8 +441,12 @@ def _identify_suppliers(buyer, region_sector, rs_cache,
     given seed.
     """
 
-    # Import case — the product's region prefix is a country agent. Covers the
-    # legacy "BLOC_imports" product and sector-resolved "BLOC_SECTOR" products.
+    # Import case. With per-sector import links the product IS a country
+    # sub-agent pid ("UKRW_A01"): exact match first. Otherwise the region
+    # prefix maps to the aggregated country agent (legacy "BLOC_imports"
+    # and aggregated-link sector-resolved products).
+    if region_sector in country_pids:
+        return "country", [region_sector], [1.0], None
     region = region_sector.split("_", 1)[0]
     if region in country_pids:
         return "country", [region], [1.0], None

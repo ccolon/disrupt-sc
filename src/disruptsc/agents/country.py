@@ -29,6 +29,7 @@ class Country:
     long: float | None = None
     lat: float | None = None
     sector: str = "IMP"
+    sector_type: str = "imports"  # per-sector import sellers carry the real type
     region_sector: str = ""
     usd_per_ton: float = 2864.0
     monetary_unit_factor: float = 1.0  # multiplier to convert model monetary units to USD

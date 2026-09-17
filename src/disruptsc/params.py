@@ -107,6 +107,11 @@ class AgentParams:
     # so national MRIO totals per partner stay exact. 0 = off (national
     # coefficients for every buyer, the legacy behavior).
     weight_localization_import: float = 0.0
+    # One import link per (buyer, country, product) via per-sector country
+    # seller sub-agents - same granularity as exports - instead of one
+    # aggregated link per (buyer, country) with dominant-type cargo and the
+    # country's average density.
+    per_sector_import_links: bool = False
     utilization_rate: float = 0.8
     # Partially-Binding Leontief: inputs below this share of a firm's intermediate
     # cost are non-critical (don't constrain output). 0.0 = strict Leontief.

@@ -755,7 +755,8 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
                      selection: Selection,
                      transport_edges: gpd.GeoDataFrame | None = None,
                      countries_no_transport: tuple = (),
-                     country_attachment: str = "roads") -> dict[str, Country]:
+                     country_attachment: str = "roads",
+                     sector_table=None) -> dict[str, Country]:
     """Create Country objects from MRIO trade data.
 
     Only countries kept by *selection* (i.e. those that retain at least
@@ -859,6 +860,7 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
         sector_density.setdefault(sec, []).append(float(val))
     sector_density = {s: sum(v) / len(v) for s, v in sector_density.items() if v}
     country_import_tons: dict[str, float] = {}
+    imports_per_cs: dict[tuple, float] = {}
     if kept_import_cells:
         imp_rows = sorted({row for row, _ in kept_import_cells})
         imp_cols = sorted({col for _, col in kept_import_cells})
@@ -866,6 +868,7 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
         for row, col in kept_import_cells:
             val = float(imp_sub.at[row, col])
             imports_per_country[row[0]] = imports_per_country.get(row[0], 0.0) + val
+            imports_per_cs[(row[0], row[1])] = imports_per_cs.get((row[0], row[1]), 0.0) + val
             dens = sector_density.get(row[1], 0.0)
             if dens > 0:
                 country_import_tons[row[0]] = country_import_tons.get(row[0], 0.0) + val / dens
@@ -983,6 +986,49 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
             qty_purchased=qty_purchased,
         )
         countries[c.pid] = c
+
+    # Per-sector import sellers: one sub-agent per kept (country, sector)
+    # import cell, pid = the region_sector string buyers carry in input_mix
+    # ("UKRW_A01"), sharing the parent's attachment node. Import links then
+    # have the same granularity as export links: one product per link, the
+    # product's own density and cargo class. The parent country remains the
+    # buyer of scope exports and the transit anchor, and sells nothing.
+    if getattr(params, "per_sector_import_links", False):
+        sec_types = {}
+        if sector_table is not None and "type" in sector_table.columns:
+            sec_types = sector_table.set_index("sector")["type"].to_dict()
+        n_sub, n_scaled = 0, 0
+        for (country_code, sector), val in sorted(imports_per_cs.items()):
+            parent = countries.get(country_code)
+            if parent is None or parent.virtual or val <= 0:
+                continue
+            dens = float(sector_density.get(sector, 0.0))
+            # A country-level usd_per_ton override (observed aggregate density,
+            # e.g. BACI value/quantity) rescales every sector density by one
+            # factor so the country's TOTAL tonnage matches the observation
+            # while the split across products follows relative densities.
+            c_val = imports_per_country.get(country_code, 0.0)
+            c_tons = country_import_tons.get(country_code, 0.0)
+            implied = c_val / c_tons if c_tons > 0 else 0.0
+            if country_code in upt_override and implied > 0 and dens > 0:
+                dens *= upt_override[country_code] / implied
+                n_scaled += 1
+            if dens <= 0:
+                dens = parent.usd_per_ton
+            pid = f"{country_code}_{sector}"
+            countries[pid] = Country(
+                pid=pid, region=country_code, od_point=parent.od_point,
+                name=pid, long=parent.long, lat=parent.lat,
+                sector=sector, sector_type=sec_types.get(sector, "imports"),
+                region_sector=pid, usd_per_ton=dens,
+                monetary_unit_factor=parent.monetary_unit_factor,
+                transport_share=parent.transport_share,
+                supply_importance=val / total_imports if total_imports > 0 else 0.0,
+            )
+            n_sub += 1
+        logging.info(
+            f"per_sector_import_links: {n_sub} per-sector country sellers created"
+            + (f" ({n_scaled} with densities rescaled to country overrides)" if n_scaled else ""))
 
     # Log export demand summary
     total_export_demand = sum(
