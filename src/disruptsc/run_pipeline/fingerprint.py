@@ -148,7 +148,7 @@ _TRANSPORT_INHERITED_SUBKEYS = {"logistics": ("sector_to_cargo_type",)}
 _STAGE_FILEPATH_KEYS = {
     "transport_network": ("transport", "multimodal"),
     "agents": ("mrio", "sector_table", "households_spatial", "firms_spatial",
-               "countries_spatial"),
+               "countries_spatial", "transit_matrix"),
     "sc_network": (),
     "logistic_routes": (),
 }

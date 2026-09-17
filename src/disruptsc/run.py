@@ -49,6 +49,7 @@ from disruptsc.init_pipeline.agents import (
     create_firm_table, create_firms, load_tech_coefs, load_input_criticality, load_input_pooling, import_bundle_shares,
     load_inventories, configure_household_inventories, report_inventory_to_gdp,
     create_household_table, create_households, create_countries,
+    load_transit_matrix,
     add_representative_demand_agents,
 )
 from disruptsc.init_pipeline.supply_chain import build_supply_chain_network
@@ -330,6 +331,12 @@ def execute(config: dict, *, cache: str | None = None,
             countries_no_transport=tp.countries_no_transport,
             country_attachment=tp.country_attachment,
         )
+
+        # Exogenous transit flows (off-MRIO background load), if configured
+        transit_path = filepaths.get("transit_matrix")
+        if transit_path and Path(transit_path).exists():
+            load_transit_matrix(countries, transit_path, sp.time_resolution,
+                                ap.monetary_units_in_model)
 
         cache_agents(firms, households, countries, mrio, sector_table, firm_table, household_table,
                      scope=scope, stage_fp=stage_fps["agents"])
