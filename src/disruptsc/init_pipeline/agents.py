@@ -884,6 +884,7 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
     # Each entry is (country_code, centroid_or_None). centroid is None when the
     # country is virtual and missing from the geojson.
     country_specs: list[tuple[str, "object | None"]] = []
+    upt_override: dict[str, float] = {}
     geojson_name = Path(countries_spatial_path).name if countries_spatial_path else "countries.geojson"
     for country_code in all_countries:
         match = countries_gdf[countries_gdf["region"] == country_code]
@@ -899,6 +900,15 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
         geom = match.iloc[0].geometry
         centroid = geom.centroid if geom.geom_type != "Point" else geom
         country_specs.append((country_code, centroid))
+        # Optional per-country import density override (USD/ton) from the
+        # geojson: use it when the observed physical trade mix (e.g. BACI
+        # value/quantity) contradicts the harmonic density of the kept
+        # value mix - value-heavy sectors can mask a physically bulk-heavy
+        # trade (Moldova: cable harnesses vs grain and fuel).
+        if "usd_per_ton" in countries_gdf.columns:
+            v = match.iloc[0].get("usd_per_ton")
+            if pd.notna(v) and float(v) > 0:
+                upt_override[country_code] = float(v)
 
     # Phase 2: batch KDTree once over countries that have a centroid.
     sited = [(code, ctr) for code, ctr in country_specs if ctr is not None]
@@ -950,6 +960,11 @@ def create_countries(mrio: Mrio, transport_nodes: gpd.GeoDataFrame,
                 if key in usd_per_ton:
                     country_upt = float(usd_per_ton[key])
                     break
+        if country_code in upt_override:
+            logging.info(
+                f"Country {country_code}: usd_per_ton {country_upt:,.0f} -> "
+                f"{upt_override[country_code]:,.0f} (override from {geojson_name})")
+            country_upt = upt_override[country_code]
 
         c = Country(
             pid=country_code,
