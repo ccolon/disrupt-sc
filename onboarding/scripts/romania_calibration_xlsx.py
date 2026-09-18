@@ -62,9 +62,13 @@ MODAL_ROWS = [
     ("All inland - road, % tkm", "72.6", "MODEL BASIS: domestic territorial. Share target caveat: Eurostat road tkm = registered hauliers anywhere", None),
     ("All inland - rail, % tkm", "14.1", "", None),
     ("All inland - IWW, % tkm", "13.3", "", None),
-    ("Rail, bn tkm/yr", "12.65", "Eurostat 2023 level", None),
+    ("All inland EXCL. transit - road, % tkm", "(72.6)", "model own-trade split, transit removed; NB Eurostat territorial figures DO include real transit", None),
+    ("All inland EXCL. transit - rail, % tkm", "(14.1)", "", None),
+    ("All inland EXCL. transit - IWW, % tkm", "(13.3)", "", None),
+    ("Rail, bn tkm/yr", "12.65", "Eurostat 2023 level (territorial, incl. real transit)", None),
     ("IWW, bn tkm/yr", "11.96", "Eurostat 2023 level; model includes UA transit riding the Danube", None),
     ("Road, bn tkm/yr", "(65.2)", "NOT comparable: registered-haulier basis", None),
+    ("of which transit, bn tkm/yr (all modes)", "-", "model exogenous UA/MD transit riding the network (tons_cat_transit; runs before 18 Sep lack the column)", None),
 ]
 
 # (row label, WB data, note, verdict seed, extractor key)
@@ -83,12 +87,12 @@ BCP_ROWS = [
     ("UA - Halmeu/Dyakove (rail)", "0.44*", "", "idem", ("name", "gauge break Dyakove/Halmeu", None)),
     ("UA - Isaccea/Orlivka (ferry)", "0.53*", "", "Odesa-Constanta block sits on a barge/ferry knife edge", ("name", "Orlivka-Isaccea", None)),
     ("UA - Danube ports, barge (Reni+Izmail)", "6-8", "2024 Danube-port band (WB report + port statistics)", "in band", ("name2", "Izmail-Danube", "Reni-Danube")),
-    ("MD - Albita/Leuseni (road)", "2.5-4.0", "27k trucks/month both directions incl. empties", "low side (counts include empties and MD-EU transit)", ("name", "Leuseni-Albita", None)),
+    ("MD - Albita/Leuseni (road)", "2.5-4.0", "27k trucks/month both directions incl. empties", "low side: counts include empties; MD-EU container transit IS routed here; rest of MD corridor over-railed", ("name", "Leuseni-Albita", None)),
     ("MD - Sculeni (road)", "~1.3", "", "under: winner-take-all sends Chisinau road flow to Albita", ("name", "UAMD:Sculeni", None)),
     ("MD - Oancea/Cahul (road)", "~1.2", "", "under: idem", ("name", "Cahul-Oancea", None)),
     ("MD - Giurgiulesti-Galati (road)", "~1.3", "", "under: road flow displaced by the cheap 1520 mm rail", ("name", "Giurgiulesti-Galati", None)),
     ("MD - Ungheni (rail)", "0.3-0.5", "10.5k wagons/yr both directions at ~50 t", "on target", ("name", "stitch railways @(27.81,47.23)", None)),
-    ("MD - Giurgiulesti CFR (rail)", "0.5-0.9", "18.3k wagons/yr", "over: southern line overshoots (mirror of Vadul deficit)", ("name", "stitch railways @(28.20,45.47)", None)),
+    ("MD - Giurgiulesti CFR (rail)", "0.5-0.9", "18.3k wagons/yr", "over: absorbs MD dry transit + bilateral that rides road in reality", ("name", "stitch railways @(28.20,45.47)", None)),
 ]
 
 GAZ = {"Nadlac": (20.9, 46.2), "Bors": (21.9, 47.1), "Petea": (23.1, 47.9),
@@ -142,6 +146,15 @@ def compute(run_id: str) -> dict:
     tot = tkm_all.sum() or 1.0
     for mode, short in mode_map.items():
         out[f"All inland - {short}, % tkm"] = round(100 * tkm_all.get(mode, 0.0) / tot, 1)
+    if "tons_cat_transit" in inland.columns:
+        ntr = inland.assign(nt=(inland["tons"] - inland["tons_cat_transit"].fillna(0)).clip(lower=0))
+        tkm_nt = ntr.groupby("type").apply(
+            lambda g: (g["nt"] * g["km"]).sum(), include_groups=False)
+        tot_nt = tkm_nt.sum() or 1.0
+        for mode, short in mode_map.items():
+            out[f"All inland EXCL. transit - {short}, % tkm"] = round(100 * tkm_nt.get(mode, 0.0) / tot_nt, 1)
+        out["of which transit, bn tkm/yr (all modes)"] = round(
+            (inland["tons_cat_transit"].fillna(0) * inland["km"]).sum() * 52 / 1e9, 1)
     out["Rail, bn tkm/yr"] = round(tkm_all.get("railways", 0.0) * 52 / 1e9, 1)
     out["IWW, bn tkm/yr"] = round(tkm_all.get("waterways", 0.0) * 52 / 1e9, 1)
     out["Road, bn tkm/yr"] = round(tkm_all.get("roads", 0.0) * 52 / 1e9, 1)
@@ -240,8 +253,24 @@ def main() -> int:
     elif args.label:
         runs.cell(existing.index(args.run_id) + 2, 3, args.label)
 
+    sheet_rows = {"Economic": ECONOMIC_ROWS, "ModalSplit": MODAL_ROWS, "BCP": BCP_ROWS}
     for sheet in ("Economic", "ModalSplit", "BCP"):
         ws = wb[sheet]
+        # drop spurious unlabeled rows, then append any metric rows added to
+        # the script since the sheet was created (schema evolution)
+        for r in range(ws.max_row, 1, -1):
+            if ws.cell(r, 1).value in (None, ""):
+                ws.delete_rows(r)
+        present = {ws.cell(r, 1).value for r in range(2, ws.max_row + 1)}
+        has_verdict = sheet == "BCP"
+        for row in sheet_rows[sheet]:
+            if row[0] not in present:
+                line = [row[0], row[1], row[2]] + ([row[3]] if has_verdict else [])
+                ws.append(line)
+                style_row(ws, ws.max_row)
+                if has_verdict:
+                    ws.cell(ws.max_row, 4).fill = EDIT_FILL
+                print(f"  {sheet}: appended new metric row '{row[0]}'")
         hdr = [ws.cell(1, c).value for c in range(1, ws.max_column + 1)]
         col = hdr.index(args.run_id) + 1 if args.run_id in hdr else ws.max_column + 1
         ws.cell(1, col, args.run_id).font = BOLD
