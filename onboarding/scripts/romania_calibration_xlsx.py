@@ -73,7 +73,7 @@ MODAL_ROWS = [
 
 # (row label, WB data, note, verdict seed, extractor key)
 BCP_ROWS = [
-    ("HU - Nadlac/Curtici (road)", "-", "no WB data for EU crossings", "dominant EU road gate; winner-take-all concentration", ("gaz", "Nadlac", "roads")),
+    ("HU - Nadlac/Curtici (road)", "-", "no WB data for EU crossings; counted on the named A1 border edge since the manual A1 reconnection (18 Sep)", "dominant EU road gate; winner-take-all concentration", ("name", "A1 Nadlac II border section", None)),
     ("HU - Bors/Episcopia (road)", "-", "", "secondary NW gate", ("gaz", "Bors", "roads")),
     ("HU - Bors/Episcopia (rail)", "-", "", "main EU rail crossing", ("gaz", "Bors", "railways")),
     ("HU - Petea (road)", "-", "", "northern gate", ("gaz", "Petea", "roads")),
