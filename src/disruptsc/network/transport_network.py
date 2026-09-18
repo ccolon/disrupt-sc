@@ -582,6 +582,9 @@ class TransportNetwork(nx.Graph):
                 if ct:
                     data[f"tons_{ct}"] = data.get(f"tons_{ct}", 0) + tons
                     data[f"usd_{ct}"] = data.get(f"usd_{ct}", 0) + qty
+                # per-category tons (tons_cat_transit etc.): lets reporting
+                # separate exogenous transit from the scope's own freight
+                data[f"tons_cat_{fc}"] = data.get(f"tons_cat_{fc}", 0) + tons
             flows.append(data)
         return flows
 
