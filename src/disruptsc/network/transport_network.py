@@ -504,7 +504,9 @@ class TransportNetwork(nx.Graph):
         commercial link. Returns the shipment record.
         """
         node_key = dest_key if accumulate_at_dest and dest_key else link_pid
+        key = edge_key or link_pid
         shipment = {
+            "edge_key": key,
             "quantity": monetary_quantity,
             "tons": tons,
             "product_type": product_type,
@@ -523,7 +525,6 @@ class TransportNetwork(nx.Graph):
             "price": price,
             "base_price": base_price,
         }
-        key = edge_key or link_pid
         for u, v in route.transport_edges:
             self[u][v]["shipments"][key] = shipment
 
@@ -549,12 +550,15 @@ class TransportNetwork(nx.Graph):
         dest["tons"] = max(0.0, dest.get("tons", 0.0) + tons_delta)
 
     def reset_loads(self):
-        """Clear every shipment from the edges and the nodes (end of a step)."""
+        """Clear every shipment from the edges and the nodes (end of a step).
+
+        The capacity gate statistics of the step are kept until the next gate
+        run overwrites them (or a run reset clears them), so that a driver can
+        read them after the step."""
         for u, v in self.edges:
             self[u][v]["shipments"] = {}
         for node_id in self.nodes:
             self._node[node_id]["shipments"] = {}
-        self.capacity_gate_stats = {}
 
     def check_no_uncollected_shipment(self):
         for u, v in self.edges:

@@ -12,6 +12,7 @@ import scipy.sparse.linalg as sp_linalg
 
 from disruptsc.config import EPSILON
 from disruptsc.params import TransportParams, SimParams
+from disruptsc.run_pipeline.capacity_gate import run_capacity_gate
 from disruptsc.run_pipeline.disruption import (
     parse_disruptions, apply_disruptions,
     TransportDisruption, CapitalDestruction, Recovery,
@@ -495,6 +496,14 @@ def _run_one_time_step(time_step, sc_network, transport_network,
     for firm in firms.values():
         firm.deliver(sc_network, transport_network, available_transport_network, tp)
 
+    # 7g. Capacity gate (capacity_constraint on): now that every agent has
+    # shipped, the capacitated edges ration what crosses them, the cut shares
+    # are re-sent around the saturated edges, and what finds no acceptable
+    # route returns to the supplier's stock (run_pipeline/capacity_gate.py).
+    if tp.capacity_constraint_enabled:
+        run_capacity_gate(transport_network, available_transport_network,
+                          firms, countries, tp, time_step)
+
     # 7r. Reconstruction: convert capital-good output that competed for delivery
     # into restored capital, lifting capacity for subsequent steps (the V-shape).
     if recon is not None:
@@ -625,6 +634,7 @@ def _collect_routing_summary(sc_network, time_step: int) -> list[dict]:
         "main_usd": 0.0,
         "alternative_usd": 0.0,
         "blocked_usd": 0.0,
+        "capacity_blocked_usd": 0.0,   # the part of blocked_usd withheld by the capacity gate
     })
 
     for u, v, data in sc_network.edges(data=True):
@@ -656,9 +666,12 @@ def _collect_routing_summary(sc_network, time_step: int) -> list[dict]:
         buckets[bucket]["main_usd"] += main_delivery * link.eq_price
         buckets[bucket]["alternative_usd"] += alternative_delivery * link.eq_price
 
-        # Blocked = ordered but not delivered
+        # Blocked = ordered but not delivered (supplier rationing, refusals,
+        # the substitution ceiling and the capacity gate together); the gate's
+        # part is reported on its own
         blocked = max(0.0, link.served_order - link.realized_delivery) * link.eq_price
         buckets[bucket]["blocked_usd"] += blocked
+        buckets[bucket]["capacity_blocked_usd"] += getattr(link, "capacity_blocked", 0.0) * link.eq_price
 
     rows = []
     for bucket, vals in sorted(buckets.items()):
