@@ -39,8 +39,10 @@ scales with the few capacitated links, not with the whole supply chain.
   searches only for the cut shipments, cached per saturated set. Cost is
   proportional to the traffic through the capacitated links. On-off only: no
   cost multiplier anywhere, one rationing rule. The last code state carrying
-  the Gulf machinery is archived (tag `capacity-legacy-2026-09-21`, branch
-  `archive/capacity-legacy`, at main `2fbb13d`); main is cleaned.
+  the Gulf machinery is archived under the repo's `legacy/*` convention
+  (`legacy/v2-capacity-routing` at main `2fbb13d`, to be created; `legacy/v1`
+  of 18 Apr 2026 already holds the v1 code of the April Gulf runs); main is
+  cleaned.
 
 ## 1. What the code does today
 
@@ -365,13 +367,16 @@ dead helpers of C13, `_send_chunked_shipment` and multi-entry `route_plan`
 `default_transport_capacity`. About 1 300 of the 2 081 lines of routing.py
 plus ~150 in transport_network.py and transport_utils.py.
 
-Archived, not deprecated: tag `capacity-legacy-2026-09-21` and branch
-`archive/capacity-legacy` point at main `2fbb13d`, the last commit carrying
-all of the above; `git archive capacity-legacy-2026-09-21 -o legacy.zip`
-gives the zip. The Gulf runs of April 2026 were made on earlier commits, each
-recorded in the run's `run_fingerprint.json`, so any of them can be checked
-out exactly. On main, `capacity_constraint: gradual | binary` raise at parse
-with a message naming the tag.
+Archived, not deprecated, under the repo's `legacy/*` convention:
+`legacy/v2-capacity-routing` at main `2fbb13d`, the last commit carrying all
+of the above (to be created by the maintainer, this session's push access is
+limited to its working branch: `git branch legacy/v2-capacity-routing 2fbb13d
+&& git push origin legacy/v2-capacity-routing`; `git archive
+legacy/v2-capacity-routing -o legacy.zip` gives the zip). `legacy/v1`
+(18 Apr 2026, `d47cc0f`) already holds the v1 code on which the April 2026
+Gulf and Hormuz runs were made, and every exported run records its commit in
+`run_fingerprint.json`. On main, `capacity_constraint: gradual | binary`
+raise at parse with a message naming `legacy/v2-capacity-routing`.
 
 ### 3.6 Relation to the existing mechanisms
 
@@ -430,8 +435,9 @@ the calibrated baseline.
 
 - LPs, heuristic, candidate generation, chunking and multi-route plans:
   dropped, no benchmark copy.
-- Gulf-era code: archived in git (tag + branch), not kept as deprecated modes;
-  main cleaned.
+- Gulf-era code: archived in git under `legacy/*` (`legacy/v2-capacity-routing`
+  at `2fbb13d`; `legacy/v1` already holds the April 2026 code), not kept as
+  deprecated modes; main cleaned.
 - Cut tonnage is re-sent within the step until convergence; the residue waits.
 - One rationing rule: proportional within a round, round priority across
   rounds. (The `value` rule that was floated, highest value per ton first as
