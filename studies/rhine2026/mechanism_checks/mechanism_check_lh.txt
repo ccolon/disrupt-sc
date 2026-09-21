@@ -1,0 +1,221 @@
+Kaub edges closed: [(5854, 5855)] | available edges 10138 of 10139
+od points known for 13234 agents; household props: ['region', 'population', 'subregion_nuts2', 'name', 'od_point', 'long', 'lat', 'id']
+Kaub-crossing bulk links: 5707 | by cargo: {'dry_bulk': 3583, 'liquid_bulk': 2124} | modes: {'maritime+multimodal+roads+waterways': 2404, 'multimodal+roads+waterways': 1770, 'multimodal+railways+roads+waterways': 581, 'maritime+multimodal+railways+roads+waterways': 477, 'maritime+multimodal+waterways': 223, 'maritime+multimodal+railways+waterways': 111}
+unique OD pairs: 2831
+
+== AFR->2121 dry_bulk (share 0.200); baseline maritime+multimodal+waterways+multimodal+roads km {'maritime': 3856.0, 'waterways': 638.0, 'roads': 0.0} cost 34.6; line-haul modes ['maritime', 'waterways']
+   same: maritime+multimodal+waterways+multimodal+roads+multimodal+waterways+multimodal+roads km {'maritime': 3856.0, 'waterways': 553.0, 'roads': 88.0} cost 55.1 (+59 %) switch=True pen=1000.0 total=34648.6 [lon -17.8..8.5 lat 27.0..52.5]
+   free: maritime+multimodal+waterways+multimodal+roads km {'maritime': 3856.0, 'waterways': 392.0, 'roads': 197.0} cost 42.8 (+24 %) switch=True pen=1000.0 total=34636.3 [lon -17.8..8.3 lat 27.0..52.5]
+   -> chosen free: share x (rel 0.24 + pen 1000.0) = 200.05 -> GIVES UP
+
+== AFR->2128 dry_bulk (share 0.200); baseline maritime+multimodal+waterways+multimodal+roads km {'maritime': 3856.0, 'waterways': 560.0, 'roads': 9.0} cost 33.7; line-haul modes ['maritime', 'waterways']
+   same: maritime+multimodal+waterways+multimodal+roads+multimodal+waterways+multimodal+roads km {'maritime': 3856.0, 'waterways': 480.0, 'roads': 97.0} cost 52.9 (+57 %) switch=True pen=1000.0 total=33785.7 [lon -17.8..8.5 lat 27.0..52.5]
+   free: maritime+multimodal+waterways+multimodal+roads km {'maritime': 3856.0, 'waterways': 392.0, 'roads': 135.0} cost 39.6 (+17 %) switch=True pen=1000.0 total=33772.4 [lon -17.8..8.3 lat 27.0..52.5]
+   -> chosen free: share x (rel 0.17 + pen 1000.0) = 200.03 -> GIVES UP
+
+== NOR->2720 dry_bulk (share 0.200); baseline railways+multimodal+maritime+multimodal+waterways+multimodal+roads km {'railways': 6.0, 'maritime': 898.0, 'waterways': 594.0, 'roads': 49.0} cost 34.3; line-haul modes ['maritime', 'waterways']
+   same: railways+multimodal+maritime+multimodal+waterways+multimodal+railways+multimodal+waterways+multimodal+railways+multimodal km {'railways': 94.0, 'maritime': 898.0, 'waterways': 553.0} cost 54.8 (+60 %) switch=True pen=1000.0 total=34369.4 [lon 4.3..10.8 lat 49.0..59.9]
+   free: railways+multimodal+maritime+multimodal+waterways+multimodal+railways+multimodal km {'railways': 331.0, 'maritime': 898.0, 'waterways': 264.0} cost 40.6 (+18 %) switch=True pen=1000.0 total=34355.3 [lon 4.3..10.8 lat 49.0..59.9]
+   -> chosen free: share x (rel 0.18 + pen 1000.0) = 200.04 -> GIVES UP
+
+== GBR->2724 dry_bulk (share 0.200); baseline maritime+multimodal+waterways+multimodal+roads km {'maritime': 369.0, 'waterways': 965.0, 'roads': 105.0} cost 32.2; line-haul modes ['maritime', 'roads', 'waterways']
+   same: maritime+multimodal+waterways+multimodal+roads km {'maritime': 809.0, 'waterways': 238.0, 'roads': 450.0} cost 39.5 (+23 %) switch=False pen=0.05 total=41.1 [lon 1.3..12.1 lat 48.6..53.9]
+   free: maritime+multimodal+waterways+multimodal+railways+multimodal+roads km {'maritime': 809.0, 'waterways': 259.0, 'railways': 363.0, 'roads': 105.0} cost 37.7 (+17 %) switch=True pen=1000.0 total=32251.0 [lon 1.3..12.0 lat 48.6..53.9]
+   -> chosen same: share x (rel 0.23 + pen 0.05) = 0.06 -> DELIVERS
+
+== 554->2283 liquid_bulk (share 0.063); baseline roads+multimodal+waterways+multimodal+roads km {'roads': 32.0, 'waterways': 1027.0} cost 58.4; line-haul modes ['waterways']
+   same: roads+multimodal+waterways+multimodal+roads+multimodal+waterways+multimodal+roads km {'roads': 120.0, 'waterways': 941.0} cost 81.4 (+39 %) switch=True pen=1000.0 total=58456.2 [lon 4.2..11.3 lat 49.4..51.9]
+   free: roads+multimodal+railways+multimodal+roads km {'roads': 32.0, 'railways': 658.0} cost 63.7 (+9 %) switch=True pen=1000.0 total=58438.5 [lon 4.4..11.3 lat 49.4..51.2]
+   -> chosen free: share x (rel 0.09 + pen 1000.0) = 62.85 -> GIVES UP
+
+== RUS->1292 dry_bulk (share 0.200); baseline maritime+multimodal+waterways+multimodal+roads km {'maritime': 2602.0, 'waterways': 828.0, 'roads': 85.0} cost 37.3; line-haul modes ['maritime', 'waterways']
+   same: maritime+multimodal+waterways+multimodal+roads+multimodal+waterways+multimodal+roads km {'maritime': 2602.0, 'waterways': 743.0, 'roads': 173.0} cost 67.5 (+81 %) switch=True pen=1000.0 total=37375.8 [lon 4.3..30.1 lat 47.4..60.3]
+   free: maritime+multimodal+waterways+multimodal+railways+multimodal+roads km {'maritime': 2691.0, 'waterways': 147.0, 'railways': 499.0, 'roads': 85.0} cost 46.5 (+25 %) switch=True pen=1000.0 total=37354.8 [lon 3.9..30.1 lat 47.4..60.3]
+   -> chosen free: share x (rel 0.25 + pen 1000.0) = 200.05 -> GIVES UP
+
+== 9386->2127 dry_bulk (share 0.054); baseline roads+multimodal+maritime+multimodal+waterways+multimodal+roads km {'roads': 154.0, 'maritime': 2183.0, 'waterways': 505.0} cost 42.9; line-haul modes ['maritime', 'roads', 'waterways']
+   same: roads+multimodal+maritime+multimodal+waterways+multimodal+roads km {'roads': 231.0, 'maritime': 2183.0, 'waterways': 392.0} cost 47.2 (+10 %) switch=False pen=0.0 total=47.2 [lon 4.3..24.2 lat 49.8..58.2]
+   free: roads+multimodal+maritime+multimodal+waterways+multimodal+roads km {'roads': 231.0, 'maritime': 2183.0, 'waterways': 392.0} cost 47.2 (+10 %) switch=False pen=0.0 total=47.2 [lon 4.3..24.2 lat 49.8..58.2]
+   -> chosen same: share x (rel 0.10 + pen 0.0) = 0.01 -> DELIVERS
+
+== 4471->2843 dry_bulk (share 0.148); baseline roads+multimodal+maritime+multimodal+waterways+multimodal km {'roads': 12.0, 'maritime': 3714.0, 'waterways': 684.0} cost 44.3; line-haul modes ['maritime', 'waterways']
+   same: roads+multimodal+maritime+multimodal+waterways+multimodal+roads+multimodal+waterways+multimodal km {'roads': 100.0, 'maritime': 3714.0, 'waterways': 599.0} cost 63.3 (+43 %) switch=True pen=1000.0 total=44355.1 [lon -9.6..9.6 lat 36.0..52.5]
+   free: roads+multimodal+maritime+multimodal+waterways+multimodal+railways+multimodal+roads km {'roads': 53.0, 'maritime': 3714.0, 'waterways': 264.0, 'railways': 263.0} cost 51.7 (+17 %) switch=True pen=1000.0 total=44343.5 [lon -9.6..9.6 lat 36.0..52.5]
+   -> chosen free: share x (rel 0.17 + pen 1000.0) = 147.84 -> GIVES UP
+
+== 2465->hh_197 dry_bulk (share 0.139); baseline roads+multimodal+waterways+multimodal+roads km {'roads': 77.0, 'waterways': 495.0} cost 25.5; line-haul modes ['waterways']
+   same: roads+multimodal+waterways+multimodal+roads+multimodal+waterways+multimodal+roads km {'roads': 165.0, 'waterways': 410.0} cost 54.6 (+114 %) switch=True pen=1000.0 total=25558.7 [lon 6.7..8.5 lat 47.5..50.9]
+   free: roads+multimodal+railways+multimodal+roads km {'roads': 78.0, 'railways': 454.0} cost 26.2 (+3 %) switch=True pen=1000.0 total=25530.3 [lon 6.7..8.6 lat 47.5..50.9]
+   -> chosen free: share x (rel 0.03 + pen 1000.0) = 138.61 -> GIVES UP
+
+== 115->2814 liquid_bulk (share 0.052); baseline roads+multimodal+waterways+multimodal km {'roads': 4.0, 'waterways': 1146.0} cost 60.1; line-haul modes ['waterways']
+   same: roads+multimodal+waterways+multimodal+roads km {'roads': 93.0, 'waterways': 1061.0} cost 67.9 (+13 %) switch=True pen=1000.0 total=60195.7 [lon 7.5..16.5 lat 48.2..50.3]
+   free: roads+multimodal+waterways+multimodal+railways+multimodal km {'roads': 4.0, 'waterways': 1061.0, 'railways': 86.0} cost 64.9 (+8 %) switch=True pen=1000.0 total=60192.6 [lon 7.5..16.5 lat 48.2..50.3]
+   -> chosen free: share x (rel 0.08 + pen 1000.0) = 52.22 -> GIVES UP
+
+== 51->USA dry_bulk (share 0.086); baseline roads+multimodal+railways+multimodal+waterways+multimodal+maritime km {'roads': 64.0, 'railways': 313.0, 'waterways': 776.0, 'maritime': 2989.0} cost 50.7; line-haul modes ['maritime', 'railways', 'waterways']
+   same: roads+multimodal+railways+multimodal+waterways+multimodal+maritime km {'roads': 64.0, 'railways': 625.0, 'waterways': 259.0, 'maritime': 3429.0} cost 54.3 (+7 %) switch=False pen=0.05 total=56.8 [lon -32.0..12.1 lat 47.3..53.9]
+   free: roads+multimodal+maritime km {'roads': 321.0, 'maritime': 7192.0} cost 52.6 (+4 %) switch=True pen=1000.0 total=50756.6 [lon -32.0..18.9 lat 35.9..50.0]
+   -> chosen same: share x (rel 0.07 + pen 0.05) = 0.01 -> DELIVERS
+
+== 7779->6021 dry_bulk (share 0.146); baseline roads+multimodal+waterways+multimodal+maritime+multimodal km {'roads': 40.0, 'waterways': 1849.0, 'maritime': 1375.0} cost 56.4; line-haul modes ['maritime', 'waterways']
+   same: roads+multimodal+waterways+multimodal+roads+multimodal+waterways+multimodal+maritime+multimodal km {'roads': 129.0, 'waterways': 1764.0, 'maritime': 1375.0} cost 75.4 (+34 %) switch=True pen=1000.0 total=56524.4 [lon -5.5..19.3 lat 46.1..52.5]
+   free: roads+multimodal+railways+multimodal+maritime+multimodal km {'roads': 34.0, 'railways': 516.0, 'maritime': 5227.0} cost 60.3 (+7 %) switch=True pen=1000.0 total=56509.2 [lon -9.6..19.3 lat 35.9..47.5]
+   -> chosen free: share x (rel 0.07 + pen 1000.0) = 145.51 -> GIVES UP
+
+== AFR->2307 dry_bulk (share 0.200); baseline maritime+multimodal+waterways+multimodal km {'maritime': 3856.0, 'waterways': 965.0} cost 40.0; line-haul modes ['maritime', 'waterways']
+   same: none
+   free: maritime+multimodal+waterways+multimodal+railways+multimodal km {'maritime': 4295.0, 'waterways': 259.0, 'railways': 363.0} cost 45.5 (+14 %) switch=True pen=1000.0 total=40055.7 [lon -17.8..12.0 lat 27.0..53.9]
+   -> chosen free: share x (rel 0.14 + pen 1000.0) = 200.03 -> GIVES UP
+
+== 9671->7755 dry_bulk (share 0.028); baseline roads+multimodal+waterways+multimodal+roads km {'roads': 50.0, 'waterways': 1864.0} cost 46.9; line-haul modes ['waterways']
+   same: roads+multimodal+waterways+multimodal+roads+multimodal+waterways+multimodal+roads km {'roads': 138.0, 'waterways': 1779.0} cost 65.9 (+40 %) switch=True pen=1000.0 total=47013.8 [lon 4.6..19.2 lat 47.4..52.5]
+   free: roads+multimodal+maritime+multimodal+waterways+multimodal+railways+multimodal+roads km {'roads': 104.0, 'maritime': 529.0, 'waterways': 835.0, 'railways': 401.0} cost 56.5 (+20 %) switch=True pen=1000.0 total=47004.3 [lon 4.3..19.2 lat 47.5..53.9]
+   -> chosen free: share x (rel 0.20 + pen 1000.0) = 27.59 -> GIVES UP
+
+== 12410->hh_221 dry_bulk (share 0.098); baseline roads+multimodal+maritime+multimodal+waterways+multimodal+roads km {'roads': 161.0, 'maritime': 1116.0, 'waterways': 776.0} cost 43.8; line-haul modes ['maritime', 'roads', 'waterways']
+   same: roads+multimodal+maritime+multimodal+waterways+multimodal+roads km {'roads': 465.0, 'maritime': 1116.0, 'waterways': 392.0} cost 55.2 (+26 %) switch=False pen=0.0 total=55.2 [lon 4.3..13.3 lat 48.0..58.0]
+   free: roads+multimodal+railways+multimodal+roads km {'roads': 98.0, 'railways': 1116.0} cost 49.5 (+13 %) switch=True pen=1000.0 total=43831.6 [lon 9.1..13.3 lat 48.0..55.7]
+   -> chosen same: share x (rel 0.26 + pen 0.0) = 0.03 -> DELIVERS
+
+== AFR->2872 dry_bulk (share 0.200); baseline maritime+multimodal+waterways+multimodal km {'maritime': 3856.0, 'waterways': 594.0} cost 33.8; line-haul modes ['maritime', 'waterways']
+   same: none
+   free: maritime+multimodal+waterways+multimodal+roads km {'maritime': 3856.0, 'waterways': 392.0, 'roads': 164.0} cost 41.1 (+21 %) switch=True pen=1000.0 total=33863.6 [lon -17.8..8.5 lat 27.0..52.5]
+   -> chosen free: share x (rel 0.21 + pen 1000.0) = 200.04 -> GIVES UP
+
+== 10330->2355 dry_bulk (share 0.045); baseline roads+multimodal+maritime+multimodal+waterways+multimodal+roads km {'roads': 171.0, 'maritime': 1813.0, 'waterways': 543.0} cost 43.1; line-haul modes ['maritime', 'roads', 'waterways']
+   same: roads+multimodal+maritime+multimodal+waterways+multimodal+roads km {'roads': 281.0, 'maritime': 1813.0, 'waterways': 404.0} cost 48.8 (+13 %) switch=False pen=0.0 total=48.8 [lon 4.3..20.3 lat 49.9..58.0]
+   free: roads+multimodal+maritime+multimodal+waterways+multimodal+roads km {'roads': 281.0, 'maritime': 1813.0, 'waterways': 404.0} cost 48.8 (+13 %) switch=False pen=0.0 total=48.8 [lon 4.3..20.3 lat 49.9..58.0]
+   -> chosen same: share x (rel 0.13 + pen 0.0) = 0.01 -> DELIVERS
+
+== 7786->9782 dry_bulk (share 0.088); baseline roads+multimodal+waterways+multimodal km {'roads': 49.0, 'waterways': 1939.0} cost 48.3; line-haul modes ['waterways']
+   same: roads+multimodal+waterways+multimodal+roads+multimodal+waterways+multimodal km {'roads': 138.0, 'waterways': 1853.0} cost 67.3 (+39 %) switch=True pen=1000.0 total=48330.1 [lon 5.6..19.2 lat 47.4..53.2]
+   free: roads+multimodal+waterways+multimodal+railways+multimodal km {'roads': 49.0, 'waterways': 1325.0, 'railways': 470.0} cost 57.2 (+18 %) switch=True pen=1000.0 total=48320.1 [lon 5.9..19.2 lat 47.4..53.1]
+   -> chosen free: share x (rel 0.18 + pen 1000.0) = 87.54 -> GIVES UP
+
+== 12048->hh_84 dry_bulk (share 0.090); baseline roads+multimodal+waterways+multimodal+maritime+multimodal+roads km {'roads': 83.0, 'waterways': 1621.0, 'maritime': 1737.0} cost 56.1; line-haul modes ['maritime', 'waterways']
+   same: roads+multimodal+waterways+multimodal+roads+multimodal+waterways+multimodal+maritime+multimodal+roads km {'roads': 172.0, 'waterways': 1535.0, 'maritime': 1737.0} cost 75.1 (+34 %) switch=True pen=1000.0 total=56213.3 [lon -5.5..17.2 lat 42.9..52.5]
+   free: roads+multimodal+railways+multimodal+waterways+multimodal+maritime+multimodal+roads km {'roads': 83.0, 'railways': 298.0, 'waterways': 835.0, 'maritime': 2177.0} cost 58.1 (+4 %) switch=True pen=1000.0 total=56196.3 [lon -5.5..17.2 lat 42.9..53.9]
+   -> chosen free: share x (rel 0.04 + pen 1000.0) = 90.28 -> GIVES UP
+
+== 4341->10 dry_bulk (share 0.043); baseline roads+multimodal+maritime+multimodal+waterways+multimodal+roads km {'roads': 272.0, 'maritime': 1737.0, 'waterways': 1561.0} cost 64.9; line-haul modes ['maritime', 'roads', 'waterways']
+   same: roads+multimodal+maritime+multimodal+waterways+multimodal+roads km {'roads': 529.0, 'maritime': 2177.0, 'waterways': 835.0} cost 67.7 (+4 %) switch=False pen=0.05 total=70.9 [lon -5.5..16.7 lat 41.9..53.9]
+   free: roads+multimodal+maritime+multimodal+waterways+multimodal+railways+multimodal+roads km {'roads': 272.0, 'maritime': 2177.0, 'waterways': 835.0, 'railways': 290.0} cost 67.5 (+4 %) switch=True pen=1000.0 total=64918.9 [lon -5.5..16.9 lat 41.9..53.9]
+   -> chosen same: share x (rel 0.04 + pen 0.05) = 0.00 -> DELIVERS
+
+== 9401->2856 dry_bulk (share 0.123); baseline roads+multimodal+maritime+multimodal+waterways+multimodal km {'roads': 122.0, 'maritime': 1941.0, 'waterways': 683.0} cost 43.2; line-haul modes ['maritime', 'roads', 'waterways']
+   same: roads+multimodal+maritime+multimodal+waterways+multimodal+roads km {'roads': 352.0, 'maritime': 1941.0, 'waterways': 392.0} cost 52.5 (+21 %) switch=False pen=0.0 total=52.5 [lon 4.3..22.7 lat 49.2..58.0]
+   free: roads+multimodal+maritime+multimodal+waterways+multimodal+roads km {'roads': 352.0, 'maritime': 1941.0, 'waterways': 392.0} cost 52.5 (+21 %) switch=False pen=0.0 total=52.5 [lon 4.3..22.7 lat 49.2..58.0]
+   -> chosen same: share x (rel 0.21 + pen 0.0) = 0.03 -> DELIVERS
+
+== 4100->hh_221 dry_bulk (share 0.093); baseline multimodal+waterways+multimodal+roads km {'waterways': 874.0, 'roads': 132.0} cost 34.6; line-haul modes ['roads', 'waterways']
+   same: roads km {'roads': 812.0} cost 41.7 (+20 %) switch=False pen=0.0 total=41.7 [lon 5.8..10.2 lat 48.0..53.2]
+   free: multimodal+railways+multimodal+roads km {'railways': 737.0, 'roads': 69.0} cost 35.2 (+2 %) switch=True pen=1000.0 total=34681.3 [lon 5.8..10.2 lat 48.0..53.2]
+   -> chosen same: share x (rel 0.20 + pen 0.0) = 0.02 -> DELIVERS
+
+== 7792->GBR dry_bulk (share 0.088); baseline roads+multimodal+waterways+multimodal+maritime km {'roads': 219.0, 'waterways': 1849.0, 'maritime': 369.0} cost 52.8; line-haul modes ['maritime', 'roads', 'waterways']
+   same: roads+multimodal+waterways+multimodal+maritime km {'roads': 684.0, 'waterways': 835.0, 'maritime': 809.0} cost 61.4 (+16 %) switch=False pen=0.05 total=64.1 [lon 1.3..21.2 lat 47.5..53.9]
+   free: roads+multimodal+railways+multimodal+maritime km {'roads': 65.0, 'railways': 872.0, 'maritime': 2076.0} cost 53.0 (+0 %) switch=True pen=1000.0 total=52844.7 [lon 1.3..21.3 lat 47.8..58.0]
+   -> chosen same: share x (rel 0.16 + pen 0.05) = 0.02 -> DELIVERS
+
+== 9676->hh_139 dry_bulk (share 0.028); baseline multimodal+waterways+multimodal+roads km {'waterways': 1599.0, 'roads': 190.0} cost 49.7; line-haul modes ['roads', 'waterways']
+   same: roads+multimodal+waterways+multimodal+roads km {'roads': 471.0, 'waterways': 1121.0} cost 56.1 (+13 %) switch=False pen=0.0 total=56.1 [lon 6.0..17.2 lat 47.0..51.3]
+   free: multimodal+railways+multimodal+roads km {'railways': 1080.0, 'roads': 134.0} cost 50.1 (+1 %) switch=True pen=1000.0 total=49728.4 [lon 6.0..16.8 lat 46.9..51.2]
+   -> chosen same: share x (rel 0.13 + pen 0.0) = 0.00 -> DELIVERS
+
+== 6936->hh_211 dry_bulk (share 0.046); baseline roads+multimodal+maritime+multimodal+waterways+multimodal+roads km {'roads': 209.0, 'maritime': 5895.0, 'waterways': 683.0} cost 62.6; line-haul modes ['maritime', 'roads', 'waterways']
+   same: roads+multimodal+maritime+multimodal+roads km {'roads': 858.0, 'maritime': 2562.0} cost 71.7 (+14 %) switch=False pen=0.05 total=74.8 [lon 8.4..25.5 lat 36.3..49.2]
+   free: roads+multimodal+maritime+multimodal+railways+multimodal+roads km {'roads': 234.0, 'maritime': 2562.0, 'railways': 618.0} cost 63.9 (+2 %) switch=True pen=1000.0 total=62707.8 [lon 8.5..25.5 lat 36.3..49.2]
+   -> chosen same: share x (rel 0.14 + pen 0.05) = 0.01 -> DELIVERS
+
+== 2724->10081 liquid_bulk (share 0.055); baseline roads+multimodal+waterways+multimodal+roads km {'roads': 130.0, 'waterways': 847.0} cost 63.2; line-haul modes ['roads', 'waterways']
+   same: roads+multimodal+waterways+multimodal+roads+multimodal+waterways+multimodal+roads km {'roads': 226.0, 'waterways': 731.0} cost 85.4 (+35 %) switch=False pen=0.0 total=85.4 [lon 5.9..11.6 lat 48.6..52.2]
+   free: roads+multimodal+railways+multimodal+roads km {'roads': 130.0, 'railways': 577.0} cost 69.4 (+10 %) switch=True pen=1000.0 total=63299.8 [lon 5.9..11.6 lat 48.6..52.2]
+   -> chosen same: share x (rel 0.35 + pen 0.0) = 0.02 -> DELIVERS
+
+== 2410->1262 dry_bulk (share 0.126); baseline multimodal+waterways+multimodal+roads km {'waterways': 607.0, 'roads': 93.0} cost 28.1; line-haul modes ['waterways']
+   same: multimodal+waterways+multimodal+roads+multimodal+waterways+multimodal+roads km {'waterways': 522.0, 'roads': 181.0} cost 58.3 (+108 %) switch=True pen=1000.0 total=28168.2 [lon 6.7..8.5 lat 46.9..51.5]
+   free: multimodal+railways+multimodal+roads km {'railways': 513.0, 'roads': 93.0} cost 28.8 (+3 %) switch=True pen=1000.0 total=28138.6 [lon 6.7..8.6 lat 46.9..51.4]
+   -> chosen free: share x (rel 0.03 + pen 1000.0) = 125.93 -> GIVES UP
+
+== 5343->2872 dry_bulk (share 0.117); baseline roads+multimodal+maritime+multimodal+waterways+multimodal km {'roads': 14.0, 'maritime': 2655.0, 'waterways': 594.0} cost 39.0; line-haul modes ['maritime', 'waterways']
+   same: roads+multimodal+maritime+multimodal+waterways+multimodal+roads+multimodal+waterways+multimodal km {'roads': 102.0, 'maritime': 2655.0, 'waterways': 508.0} cost 58.0 (+49 %) switch=True pen=1000.0 total=39038.8 [lon 4.3..29.8 lat 49.3..62.6]
+   free: roads+multimodal+maritime+multimodal+waterways+multimodal+roads km {'roads': 178.0, 'maritime': 2655.0, 'waterways': 392.0} cost 46.2 (+19 %) switch=True pen=1000.0 total=39027.1 [lon 4.3..29.8 lat 49.3..62.6]
+   -> chosen free: share x (rel 0.19 + pen 1000.0) = 117.18 -> GIVES UP
+
+== 981->hh_241 dry_bulk (share 0.140); baseline roads+multimodal+maritime+multimodal+waterways+multimodal+roads km {'roads': 309.0, 'maritime': 5895.0, 'waterways': 505.0} cost 64.9; line-haul modes ['maritime', 'roads', 'waterways']
+   same: roads+multimodal+maritime+multimodal+waterways+multimodal+roads km {'roads': 510.0, 'maritime': 5872.0, 'waterways': 147.0} cost 69.1 (+7 %) switch=False pen=0.05 total=72.4 [lon -9.6..25.5 lat 35.9..52.0]
+   free: roads+multimodal+maritime+multimodal+railways+multimodal+roads km {'roads': 315.0, 'maritime': 2562.0, 'railways': 648.0} cost 69.1 (+6 %) switch=True pen=1000.0 total=64954.5 [lon 7.5..25.5 lat 36.3..49.6]
+   -> chosen same: share x (rel 0.07 + pen 0.05) = 0.02 -> DELIVERS
+
+== 11710->9704 dry_bulk (share 0.053); baseline roads+multimodal+waterways+multimodal+roads km {'roads': 434.0, 'waterways': 1831.0} cost 66.2; line-haul modes ['roads', 'waterways']
+   same: roads+multimodal+waterways+multimodal+roads km {'roads': 899.0, 'waterways': 996.0} cost 76.1 (+15 %) switch=False pen=0.0 total=76.1 [lon 7.2..23.5 lat 47.5..52.8]
+   free: roads+multimodal+railways+multimodal+waterways+multimodal+roads km {'roads': 193.0, 'railways': 684.0, 'waterways': 996.0} cost 66.3 (+0 %) switch=True pen=1000.0 total=66225.1 [lon 7.2..23.5 lat 47.7..52.8]
+   -> chosen same: share x (rel 0.15 + pen 0.0) = 0.01 -> DELIVERS
+
+== 554->2269 liquid_bulk (share 0.063); baseline roads+multimodal+waterways+multimodal+roads km {'roads': 19.0, 'waterways': 1152.0} cost 62.2; line-haul modes ['waterways']
+   same: roads+multimodal+waterways+multimodal+roads+multimodal+waterways+multimodal+roads km {'roads': 107.0, 'waterways': 1066.0} cost 85.2 (+37 %) switch=True pen=1000.0 total=62276.6 [lon 4.2..12.1 lat 48.9..51.9]
+   free: roads+multimodal+railways+multimodal+roads km {'roads': 19.0, 'railways': 755.0} cost 70.4 (+13 %) switch=True pen=1000.0 total=62261.7 [lon 4.4..12.1 lat 49.0..51.2]
+   -> chosen free: share x (rel 0.13 + pen 1000.0) = 62.86 -> GIVES UP
+
+== 2427->hh_116 dry_bulk (share 0.104); baseline roads+multimodal+waterways+multimodal+maritime+multimodal+roads km {'roads': 77.0, 'waterways': 704.0, 'maritime': 1321.0} cost 38.9; line-haul modes ['maritime', 'waterways']
+   same: roads+multimodal+waterways+multimodal+roads+multimodal+waterways+multimodal+maritime+multimodal+roads km {'roads': 165.0, 'waterways': 619.0, 'maritime': 1321.0} cost 62.8 (+61 %) switch=True pen=1000.0 total=38994.1 [lon -5.5..8.5 lat 46.6..52.5]
+   free: roads+multimodal+railways+multimodal+roads km {'roads': 112.0, 'railways': 853.0} cost 41.2 (+6 %) switch=True pen=1000.0 total=38972.5 [lon -1.7..7.9 lat 47.3..49.2]
+   -> chosen free: share x (rel 0.06 + pen 1000.0) = 103.93 -> GIVES UP
+
+== RUS->2855 dry_bulk (share 0.200); baseline maritime+multimodal+waterways+multimodal+roads km {'maritime': 2602.0, 'waterways': 683.0, 'roads': 85.0} cost 34.9; line-haul modes ['maritime', 'waterways']
+   same: maritime+multimodal+waterways+multimodal+roads+multimodal+waterways+multimodal+roads km {'maritime': 2602.0, 'waterways': 880.0, 'roads': 163.0} cost 58.1 (+67 %) switch=True pen=1000.0 total=34944.4 [lon 4.3..30.1 lat 49.2..60.3]
+   free: maritime+multimodal+waterways+multimodal+railways+multimodal+roads km {'maritime': 1429.0, 'waterways': 311.0, 'railways': 363.0, 'roads': 75.0} cost 39.4 (+13 %) switch=True pen=1000.0 total=34925.7 [lon 10.2..30.1 lat 49.2..60.3]
+   -> chosen free: share x (rel 0.13 + pen 1000.0) = 200.03 -> GIVES UP
+
+== 12048->hh_189 dry_bulk (share 0.090); baseline roads+multimodal+waterways+multimodal+maritime+multimodal+roads km {'roads': 30.0, 'waterways': 1621.0, 'maritime': 1768.0} cost 53.5; line-haul modes ['maritime', 'waterways']
+   same: roads+multimodal+waterways+multimodal+roads+multimodal+waterways+multimodal+maritime+multimodal+roads km {'roads': 118.0, 'waterways': 1535.0, 'maritime': 1768.0} cost 72.5 (+35 %) switch=True pen=1000.0 total=53591.0 [lon -8.5..17.2 lat 43.4..52.5]
+   free: roads+multimodal+railways+multimodal+waterways+multimodal+maritime+multimodal+roads km {'roads': 30.0, 'railways': 298.0, 'waterways': 835.0, 'maritime': 2207.0} cost 55.5 (+4 %) switch=True pen=1000.0 total=53574.0 [lon -8.5..17.2 lat 43.4..53.9]
+   -> chosen free: share x (rel 0.04 + pen 1000.0) = 90.28 -> GIVES UP
+
+== ROW->2357 dry_bulk (share 0.200); baseline maritime+multimodal+waterways+multimodal+roads km {'maritime': 6414.0, 'waterways': 530.0, 'roads': 2.0} cost 42.5; line-haul modes ['maritime', 'waterways']
+   same: maritime+multimodal+waterways+multimodal+roads+multimodal+waterways+multimodal+roads km {'maritime': 6414.0, 'waterways': 445.0, 'roads': 91.0} cost 61.5 (+45 %) switch=True pen=1000.0 total=42600.1 [lon -9.6..32.6 lat 29.6..52.5]
+   free: maritime+multimodal+waterways+multimodal+roads km {'maritime': 6414.0, 'waterways': 404.0, 'roads': 108.0} cost 48.2 (+13 %) switch=True pen=1000.0 total=42586.7 [lon -9.6..32.6 lat 29.6..52.5]
+   -> chosen free: share x (rel 0.13 + pen 1000.0) = 200.03 -> GIVES UP
+
+== 9676->hh_61 dry_bulk (share 0.028); baseline multimodal+waterways+multimodal+roads km {'waterways': 1828.0, 'roads': 427.0} cost 65.7; line-haul modes ['roads', 'waterways']
+   same: roads+multimodal+waterways+multimodal+roads km {'roads': 708.0, 'waterways': 1349.0} cost 72.2 (+10 %) switch=False pen=0.0 total=72.2 [lon 6.0..23.5 lat 47.4..51.3]
+   free: multimodal+railways+multimodal+roads km {'railways': 1570.0, 'roads': 186.0} cost 69.4 (+6 %) switch=True pen=1000.0 total=65791.6 [lon 6.0..23.5 lat 47.7..52.4]
+   -> chosen same: share x (rel 0.10 + pen 0.0) = 0.00 -> DELIVERS
+
+== 5945->12732 liquid_bulk (share 0.076); baseline multimodal+maritime+multimodal+waterways+multimodal+roads km {'maritime': 1321.0, 'waterways': 828.0, 'roads': 91.0} cost 69.7; line-haul modes ['maritime', 'waterways']
+   same: multimodal+maritime+multimodal+waterways+multimodal+roads+multimodal+waterways+multimodal+roads km {'maritime': 1321.0, 'waterways': 743.0, 'roads': 179.0} cost 122.9 (+76 %) switch=True pen=1000.0 total=69820.2 [lon -5.5..8.5 lat 46.6..52.5]
+   free: multimodal+maritime+multimodal+waterways+multimodal+railways+multimodal+roads km {'maritime': 1299.0, 'waterways': 147.0, 'railways': 499.0, 'roads': 91.0} cost 83.6 (+20 %) switch=True pen=1000.0 total=69780.9 [lon -5.5..8.0 lat 46.6..52.0]
+   -> chosen free: share x (rel 0.20 + pen 1000.0) = 76.22 -> GIVES UP
+
+== 9658->88 dry_bulk (share 0.034); baseline roads+multimodal+waterways+multimodal+roads km {'roads': 54.0, 'waterways': 1338.0} cost 38.3; line-haul modes ['waterways']
+   same: roads+multimodal+waterways+multimodal+roads+multimodal+waterways+multimodal+roads km {'roads': 142.0, 'waterways': 1252.0} cost 57.3 (+50 %) switch=True pen=1000.0 total=38379.4 [lon 4.4..14.3 lat 48.2..51.9]
+   free: roads+multimodal+railways+multimodal+roads km {'roads': 26.0, 'railways': 961.0} cost 40.4 (+6 %) switch=True pen=1000.0 total=38362.5 [lon 4.4..14.1 lat 48.2..51.7]
+   -> chosen free: share x (rel 0.06 + pen 1000.0) = 34.39 -> GIVES UP
+
+== 11710->5835 dry_bulk (share 0.053); baseline roads+multimodal+waterways+multimodal km {'roads': 427.0, 'waterways': 1778.0} cost 64.9; line-haul modes ['roads', 'waterways']
+   same: roads+multimodal+waterways+multimodal+roads km {'roads': 661.0, 'waterways': 1391.0} cost 70.5 (+9 %) switch=False pen=0.0 total=70.5 [lon 6.1..23.5 lat 47.4..50.1]
+   free: roads+multimodal+railways+multimodal km {'roads': 170.0, 'railways': 1550.0} cost 67.8 (+5 %) switch=True pen=1000.0 total=64934.4 [lon 6.1..23.5 lat 47.6..49.0]
+   -> chosen same: share x (rel 0.09 + pen 0.0) = 0.00 -> DELIVERS
+
+==== SUMMARY over 39 sampled Kaub-crossing bulk OD pairs ====
+outcome
+gives_up         23
+delivers_same    16
+   seller   buyer        cargo        outcome   rel
+3     GBR    2724     dry_bulk  delivers_same  0.23
+6    9386    2127     dry_bulk  delivers_same  0.10
+10     51     USA     dry_bulk  delivers_same  0.07
+14  12410  hh_221     dry_bulk  delivers_same  0.26
+16  10330    2355     dry_bulk  delivers_same  0.13
+19   4341      10     dry_bulk  delivers_same  0.04
+20   9401    2856     dry_bulk  delivers_same  0.21
+21   4100  hh_221     dry_bulk  delivers_same  0.20
+22   7792     GBR     dry_bulk  delivers_same  0.16
+23   9676  hh_139     dry_bulk  delivers_same  0.13
+24   6936  hh_211     dry_bulk  delivers_same  0.14
+25   2724   10081  liquid_bulk  delivers_same  0.35
+28    981  hh_241     dry_bulk  delivers_same  0.07
+29  11710    9704     dry_bulk  delivers_same  0.15
+35   9676   hh_61     dry_bulk  delivers_same  0.10
+38  11710    5835     dry_bulk  delivers_same  0.09

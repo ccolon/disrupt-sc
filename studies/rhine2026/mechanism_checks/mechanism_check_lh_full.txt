@@ -1,0 +1,57 @@
+5707 Kaub-crossing bulk links, 2831 OD pairs; setup 10s
+  0/2831 pairs, 10s
+  300/2831 pairs, 58s
+  600/2831 pairs, 122s
+  900/2831 pairs, 176s
+  1200/2831 pairs, 219s
+  1500/2831 pairs, 262s
+  1800/2831 pairs, 314s
+  2100/2831 pairs, 369s
+  2400/2831 pairs, 424s
+  2700/2831 pairs, 477s
+
+OD-pair outcomes:
+outcome
+gives_up         1553
+delivers_same    1224
+delivers_free      54
+
+OD pairs by baseline road km and outcome:
+outcome          delivers_free  delivers_same  gives_up
+base_road_class                                        
+<=50                        31            129      1059
+50-100                      23            115       494
+100-200                      0            602         0
+200-400                      0            330         0
+>400                         0             48         0
+
+delivering pairs: extra road km (chosen - base) quantiles: {0.1: 0.0, 0.5: 200.0, 0.9: 461.0}
+delivering pairs: freight increase quantiles: {0.1: 0.04, 0.5: 0.13, 0.9: 0.25}
+
+==== week 6: Kaub-crossing bulk links in lrcheck_base: orders 1,243, delivery (after rationing) 239, realized 239, undelivered 0 mUSD
+by predicted outcome under the line-haul rule:
+               links  order  delivery  realized_base  undelivered_base
+outcome                                                               
+delivers_free    184   24.0       3.0            3.0               0.0
+delivers_same   2158  385.0     126.0          126.0               0.0
+gives_up        3365  833.0     110.0          110.0               0.0
+by cargo x outcome (delivery after rationing, mUSD):
+outcome      delivers_free  delivers_same  gives_up
+cargo_type                                         
+dry_bulk               1.0          102.0      67.0
+liquid_bulk            2.0           25.0      42.0
+
+==== week 7: Kaub-crossing bulk links in lrcheck_base: orders 1,311, delivery (after rationing) 231, realized 231, undelivered 0 mUSD
+by predicted outcome under the line-haul rule:
+               links  order  delivery  realized_base  undelivered_base
+outcome                                                               
+delivers_free    184   22.0       3.0            3.0               0.0
+delivers_same   2158  387.0     121.0          121.0               0.0
+gives_up        3365  901.0     107.0          107.0               0.0
+by cargo x outcome (delivery after rationing, mUSD):
+outcome      delivers_free  delivers_same  gives_up
+cargo_type                                         
+dry_bulk               1.0           97.0      67.0
+liquid_bulk            2.0           24.0      40.0
+
+done 552s

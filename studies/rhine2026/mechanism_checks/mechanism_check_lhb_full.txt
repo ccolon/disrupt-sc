@@ -1,0 +1,66 @@
+5707 Kaub-crossing bulk links, 2831 OD pairs; setup 10s
+  0/2831 pairs, 10s
+  300/2831 pairs, 59s
+  600/2831 pairs, 110s
+  900/2831 pairs, 154s
+  1200/2831 pairs, 196s
+  1500/2831 pairs, 237s
+  1800/2831 pairs, 291s
+  2100/2831 pairs, 347s
+  2400/2831 pairs, 400s
+  2700/2831 pairs, 449s
+
+OD-pair outcomes:
+outcome
+gives_up         2328
+delivers_same     425
+delivers_free      78
+
+OD pairs by baseline road km and outcome:
+outcome          delivers_free  delivers_same  gives_up
+base_road_class                                        
+<=50                        31            129      1059
+50-100                      23            115       494
+100-200                     17            139       446
+200-400                      7             39       284
+>400                         0              3        45
+
+delivering pairs: extra road km quantiles: {0.1: -22.0, 0.5: 0.0, 0.9: 47.0} | extra water km quantiles: {0.1: -1138.0, 0.5: -420.0, 0.9: 166.0}
+delivering pairs: freight increase quantiles: {0.1: 0.03, 0.5: 0.12, 0.9: 0.4}
+delivering pairs by chosen modes:
+roads+multimodal+railways+multimodal+roads                                                                 49
+roads+multimodal+maritime+multimodal+waterways+multimodal+roads                                            46
+roads+multimodal+waterways+multimodal+roads+multimodal+waterways+multimodal+roads                          34
+multimodal+railways+multimodal+roads                                                                       34
+roads+multimodal+railways+multimodal                                                                       26
+roads+multimodal+railways+multimodal+maritime+multimodal+waterways+multimodal+railways+multimodal+roads    23
+roads+multimodal+maritime+multimodal+waterways+multimodal+roads+multimodal+waterways+multimodal+roads      20
+maritime+multimodal+waterways+multimodal+roads                                                             17
+
+==== week 6: Kaub-crossing bulk links in lrcheck_base_lh: orders 1,243, realized 409 mUSD
+by predicted outcome under the bulk line-haul-modes rule:
+               links  order  realized_lh
+outcome                                 
+delivers_free    218   25.0         25.0
+delivers_same    848  289.0        289.0
+gives_up        4641  928.0         95.0
+by cargo x outcome (orders, mUSD):
+outcome      delivers_free  delivers_same  gives_up
+cargo_type                                         
+dry_bulk               1.0          157.0     544.0
+liquid_bulk           24.0          132.0     384.0
+
+==== week 7: Kaub-crossing bulk links in lrcheck_base_lh: orders 1,313, realized 409 mUSD
+by predicted outcome under the bulk line-haul-modes rule:
+               links  order  realized_lh
+outcome                                 
+delivers_free    218   26.0         25.0
+delivers_same    848  289.0        289.0
+gives_up        4641  998.0         95.0
+by cargo x outcome (orders, mUSD):
+outcome      delivers_free  delivers_same  gives_up
+cargo_type                                         
+dry_bulk               1.0          157.0     597.0
+liquid_bulk           25.0          132.0     401.0
+
+done 511s

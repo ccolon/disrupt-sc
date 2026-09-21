@@ -1,0 +1,49 @@
+A = lrcheck_base_lh, B = lrcheck_base_lhb
+
+==================== week 6 ====================
+                   order_A  realized_A  realized_B  routing_loss_A  routing_loss_B  rationing_A  rationing_B
+group                                                                                                       
+crosses_kaub        1243.0       410.0       314.0             0.0             0.0        833.0        928.0
+lower_rhine_only    3464.0      3464.0      3464.0             0.0             0.0          0.0          0.0
+other             691790.0    691790.0    691790.0             0.0             0.0          0.0          0.0
+upstream_only          4.0         4.0         4.0             0.0             0.0          0.0          0.0
+-- Kaub-crossing bulk by cargo and predicted line-haul outcome --
+                            delivery_A  routing_loss_A  delivery_B  routing_loss_B  n_links
+cargo_type_a outcome                                                                       
+dry_bulk     delivers_free         1.0             0.0         1.0             0.0       68
+             delivers_same       157.0             0.0       157.0             0.0      479
+             gives_up             86.0             0.0         0.0             0.0     3036
+liquid_bulk  delivers_free        24.0             0.0        24.0             0.0      150
+             delivers_same       132.0             0.0       132.0             0.0      369
+             gives_up              9.0             0.0         0.0             0.0     1605
+-- links with MORE routing loss in A than B: 0 links, 0 mUSD; by group: {}; by cargo: {}
+-- links with LESS routing loss in A than B: 0 links, -0 mUSD; by group: {}; by cargo: {}
+Empty DataFrame
+Columns: [seller_id, seller_region_a, seller_sector_a, buyer_region_a, buyer_sector_a, cargo_type_a, group, outcome, order_a, delivery_a, realized_delivery_a, realized_delivery_b, price_a, price_b]
+Index: []
+-- links with different prices: 996259; mean price ratio A/B on them 1.000
+-- Kaub-crossing bulk delivered in B: 1039 links, 314 mUSD; price/eq_price quantiles {0.1: 1.005, 0.5: 1.014, 0.9: 1.053}; by outcome: {'delivers_free': 25.0, 'delivers_same': 289.0}
+
+==================== week 7 ====================
+                   order_A  realized_A  realized_B  routing_loss_A  routing_loss_B  rationing_A  rationing_B
+group                                                                                                       
+crosses_kaub        1313.0       409.0       314.0             0.0             0.0        904.0       1002.0
+lower_rhine_only    3421.0      3420.0      3420.0             0.0             0.0          2.0          2.0
+other             691642.0    690333.0    690279.0             0.0             0.0       1423.0       1486.0
+upstream_only          4.0         4.0         4.0             0.0             0.0          0.0          0.0
+-- Kaub-crossing bulk by cargo and predicted line-haul outcome --
+                            delivery_A  routing_loss_A  delivery_B  routing_loss_B  n_links
+cargo_type_a outcome                                                                       
+dry_bulk     delivers_free         1.0             0.0         1.0             0.0       68
+             delivers_same       157.0             0.0       157.0             0.0      479
+             gives_up             86.0             0.0         0.0             0.0     3036
+liquid_bulk  delivers_free        24.0             0.0        24.0             0.0      150
+             delivers_same       132.0             0.0       132.0             0.0      369
+             gives_up              9.0             0.0         0.0             0.0     1605
+-- links with MORE routing loss in A than B: 0 links, 0 mUSD; by group: {}; by cargo: {}
+-- links with LESS routing loss in A than B: 0 links, -0 mUSD; by group: {}; by cargo: {}
+Empty DataFrame
+Columns: [seller_id, seller_region_a, seller_sector_a, buyer_region_a, buyer_sector_a, cargo_type_a, group, outcome, order_a, delivery_a, realized_delivery_a, realized_delivery_b, price_a, price_b]
+Index: []
+-- links with different prices: 1187051; mean price ratio A/B on them 1.000
+-- Kaub-crossing bulk delivered in B: 1039 links, 314 mUSD; price/eq_price quantiles {0.1: 1.004, 0.5: 1.015, 0.9: 1.061}; by outcome: {'delivers_free': 25.0, 'delivers_same': 289.0}

@@ -1,0 +1,11 @@
+2831 OD pairs, week-6 orders 1,243 mUSD
+                                            variant  pairs_deliver  pairs_give_up  order_delivered  order_given_up  share_given_up
+                  current: access 50, line-haul 100           1278           1553              409             833            0.67
+access 90, line-haul 100 (88 km Kaub bypass passes)           2674            157             1184              59            0.05
+                          access 100, line-haul 100           2682            149             1186              56            0.05
+                           access 50, line-haul 200            674           2157              178            1064            0.86
+                           access 50, line-haul 500             77           2754               33            1210            0.97
+           access 50, road never line haul for bulk            345           2486              184            1058            0.85
+          access 100, road never line haul for bulk           1818           1013              971             271            0.22
+
+old code (penalty-blind free search, set equality): week-6 Kaub bulk undelivered 1,004 of 1,243 mUSD (81 %)
