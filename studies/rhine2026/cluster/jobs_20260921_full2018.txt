@@ -1,0 +1,12 @@
+# Rhine 2026 cluster job (21 Sep 2026): full-export twin of the calibrated 2018 baseline, for the closure-week tonnage
+# of 2018 against the Destatis monthly series (SI S5). The laptop attempt of 17 Sep died at week 6 of 22 (sleep and
+# restarts) and went unnoticed for four days; multi-hour runs do not belong on that machine.
+# --full-export is a launcher marker (see launch_rhine_batch.sh): no --light-export, and the postprocess adds
+# build_kaub_links.py --expect (the cluster's Kaub link set must equal the laptop's: 5,746 links, 3,583 dry, 2,124
+# liquid, 39 container; a mismatch stops the extraction and is itself the finding) and validation_outputs.py.
+# Profile weeks only (--recovery-weeks 0): the tonnage sits in the shock weeks. link_data.csv will weigh about 8 GB
+# in the run folder and is NOT packed; remove it by hand once validation_outputs.csv has been read.
+# First batch after KI-37 (786792b): the stage versions were bumped, so this job rebuilds the network and the routes
+# before week 0, about half an hour. That is expected. Launch with --independent.
+# Pack: pack_results.sh --jobs studies/rhine2026/cluster/jobs_20260921_full2018.txt
+2018_inv200_full | --profile 2018 --recovery-weeks 0 --inventory-scale 2.0 --full-export

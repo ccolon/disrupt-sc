@@ -74,7 +74,19 @@ while IFS='|' read -r name flags; do
     [[ -z "$name" || "$name" == \#* ]] && continue
     wanted "$name" || continue
     out="${OUTPUT_DIR}/${name}"
-    payload="python studies/rhine2026/run_rhine.py ${COMMON} ${flags} --out ${out} > ${out}.log 2>&1"
+    # --full-export (21 Sep 2026) is a marker for this launcher, not a run_rhine.py flag: --light-export is a store_true
+    # switch that a later flag cannot unset, so the marker drops it from the common flags for this job and adds the
+    # link-level extraction to the postprocess (Kaub link list checked against the laptop build, then
+    # validation_outputs.py). The builder writes into the run folder: writing the tracked list in additional_data
+    # would dirty the checkout and block the next git pull.
+    # CONSTRAINT: build_kaub_links.py --expect compares with the counts of the EU seed-42 draw (5,746 links). Use
+    # --full-export for seed-42 EU runs only; for another seed or scope the extraction would refuse to run (loudly:
+    # see kaub_links_check.txt) until --expect is dropped or given that draw's counts. A refusal on a seed-42 run
+    # means the cluster's route table differs from the laptop's: a finding about the builds, not a launcher fault.
+    # Quoting of the wrapped command is exercised by cluster/check_launcher_quoting.sh (bash only, no sbatch).
+    common="$COMMON"; full=false
+    if [[ "$flags" == *--full-export* ]]; then full=true; flags="${flags//--full-export/}"; common="${COMMON//--light-export/}"; fi
+    payload="python studies/rhine2026/run_rhine.py ${common} ${flags} --out ${out} > ${out}.log 2>&1"
     dep=""
     if $INDEPENDENT; then
         dep=""
@@ -93,6 +105,9 @@ while IFS='|' read -r name flags; do
     post="python studies/rhine2026/analyze_scenario.py ${out} --profile ${profile} --no-links > ${out}/analysis.txt 2>&1; \
 python studies/rhine2026/plots/scenario_figures.py --profile ${profile} --run ${out} --out ${out}/figures > ${out}/figures.log 2>&1; \
 rm -f ${out}/household_data_by_sector.csv"
+    if $full; then
+        post="${post}; python studies/rhine2026/build_kaub_links.py --definition any --expect --out ${out}/kaub_links_check.csv > ${out}/kaub_links_check.txt 2>&1 && python studies/rhine2026/validation_outputs.py ${out} --flags ${out}/kaub_links_check.csv --out ${out}/validation_outputs.csv > ${out}/validation_outputs.txt 2>&1"
+    fi
     pid=$(submit "post_${name}" "$TIME_POST" "$MEM_POST" 1 "$id" "$post")
     ALL_IDS="${ALL_IDS}${ALL_IDS:+:}${pid}"
     RUN_DIRS="${RUN_DIRS} ${out}"
