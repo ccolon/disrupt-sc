@@ -7,6 +7,45 @@ a proposal that keeps capacity in the agent-based register (individual
 behaviour and heuristics, no global optimisation) with a computing cost that
 scales with the few capacitated links, not with the whole supply chain.
 
+## Status (21 Sep 2026, evening)
+
+Phases 1 to 3 are implemented on this branch: the retired algorithms are gone
+from main (`routing.py` 2 081 -> 489 lines), capacities exist only on named
+edges, `cargo_mode_eligibility` replaces `default_transport_capacity`, the
+gate runs at step 7g of the time loop with its accounting and exports, the
+tests of section 4 pass (`tests/test_capacity_gate.py`, suite 158 green), the
+docs and the known-issues register (KI-39 to KI-42, KI-27 and KI-31 closed)
+are updated. Phase 4 on the real scopes needs the data repository (EU/Rhine,
+Ecuador, Gulf), which this session does not have; it ran the Testkistan and
+synthetic checks instead. The `legacy/v2-capacity-routing` branch is to be
+created by the maintainer at `2fbb13d` (section 3.5).
+
+Phase 4 evidence at hand (21 Sep 2026):
+
+- `scripts/capacity_probe_testkistan.py`: trunk capped at a tenth of its load
+  on the tree network: 9 links cut to 10.0 % of their offered quantity each
+  (proportional), 13 388 t withheld, goods back in the suppliers' stocks; the
+  archived bypass scenario (trunk closed, bypass at 1 050 t/step): every one
+  of the 9 displaced links delivers 7.1 % of its quantity and the bypass sits
+  at 1 050 t, against five links whole, four dropped and 149 % of capacity
+  under the retired code. Step time 1.0 ms off, 2.1 ms with the gate.
+- `scripts/capacity_gate_scaling.py` (n x n road grids, 1 t shippers on random
+  OD pairs, the k busiest edges at half their load): two rounds throughout;
+  the placement of 8 000 shipments costs 0.3-0.5 s, the gate 2-50 s, and the
+  gate time is the networkx searches of the cut shares (900 nodes, 1 740
+  edges, 32 capacitated: 2 389 t cut, 50 s, about 10 ms per search, two
+  searches per uncached share: own modes and free). The cost is proportional
+  to the cut tonnage as designed; the constant is the per-search cost of
+  `nx.shortest_path` on a subgraph view, the same one the closure and
+  cost-shock reroutes already pay. Follow-up if a scope needs it: batch the
+  free search per (cargo, origin, saturated set) with the scipy
+  single-source Dijkstra of `routing.shortest_paths_for`, and run the
+  same-mode candidate only for links whose switching penalty is prohibitive.
+- Not run: Rhine/EU and Ecuador bit-identity on the real data (the capacity-
+  off path is unchanged by construction: same labels, same routes, same
+  single-route delivery; the pipeline test and the Testkistan CLI run are
+  the evidence available here), and the Gulf rebuild.
+
 ## 0. Summary
 
 - Capacity exists in two disconnected layers: an **initial route assignment**

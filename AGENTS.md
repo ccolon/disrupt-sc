@@ -23,7 +23,7 @@ disruptsc <scope> --cache same_logistic_routes --cache_isolation
 disruptsc <scope> --cache auto             # reuse every stage whose fingerprint still matches
 - Production-rule parameters (`critical_input_threshold`, `filepaths.input_criticality`) are re-applied on every cache load (`run.py _configure_firms`) and are NOT part of the stage cache keys; a sensitivity on them reuses the caches. `onboarding/scripts/restamp_caches.py <Scope> --seed N` rewrites stored cache fingerprints after a key-set change when the cached content is known to be valid (never to paper over a real build change).
 validate-inputs <scope>                    # content checks before a run
-pytest                                     # works from a bare clone (53 tests)
+pytest                                     # works from a bare clone (158 tests)
 ```
 
 Scopes are configured in `config/`: `default.yaml` → committed
@@ -40,8 +40,8 @@ resolved `DISRUPT_SC_DATA_PATH` → sibling `../disrupt-sc-data` → bundled
 | `run.py` | CLI + `execute()`: the cached, exporting pipeline |
 | `build.py` | no-cache builder for programmatic drivers (`build_common` + `build_agents`) |
 | `config.py`, `params.py` | YAML loading; frozen param dataclasses (Transport/Sim/Agent/Logistics) |
-| `init_pipeline/` | load_data (MRIO + `flow_coverage` Selection), transport, agents, supply_chain (the RNG stage), routing (LP/heuristic route assignment) |
-| `run_pipeline/` | simulate (time loop + `set_initial_conditions`), disruption (+ reconstruction market), cache, fingerprint, export |
+| `init_pipeline/` | load_data (MRIO + `flow_coverage` Selection), transport (network, cost labels, named capacities), agents, supply_chain (the RNG stage), routing (batched Dijkstra, one route per link) |
+| `run_pipeline/` | simulate (time loop + `set_initial_conditions`), capacity_gate (within-step rationing of the named capacitated edges), disruption (+ reconstruction market), cache, fingerprint, export |
 | `agents/` | `Firm`, `Household` (+ national Government/Investment agents), `Country`, shared transport utils |
 | `network/` | `Mrio`, `ScNetwork`, `TransportNetwork`, `CommercialLink`, `Route` |
 | `reporting/` | HTML reports (`--open`) |
@@ -63,6 +63,13 @@ run/time-step walkthrough, `docs/user-guide/parameters.md` for every knob,
   `link.order`, which mid-step already holds the *next* step's order. Stock
   deductions use `realized_delivery`. `tests/test_testkistan_pipeline.py`
   pins these ledgers — keep it passing.
+- **Capacity gate**: edge capacities exist only where `transport_capacity_overrides`
+  names an edge and act only through `run_pipeline/capacity_gate.py` (on-off, after
+  every agent has shipped: proportional cut, round priority, re-send around the
+  saturated edges, residue back to the supplier's stock as `capacity_blocked`).
+  Nothing else may read a capacity; no cost label may depend on load. The retired
+  capacity-aware assignment and the `gradual`/`binary` labels live on
+  `legacy/v2-capacity-routing` (`docs/architecture/transport-capacity.md`).
 - **Reset between runs**: `set_initial_conditions` must restore a build to
   the exact fixed point (link state, supplier satisfaction, disruption and
   reconstruction leftovers, prices). Anything a run mutates on agents must be

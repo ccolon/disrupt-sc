@@ -24,9 +24,10 @@ src/disruptsc/
 │   ├── transport.py       #   transport.gpkg + multimodal.gpkg → TransportNetwork
 │   ├── agents.py          #   firm/household/country creation + spatial disaggregation
 │   ├── supply_chain.py    #   supplier selection → ScNetwork (the RNG-driven stage)
-│   └── routing.py         #   initial route assignment (heuristic / candidate-path LP / edge LP)
+│   └── routing.py         #   initial route assignment (batched Dijkstra, one route per link)
 ├── run_pipeline/          # execution stages
 │   ├── simulate.py        #   set_initial_conditions + the time-step loop
+│   ├── capacity_gate.py   #   within-step rationing of the named capacitated edges
 │   ├── disruption.py      #   disruption parsing/applying + reconstruction market
 │   ├── cache.py           #   scope-keyed, fingerprint-validated pickle caches
 │   ├── fingerprint.py     #   run provenance + per-stage cache fingerprints
@@ -43,7 +44,9 @@ src/disruptsc/
 fingerprint on reload:
 
 1. **Transport network** — build the multimodal graph from the GeoPackage,
-   ingest per-edge costs and capacities.
+   write the per-cargo cost labels (a cargo excluded from a mode by
+   `cargo_mode_eligibility` gets none) and the capacities of the edges named
+   in `transport_capacity_overrides` (no other edge has one).
 2. **Agents** — filter the MRIO with `flow_coverage` (a symmetric
    per-buyer/per-supplier top-cells rule producing a `Selection`), create
    firms (spatially disaggregated where `firms_spatial` provides locations),
@@ -55,8 +58,9 @@ fingerprint on reload:
 4. **Initial conditions + routes** — solve the sparse Leontief system for
    equilibrium production, initialize inventories, capital (split
    active/idle by `utilization_rate`), finance, and orders; then assign
-   logistic routes (Dijkstra, or capacity-aware LP when
-   `capacity_constraint` is on).
+   logistic routes (batched Dijkstra, one route per link; with
+   `capacity_constraint` on, the baseline load of every capacitated edge is
+   checked against its capacity and reported).
 5. **Simulation** — the time-step loop below, for `initial_state`,
    `disruption`, or `criticality`.
 
@@ -81,7 +85,12 @@ Each step in `run_pipeline/simulate.py::_run_one_time_step`:
    when stock is short (`equal` or `household_first`); shipments traverse
    the transport network (or bypass it for service sectors / transport-off
    runs), rerouting around disrupted edges when an acceptable alternative
-   exists;
+   exists; with `capacity_constraint` on, the **capacity gate** then rations
+   the named capacitated edges once every agent has shipped: proportional cut
+   of the round's shipments, earlier rounds untouched, re-send of the cut
+   shares around the saturated edges under the same rerouting rules, the
+   residue back to the supplier's stock as `capacity_blocked`
+   (`run_pipeline/capacity_gate.py`, `docs/architecture/transport-capacity.md`);
 8. reconstruction converts leftover capital-good output into rebuilt
    capital; supplier satisfaction (delivery / served order) updates for
    adaptive substitution;
@@ -100,8 +109,10 @@ excluded from the headline loss.
 
 `run_pipeline/disruption.py` parses the `disruptions:` block into objects:
 
-- **transport_disruption** — closes/derates edges by id or attribute, with
-  threshold/linear/exponential capacity recovery;
+- **transport_disruption** — closes edges by id or attribute (reduction 1),
+  or scales the capacity of a named capacitated edge (a partial reduction,
+  which the capacity gate then rations), with threshold/linear/exponential
+  recovery;
 - **transport_disruption_probability** — probabilistic arrivals over a
   scenario horizon (drawn from the seeded RNG);
 - **capital_destruction** — fractional (via `filter:`) or absolute per

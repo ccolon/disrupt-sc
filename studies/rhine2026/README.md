@@ -18,7 +18,7 @@ to the whole EU as a new scope `EU` (data in `disrupt-sc-data/EU/`, runbook
 | Firm/plant data library (GEM steel/cement/power/coal/chemicals inventory, Climate TRACE API, SPAM, Jasansky) | on disk | `Firms/` |
 | Eurostat NST-2007 mode-split targets | DE, NL fetched (EU27 aggregate not in `rail_go_grpgood`) | `disrupt-sc-data/EU/mode_split_targets_{DE,NL}_2023.csv` |
 | Eurostat population by NUTS (2023, all levels) | fetched | `disrupt-sc-data/EU/Spatial/sources/population_nuts_2023.csv` |
-| Transport-disruption mechanics | `TransportDisruption` = per-edge **capacity reduction** (0–1) with `Recovery` (threshold/linear/exponential); routing sees congestion surcharges when `capacity_constraint: gradual` (×2 at 100 % utilisation, ×5 at 105 %, ×10 at 110 %); `price_increase_threshold` makes buyers give up when the rerouted cost explodes | `src/disruptsc/run_pipeline/disruption.py`, `network/transport_network.py` |
+| Transport-disruption mechanics | `TransportDisruption` = per-edge **capacity reduction** (0–1) with `Recovery` (threshold/linear/exponential): a full reduction closes the edge, a partial one scales the capacity of a NAMED capacitated edge, which the within-step gate then rations (`capacity_constraint: true`, since 21 Sep 2026; the former `gradual` congestion surcharges are retired, `legacy/v2-capacity-routing`); `price_increase_threshold` makes buyers give up when the rerouted cost explodes | `src/disruptsc/run_pipeline/disruption.py`, `run_pipeline/capacity_gate.py`, `network/transport_network.py` |
 
 ## 1. Track 1 — the EU scope (calibration)
 
@@ -81,7 +81,7 @@ needed for the paper.
 |---|---|---|
 | 3 trade geography | blocs of Q2; `countries.geojson` points at sea/border nodes | manifest `decisions` |
 | 4 MRIO extraction | `extract_mrio_oecd.py`: `INTERNAL_REGIONS` = 28 codes, blocs as Q2, `SECTOR_RESOLVED_IMPORTS`, `ZERO_EXTERNAL_TO_EXTERNAL`; `init_sector_table_config.py` + `compute_usd_per_ton_baci.py --scope <28 ISO3>`; `check_scope.py EU --economic-only` | `EU/Economic/{mrio.csv,sector_table.csv}` |
-| 5 transport | **done provisionally** (`tent_to_scope.py`); add per-edge waterway **capacities** (tons/day) for the Rhine chain from CCNR/Destatis tonnages (scenario needs them), rail corridor capacities from RFC data; `default_transport_capacity` for the rest | `EU/Transport/*` + `transport_capacity_overrides` in the config |
+| 5 transport | **done provisionally** (`tent_to_scope.py`); add per-edge waterway **capacities** (tons/day) for the Rhine chain from CCNR/Destatis tonnages (scenario needs them), rail corridor capacities from RFC data; every other edge unconstrained (no per-mode defaults since 21 Sep 2026) | `EU/Transport/*` + `transport_capacity_overrides` in the config |
 | 6 spatial | NUTS2 households from GISCO + `population_nuts_2023.csv`; firm-extractor config `EU/firm_extractor_config.yaml` (28 countries) | `EU/Spatial/*` |
 | 7 run | `config/user_defined_EU.local.yaml` (draft committed alongside this README, Romania-calibrated logistics as the prior); `initial_state` with `--seed 42` | run folder + sanity report |
 | 8 validation | `validation_metrics.py EU`; modal split vs Eurostat `tran_hv_frmod` per country and per NST (DE, NL, BE, FR, AT, PL, IT…); port shares vs Eurostat `mar_go_aa`; Rhine tonnage vs CCNR/Destatis (Emmerich–Lobith cross-section ≈ 150 Mt/yr); trade by partner vs Comext | `EU/validation_report.md` |
@@ -447,9 +447,11 @@ hine2026`), because the
    per-edge capacities from the baseline flows (capacity = 1.25 × baseline load,
    floored) for all modes so that the baseline sits at u ≈ 0.8 (multiplier ≈ 1)
    everywhere, and only the Rhine edges get the real (lower, low-water) capacities.
+   (Moot since 21 Sep 2026: the capacity gate is on-off and re-prices nothing;
+   only the named edges have capacities, `docs/architecture/transport-capacity.md`.)
 3. Rail alternative capacity (Rhine valley lines, DB Cargo statements) bounds the
-   modal shift — `default_transport_capacity.railways` per corridor via
-   `transport_capacity_overrides` on the named rail edges.
+   modal shift — corridor capacities via `transport_capacity_overrides` on the
+   named rail edges (the only capacity channel).
 4. Runs: baseline; 2026 observed profile; counterfactuals (2018 profile,
    full closure 8 weeks, "Abladeoptimierung" +20 cm); sensitivities (rail
    capacity, inventories, `price_increase_threshold`).
