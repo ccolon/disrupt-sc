@@ -37,8 +37,10 @@ scales with the few capacitated links, not with the whole supply chain.
   number of capacitated edges. Plain Dijkstra at initialisation (baseline
   capacities must not bind, checked), no candidate generation, no LP; route
   searches only for the cut shipments, cached per saturated set. Cost is
-  proportional to the traffic through the capacitated links. The `gradual` and
-  `binary` runtime modes of the Gulf runs stay as deprecated aliases.
+  proportional to the traffic through the capacitated links. On-off only: no
+  cost multiplier anywhere, one rationing rule. The last code state carrying
+  the Gulf machinery is archived (tag `capacity-legacy-2026-09-21`, branch
+  `archive/capacity-legacy`, at main `2fbb13d`); main is cleaned.
 
 ## 1. What the code does today
 
@@ -188,10 +190,13 @@ only displaced shippers do), `input-data.md` (`capacity` column).
 ## 3. Proposal: capacity as a local gate with within-step rerouting
 
 Decisions taken 21 Sep 2026 (user): drop both LPs, the heuristic, candidate
-generation, chunking and multi-route plans; keep the Gulf runtime modes as
-deprecated; cut tonnage is re-sent within the step on the network minus the
-saturated edges until it converges, and only what still finds no acceptable
-route waits for the next step.
+generation, chunking and multi-route plans; no deprecated modes in the code,
+the Gulf-era code is archived in git instead and main is cleaned; cut tonnage
+is re-sent within the step on the network minus the saturated edges until it
+converges; on-off semantics only (no cost increase with load, no other mode);
+one rationing rule; the GeoPackage capacity columns are removed;
+`default_transport_capacity` is replaced by a cargo-mode eligibility table
+and the named overrides become the only capacities.
 
 ### 3.1 Principles
 
@@ -200,23 +205,20 @@ route waits for the next step.
    exempt because it was first in the dict.
 2. The allocation at a saturated edge is decided on what is offered, not on
    the order in which agents happened to deliver: proportional within a round
-   is order-independent. Sequential all-or-nothing commitment is the one
-   design that needs a Monte Carlo over the delivery order to mean anything;
-   it stays available as a named rule (`random_order`), not as the default.
+   is order-independent, so no Monte Carlo over the delivery order is needed.
+   One rule only.
 3. Behaviour is individual: a shipper cut at a gate looks for an alternative
    with the rules that already exist (penalty-aware search on its own modes
    and free, line-haul rule, switching penalty, delivered-price give-up,
    pass-through). Nothing is optimised across shippers.
-4. Cost is spent only where capacity bites: the gate pass is linear in the
+4. On-off: an edge either has room or it has not. No congestion multiplier,
+   no second cost label per edge; the saturated edges are simply excluded
+   from the searches of the rest of the step.
+5. Cost is spent only where capacity bites: the gate pass is linear in the
    shipments crossing capacitated edges; route searches run only for cut
-   shipments, once per saturated set, cached.
-5. Baseline capacities do not bind. The initial state is the plain Dijkstra
-   assignment; a capacity below the baseline load is a calibration error
-   (reported), not something an assignment algorithm should hide. Capacity
-   effects appear when a disruption moves traffic onto the capacitated
-   substitutes (the Gulf case: gateways have headroom in the baseline and
-   saturate once Hormuz closes).
-6. `capacity_constraint: off` scopes stay bit-identical.
+   shipments, once per saturated set, cached. An edge has a capacity only if
+   it is named in the config, so the capacitated set is small by construction.
+6. `capacity_constraint: false` scopes stay bit-identical.
 
 ### 3.2 Mechanism
 
@@ -228,19 +230,20 @@ gets a `route` field; `place_shipment` has it).
 **Gate.** After step 7 ("firms deliver") and before step 8 ("collect flows"):
 for every capacitated edge, per cargo type (per-cargo capacity) and in total
 (shared capacity), offered = accepted load of earlier rounds + placements of
-this round. Where offered > capacity, the placements of THIS round are cut so
-that accepted = capacity; earlier rounds are never cut again (round
-priority). Within the round the cut is proportional (default) or by a named
-rule (`random_order`: a seeded permutation, all or nothing in that order;
-`value`: highest value per ton first). A shipment crossing several
-over-capacity edges takes the smallest of their factors, which leaves the
-less binding edge below capacity and open for the next round. Every edge cut
-in a round is saturated (accepted = capacity) and is EXCLUDED from all
-searches for the rest of the step. The cut share of a shipment is removed
-from every edge of its route and from the destination node.
+this round. Where offered > capacity, the placements of THIS round are cut
+proportionally so that accepted = capacity; earlier rounds are never cut
+again (round priority: the shippers whose normal route uses the edge share
+the first cut pro rata, diverted traffic takes what is left). A shipment
+crossing several over-capacity edges takes the smallest of their factors,
+which leaves the less binding edge below capacity and open for the next
+round. Every edge cut in a round is saturated (accepted = capacity) and is
+EXCLUDED from all searches for the rest of the step. The cut share of a
+shipment is removed from every edge of its route and from the destination
+node.
 
 **Reroute.** Each cut shipment is offered a route on the available network
-minus the saturated edges (`discover_route`, own modes and free, switching
+minus the saturated edges (`discover_route` with an excluded-edge set in the
+subgraph filter of `provide_shortest_route`; own modes and free, switching
 penalty, line-haul rule; the alternative library keyed by the saturated set
 plus the closures); the give-up rules apply to the cut share (its cost
 relative to the normal bill, plus the switching penalty). A shipper that
@@ -253,7 +256,8 @@ declines or finds no route keeps the goods.
 and saturated edges are excluded, the saturated set only grows and each
 cutting round saturates at least one new edge (the edge with the smallest
 factor is filled exactly): the loop ends after at most |C| + 1 rounds, |C|
-the number of capacitated edges, in practice two or three. Only the tonnage
+the number of capacitated edges, in practice two or three. The bound is the
+loop's cap (no knob; a log line if it is ever reached). Only the tonnage
 still undelivered then returns to the supplier's `product_stock` (firms) or
 is removed from `qty_sold` (countries), so the conservation ledgers of
 `tests/test_testkistan_pipeline.py` hold; the buyer's next order is served
@@ -262,49 +266,77 @@ recorded separately: new link fields `delivery_offered`, `capacity_blocked`,
 and `capacity_blocked_usd` in `routing_summary.csv` (the split KI-31 asks
 for).
 
-**Prices.** Within the step a gate is physical: it changes who moves and by
-which route, and the rerouted share pays the detour and the switching
-penalty through the existing pass-through. An optional congestion surcharge
-from the previous step's utilisation (`capacity.surcharge`, off by default)
-can be added later for the freight-rate story of Hormuz; it reuses the
-cost-shock branch and is not needed for the loop to work.
+**Prices.** The gate is physical: it changes who moves and by which route.
+The rerouted share pays the detour and the switching penalty through the
+existing pass-through; nothing else moves a price. No congestion surcharge
+(decision 21 Sep 2026: no other mode).
 
 **Initial state.** `setup_logistic_routes` always runs `_precompute_and_assign`
 (scipy Dijkstra). It then accumulates the baseline loads (the existing
-`_accumulate_loads`) and extends the trade-capacity diagnostic to every
-capacitated edge: baseline load > capacity is reported per edge and, by
-default, raises (`capacity.baseline: raise | warn`). Optional
-`capacity.warmup_steps: k` runs k undisrupted steps with the gate, without
-RNG, and freezes the resulting routes for scopes whose baseline is meant to
-be congested; the routes cache holds the result.
+`_accumulate_loads`) and reports every capacitated edge whose baseline load
+exceeds its capacity (the trade-capacity diagnostic, extended from border
+edges to all capacitated edges). Nothing else: the gate acts from t = 0 like
+at every step, so a scope whose baseline exceeds a capacity starts its run
+rationed at that edge, and the warning says so. No warm-up, no raise.
 
-### 3.3 Config surface (proposal)
+### 3.3 Config surface
 
 ```yaml
-capacity_constraint: off | gate | gradual | binary   # gradual/binary: DEPRECATED Gulf semantics, warned at parse
-transport_capacity_overrides: {...}      # unchanged: name -> tons/day or {cargo: tons/day}; unknown names raise
-capacity:
-  priority: proportional | random_order | value   # rule at a saturated gate within a round
-  max_rounds: 10                          # safety cap on the within-step loop (|C| + 1 suffices)
-  baseline: raise | warn                  # baseline load above capacity
-  warmup_steps: 0
-  surcharge: off                          # optional next-step congestion pricing (later)
-cargo_mode_eligibility:                   # replaces the 0-entries of default_transport_capacity (blocking)
-  airways: {dry_bulk: no, liquid_bulk: no}
-  pipelines: {container: no, dry_bulk: no}
+capacity_constraint: true                 # bool; "gradual" / "binary" raise with a pointer to the archive tag
+transport_capacity_overrides:             # the ONLY capacities, by edge name, tons/day
+  strait_of_hormuz: 3000000               # shared across cargo types
+  port_jebel_ali:                         # per cargo type
+    container: 450000
+    dry_bulk: 80000
+    liquid_bulk: 200000
+  oil_terminal_x:
+    liquid_bulk: 120000
+    container: 0                          # 0 blocks the cargo on this edge; a cargo not listed has no capacity there
+cargo_mode_eligibility:                   # which cargo types may travel on which mode; a mode not listed takes everything
+  airways: [container]
+  pipelines: [liquid_bulk]
 ```
 
-`default_transport_capacity` today mixes two things: cargo-mode eligibility
-(the zeros) and per-mode capacities that are never meant to bind (roads
-100 000 t/day on every edge). Splitting them makes "no capacity unless
-stated" the default, so the capacitated set is exactly the named edges.
-Retired keys: `logistics.initial_route_assignment`, `chunk_size`,
-`route_candidate_count/stretch/overlap`, `lp_*`,
-`capacity_routing_max_iterations` (warned as inert for one release).
-Fingerprint: `capacity.*` and `cargo_mode_eligibility` join the
-`transport_network` stage keys and `WATERMARKED_CONFIG_KEYS`; the
-`logistic_routes` stage build version is bumped so that caches holding
-multi-route plans are refused instead of misread.
+Why the split. Today's `default_transport_capacity` does two jobs at once:
+
+```yaml
+default_transport_capacity:               # today
+  roads: 100000        # (b) a capacity on EVERY road edge, chosen so that it never binds
+  maritime: 5000000    # (b) idem, every sea lane
+  airways:
+    container: 5000    # (b) idem
+    dry_bulk: 0        # (a) "no bulk by air": an eligibility rule, not a capacity
+    liquid_bulk: 0     # (a)
+  pipelines:
+    container: 0       # (a) "only liquid bulk in pipes"
+    dry_bulk: 0        # (a)
+    liquid_bulk: 500000  # (b)
+```
+
+(a) The zeros say which cargo may use which mode; the code writes no cost
+label for that cargo on those edges, so Dijkstra never uses them. That is
+the part every scope needs, and it is not a capacity. (b) The numbers put a
+capacity on every edge of the mode. They are not data (100 000 t/day on every
+road edge is a placeholder chosen not to bind), yet they make every edge
+capacitated for the code: every edge would enter the gate's set C, the gate
+pass would run over the whole network and the |C| + 1 bound would be the
+number of edges. `cargo_mode_eligibility` keeps (a) as what it is; (b) is
+dropped: an edge has a capacity only if it is named. A whole mode can still
+be capacitated by naming its edges. Config hygiene: a config still carrying
+`default_transport_capacity` raises with this explanation; an override name
+matching no edge raises; a cargo type outside `sector_to_cargo_type` raises.
+
+Removed: the GeoPackage `capacity` / `capacity_<cargo>` columns (ignored with
+one info line and dropped from `input-data.md`), `logistics.initial_route_assignment`,
+`chunk_size`, `route_candidate_count/stretch/overlap`, `lp_*`,
+`capacity_routing_max_iterations` (all raise as unknown for one release, then
+silently ignored like any foreign key), `cost_per_ton_with_capacity_<cargo>`
+labels, `overused`, `current_load_<cargo>` (loads are read from the shipment
+records). Fingerprint: `cargo_mode_eligibility` joins the `transport_network`
+stage keys and `WATERMARKED_CONFIG_KEYS`; `capacity_constraint` and
+`transport_capacity_overrides` stay; the `logistic_routes` stage build version
+is bumped so that caches holding multi-route plans or the old labels are
+refused instead of misread.
 
 ### 3.4 Complexity
 
@@ -315,31 +347,31 @@ congestion pattern repeats the previous one pays only the gate passes. A
 scope with a handful of capacitated links pays nothing until a disruption
 pushes traffic onto them. The Gulf configuration (capacities on ~40 gateways,
 Hormuz closed) pays for the cut shipments only, a subset of the displaced
-links that already run Dijkstra today under the closure, now cached.
+links that already run Dijkstra today under the closure, now cached. Memory:
+one cost label per cargo per edge instead of two.
 
-### 3.5 What is retired, what is kept as deprecated
+### 3.5 What is retired, what is archived
 
-Retired: `_precompute_and_assign_with_capacity`,
+Retired from main: `_precompute_and_assign_with_capacity`,
 `_precompute_and_assign_with_capacity_lp`,
 `_precompute_and_assign_with_edge_lp`, the hub index and candidate
 generation, chunk rounds, flow decomposition, the LP diagnostics exports, the
 dead helpers of C13, `_send_chunked_shipment` and multi-entry `route_plan`
-(one route per link; splitting happens at the gate, by tonnage). About 1 200
-of the 2 081 lines of routing.py. The LPs are deleted, not kept as a
-benchmark (decision 21 Sep 2026).
+(one route per link; splitting happens at the gate, by tonnage), the
+`gradual` / `binary` runtime label machinery (`_capacity_multiplier`,
+`_refresh_edge_capacity_costs`, the per-placement refresh in
+`update_load_on_route`, the `with_capacity` cost path, the cache-off rule of
+`discover_route`), the GeoPackage capacity columns,
+`default_transport_capacity`. About 1 300 of the 2 081 lines of routing.py
+plus ~150 in transport_network.py and transport_utils.py.
 
-Kept as deprecated, so that the Gulf configurations still run:
-`capacity_constraint: gradual | binary` with their runtime semantics
-unchanged (label refreshed after each placement, in delivery order, reroute
-only for displaced shippers, main routes exempt, route cache off, the
-`_capacity_multiplier` of C3 as it is), on top of the plain Dijkstra initial
-assignment; a parse-time warning names the successor and this note; a
-Testkistan regression test pins today's numbers (probe H: five links on the
-bypass, four dropped, 1 561 t on a 1 050 t edge) so the path cannot rot
-silently. What a Gulf rerun in these modes will NOT reproduce is the archived
-initial assignment (heuristic or LP), i.e. baseline flows through gateways
-whose capacity bound at baseline. Removal after the Gulf rebuild under `gate`
-is validated.
+Archived, not deprecated: tag `capacity-legacy-2026-09-21` and branch
+`archive/capacity-legacy` point at main `2fbb13d`, the last commit carrying
+all of the above; `git archive capacity-legacy-2026-09-21 -o legacy.zip`
+gives the zip. The Gulf runs of April 2026 were made on earlier commits, each
+recorded in the run's `run_fingerprint.json`, so any of them can be checked
+out exactly. On main, `capacity_constraint: gradual | binary` raise at parse
+with a message naming the tag.
 
 ### 3.6 Relation to the existing mechanisms
 
@@ -354,66 +386,59 @@ is validated.
 
 ## 4. Implementation plan
 
-Phase 0 — hygiene, no result change for capacity-off scopes (half a day):
-C6 (unknown override names raise in `_apply_capacity_overrides` and in
-`validate-inputs`), C7 (one `math.inf` sentinel, `math.isfinite` tests), C8
-(guard), C11 (retire the inert knobs; fingerprint key), C13 (delete), C14
-(all capacitated edges), C5 (decide: honour data columns with precedence
-override > data > mode default, or drop them from the loader and the docs).
-C3 stays inside the deprecated modes. Tests: unknown name, resolution-
-independent finiteness, `pytest` green.
-
-Phase 1 — retirement and deprecation (1 day): delete the three assignment
-algorithms, candidate generation, chunking, `_send_chunked_shipment` and
-multi-route plans; `capacity_constraint: gradual | binary` become deprecated
-aliases over the Dijkstra assignment with a parse-time warning; bump the
-`logistic_routes` build version; the Testkistan regression test on probe H
-pins the deprecated semantics; `_INERT_KEYS` warnings for the retired keys.
+Phase 1 — clean main (1 day): delete everything listed in 3.5; the parser
+accepts only a bool for `capacity_constraint` and raises on the old strings
+and on `default_transport_capacity` with the migration message;
+`cargo_mode_eligibility` replaces the zeros in `default.yaml` (airways
+containers only, pipelines liquid bulk only) and in `_calculate_cost_per_ton`;
+`_apply_capacity_overrides` raises on unknown names and unknown cargo types,
+explicit 0 blocks, omitted cargo has no capacity; the loader ignores the
+GeoPackage columns; one `math.inf`-free convention (an edge without an entry
+has no `capacity` key at all); C13 deleted; C14 extended to all capacitated
+edges; bump the `logistic_routes` build version; `validate-inputs` checks the
+override names against the GeoPackage. Tests: capacity-off scopes bit-identical
+(the Testkistan ledger tests, an EU/Rhine routing checksum if a cached build
+is at hand), unknown name, unknown cargo, old strings raise.
 
 Phase 2 — the gate loop (2-3 days): shipment records keep their route;
-`TransportNetwork.apply_capacity_gate(priority)` returning the cut shares per
+`TransportNetwork.apply_capacity_gate()` returning the cut shares per
 shipment; the reroute of cut shares through `discover_route` with the
 saturated set excluded and the alternative library keyed by it; the loop in
-`_run_one_time_step` after step 7 with `max_rounds`; link and supplier
+`_run_one_time_step` after step 7, capped at |C| + 1; link and supplier
 bookkeeping; `delivery_offered` / `capacity_blocked`; routing summary and
-logistics report columns; `capacity_constraint: gate`. Tests on Testkistan
-with an override on the trunk and the bypass network of the probe:
-proportional cut and round priority, stock and inventory ledgers, capacity ≥
-load bit-identical to off, two gates on one route, order independence
-(permute the firm dict, same deliveries), convergence in ≤ |C| + 1 rounds,
-Dijkstra call count bounded by the cut shipments, `random_order` reproducible
-under the run seed.
+logistics report columns (offered, accepted, withheld per capacitated edge).
+Tests on Testkistan with an override on the trunk and the bypass network of
+the probe: proportional cut and round priority, stock and inventory ledgers,
+capacity ≥ load bit-identical to off, two gates on one route, order
+independence (permute the firm dict, same deliveries), convergence in
+≤ |C| + 1 rounds, Dijkstra call count bounded by the cut shipments.
 
-Phase 3 — initial state, config, docs (1 day): baseline check (raise/warn),
-optional warm-up, `capacity.*` keys and `cargo_mode_eligibility`, fingerprint
-keys, `parameters.md`, `architecture/index.md`, `AGENTS.md`, the Rhine README
-row, `input-data.md`. Delete `tmp/` caches of capacity-on scopes.
+Phase 3 — docs and provenance (half a day): `parameters.md`,
+`architecture/index.md`, `AGENTS.md`, `MIGRATION.md`, the Rhine README row,
+`input-data.md`, `README.md` feature list; fingerprint keys; delete `tmp/`
+caches of capacity-on scopes.
 
 Phase 4 — validation on real scopes: Rhine/EU and Ecuador runs bit-identical
-(capacity off); Gulf rebuilt with the gateway overrides under `gate`, Hormuz
-closure scenario compared with the archived results and with the deprecated
-modes, timings recorded per step and for the routing stage; the Rhine
-substitute capacities (`scenario_edge_capacities.csv`, port throughputs)
-tried as a sensitivity on the calibrated baseline.
+(capacity off); Gulf rebuilt from its archived config with the gateway
+overrides and the eligibility table, Hormuz closure scenario compared with
+the archived April 2026 results, timings recorded per step and for the
+routing stage; the Rhine substitute capacities
+(`scenario_edge_capacities.csv`, port throughputs) tried as a sensitivity on
+the calibrated baseline.
 
-Later, optional: the next-step congestion surcharge (`capacity.surcharge`)
-for congestion pricing, reusing the cost-shock branch.
+## 5. Decisions (all taken 21 Sep 2026)
 
-## 5. Decisions
-
-Taken 21 Sep 2026: LPs, heuristic, candidate generation, chunking and
-multi-route plans are dropped (no benchmark copy); `gradual` / `binary`
-stay as deprecated aliases; cut tonnage is re-sent within the step until
-convergence; proportional within a round with round priority is the default
-rule, `random_order` the Monte-Carlo alternative.
-
-Open:
-
-1. Baseline rule: raise when a baseline load exceeds a capacity (recommended)
-   or warm-up steps by default.
-2. GeoPackage capacity columns: honour (override > data > mode default) or
-   drop.
-3. Split `default_transport_capacity` into `cargo_mode_eligibility` plus
-   optional per-mode capacities (recommended), or keep the key.
-4. Whether the `value` priority rule (highest value per ton first) is wanted
-   at all, or proportional and `random_order` suffice.
+- LPs, heuristic, candidate generation, chunking and multi-route plans:
+  dropped, no benchmark copy.
+- Gulf-era code: archived in git (tag + branch), not kept as deprecated modes;
+  main cleaned.
+- Cut tonnage is re-sent within the step until convergence; the residue waits.
+- One rationing rule: proportional within a round, round priority across
+  rounds. (The `value` rule that was floated, highest value per ton first as
+  a proxy for willingness to pay for the scarce slot, and the seeded
+  `random_order` lottery are not implemented.)
+- On-off only: no cost increase with load, no surcharge mode, no warm-up, no
+  raise on a binding baseline (a warning per edge, the gate acts from t = 0).
+- GeoPackage capacity columns: feature removed.
+- `default_transport_capacity` replaced by `cargo_mode_eligibility`; the
+  named overrides are the only capacities.
