@@ -107,7 +107,7 @@ def main() -> int:
     tn, te, tnodes = build_transport_network(
         config.get("transport_modes", ["roads"]), fp, config.get("logistics", {}),
         sp.time_resolution, capacity_overrides=config.get("transport_capacity_overrides"),
-        default_transport_capacity=config.get("default_transport_capacity"),
+        cargo_mode_eligibility=tp.cargo_mode_eligibility,
         use_cargo_types=tp.use_cargo_types)
     tn.shrink_cargo_types_to(set(links["cargo_type"].unique()))
     logging.info(f"transport network built with the current logistics ({time.time() - t0:.0f} s)")

@@ -16,13 +16,20 @@ from disruptsc.network.transport_network import TransportNetwork
 def build_transport_network(transport_modes: list, filepaths: dict,
                             logistics_params: dict, time_resolution: str,
                             capacity_overrides: dict = None,
-                            default_transport_capacity: dict = None,
+                            cargo_mode_eligibility: dict = None,
                             use_cargo_types: bool = True) -> tuple[TransportNetwork, gpd.GeoDataFrame, gpd.GeoDataFrame]:
     """Build transport network from a GeoPackage file.
 
     Expects *filepaths["transport"]* to point to a ``.gpkg`` file with one
     layer per transport mode (layer names must match the mode names in
     *transport_modes*, e.g. ``roads``, ``maritime``, ``multimodal``).
+
+    *capacity_overrides* (``transport_capacity_overrides``: edge name -> tons/day,
+    or {cargo type: tons/day}) are the ONLY capacities of the network; an edge
+    that is not named has none. *cargo_mode_eligibility* ({mode: [cargo types]})
+    says which cargo may use which mode (no bulk by air, only liquid bulk in
+    pipelines); both are validated here and raise on unknown names, modes or
+    cargo types (21 Sep 2026: a misspelt override name used to be ignored).
 
     Returns (transport_network, transport_edges, transport_nodes).
     """
@@ -125,19 +132,17 @@ def build_transport_network(transport_modes: list, filepaths: dict,
         edge_data["node_tuple"] = (u, v)
         edge_data["shipments"] = {}
         edge_data["disruption_duration"] = 0
-        edge_data["overused"] = False
-        # Per-cargo-type load tracking
-        for ct in cargo_types:
-            edge_data[f"current_load_{ct}"] = 0
         tn.add_edge(u, v, **edge_data)
 
-    # Apply default transport capacities per mode, then overrides
-    _apply_default_capacities(tn, default_transport_capacity or {}, cargo_types, time_resolution)
+    # Capacities: the named overrides only (validated), then the cost labels
+    # (a cargo excluded by eligibility or blocked by a 0 capacity gets none)
+    eligibility = _validate_cargo_mode_eligibility(cargo_mode_eligibility, cargo_types, use_cargo_types)
     if capacity_overrides:
-        _apply_capacity_overrides(tn, capacity_overrides, cargo_types, time_resolution)
+        _apply_capacity_overrides(tn, capacity_overrides, cargo_types, time_resolution, use_cargo_types)
 
     # Ingest logistics cost parameters
-    tn.ingest_logistic_data(logistics_params, use_cargo_types=use_cargo_types)
+    tn.ingest_logistic_data(logistics_params, use_cargo_types=use_cargo_types,
+                            cargo_mode_eligibility=eligibility)
 
     # Set min cost for heuristic
     min_costs = [v for v in logistics_params["basic_cost"].values() if isinstance(v, (int, float))]
@@ -180,20 +185,16 @@ def _load_transport_edges(filepath: Path, mode: str, time_resolution: str,
         if col not in gdf.columns:
             gdf[col] = default
 
-    # Adapt capacity columns to time resolution (if present in GeoJSON)
-    time_factor = {"day": 1, "week": 7, "month": 30, "year": 365}.get(time_resolution, 7)
-    for col in gdf.columns:
-        if col == "capacity" or col.startswith("capacity_"):
-            numeric = pd.to_numeric(gdf[col], errors="coerce")
-            n_nan = int(numeric.isna().sum())
-            if n_nan:
-                # Capacity 0 means BLOCKED for that cargo type (no cost label is
-                # written), so a missing value silently closes the edge — say so.
-                logging.warning(
-                    f"{layer or mode}: {n_nan} edge(s) have missing/non-numeric "
-                    f"'{col}' — set to 0, i.e. BLOCKED for that cargo type."
-                )
-            gdf[col] = numeric.fillna(0) * time_factor
+    # Capacity columns of the GeoPackage are not an input (21 Sep 2026): they
+    # were overwritten by the per-mode defaults in every case, and the
+    # per-edge capacities of a scope live in transport_capacity_overrides,
+    # keyed by edge name. Drop them so that they never reach the edge dicts.
+    _ = time_resolution
+    cap_cols = [c for c in gdf.columns if c == "capacity" or c.startswith("capacity_")]
+    if cap_cols:
+        logging.info(f"{layer or mode}: GeoPackage column(s) {cap_cols} ignored - "
+                     f"edge capacities come from transport_capacity_overrides only")
+        gdf = gdf.drop(columns=cap_cols)
 
     return gdf
 
@@ -257,92 +258,92 @@ def _multimodal_relevant(multimodes_str: str, transport_modes: list) -> bool:
     return any(p in transport_modes or p == "roads" for p in parts)
 
 
-def _apply_default_capacities(tn: TransportNetwork, defaults: dict,
-                              cargo_types: list, time_resolution: str):
-    """Set capacity on every edge from per-mode defaults.
+def _validate_cargo_mode_eligibility(eligibility: dict | None, cargo_types: list,
+                                     use_cargo_types: bool) -> dict | None:
+    """``cargo_mode_eligibility`` as {mode: set of cargo types}, validated.
 
-    *defaults* maps transport mode to either:
-      - a number  → shared capacity (tons/day) for all cargo types
-      - a dict    → per-cargo-type capacity (tons/day)
+    A mode not listed takes every cargo; a listed mode takes only the listed
+    cargo types. Unknown cargo types raise (a typo would silently close a mode
+    to a cargo class). With ``use_cargo_types: False`` there is one "any" cargo
+    and the table cannot apply: it is ignored with a message.
     """
-    time_factor = {"day": 1, "week": 7, "month": 30, "year": 365}.get(time_resolution, 7)
-    dropped_data_caps: dict = {}
-    for u, v in tn.edges:
-        edge = tn[u][v]
-        mode = edge["type"]
-        mode_cap = defaults.get(mode)
-        if mode_cap is None:
-            # No default specified → unlimited shared capacity
-            edge["capacity"] = 1e9 * time_factor
-            for ct in cargo_types:
-                if edge.pop(f"capacity_{ct}", None) is not None:  # ensure no stale per-ct caps
-                    dropped_data_caps[mode] = dropped_data_caps.get(mode, 0) + 1
-        elif isinstance(mode_cap, dict):
-            # Per-cargo-type defaults
-            edge["capacity"] = 1e9 * time_factor  # shared fallback (unused if all ct specified)
-            for ct in cargo_types:
-                edge[f"capacity_{ct}"] = mode_cap.get(ct, 0) * time_factor
-        else:
-            # Shared default
-            edge["capacity"] = float(mode_cap) * time_factor
-            for ct in cargo_types:
-                edge.pop(f"capacity_{ct}", None)
-
-    for mode, n in sorted(dropped_data_caps.items()):
-        logging.warning(
-            f"default_transport_capacity has no entry for mode '{mode}': "
-            f"{n} data-supplied per-cargo capacity value(s) on its edges were "
-            f"DISCARDED and the edges treated as unlimited. Add a "
-            f"default_transport_capacity entry for '{mode}' if capacities "
-            f"should apply."
-        )
-
-    # Also pick up per-cargo-type capacity from GeoJSON columns if present
-    for u, v in tn.edges:
-        edge = tn[u][v]
-        for ct in cargo_types:
-            geojson_key = f"capacity_{ct}"
-            if geojson_key in edge and not isinstance(edge[geojson_key], (int, float)):
-                # Came from GeoJSON as string
-                try:
-                    edge[geojson_key] = float(edge[geojson_key]) * time_factor
-                except (ValueError, TypeError):
-                    pass
+    if not eligibility:
+        return None
+    if not use_cargo_types:
+        logging.info("cargo_mode_eligibility ignored: use_cargo_types is False (one 'any' cargo)")
+        return None
+    if not isinstance(eligibility, dict):
+        raise ValueError(f"cargo_mode_eligibility must be a mapping mode -> [cargo types] (got {eligibility!r})")
+    out = {}
+    for mode, allowed in eligibility.items():
+        if isinstance(allowed, str):
+            allowed = [allowed]
+        if allowed is None:
+            allowed = []
+        try:
+            allowed = [str(a) for a in allowed]
+        except TypeError:
+            raise ValueError(f"cargo_mode_eligibility['{mode}'] must be a list of cargo types (got {allowed!r})")
+        unknown = sorted(set(allowed) - set(cargo_types))
+        if unknown:
+            raise ValueError(
+                f"cargo_mode_eligibility['{mode}'] names unknown cargo type(s) {unknown}; "
+                f"the cargo types of this scope (logistics.sector_to_cargo_type) are {sorted(cargo_types)}"
+            )
+        out[str(mode)] = set(allowed)
+    return out
 
 
 def _apply_capacity_overrides(tn: TransportNetwork, overrides: dict,
-                              cargo_types: list, time_resolution: str):
-    """Override edge capacities by edge name.
+                              cargo_types: list, time_resolution: str,
+                              use_cargo_types: bool = True):
+    """Set edge capacities by edge name (the only capacity channel).
 
     *overrides* maps edge name to either:
-      - a number  → shared capacity (tons/day)
-      - a dict    → per-cargo-type capacity (tons/day)
+      - a number  -> shared capacity (tons/day, all cargo types together)
+      - a dict    -> per-cargo-type capacity (tons/day); an explicit 0 BLOCKS
+                     that cargo on the edge, a cargo not listed has no
+                     capacity there (unlimited)
+
+    Every edge carrying the name gets the value (a terminal usually has a road
+    and a rail connector: the value is per edge, two-way). A name that matches
+    no edge, a cargo type outside the scope's, or a negative value raise: a
+    silent no-op here was a calibration error waiting to happen (Gulf, 2026).
     """
     time_factor = {"day": 1, "week": 7, "month": 30, "year": 365}.get(time_resolution, 7)
-    # A dict override implicitly BLOCKS every cargo type it does not list
-    # (capacity 0 → no cost label → invisible to routing). Say so once per edge.
-    for name, override in overrides.items():
-        if isinstance(override, dict):
-            omitted = [ct for ct in cargo_types if ct not in override]
-            if omitted:
-                logging.warning(
-                    f"transport_capacity_overrides['{name}'] omits cargo type(s) "
-                    f"{omitted} — they get capacity 0 (BLOCKED) on that edge. "
-                    f"List them explicitly to keep them open."
-                )
+    by_name: dict[str, list] = {}
     for u, v in tn.edges:
-        edge = tn[u][v]
-        name = edge.get("name", "")
-        if name not in overrides:
-            continue
-        override = overrides[name]
+        name = tn[u][v].get("name", "")
+        if isinstance(name, str) and name:
+            by_name.setdefault(name, []).append(tn[u][v])
+
+    for name, override in overrides.items():
+        edges = by_name.get(str(name))
+        if not edges:
+            raise ValueError(
+                f"transport_capacity_overrides['{name}'] matches no edge of the transport "
+                f"network (edge names are the 'name' column of the GeoPackage layers)"
+            )
         if isinstance(override, dict):
-            for ct in cargo_types:
-                edge[f"capacity_{ct}"] = override.get(ct, 0) * time_factor
+            if not use_cargo_types:
+                raise ValueError(
+                    f"transport_capacity_overrides['{name}'] is per cargo type but "
+                    f"use_cargo_types is False; give a single number"
+                )
+            unknown = sorted(set(map(str, override)) - set(cargo_types))
+            if unknown:
+                raise ValueError(
+                    f"transport_capacity_overrides['{name}'] names unknown cargo type(s) {unknown}; "
+                    f"the cargo types of this scope are {sorted(cargo_types)}"
+                )
+            values = {str(ct): float(val) for ct, val in override.items()}
         else:
-            edge["capacity"] = float(override) * time_factor
-            # Remove per-ct caps so this becomes shared
-            for ct in cargo_types:
-                edge.pop(f"capacity_{ct}", None)
-
-
+            values = {"": float(override)}
+        for key, val in values.items():
+            if val < 0 or val != val:
+                raise ValueError(f"transport_capacity_overrides['{name}']: capacity must be >= 0 (got {val!r})")
+        for edge in edges:
+            for ct, val in values.items():
+                edge["capacity" if ct == "" else f"capacity_{ct}"] = val * time_factor
+        logging.info(f"capacity override '{name}': {len(edges)} edge(s), "
+                     + ", ".join(f"{ct or 'all cargo'} {val:,.0f} t/day" for ct, val in values.items()))

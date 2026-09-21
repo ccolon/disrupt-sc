@@ -131,26 +131,90 @@ def _parse_attachment(raw, key: str) -> str:
     return value
 
 
-def _parse_capacity_constraint(raw) -> tuple[bool, str]:
-    """Return (enabled, mode) from the capacity_constraint config value.
+_LEGACY_CAPACITY_MODES = ("gradual", "binary")
+_LEGACY_CAPACITY_BRANCH = "legacy/v2-capacity-routing"
 
-    Unknown values RAISE instead of silently enabling gradual mode — a typo
-    on a scientifically active switch must fail loudly, not pass as a choice.
+
+def _parse_capacity_constraint(raw) -> bool:
+    """``capacity_constraint`` as a bool.
+
+    On-off since 21 Sep 2026: the capacities named in transport_capacity_overrides
+    are enforced by the within-step gate, with no cost multiplier. The former
+    'gradual' / 'binary' modes (congestion-adjusted cost labels, capacity-aware
+    initial assignment) live on the ``legacy/v2-capacity-routing`` branch and
+    RAISE here rather than silently mapping to the new mechanism. Unknown values
+    raise too — a typo on a scientifically active switch must fail loudly.
     """
     if isinstance(raw, bool):
-        return raw, "gradual"
+        return raw
+    if raw is None:
+        return False
     if isinstance(raw, str):
-        low = raw.lower()
+        low = raw.strip().lower()
         if low in ("off", "disabled", "false", "no"):
-            return False, "gradual"
-        if low in ("on", "true", "yes"):
-            return True, "gradual"
-        if low in ("gradual", "binary"):
-            return True, low
-    raise ValueError(
-        f"capacity_constraint must be a bool, 'off', 'gradual', or 'binary' "
-        f"(got {raw!r})"
-    )
+            return False
+        if low in ("on", "enabled", "true", "yes"):
+            return True
+        if low in _LEGACY_CAPACITY_MODES:
+            raise ValueError(
+                f"capacity_constraint: {raw!r} was retired on 21 Sep 2026 (the capacity gate "
+                f"is on-off: set true/false); the {raw!r} code path is archived on the "
+                f"{_LEGACY_CAPACITY_BRANCH} branch - see docs/architecture/transport-capacity.md"
+            )
+    raise ValueError(f"capacity_constraint must be true or false (got {raw!r})")
+
+
+# Keys of the retired capacity-aware routing (21 Sep 2026). They RAISE rather
+# than warn: a config still carrying them expects behaviour that no longer
+# exists (multi-route plans, LP assignment, per-mode placeholder capacities).
+_REMOVED_TOP_LEVEL_KEYS = {
+    "default_transport_capacity": (
+        "replaced by cargo_mode_eligibility ({mode: [cargo types]}, the former zeros) - "
+        "capacities exist only where transport_capacity_overrides names an edge"),
+    "capacity_routing_max_iterations": "the capacity-aware initial assignment was retired",
+}
+_REMOVED_LOGISTICS_KEYS = (
+    "initial_route_assignment", "chunk_size",
+    "route_candidate_count", "route_candidate_stretch", "route_candidate_overlap",
+    "lp_route_candidate_count", "lp_route_candidate_stretch", "lp_route_candidate_overlap",
+    "lp_overcapacity_limit",
+)
+
+
+def _reject_removed_capacity_keys(config: dict) -> None:
+    for key, why in _REMOVED_TOP_LEVEL_KEYS.items():
+        if key in config:
+            raise ValueError(
+                f"config key '{key}' was removed on 21 Sep 2026: {why}. Delete it "
+                f"(the old behaviour is on the {_LEGACY_CAPACITY_BRANCH} branch)."
+            )
+    logistics = config.get("logistics") or {}
+    present = [k for k in _REMOVED_LOGISTICS_KEYS if k in logistics]
+    if present:
+        raise ValueError(
+            f"logistics keys {present} belong to the retired capacity-aware routing "
+            f"(chunked heuristic, candidate-path LP, edge LP; 21 Sep 2026). Delete them "
+            f"(the old behaviour is on the {_LEGACY_CAPACITY_BRANCH} branch)."
+        )
+
+
+def _parse_cargo_mode_eligibility(raw) -> dict:
+    """``cargo_mode_eligibility`` as {mode: [cargo types]} (shape check only; the
+    cargo types are validated against the scope's when the network is built)."""
+    if raw is None:
+        return {}
+    if not isinstance(raw, dict):
+        raise ValueError(f"cargo_mode_eligibility must be a mapping mode -> [cargo types] (got {raw!r})")
+    out = {}
+    for mode, allowed in raw.items():
+        if isinstance(allowed, str):
+            allowed = [allowed]
+        if allowed is None:
+            allowed = []
+        if not isinstance(allowed, (list, tuple)):
+            raise ValueError(f"cargo_mode_eligibility['{mode}'] must be a list of cargo types (got {allowed!r})")
+        out[str(mode)] = [str(a) for a in allowed]
+    return out
 
 
 _DAYS_PER_TIMESTEP = {"day": 1, "week": 7, "month": 30, "year": 365}
@@ -159,12 +223,6 @@ _DAYS_PER_TIMESTEP = {"day": 1, "week": 7, "month": 30, "year": 365}
 def days_per_timestep(time_resolution: str) -> float:
     """Calendar days in one model time step (for day<->step unit conversion)."""
     return float(_DAYS_PER_TIMESTEP.get(time_resolution, 7))
-
-
-def _parse_chunk_size(logistics: dict, time_resolution: str) -> float:
-    """Convert chunk_size from tons/day (YAML) to tons/time-step."""
-    raw = logistics.get("chunk_size", 1e9)
-    return float(raw) * days_per_timestep(time_resolution)
 
 
 _REMOVED_CUTOFFS = (
@@ -239,7 +297,8 @@ def _validated_flow_coverage(config: dict) -> float:
 def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams, LogisticsParams]:
     """Build frozen parameter bundles from a raw config dict."""
     logistics = config.get("logistics", {})
-    cap_enabled, cap_mode = _parse_capacity_constraint(config.get("capacity_constraint", "off"))
+    _reject_removed_capacity_keys(config)
+    cap_enabled = _parse_capacity_constraint(config.get("capacity_constraint", False))
 
     rationing_mode = config.get("rationing_mode", "equal")
     if rationing_mode not in ("equal", "household_first"):
@@ -251,8 +310,7 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
         with_transport=config.get("with_transport", True),
         transport_to_households=config.get("transport_to_households", True),
         capacity_constraint_enabled=cap_enabled,
-        capacity_constraint_mode=cap_mode,
-        initial_route_assignment=logistics.get("initial_route_assignment", "heuristic"),
+        cargo_mode_eligibility=_parse_cargo_mode_eligibility(config.get("cargo_mode_eligibility")),
         rationing_mode=rationing_mode,
         use_route_cache=config.get("use_route_cache", True),
         switching_costs=logistics.get("switching_costs", {"modal_switch": 0.15, "port_switch": 0.05}),
@@ -265,14 +323,6 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
         agent_attachment=_parse_attachment(config.get("agent_attachment", "any"), "agent_attachment"),
         use_cargo_types=bool(config.get("use_cargo_types", True)),
         monetary_units=config.get("monetary_units_in_model", "mUSD"),
-        chunk_size=_parse_chunk_size(logistics, config.get("time_resolution", "week")),
-        route_candidate_count=int(logistics.get("route_candidate_count", 4)),
-        route_candidate_stretch=float(logistics.get("route_candidate_stretch", 3.0)),
-        route_candidate_overlap=float(logistics.get("route_candidate_overlap", 0.85)),
-        lp_route_candidate_count=int(logistics.get("lp_route_candidate_count", 20)),
-        lp_route_candidate_stretch=float(logistics.get("lp_route_candidate_stretch", 4.0)),
-        lp_route_candidate_overlap=float(logistics.get("lp_route_candidate_overlap", 0.9)),
-        lp_overcapacity_limit=float(logistics.get("lp_overcapacity_limit", 1.1)),
     )
 
     sim_params = SimParams(

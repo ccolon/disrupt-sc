@@ -44,7 +44,6 @@ class CommercialLink:
     use_transport_network: bool = False
     cargo_type: str = "dry_bulk"
     essential: bool = True
-    route_plan: list = field(default_factory=list)  # [(Route, fraction), ...]
 
     # --- Flow state ---
     order: float = 0.0
@@ -64,6 +63,12 @@ class CommercialLink:
     status: str = "ok"
     main_route_realized_delivery: float = 0.0
     alternative_route_realized_delivery: float = 0.0
+    # What the supplier decided to ship this step before the substitution
+    # ceiling and the capacity gate cut it (KI-31: the exported `delivery`
+    # used to lose that quantity), and the part the gate withheld for want of
+    # capacity (a route search that found nothing acceptable, or none at all).
+    delivery_offered: float = 0.0
+    capacity_blocked: float = 0.0
 
     # ------------------------------------------------------------------
 
@@ -97,6 +102,8 @@ class CommercialLink:
         self.alternative_found = False
         self.main_route_realized_delivery = 0.0
         self.alternative_route_realized_delivery = 0.0
+        self.delivery_offered = 0.0
+        self.capacity_blocked = 0.0
 
     def determine_cargo_type(self, sector_to_cargo_type: dict):
         self.cargo_type = sector_to_cargo_type.get(
@@ -315,6 +322,8 @@ class CommercialLink:
         "payment",
         "main_route_realized_delivery",
         "alternative_route_realized_delivery",
+        "delivery_offered",
+        "capacity_blocked",
         "status",
         "current_route",
     })
@@ -336,5 +345,7 @@ class CommercialLink:
         self.payment = 0.0
         self.main_route_realized_delivery = 0.0
         self.alternative_route_realized_delivery = 0.0
+        self.delivery_offered = 0.0
+        self.capacity_blocked = 0.0
         self.status = "ok"
         self.current_route = "main"
