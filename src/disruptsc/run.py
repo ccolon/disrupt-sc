@@ -263,7 +263,7 @@ def execute(config: dict, *, cache: str | None = None,
         transport_network, transport_edges, transport_nodes = build_transport_network(
             transport_modes, filepaths, logistics_raw, sp.time_resolution,
             capacity_overrides=config.get("transport_capacity_overrides"),
-            default_transport_capacity=config.get("default_transport_capacity"),
+            cargo_mode_eligibility=tp.cargo_mode_eligibility,
             use_cargo_types=tp.use_cargo_types,
         )
         cache_transport_network(transport_network, transport_edges, transport_nodes,
@@ -431,9 +431,7 @@ def execute(config: dict, *, cache: str | None = None,
             logging.info("Setting up logistic routes")
             cl_table = setup_logistic_routes(
                 sc_network, transport_network, firms, countries,
-                tp,
-                max_capacity_iterations=config.get("capacity_routing_max_iterations", 3),
-                export_folder=export_folder,
+                tp, export_folder=export_folder,
             )
         else:
             cl_table = None

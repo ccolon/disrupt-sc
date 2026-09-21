@@ -53,7 +53,7 @@ def build_common(config: dict, tp, sp, ap, lp, *, input_criticality=None) -> dic
         config.get("transport_modes", ["roads"]), fp, config.get("logistics", {}),
         sp.time_resolution,
         capacity_overrides=config.get("transport_capacity_overrides"),
-        default_transport_capacity=config.get("default_transport_capacity"),
+        cargo_mode_eligibility=tp.cargo_mode_eligibility,
         use_cargo_types=tp.use_cargo_types,
     )
     mrio = load_mrio(fp.get("mrio"), ap.monetary_units_in_data)

@@ -4,7 +4,8 @@ Input of validation_outputs.py. Replaces the 83 MB link_route_flags.csv of 14 Se
 folder, was never committed and was lost (see mechanism_checks/README.md). Reads the routes cache of the scope
 (tmp/<scope>_logistic_routes.pkl), which carries the supply-chain network with every link's routes.
 
-A link can split its delivery over several routes (route_plan). Both definitions are counted:
+Until 21 Sep 2026 a link could split its delivery over several routes (route_plan); since then
+there is one route per link and both definitions coincide. Both are still counted:
   primary : the link's main route uses the Kaub edge
   any     : any route of its plan does
 The list is written for --definition (default: any). The committed extraction of 17 Sep
@@ -53,7 +54,9 @@ def main(scope: str, definition: str, expect: bool, out: Path):
     for u, v, d in g.edges(data=True):
         link = d["object"]
         n_links += 1
-        routes = [r for r, _ in (link.route_plan or [])] or ([link.route] if link.route is not None else [])
+        # one route per link since 21 Sep 2026 (multi-route plans retired); the
+        # "any" table keeps its column for the archived 2026 extraction
+        routes = [link.route] if link.route is not None else []
         if not routes:
             continue
         n_routed += 1

@@ -86,12 +86,6 @@ class Route(list):
                 sub = min(sub, float(e.get("closure_substitution_share", 1.0)))
         return sub
 
-    def has_over_capacity_edges(self, transport_network: TransportNetwork) -> bool:
-        for u, v in self.transport_edges:
-            if transport_network[u][v].get("overused", False):
-                return True
-        return False
-
     def is_edge_in_route(self, searched_edge, transport_network: TransportNetwork) -> bool:
         if isinstance(searched_edge, tuple):
             for u, v in self.transport_edges:

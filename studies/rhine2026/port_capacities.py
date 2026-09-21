@@ -6,8 +6,9 @@ carries 55 Mt (real 242). The physical fix is a per-terminal capacity: each
 TEN-T port connector (multimodal edge named by its terminal_id) gets the
 real annual throughput of the port it serves (Eurostat mar_go_aa, gross
 weight handled, 2023) x a peak factor, as tons/day, to be applied through
-``transport_capacity_overrides`` with ``capacity_constraint: binary`` (no
-cost distortion below capacity; over-capacity edges are simply not routed).
+``transport_capacity_overrides`` with ``capacity_constraint: true`` (the
+within-step gate: no cost distortion below capacity, a saturated terminal is
+closed to further flow for the step and the cut shares re-sent elsewhere).
 
 Ports are matched by name from Eurostat's rep_mar labels to a gazetteer of
 port coordinates, then to every maritime connector within ``--radius-km``;
