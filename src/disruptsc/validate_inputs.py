@@ -71,6 +71,7 @@ def validate_scope(scope: str) -> tuple[bool, list[str], list[str]]:
     _check_spatial(filepaths, config, mrio, errors, warnings)
     if config.get("with_transport", True):
         _check_transport(filepaths, config, errors, warnings)
+        _check_capacity_overrides(filepaths, config, errors, warnings)
     _check_input_criticality(filepaths.get("input_criticality"), sector_table,
                              errors, warnings)
     _check_disruptions(config, errors, warnings)
@@ -269,6 +270,68 @@ def _check_transport(filepaths: dict, config: dict, errors: list, warnings: list
                 errors.append(f"transport layer '{mode}': {bad} non-LineString geometrie(s) in sample")
         except Exception as exc:
             warnings.append(f"transport layer '{mode}' spot-check skipped: {exc}")
+
+
+def _edge_names(filepaths: dict) -> set[str] | None:
+    """Every edge name of the transport GeoPackage layers (and the multimodal file), or
+    None when no file can be read."""
+    import geopandas as gpd
+    names: set[str] = set()
+    found = False
+    for key in ("transport", "multimodal"):
+        path = filepaths.get(key)
+        if not path or not Path(path).exists():
+            continue
+        try:
+            for layer in gpd.list_layers(path)["name"]:
+                gdf = gpd.read_file(path, layer=layer)
+                found = True
+                if "name" in gdf.columns:
+                    names |= {str(n) for n in gdf["name"].dropna() if str(n).strip()}
+        except Exception:
+            continue
+    return names if found else None
+
+
+def _check_capacity_overrides(filepaths: dict, config: dict, errors: list, warnings: list) -> None:
+    """transport_capacity_overrides: every name must be an edge name of the GeoPackage
+    and every cargo type one of the scope's (the build raises on both; catching it
+    here names all the offenders at once). A misspelt Gulf gateway used to be a
+    silent no-op (KI-41)."""
+    overrides = config.get("transport_capacity_overrides") or {}
+    if not overrides:
+        return
+    if not isinstance(overrides, dict):
+        errors.append("transport_capacity_overrides must be a mapping edge name -> tons/day")
+        return
+    names = _edge_names(filepaths)
+    if names is not None:
+        unknown = sorted(str(n) for n in overrides if str(n) not in names)
+        if unknown:
+            errors.append(
+                f"transport_capacity_overrides: {len(unknown)} name(s) match no edge of the "
+                f"transport GeoPackage: {unknown[:8]}{'…' if len(unknown) > 8 else ''}"
+            )
+    mapping = (config.get("logistics") or {}).get("sector_to_cargo_type") or {}
+    cargo_types = {str(ct) for ct in mapping.values() if ct != "default"} or {"container", "dry_bulk", "liquid_bulk"}
+    use_cargo_types = bool(config.get("use_cargo_types", True))
+    for name, value in overrides.items():
+        if isinstance(value, dict):
+            if not use_cargo_types:
+                errors.append(f"transport_capacity_overrides['{name}'] is per cargo type but use_cargo_types is False")
+            bad = sorted(set(map(str, value)) - cargo_types)
+            if bad:
+                errors.append(f"transport_capacity_overrides['{name}']: unknown cargo type(s) {bad} "
+                              f"(the scope's are {sorted(cargo_types)})")
+            vals = value.values()
+        else:
+            vals = [value]
+        for v in vals:
+            try:
+                if float(v) < 0:
+                    errors.append(f"transport_capacity_overrides['{name}']: negative capacity {v!r}")
+            except (TypeError, ValueError):
+                errors.append(f"transport_capacity_overrides['{name}']: non-numeric capacity {v!r}")
 
 
 def _check_input_criticality(path, sector_table, errors: list, warnings: list) -> None:

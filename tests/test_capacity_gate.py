@@ -376,3 +376,17 @@ def test_eligibility_removes_the_cost_label():
     assert "cost_per_ton_container" in sea and "cost_per_ton_dry_bulk" not in sea
     road = next(tn[u][v] for u, v in tn.edges if tn[u][v]["type"] == "roads")
     assert "cost_per_ton_dry_bulk" in road                        # a mode not listed takes every cargo
+
+
+def test_validate_inputs_names_the_unknown_overrides():
+    from disruptsc.validate_inputs import _check_capacity_overrides
+    cfg = _cfg(transport_capacity_overrides={"Main Road North": 100, "Main Road Nort": 5,
+                                             "Port Terminal": {"container": 10, "boxes": 1, "dry_bulk": -3}})
+    errors, warnings = [], []
+    _check_capacity_overrides(cfg["filepaths"], cfg, errors, warnings)
+    joined = "\n".join(errors)
+    assert "Main Road Nort" in joined and "boxes" in joined and "negative" in joined
+    assert "Main Road North" not in joined.replace("Main Road Nort'", "")
+    errors = []
+    _check_capacity_overrides(cfg["filepaths"], _cfg(transport_capacity_overrides={"Main Road North": 100}), errors, [])
+    assert errors == []
