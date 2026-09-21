@@ -70,7 +70,7 @@ You also need a scope parameter file. Only the bundled `Testkistan` scope ships 
 - **Pipeline architecture.** The monolithic `Model` class and `Parameters` loader are gone. Initialization (`init_pipeline/`) and execution (`run_pipeline/`) are organized as explicit stages — easier to cache, resume, and reason about.
 - **Frozen, typed parameter bundles.** `TransportParams`, `SimParams`, `AgentParams`, `LogisticsParams` dataclasses replace the v1 `Parameters` object. Config loading is a flat `dict` + dataclass build step.
 - **Unified transport graph.** Transport data is now consumed from `transport.gpkg` + `multimodal.gpkg` rather than one GeoJSON per mode.
-- **Alternative routing + capacity-aware costs.** Rerouting under disruption, price-increase thresholds, LP-based flow assignment, capacity constraints.
+- **Alternative routing + edge capacities.** Rerouting under disruption, price-increase thresholds, and named edge capacities enforced by a within-step gate (proportional rationing, re-sending around saturated edges; `docs/architecture/transport-capacity.md`).
 - **Local-first config.** Only `Testkistan`'s scope YAML ships with the repo. For any other scope, drop a gitignored `config/user_defined_<scope>.local.yaml` pointing at your own data folder — the model picks it up automatically.
 - **Bundled demo data.** No submodule required to run the model out of the box.
 
@@ -88,7 +88,7 @@ Full documentation: **[https://ccolon.github.io/disrupt-sc](https://ccolon.githu
 
 - **Spatial multimodal transport**: roads, rail, maritime, airways, waterways, pipelines
 - **Agent-based economy**: firms, households, and countries with spatial disaggregation from MRIO data
-- **Disruption scenarios**: transport-edge failures, capital destruction, productivity shocks, capacity shocks
+- **Disruption scenarios**: transport-edge closures and capacity reductions, cost shocks, capital destruction, productivity shocks
 - **Monte Carlo support**: configurable `mc_repetitions` for disruption and initial-state runs
 - **Input validation**: comprehensive data-quality checks before simulation
 
