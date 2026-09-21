@@ -1,15 +1,15 @@
 """Validation outputs of a full-export Rhine run (17 Sep 2026): what crosses Kaub, what is delivered, at what price.
 
-Reads link_data.csv in chunks (4-8 GB) and the baseline route flags of every link (crosses_kaub from
-link_route_flags.csv, built from the routing tables of the reproducible build), and writes per week and cargo
-class, for the links whose normal route crosses Kaub:
+Reads link_data.csv in chunks (4-8 GB) and the list of links whose baseline route crosses Kaub
+(additional_data/kaub_crossing_links_<scope>_seed42.csv, built by build_kaub_links.py from the routes cache; the
+list belongs to one supply-chain draw), and writes per week and cargo class, for those links:
   - ordered and delivered tonnage and value (delivered = realized after rationing and transport),
   - the delivered-price ratio (price / equilibrium price) at the median, ninth decile and maximum,
 and for all routed links the same totals as context. The baseline week (t = 0) annualised gives the model's
 Kaub throughput against the CCNR cross-section (50-60 Mt/yr at Kaub).
 
 Usage:
-    python studies/rhine2026/validation_outputs.py <run_folder> --flags <link_route_flags.csv> [--out out.csv]
+    python studies/rhine2026/validation_outputs.py <run_folder> --flags additional_data/kaub_crossing_links_EU_seed42.csv [--out out.csv]
 """
 from __future__ import annotations
 
@@ -24,8 +24,12 @@ COLS = ["time_step", "seller_id", "buyer_id", "order", "delivery", "realized_del
 
 
 def main(run: Path, flags_path: Path, out: Path | None):
-    flags = pd.read_csv(flags_path, dtype=str).drop_duplicates(["seller_id", "buyer_id"])
-    kaub = set(zip(flags.loc[flags.crosses_kaub == "True", "seller_id"], flags.loc[flags.crosses_kaub == "True", "buyer_id"]))
+    # either the committed list of Kaub-crossing links (build_kaub_links.py; header lines start with #) or the
+    # legacy all-links flag table with a crosses_kaub column
+    flags = pd.read_csv(flags_path, dtype=str, comment="#").drop_duplicates(["seller_id", "buyer_id"])
+    if "crosses_kaub" in flags.columns:
+        flags = flags[flags.crosses_kaub == "True"]
+    kaub = set(zip(flags.seller_id, flags.buyer_id))
     print(f"{len(kaub):,} links cross Kaub on their normal route")
     agg = {}          # (t, cargo, group) -> dict of sums
     ratios = {}       # (t, cargo) -> list of arrays of price ratios (Kaub links only, delivered > 0)
