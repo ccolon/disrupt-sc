@@ -1,0 +1,20 @@
+Record (Ademmer et al., implied monthly shortfall of German industrial production, %):
+  with the lagged term      : {'Aug': 1.02, 'Sep': 1.23, 'Oct': 1.38, 'Nov': 1.74, 'Dec': 0.82}  integrated 6.19 %-months; peak Nov 1.74 (published: 1.5-1.7)
+  contemporaneous term only : {'Aug': 1.02, 'Sep': 0.51, 'Oct': 1.02, 'Nov': 1.02, 'Dec': 0.1} integrated 3.67 %-months
+  in the paper's unit (x industry share of GVA 0.25, / 3 months): 0.52 and 0.31 % of a quarter, INDUSTRY CHANNEL ONLY
+
+Model, Germany, monthly shortfall of INDUSTRIAL production (NACE B-E, production-weighted, % of the month's baseline):
+               ind_Aug  ind_Sep  ind_Oct  ind_Nov  ind_Dec  ind_integrated_pct_months peak_month_ind  ind_share_of_total_va_loss_pct
+run                                                                                                                                 
+2018_baseline      0.0      0.0     0.71     2.95     3.08                       4.95            Dec                            32.0
+2018_inv150        0.0      0.0     0.30     1.85     2.48                       3.19            Dec                            36.0
+2018_inv200        0.0      0.0     0.17     1.23     1.37                       1.96            Dec                            33.0
+2018_pipe          0.0      0.0     0.17     1.23     1.37                       1.96            Dec                            33.0
+
+Model, Germany, monthly shortfall of TOTAL value added (all sectors, %):
+               va_Aug  va_Sep  va_Oct  va_Nov  va_Dec
+run                                                  
+2018_baseline     0.0     0.0    0.34    1.35    2.45
+2018_inv150       0.0     0.0    0.16    0.81    1.21
+2018_inv200       0.0     0.0    0.09    0.42    0.97
+2018_pipe         0.0     0.0    0.09    0.42    0.95

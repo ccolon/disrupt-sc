@@ -1,7 +1,7 @@
-"""Smoke check of the capacity gate on the Rhine (22 Sep 2026): the ten-week laptop run `smoke_gate10`
-(2026_first10, --constraint-mode on --closure-threshold -1: Kaub's capacity = load factor x its anchored
-baseline flow every week, no closure and no surcharge, rail and road unlimited) against the price-with-closures
-reference. Reads the gate's log lines (cut / re-sent / blocked tons per step), the routing summary by cargo class,
+"""Smoke check of the capacity gate on the Rhine (22 Sep 2026): the ten-week laptop runs `smoke_gate10`
+(pure gate: Kaub's capacity = load factor x its anchored baseline flow every week, no closure and no surcharge,
+rail and road unlimited) and `smoke_gs10` (gate + the voyage surcharge, the user's choice of 22 Sep), both on
+2026_first10 with --constraint-mode on --closure-threshold -1, against a price-with-closures reference. Reads the gate's log lines (cut / re-sent / blocked tons per step), the routing summary by cargo class,
 the weekly German value-added loss of both runs and the firms below 99 % of their baseline.
 
 Usage:
@@ -54,7 +54,7 @@ def main(run: Path, ref: Path):
                       "ref_loss": r.loss_mUSD, "ref_%wk": r["loss_%week"], "ref_firms<99%": r.firms_below99_pct})
     print(t.round(2).to_string())
     print(f"\ncumulated DEU loss over the {int(g.index.max())} weeks: gate {g.loss_mUSD.sum():,.0f} mUSD vs reference "
-          f"{r.loss_mUSD.sum():,.0f} (price with closures, without the pipeline rule)")
+          f"{r.loss_mUSD.sum():,.0f} ({ref.name}: price with closures)")
     lr = run / "logistics_report.csv"
     if lr.exists():
         d = pd.read_csv(lr)
