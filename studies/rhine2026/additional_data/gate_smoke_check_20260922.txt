@@ -1,0 +1,65 @@
+gate run smoke_gate10: completed True
+
+Gate per step (tons cut at the saturated edges, re-sent elsewhere, blocked = returned to stock):
+ t  rounds  saturated  cut_kt  resent_kt  blocked_kt
+ 0       4          3     6.8        4.9         1.9
+ 1       2          1   288.2       67.7       220.4
+ 2       2          1   211.3       49.7       161.5
+ 3       2          1   404.0       94.6       309.3
+ 4       2          1   654.9      151.4       503.5
+ 5       2          1   628.1      144.0       484.2
+ 6       2          1   857.3      193.7       663.7
+ 7       2          1   933.8      207.0       726.7
+ 8       2          1  1035.9      231.1       804.8
+ 9       2          1   881.9      198.0       683.9
+10       2          1   634.0      144.9       489.1
+
+Routing summary by cargo class (mUSD/week):
+           alternative_usd                      blocked_usd                      capacity_blocked_usd                     
+cargo_type       container dry_bulk liquid_bulk   container dry_bulk liquid_bulk            container dry_bulk liquid_bulk
+time_step                                                                                                                 
+0                      0.0      0.0         1.0         0.0      1.0         1.0                  0.0      1.0         1.0
+1                      0.0     17.0        43.0         0.0     86.0       106.0                  0.0     85.0       106.0
+2                      0.0     13.0        32.0         0.0     63.0        78.0                  0.0     63.0        78.0
+3                      0.0     24.0        60.0         0.0    122.0       150.0                  0.0    122.0       150.0
+4                      0.0     38.0        96.0         0.0    199.0       245.0                  0.0    199.0       245.0
+5                      0.0     37.0        91.0         0.0    193.0       237.0                  0.0    193.0       237.0
+6                      0.0     50.0       122.0         0.0    266.0       328.0                  0.0    266.0       328.0
+7                      0.0     54.0       130.0        63.0    295.0       360.0                  0.0    295.0       360.0
+8                      0.0     60.0       146.0       113.0    345.0       575.0                  0.0    343.0       389.0
+9                      0.0     51.0       124.0       215.0    307.0       631.0                  0.0    304.0       326.0
+10                     0.0     38.0        90.0       234.0    221.0       492.0                  0.0    215.0       237.0
+
+Weekly German value-added loss (mUSD and % of a week's value added) and firms below 99 % of baseline:
+           gate_loss  gate_%wk  gate_firms<99%  ref_loss  ref_%wk  ref_firms<99%
+time_step                                                                       
+0               0.00      0.00            0.00      0.00     0.00           0.00
+1               0.10      0.00            0.00      0.01     0.00           0.00
+2              10.76      0.01            3.23      0.01     0.00           0.00
+3              11.80      0.02            3.54      0.01     0.00           0.00
+4              17.44      0.02            3.79      0.02     0.00           0.00
+5             101.73      0.14            4.85      0.02     0.00           0.00
+6             146.96      0.20            5.26      0.02     0.00           0.00
+7             271.65      0.37            5.41     38.58     0.05           4.09
+8             318.80      0.43            5.41    295.83     0.40           6.72
+9             399.58      0.54            5.61    402.91     0.55           6.47
+10            521.90      0.71            6.82    437.23     0.60           6.22
+
+cumulated DEU loss over the 10 weeks: gate 1,801 mUSD vs reference 1,175 (price with closures, without the pipeline rule)
+
+Monitored edges (steps 0-1):
+ time_step                 name      type
+         0          rhine_mainz waterways
+         0 rhine_mannheim_mainz waterways
+         0        rhine_koblenz waterways
+         0        rhine_koblenz waterways
+         0  rhine_mainz_koblenz waterways
+         0          rhine_mainz waterways
+         0        rhine_koblenz waterways
+         1          rhine_mainz waterways
+         1 rhine_mannheim_mainz waterways
+         1        rhine_koblenz waterways
+         1        rhine_koblenz waterways
+         1  rhine_mainz_koblenz waterways
+         1          rhine_mainz waterways
+         1        rhine_koblenz waterways
