@@ -140,6 +140,51 @@ def build_supply_chain_network(
     return sc
 
 
+def load_pipelined_flows(sc: ScNetwork, rules: dict | None, bundle_shares: dict | None) -> tuple[int, int]:
+    """Mark the share of every commercial link that reaches its buyer by pipeline.
+
+    ``pipelined_flows.products`` lists the products (sector codes; B06 = crude
+    oil and natural gas) that travel by pipeline, which the transport network
+    does not carry - neither disrupted by the river nor a back-up for it. A
+    link whose product is one of them is pipelined in full; an import bundle
+    (``{BLOC}_imports``) for the share its MRIO composition gives to those
+    products; an optional ``buyer_sectors`` list restricts the rule to those
+    buyers. The share is a load-time rule on the final link set, not a cache
+    key, re-applied on every load like the inventory targets; the delivery
+    split happens in transport_utils.send_shipment. Returns (links marked,
+    links with a share below 1). Without a rule every share is 0 (the model
+    as before).
+    """
+    from disruptsc.init_pipeline.agents import _bundle_composition
+    rules = rules or {}
+    products = {str(p) for p in (rules.get("products") or [])}
+    buyers = rules.get("buyer_sectors")
+    buyers = {str(b) for b in buyers} if buyers else None
+    n_full = n_part = 0
+    for _, buyer, data in sc.edges(data=True):
+        link: CommercialLink = data["object"]
+        share = 0.0
+        if products and (buyers is None or getattr(buyer, "sector", None) in buyers):
+            product = link.product
+            sector = product.split("_", 1)[-1] if "_" in product else product
+            if sector in products:
+                share = 1.0
+            elif sector == "imports" and hasattr(buyer, "region") and hasattr(buyer, "sector"):
+                comp = _bundle_composition(buyer, product, bundle_shares) or {}
+                share = min(1.0, sum(v for s, v in comp.items() if s in products))
+        link.pipelined_share = share
+        if share >= 1.0:
+            n_full += 1
+        elif share > 0.0:
+            n_part += 1
+    if products:
+        logging.info(f"pipelined_flows: products {sorted(products)}"
+                     f"{'' if buyers is None else ' to buyers ' + str(sorted(buyers))}: "
+                     f"{n_full:,} links pipelined in full, {n_part:,} import bundles in part "
+                     f"(of {sc.number_of_edges():,})")
+    return n_full, n_part
+
+
 # ------------------------------------------------------------------
 # Household supplier selection
 # ------------------------------------------------------------------

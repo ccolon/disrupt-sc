@@ -52,7 +52,7 @@ from disruptsc.init_pipeline.agents import (
     load_transit_matrix,
     add_representative_demand_agents,
 )
-from disruptsc.init_pipeline.supply_chain import build_supply_chain_network
+from disruptsc.init_pipeline.supply_chain import build_supply_chain_network, load_pipelined_flows
 from disruptsc.init_pipeline.routing import setup_logistic_routes, intern_routes
 
 from disruptsc.run_pipeline.cache import (
@@ -444,6 +444,10 @@ def execute(config: dict, *, cache: str | None = None,
     # input mix is complete only now (import bundles are created by the
     # supply-chain build), whichever stages came from cache.
     _configure_firms(firms)
+    # Pipelined flows (products that reach their buyers by pipeline, which the
+    # network does not carry): a rule on the final link set, re-applied on
+    # every load like the rules above; not a cache key.
+    load_pipelined_flows(sc_network, config.get("pipelined_flows"), import_bundle_shares(mrio))
 
     # ------------------------------------------------------------------
     # Stage 5: Run simulation

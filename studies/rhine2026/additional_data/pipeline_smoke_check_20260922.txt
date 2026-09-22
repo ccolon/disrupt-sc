@@ -1,0 +1,60 @@
+smoke run smoke_pipeline vs reference 2026_cal_base_full
+
+rule: pipelined_flows: products ['B06']: 4,249 links pipelined in full, 90,553 import bundles in part (of 1,380,040)
+completed: True 
+
+Kaub, baseline week (mUSD/week; tons/week):
+                               reference      smoke      diff  diff_%
+flow_total                        1242.5      903.6    -339.0   -27.3
+flow_total_tons                1313059.8  1035521.9 -277537.9   -21.1
+tons_dry_bulk                   704754.4   431047.5 -273707.0   -38.8
+tons_liquid_bulk                608277.0   604446.3   -3830.8    -0.6
+tons_container                      28.3       28.1      -0.2    -0.7
+flow_import                        576.5      245.3    -331.2   -57.5
+flow_import_mining                 445.8      119.4    -326.4   -73.2
+flow_import_oil_and_gas             60.3       56.3      -4.1    -6.7
+flow_mining                        520.2      186.0    -334.1   -64.2
+flow_oil_and_gas                   540.4      536.3      -4.1    -0.8
+flow_domestic_B2B_mining            16.5        9.1      -7.4   -45.0
+flow_domestic_B2B_oil_and_gas      336.6      336.6       0.0     0.0 
+
+Kaub tonnage, Mt/yr: reference 68.3 -> smoke 53.8
+
+routing summary of the smoke run (mUSD/week):
+ time_step              cargo_type  total_usd  main_usd  alternative_usd  pipelined_usd  blocked_usd
+         0               container   154340.0  154164.0              0.0          176.0          0.0
+         0                dry_bulk    22601.0   14791.0              0.0         7810.0          0.0
+         0             liquid_bulk    11413.0   11339.0              0.0           74.0          0.0
+         0    no_transport_network   468766.0  468766.0              0.0            0.0          0.0
+         0 transport_same_od_point    39381.0   39355.0              0.0           26.0          0.0
+         1               container   154340.0  154164.0              0.0          176.0          0.0
+         1                dry_bulk    22601.0   14791.0              0.0         7810.0          0.0
+         1             liquid_bulk    11413.0   11339.0              0.0           74.0          0.0
+         1    no_transport_network   468766.0  468766.0              0.0            0.0          0.0
+         1 transport_same_od_point    39381.0   39355.0              0.0           26.0          0.0
+         2               container   154340.0  152290.0           1874.0          176.0          0.0
+         2                dry_bulk    22601.0   14084.0            400.0         7810.0        307.0
+         2             liquid_bulk    11413.0   10588.0            370.0           74.0        381.0
+         2    no_transport_network   468766.0  468766.0              0.0            0.0          0.0
+         2 transport_same_od_point    39381.0   39355.0              0.0           26.0          0.0 
+
+share of served value delivered by pipeline, per step:
+time_step
+0    1.16
+1    1.16
+2    1.16 
+
+crude exporters, qty_sold by step (closure at t=2):
+time_step        0        1        2
+country                             
+AFR         1189.0   1189.0   1171.0
+GBR         6772.0   6772.0   6766.0
+MEA         3954.0   3954.0   3945.0
+NOR         2765.0   2765.0   2718.0
+ROW         5816.0   5816.0   5805.0
+RUS         3238.0   3238.0   3130.0
+USA        10557.0  10557.0  10532.0 
+
+t=0: production shortfall vs t=0, all firms: 0 mUSD; refineries (C19) 0.0
+t=1: production shortfall vs t=0, all firms: 0 mUSD; refineries (C19) 0.0
+t=2: production shortfall vs t=0, all firms: 0 mUSD; refineries (C19) 0.0

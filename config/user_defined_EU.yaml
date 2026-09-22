@@ -75,6 +75,17 @@ input_pooling:
 # an input - and, with input_pooling, of a product across regions.
 adaptive_supplier_weight: True
 
+# Pipelined flows (22 Sep 2026, user decision, review point OR3 and audit_kaub_imports.py): crude
+# oil and natural gas (B06) reach their buyers by pipeline, which the network does not carry - a
+# pipeline is neither disrupted by the river nor a back-up for it. The pipelined share of a link
+# (1 for a B06 product; the B06 composition share of an import bundle, 0.6-0.97 for the crude
+# bundles of the refineries) is delivered without transport at the supplier's price; the rest is
+# routed as before. Before this rule 253 mUSD/week of crude imports to pipeline-fed refineries
+# (MiRO, Bayernoil, Burghausen, Schwechat) crossed Kaub by barge, a fifth of the value across the
+# gauge. Not a cache key (re-applied on every load).
+pipelined_flows:
+  products: [B06]
+
 # Give-up rule on the DELIVERED price (disrupt-sc >= 2026-09-03): a delivery is
 # dropped only when transport_share x relative transport-cost increase exceeds
 # 0.5, i.e. the delivered price would rise by more than half. The legacy rule
@@ -316,13 +327,16 @@ inventory_duration_targets:
       utility: 90
     D:
       B05: 30
-      # gas to power plants is pipeline-fed; the model routes B06 flows as barge cargo (no
-      # pipeline mode), so the buffer neutralises a river closure that cannot touch them
+      # gas to power plants is pipeline-fed. Until 22 Sep 2026 the model routed B06 flows as barge
+      # cargo and this buffer neutralised a river closure that cannot touch them; since then the
+      # pipelined_flows rule delivers B06 without transport, and the 90 d stand for the pipeline
+      # system's own storage (the IEA 90-day stockholding obligation)
       B06: 90
       C19: 10
     C19:
       # crude to the Rhine refineries arrives by pipeline (TAL, RRP, NWO), not by barge; same
-      # reason as above (physical cover is 10-12 d)
+      # reason as above (physical cover is 10-12 d). The value also reaches the import bundles
+      # ({BLOC}_imports) through their B06 composition share: MiRO's crude bundles carry 76-90 d
       B06: 90
     C24A:
       B07: 40

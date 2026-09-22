@@ -1,0 +1,15 @@
+# Rhine 2026 cluster batch (22 Sep 2026): the pipelined-flows rule on the two calibrated baselines.
+# Crude oil and natural gas (B06) now reach their buyers without transport (config pipelined_flows, the
+# commit "Pipelined flows" of 22 Sep): before it, 253 mUSD/week of crude imports to pipeline-fed refineries
+# crossed Kaub by barge, a fifth of the value across the gauge (audit_kaub_imports.py, review point OR3).
+# These two light runs size the correction against their twins without the rule, 2026_cal_base (16 Sep)
+# and 2018_inv200 (the ladder pick), same buffer (x2), same seed, same recovery. The 2018 run feeds
+# matched_estimand_2018.py (monthly industrial shortfall; firm_data.csv is packed with --with-firms).
+# First batch after the capacity rework (2e03f3c, 21 Sep: transport_network 3 / logistic_routes 4): the
+# *_base job rebuilds the shared caches (about half an hour) and the 2018 job waits for it (afterok).
+# Launch WITHOUT --independent:
+#     cd /projects/disruptsc/disrupt-sc && git pull && bash studies/rhine2026/cluster/launch_rhine_batch.sh --jobs studies/rhine2026/cluster/jobs_20260922_pipe.txt
+# Pack:
+#     bash studies/rhine2026/cluster/pack_results.sh --jobs studies/rhine2026/cluster/jobs_20260922_pipe.txt --with-firms 2026_pipe_base,2018_pipe
+2026_pipe_base | --recovery-weeks 20 --inventory-scale 2.0
+2018_pipe      | --profile 2018 --recovery-weeks 20 --inventory-scale 2.0

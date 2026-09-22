@@ -393,6 +393,9 @@ def main():
     ap.add_argument("--no-pooling", action="store_true",
                     help="sensitivity: no pooling of the same product across regions (input_pooling.enabled False, "
                          "adaptive_supplier_weight False): the region-keyed rule of the runs before 9 Sep 2026")
+    ap.add_argument("--no-pipelines", action="store_true",
+                    help="sensitivity: no pipelined flows (pipelined_flows.products empty): crude and gas (B06) "
+                         "routed as barge cargo, the rule of the runs before 22 Sep 2026")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--cache", default="auto",
                     help="cache preset passed to execute(); 'auto' reuses every stage whose fingerprint "
@@ -523,6 +526,8 @@ def main():
     if args.no_pooling:
         config["input_pooling"] = {"enabled": False}
         config["adaptive_supplier_weight"] = False
+    if args.no_pipelines:
+        config["pipelined_flows"] = {"products": []}
     if args.light_export:
         config["export_link_data"] = False
         config["export_inventory_data"] = False
