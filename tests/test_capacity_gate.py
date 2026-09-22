@@ -214,17 +214,23 @@ def test_country_bookkeeping_follows_the_cut_and_the_resend():
     assert countries["C"].tonkm_transported == pytest.approx(100 * 100.0 + 60 * 200.0)   # 100 t over A, 60 t over 1-2-4
 
 
-def test_searches_are_bounded_by_the_cut_shares_and_cached():
+def test_searches_are_batched_per_filter_and_cached():
+    from disruptsc.init_pipeline import routing
     tp = TransportParams(price_increase_threshold=2.0, use_route_cache=True)
     tn = _network({"A": 100.0, "B": 100.0})
-    calls = {"n": 0}
-    orig = TransportNetwork.provide_shortest_route
+    calls = {"batched": 0, "single": 0}
+    orig_batch, orig_single = routing.shortest_paths_for, TransportNetwork.provide_shortest_route
 
-    def counting(self, *a, **k):
-        calls["n"] += 1
-        return orig(self, *a, **k)
+    def counting_batch(*a, **k):
+        calls["batched"] += 1
+        return orig_batch(*a, **k)
 
-    TransportNetwork.provide_shortest_route = counting
+    def counting_single(self, *a, **k):
+        calls["single"] += 1
+        return orig_single(self, *a, **k)
+
+    routing.shortest_paths_for = counting_batch
+    TransportNetwork.provide_shortest_route = counting_single
     try:
         firms = {"F1": _Firm("F1", 80.0), "F2": _Firm("F2", 80.0), "F3": _Firm("F3", 60.0)}
         links = [_link(tn, "s1", "F1", [1, 4], 80), _link(tn, "s2", "F2", [1, 4], 80), _link(tn, "s3", "F3", [2, 4], 60)]
@@ -232,10 +238,37 @@ def test_searches_are_bounded_by_the_cut_shares_and_cached():
             _ship(tn, tp, link, firms)
         run_capacity_gate(tn, tn, firms, {}, tp, 0)
     finally:
-        TransportNetwork.provide_shortest_route = orig
-    # two rounds of re-sends for one (origin, destination, cargo) each, two searches per
-    # uncached request (own modes, free): the second shipper of a round hits the cache
-    assert calls["n"] <= 4
+        routing.shortest_paths_for = orig_batch
+        TransportNetwork.provide_shortest_route = orig_single
+    # two rounds of re-sends, two search filters per round (own modes, free), every
+    # shipper of a round in the same batch; no per-request networkx search at all
+    assert calls["batched"] <= 4 and calls["single"] == 0
+
+
+def test_batched_discovery_matches_discover_route():
+    # the penalty-aware network of tests/test_penalty_aware_alternative.py: with the river
+    # closed, bulk with a prohibitive penalty takes the canal, cheap penalties the rail leg
+    import importlib.util, pathlib
+    spec = importlib.util.spec_from_file_location("paa", pathlib.Path(__file__).with_name("test_penalty_aware_alternative.py"))
+    paa = importlib.util.module_from_spec(spec); spec.loader.exec_module(paa)
+    from disruptsc.agents.transport_utils import discover_route, discover_routes_batched
+    for costs in (paa.PROHIBITIVE, paa.CHEAP, None):
+        tn = paa._network(with_canal=True)
+        links = [paa._link(tn) for _ in range(3)]
+        avail = paa._closed_river(tn)
+        single = [discover_route(1, link, tn, avail, False, switching_costs=costs) for link in links]
+        tn2 = paa._network(with_canal=True)
+        links2 = [paa._link(tn2) for _ in range(3)]
+        avail2 = paa._closed_river(tn2)
+        batched = discover_routes_batched([(1, link) for link in links2], tn2, avail2, False, switching_costs=costs)
+        assert [r.transport_nodes for r in batched] == [r.transport_nodes for r in single]
+    # exclusions: with the canal excluded the prohibitive shipper has no acceptable candidate
+    # left but the free search still returns the rail leg, as discover_route does
+    tn = paa._network(with_canal=True); link = paa._link(tn); avail = paa._closed_river(tn)
+    excl = frozenset({(2, 6)})
+    a = discover_route(1, link, tn, avail, False, switching_costs=paa.PROHIBITIVE, excluded_edges=excl, exclusion_tag="x")
+    b = discover_routes_batched([(1, link)], tn, avail, False, switching_costs=paa.PROHIBITIVE, excluded_edges=excl, exclusion_tag="x")[0]
+    assert a.transport_nodes == b.transport_nodes
 
 
 def test_no_capacitated_edge_is_a_no_op():

@@ -20,7 +20,50 @@ Ecuador, Gulf), which this session does not have; it ran the Testkistan and
 synthetic checks instead. The `legacy/v2-capacity-routing` branch is to be
 created by the maintainer at `2fbb13d` (section 3.5).
 
-Phase 4 evidence at hand (21 Sep 2026):
+Phase 4 on the data repository (22 Sep 2026, in the cloud container, 4 CPUs):
+
+- **Ecuador, transport off (EcuadorEQ as configured: monthly, 12 steps,
+  seed 0, the earthquake shock)**, legacy code at `2fbb13d` against the new
+  code: firm, household, country, inventory, link, trade, loss and MRIO
+  files identical row for row (link_data with its two new columns);
+  `transport_edges.geojson` differs only by the placeholder `capacity` column
+  the old loader wrote on every edge; `household_data_by_sector.csv` is
+  identical once sorted and `loss_summary.csv` agrees to 2e-13 - both vary
+  the same way between two runs of the SAME code under different
+  `PYTHONHASHSEED` values while `firm_data.csv` stays identical, so they are
+  a pre-existing hash-seed order in the household by-sector export (KI-43),
+  not the rework.
+- **Ecuador, transport on**, 6 986 firms, 95 865 routable links, 1 587
+  nodes / 2 023 edges, one cargo type ("any"), monthly steps: 12.1 s per
+  step with capacities off, 12.1 s with a slack capacity on the busiest edge
+  (the gate scan costs nothing), 16.5-17.4 s with that edge, crossed by
+  21 298 links (2.12 Mt/step), cut to half its load: 21 298 shipments cut
+  proportionally and re-sent in one round, 16 588 links end with an
+  alternative route, nothing blocked. Before the two optimisations below the
+  same step cost 43 s cold and 28 s warm.
+- The optimisations, bit-identical by construction: the per-route
+  quantities that depend on static edge attributes only (km by mode, sea-side
+  connectors) are memoised on the shared `Route` objects and the hot loops
+  read the adjacency dict instead of networkx views (the capacity-off step
+  went from 16.1 to 12.1 s too); and the gate's re-sends run as one scipy
+  single-source Dijkstra per origin and search filter
+  (`discover_routes_batched`, same candidates and the same choice as
+  `discover_route`, cached under the same libraries; exact cost ties can
+  resolve differently, as in the initial assignment).
+- Synthetic grids after batching (`scripts/capacity_gate_scaling.py`, 900
+  nodes, 8 000 shippers, 32 capacitated edges, 2 389 t cut): the gate costs
+  1.3 s against 50 s before, placement 0.2 s; two rounds throughout.
+- Ecuador's `transport.gpkg` carries no usable edge names (28 edges named
+  "None, None"), so a name-keyed override cannot target an Ecuador edge until
+  the data names them; the timing runs set the capacity programmatically.
+  The Gulf data of the repository names its border crossings, sea lanes,
+  airports and pipelines, but not its 113 multimodal connectors: the port
+  gateways of the April runs cannot be named from this data either (KI-44).
+- The Gulf rebuild itself still needs a v2 scope configuration (the v1 one
+  lives on `legacy/v1`).
+
+Phase 4 evidence of 21 Sep 2026 (Testkistan and synthetic, before the
+optimisations; the synthetic gate times are superseded by the table above):
 
 - `scripts/capacity_probe_testkistan.py`: trunk capped at a tenth of its load
   on the tree network: 9 links cut to 10.0 % of their offered quantity each

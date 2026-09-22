@@ -161,7 +161,7 @@ def _precompute_and_assign(link_specs: list[dict],
 
 
 def shortest_paths_for(subgraph, weight: str, dest_by_source: dict,
-                       chunk: int = 256) -> dict:
+                       chunk: int = 256, weight_fn=None) -> dict:
     """Shortest paths (node lists) from every source to its needed
     destinations, as ``{(source, dest): [nodes]}``; unreachable pairs are
     absent.
@@ -172,6 +172,11 @@ def shortest_paths_for(subgraph, weight: str, dest_by_source: dict,
     under a minute; costs are identical, and only exact cost ties (rare with
     float labels) can pick a different equal-cost path. Falls back to
     networkx when scipy is unavailable.
+
+    *weight_fn(u, v, data)* replaces the *weight* label when given: it returns
+    the edge's weight in the search, or None to leave the edge out (the
+    capacity gate's batched re-send searches use it to restrict the modes,
+    weight the access modes and exclude the saturated edges).
     """
     if not dest_by_source:
         return {}
@@ -180,10 +185,16 @@ def shortest_paths_for(subgraph, weight: str, dest_by_source: dict,
         from scipy.sparse import csr_matrix
         from scipy.sparse.csgraph import dijkstra as _sp_dijkstra
     except ImportError:  # pragma: no cover - scipy is a hard dependency elsewhere
+        if weight_fn is not None:
+            def _nx_weight(u, v, d, _f=weight_fn):
+                return _f(u, v, d)
+            search_weight = _nx_weight
+        else:
+            search_weight = weight
         out = {}
         for source, dests in dest_by_source.items():
             try:
-                paths = nx.single_source_dijkstra_path(subgraph, source, weight=weight)
+                paths = nx.single_source_dijkstra_path(subgraph, source, weight=search_weight)
             except nx.NetworkXError:
                 paths = {}
             for dest in dests:
@@ -196,7 +207,13 @@ def shortest_paths_for(subgraph, weight: str, dest_by_source: dict,
     n = len(nodes)
     rows, cols, vals = [], [], []
     for u, v, d in subgraph.edges(data=True):
-        w = max(float(d[weight]), 1e-9)   # explicit zeros are not edges for csgraph
+        if weight_fn is not None:
+            w = weight_fn(u, v, d)
+            if w is None:
+                continue
+        else:
+            w = d[weight]
+        w = max(float(w), 1e-9)   # explicit zeros are not edges for csgraph
         rows.append(idx[u]); cols.append(idx[v]); vals.append(w)
         rows.append(idx[v]); cols.append(idx[u]); vals.append(w)
     mat = csr_matrix((vals, (rows, cols)), shape=(n, n))

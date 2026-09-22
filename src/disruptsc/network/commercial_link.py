@@ -206,15 +206,9 @@ class CommercialLink:
 
     @staticmethod
     def _km_by_mode(route: Route, transport_network: TransportNetwork) -> dict:
-        """Kilometres of *route* per edge type, multimodal connectors excluded."""
-        km: dict = {}
-        for u, v in route.transport_edges:
-            e = transport_network[u][v]
-            mode = e.get("type")
-            if mode == "multimodal":
-                continue
-            km[mode] = km.get(mode, 0.0) + float(e.get("km", 0.0) or 0.0)
-        return km
+        """Kilometres of *route* per edge type, multimodal connectors excluded
+        (memoised on the route: km and type are static)."""
+        return route.km_by_mode(transport_network)
 
     @staticmethod
     def _line_haul_modes(switching_costs: dict | None, cargo_type: str | None) -> set | None:
