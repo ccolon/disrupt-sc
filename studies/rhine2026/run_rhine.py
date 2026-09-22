@@ -324,10 +324,11 @@ def main():
                          "pass an empty string to disable")
     ap.add_argument("--recovery-weeks", type=int, default=8, help="extra weeks after the profile ends")
     ap.add_argument("--flow-coverage", type=float, default=None)
-    ap.add_argument("--constraint-mode", choices=["off", "gradual", "binary"], default="off",
-                    help="off = no capacity routing (EU default: the heuristic does not scale; use "
-                         "--closure-threshold); gradual = congestion surcharge; binary = over-capacity "
-                         "edges are not routed (both need capacity-constrained routing)")
+    ap.add_argument("--constraint-mode", choices=["off", "on"], default="off",
+                    help="off = capacities ignored (EU default, the paper runs: closures and cost "
+                         "shocks; use --closure-threshold); on = the within-step capacity gate on the "
+                         "edges of --edge-capacities and --capacities (21 Sep 2026: replaces the "
+                         "former gradual/binary modes, archived on legacy/v2-capacity-routing)")
     ap.add_argument("--closure-threshold", type=float, default=0.75,
                     help="weeks whose capacity reduction is >= this value close the Kaub edge entirely "
                          "(2026 profile at 0.75: the four weeks of 27 Jul-23 Aug); lighter weeks become "
@@ -470,7 +471,7 @@ def main():
     config["t_final"] = t_final
     config["epsilon_stop_condition"] = 0
     config["seed"] = args.seed
-    config["capacity_constraint"] = args.constraint_mode
+    config["capacity_constraint"] = args.constraint_mode == "on"
     if args.flow_coverage is not None:
         config["flow_coverage"] = args.flow_coverage
     if args.price_threshold is not None:

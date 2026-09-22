@@ -123,7 +123,7 @@ transport_modes: ["roads", "maritime"]
 transport_to_households: true
 use_route_cache: true
 use_cargo_types: true            # false -> one "any" cargo bucket, ~N x faster routing
-capacity_constraint: "off"       # off | gradual | binary  (typos raise an error)
+capacity_constraint: false       # true: the within-step capacity gate on the edges named in transport_capacity_overrides
 price_increase_threshold: 2      # give up delivery if rerouting cost rises beyond this factor
 delivered_price_increase_threshold: null   # if set (e.g. 0.5): give up only when transport_share x relative
                                            # cost increase exceeds it (delivered price +50%); replaces the rule above
@@ -145,23 +145,56 @@ value so that a longer voyage to a bigger port is not priced like a slow inland 
 Transport networks are loaded from a GeoPackage configured by
 `filepaths.transport`. Layer names should match `transport_modes`.
 
-### Routing knobs (under `logistics:`)
+### Edge capacities and the capacity gate
 
-These govern the initial route assignment when `capacity_constraint` is on.
-Defaults are in code; set them under the `logistics:` block.
+```yaml
+capacity_constraint: true
+transport_capacity_overrides:        # tons per DAY, by edge NAME (the 'name' column of the GeoPackage layers)
+  strait_of_hormuz: 3000000          # shared across cargo types
+  port_jebel_ali: {container: 450000, dry_bulk: 80000, liquid_bulk: 200000}
+  oil_terminal_x: {liquid_bulk: 120000, container: 0}   # 0 blocks the cargo; a cargo not listed has no capacity there
+cargo_mode_eligibility:              # which cargo types may use which mode; a mode not listed takes every cargo
+  airways: [container]
+  pipelines: [liquid_bulk]
+```
 
-| Key | Default | Meaning |
-|-----|---------|---------|
-| `initial_route_assignment` | `heuristic` | `heuristic` (chunked candidate routing), `lp` (candidate-path LP), or `edge_lp` (multi-commodity edge-flow LP) |
-| `chunk_size` | very large | tons/day granularity for splitting flows across routes |
-| `route_candidate_count` / `route_candidate_stretch` | 4 / 3.0 | heuristic candidate routes per OD group and max cost stretch vs the best |
-| `lp_route_candidate_count` / `lp_route_candidate_stretch` | 20 / 4.0 | same, for the candidate-path LP |
-| `lp_overcapacity_limit` | 1.1 | utilization beyond which the LP overflow penalty applies |
+An edge has a capacity **only if `transport_capacity_overrides` names it**; every
+other edge is unconstrained (there are no per-mode default capacities since
+21 Sep 2026). Every edge carrying the name gets the value (a terminal usually has
+a road and a rail connector), two-way. A name that matches no edge, an unknown
+cargo type or a negative value raises, at build time and in `validate-inputs`.
+`cargo_mode_eligibility` is the eligibility part of the former
+`default_transport_capacity` block: a cargo that may not use a mode gets no cost
+label on its edges, so routing never uses them for it.
 
-Top-level: `capacity_routing_max_iterations` (default 3) bounds the heuristic's
-re-routing rounds; `default_transport_capacity` and
-`transport_capacity_overrides` set per-mode / per-edge capacities in tons/day
-(a dict override **blocks** any cargo type it does not list — a warning says so).
+With `capacity_constraint: true` the capacities act through the **within-step
+capacity gate** (`run_pipeline/capacity_gate.py`; design and review in
+`docs/architecture/transport-capacity.md`). The initial routes are the plain
+cheapest paths (a capacity below an edge's baseline load is reported per edge
+and in `baseline_capacity_check.csv`; the gate rations that edge from t = 0).
+In every step, after all agents have shipped: a saturated edge cuts the
+shipments placed in the current round proportionally so that it is exactly
+full, shipments accepted in earlier rounds keep their allocation (existing
+customers before diverted traffic), the saturated edge is excluded from the
+rest of the step's searches, and each cut share looks for a route avoiding the
+saturated edges with the usual rules (own modes first, switching penalty,
+`price_increase_threshold` / `delivered_price_increase_threshold` on that
+share). Rounds repeat until no gate cuts, at most one more than the number of
+capacitated edges. What finds no acceptable route stays in the supplier's stock
+and is reported as `capacity_blocked` on the link (`capacity_blocked_usd` in
+`routing_summary.csv`, `offered_tons` / `withheld_tons` per monitored edge in
+`logistics_report.csv`). On-off: no cost depends on load, and the outcome does
+not depend on the order in which agents deliver.
+
+A `transport_disruption` with `capacity_reduction` below 1 scales the capacity
+of a named capacitated edge (the gate then rations it); on an edge without a
+capacity only a full reduction, a closure, has an effect.
+
+The former `capacity_constraint: gradual | binary` modes, the capacity-aware
+initial assignments (`logistics.initial_route_assignment`, `chunk_size`,
+`route_candidate_*`, `lp_*`, `capacity_routing_max_iterations`) and
+`default_transport_capacity` raise with a pointer to the
+`legacy/v2-capacity-routing` branch, where that code is archived.
 
 ## Disruptions
 

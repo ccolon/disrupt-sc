@@ -109,7 +109,7 @@ def build_model(config: dict):
         config.get("transport_modes", ["roads"]), fp, config.get("logistics", {}),
         sp.time_resolution,
         capacity_overrides=config.get("transport_capacity_overrides"),
-        default_transport_capacity=config.get("default_transport_capacity"),
+        cargo_mode_eligibility=tp.cargo_mode_eligibility,
         use_cargo_types=tp.use_cargo_types)
 
     logging.info("Building agents")
@@ -162,9 +162,7 @@ def build_model(config: dict):
     set_initial_conditions(sc, firms, households, countries, tp, sp)
     if tp.with_transport:
         logging.info("Setting up logistic routes")
-        setup_logistic_routes(sc, tn, firms, countries, tp,
-                              max_capacity_iterations=config.get("capacity_routing_max_iterations", 10),
-                              export_folder=None)
+        setup_logistic_routes(sc, tn, firms, countries, tp, export_folder=None)
 
     return dict(sc=sc, tn=tn, firms=firms, households=households, countries=countries,
                 transport_edges=transport_edges, tp=tp, sp=sp)

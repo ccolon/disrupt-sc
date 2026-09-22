@@ -22,7 +22,15 @@ class Route(list):
     """
 
     __slots__ = ("transport_nodes", "transport_edges", "transport_edge_ids",
-                 "transport_modes", "length")
+                 "transport_modes", "length", "_km_by_mode", "_maritime_mm")
+
+    # Per-route memos of quantities that depend only on the route and on STATIC
+    # edge attributes (km, type, multimodes) - never on cost labels, loads or
+    # closures, which change during a run. They are filled on first use and
+    # dropped by revert() and by unpickling. On the Ecuador scope (96k links) the
+    # switching-penalty evaluation of the capacity gate's re-sends walked every
+    # edge of every route through networkx views on each call: 27.8M
+    # `Graph.__getitem__` calls in one step (22 Sep 2026 profile).
 
     def __init__(self, node_list: list, transport_network: TransportNetwork, cargo_type: str):
         node_edge_tuple = [[(node_list[0],)]] + [
@@ -32,12 +40,11 @@ class Route(list):
         super().__init__(item for sub in node_edge_tuple for item in sub)
         self.transport_nodes = node_list
         self.transport_edges = self[1::2]
-        self.transport_edge_ids = [
-            transport_network[u][v]["id"] for u, v in self.transport_edges
-        ]
-        self.transport_modes = list({
-            transport_network[u][v]["type"] for u, v in self.transport_edges
-        })
+        adj = transport_network._adj
+        self.transport_edge_ids = [adj[u][v]["id"] for u, v in self.transport_edges]
+        self.transport_modes = list({adj[u][v]["type"] for u, v in self.transport_edges})
+        self._km_by_mode = None
+        self._maritime_mm = None
         self.length = self.sum_indicator(transport_network, "km")
 
     @property
@@ -50,18 +57,21 @@ class Route(list):
     # ------------------------------------------------------------------
 
     def is_usable(self, transport_network: TransportNetwork) -> bool:
+        adj = transport_network._adj
         for u, v in self.transport_edges:
-            if not transport_network.has_edge(u, v):
-                return False
-            if transport_network[u][v].get("closed", False):
+            try:
+                if adj[u][v].get("closed", False):
+                    return False
+            except KeyError:
                 return False
         return True
 
     def has_cost_shock(self, transport_network: TransportNetwork) -> bool:
         """True when any edge of the route carries an active cost shock
         (see TransportNetwork.start_edge_cost_shock)."""
+        adj = transport_network._adj
         for u, v in self.transport_edges:
-            if transport_network[u][v].get("cost_shock_duration", 0) > 0:
+            if adj[u][v].get("cost_shock_duration", 0) > 0:
                 return True
         return False
 
@@ -69,8 +79,9 @@ class Route(list):
         """(capacity_factor, substitution_share) of the route under active cost
         shocks: the minimum over its shocked edges (1.0, 1.0 when none)."""
         cap, sub = 1.0, 1.0
+        adj = transport_network._adj
         for u, v in self.transport_edges:
-            e = transport_network[u][v]
+            e = adj[u][v]
             if e.get("cost_shock_duration", 0) > 0:
                 cap = min(cap, float(e.get("cost_shock_capacity_factor", 1.0)))
                 sub = min(sub, float(e.get("cost_shock_substitution_share", 1.0)))
@@ -80,17 +91,12 @@ class Route(list):
         """Share of the route's traffic that substitutes can absorb while it is
         closed: the minimum over its closed edges (1.0 when none is closed)."""
         sub = 1.0
+        adj = transport_network._adj
         for u, v in self.transport_edges:
-            e = transport_network[u][v]
+            e = adj[u][v]
             if e.get("closed", False):
                 sub = min(sub, float(e.get("closure_substitution_share", 1.0)))
         return sub
-
-    def has_over_capacity_edges(self, transport_network: TransportNetwork) -> bool:
-        for u, v in self.transport_edges:
-            if transport_network[u][v].get("overused", False):
-                return True
-        return False
 
     def is_edge_in_route(self, searched_edge, transport_network: TransportNetwork) -> bool:
         if isinstance(searched_edge, tuple):
@@ -98,10 +104,26 @@ class Route(list):
                 if searched_edge[0] == u and searched_edge[1] == v:
                     return True
         elif isinstance(searched_edge, str):
+            adj = transport_network._adj
             for u, v in self.transport_edges:
-                if transport_network[u][v].get("name") == searched_edge:
+                if adj[u][v].get("name") == searched_edge:
                     return True
         return False
+
+    def km_by_mode(self, transport_network: TransportNetwork) -> dict:
+        """Kilometres per edge type, multimodal connectors excluded (memoised:
+        km and type are static). Shared with every link that holds this route."""
+        if self._km_by_mode is None:
+            km: dict = {}
+            adj = transport_network._adj
+            for u, v in self.transport_edges:
+                e = adj[u][v]
+                mode = e.get("type")
+                if mode == "multimodal":
+                    continue
+                km[mode] = km.get(mode, 0.0) + float(e.get("km", 0.0) or 0.0)
+            self._km_by_mode = km
+        return self._km_by_mode
 
     def sum_indicator(self, transport_network: TransportNetwork, indicator: str, per_type: bool = False):
         if per_type:
@@ -118,17 +140,22 @@ class Route(list):
             df = pd.DataFrame(details).fillna("N/A")
             return df.groupby(["type", "multimodes", "special"])[indicator].sum()
         total = 0.0
+        adj = transport_network._adj
         for u, v in self.transport_edges:
-            total += transport_network[u][v][indicator]
+            total += adj[u][v][indicator]
         return total
 
-    def get_maritime_multimodal_edges(self, transport_network: TransportNetwork) -> set:
-        result = set()
-        for u, v in self.transport_edges:
-            edge = transport_network[u][v]
-            if edge.get("type") == "multimodal" and "maritime" in (edge.get("multimodes") or ""):
-                result.add((u, v))
-        return result
+    def get_maritime_multimodal_edges(self, transport_network: TransportNetwork) -> frozenset:
+        """The sea-side connectors of the route (memoised: type and multimodes are static)."""
+        if self._maritime_mm is None:
+            result = set()
+            adj = transport_network._adj
+            for u, v in self.transport_edges:
+                edge = adj[u][v]
+                if edge.get("type") == "multimodal" and "maritime" in (edge.get("multimodes") or ""):
+                    result.add((u, v))
+            self._maritime_mm = frozenset(result)
+        return self._maritime_mm
 
     def reversed_copy(self) -> "Route":
         """A new Route running the opposite way, built from the minimal state.
@@ -161,6 +188,8 @@ class Route(list):
         self.transport_nodes = list(reversed(self.transport_nodes))
         self.transport_edges = self[1::2]
         self.transport_edge_ids = list(reversed(self.transport_edge_ids))
+        self._km_by_mode = None
+        self._maritime_mm = None
 
     # ------------------------------------------------------------------
     # Pickle hooks — minimal state to avoid recursion blow-up at scale
@@ -195,3 +224,5 @@ class Route(list):
         self.transport_edge_ids = state["transport_edge_ids"]
         self.transport_modes = state["transport_modes"]
         self.length = state["length"]
+        self._km_by_mode = None
+        self._maritime_mm = None

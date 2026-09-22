@@ -56,7 +56,7 @@ def build(flow):
     tn, te, tnodes = build_transport_network(
         cfg.get("transport_modes", ["roads"]), fp, cfg.get("logistics", {}), sp.time_resolution,
         capacity_overrides=cfg.get("transport_capacity_overrides"),
-        default_transport_capacity=cfg.get("default_transport_capacity"), use_cargo_types=tp.use_cargo_types)
+        cargo_mode_eligibility=tp.cargo_mode_eligibility, use_cargo_types=tp.use_cargo_types)
     mrio = load_mrio(fp.get("mrio"), ap_.monetary_units_in_data)
     sector_table = load_sector_table(fp.get("sector_table")); usd_per_ton = load_usd_per_ton(sector_table)
     selection = filter_sectors(mrio, flow, ap_.sectors_to_include, ap_.sectors_to_exclude)
