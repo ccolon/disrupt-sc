@@ -79,7 +79,6 @@ def test_intern_routes_shares_identical_routes_between_links_and_library():
     for i, r in enumerate(routes + [other]):
         link = CommercialLink(pid=f"l{i}", supplier_id="s", buyer_id=f"b{i}")
         link.store_route_information(r, "main", 1.0)
-        link.route_plan = [(r, 1.0)]
         links.append(link)
         sc.add_edge("s", f"b{i}", object=link)
     library = _TN()
@@ -89,7 +88,6 @@ def test_intern_routes_shares_identical_routes_between_links_and_library():
     assert (before, after) == (5, 2)
     canonical = links[0].route
     assert all(l.route is canonical for l in links[:3])
-    assert all(l.route_plan[0][0] is canonical for l in links[:3])
     assert links[3].route is not canonical
     assert library.shortest_path_library["normal"]["container"][(1, 4)] is canonical
     # a second pass is a no-op

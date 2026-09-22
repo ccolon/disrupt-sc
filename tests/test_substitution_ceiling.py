@@ -21,7 +21,14 @@ CT, _link, _network = _m.CT, _m._link, _m._network
 
 
 def _flows(tn, link_pid):
-    return {(u, v): tn[u][v]["shipments"][link_pid]["tons"] for u, v in tn.edges if link_pid in tn[u][v]["shipments"]}
+    """tons of *link_pid* per edge, over every part the link placed (main and alternative
+    parts carry distinct edge keys since 21 Sep 2026 so that a shared edge counts both)"""
+    out = {}
+    for u, v in tn.edges:
+        tons = sum(r["tons"] for r in tn[u][v]["shipments"].values() if r["link_pid"] == link_pid)
+        if tons:
+            out[(u, v)] = tons
+    return out
 
 
 def test_cost_shock_ceiling_splits_delivery_and_flows():

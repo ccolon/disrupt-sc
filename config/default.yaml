@@ -51,7 +51,6 @@ logistics:
     waterways: 0.005
     pipelines: 0.0001
     multimodal: 0.01
-  chunk_size: 1000000000  # tons/day; shipment chunk granularity for route splitting (very large = no splitting)
   switching_costs:
     modal_switch: 0.15  # Additional cost percentage when switching transport modes (e.g., rail to road)
     port_switch: 0.05
@@ -108,26 +107,26 @@ logistics:
   name-specific:
     azerty: 0
 
-# Default capacity per transport mode (tons/day).
-# A number sets shared capacity for all cargo types.
-# A dict sets per-cargo-type capacity (0 = blocked).
-# Modes not listed default to unlimited.
-default_transport_capacity:
-  roads: 100000        # ~5,000 trucks/day x 20t — shared across cargo types
-  railways: 200000     # shared
-  maritime: 5000000    # sea lanes effectively unconstrained
-  airways:
-    container: 5000    # air freight is containerized
-    dry_bulk: 0        # no bulk by air
-    liquid_bulk: 0     # no liquid by air
-  multimodal: 500000   # generous for generic connectors
-  pipelines:
-    container: 0
-    dry_bulk: 0
-    liquid_bulk: 500000
+# Which cargo types may travel on which transport mode. A mode not listed takes
+# every cargo type; a listed mode takes only the listed ones (no cost label is
+# written for the others, so Dijkstra never uses the mode for them). This is
+# the eligibility part of the former default_transport_capacity block (its
+# zeros); the per-mode placeholder capacities of that block are gone: an edge
+# has a capacity only if transport_capacity_overrides names it (21 Sep 2026).
+cargo_mode_eligibility:
+  airways: [container]        # air freight is containerized: no bulk by air
+  pipelines: [liquid_bulk]    # only liquid bulk in pipes
 
-# Transport capacity overrides: edge_name -> capacity in tons per day
-# A number sets shared capacity; a dict sets per-cargo-type capacity
+# Transport capacities, by edge NAME (the 'name' column of the GeoPackage layers),
+# in tons per DAY (converted to tons per step). The ONLY capacities of the model:
+# every other edge is unconstrained. Enforced by the within-step capacity gate when
+# capacity_constraint is true: the shipments crossing a saturated edge are cut
+# proportionally to its capacity, the cut shares look for a route avoiding the
+# saturated edges (switching penalty, give-up rules) and whatever finds none waits
+# in the supplier's stock (docs/architecture/transport-capacity.md).
+# A number is a shared capacity (all cargo types together); a dict is per cargo
+# type, an explicit 0 BLOCKS that cargo on the edge, a cargo not listed has no
+# capacity there. A name that matches no edge or an unknown cargo type raises.
 transport_capacity_overrides: {}
   # Example entries:
   # strait_of_hormuz: 3000000     # shared, tons/day
@@ -135,6 +134,9 @@ transport_capacity_overrides: {}
   #   container: 450000
   #   dry_bulk: 80000
   #   liquid_bulk: 200000
+  # oil_terminal_x:
+  #   liquid_bulk: 120000
+  #   container: 0                # blocked
 
 # Whether to cache route in a dictionary
 use_route_cache: True
@@ -427,16 +429,14 @@ price_increase_threshold: 2
 # If True, they reassess their inventory targets based on current orders
 adaptive_inventories: False
 
-# Transport capacity constraint behavior
-# Options:
-#   "off" or false: No capacity constraints (unlimited capacity)
-#   "gradual": Gradual cost scaling based on utilization (1x → 10x cost multiplier)  
-#   "binary": Traditional on/off penalty when capacity exceeded (1e10x cost penalty)
-capacity_constraint: "off"
-
-# Maximum iterations for capacity-aware route pre-computation
-# Each iteration re-routes flows from congested edges. 3-5 is usually sufficient.
-capacity_routing_max_iterations: 3
+# Transport capacities on or off (bool). On: the capacities of
+# transport_capacity_overrides are enforced by the within-step gate (on-off:
+# no cost increase with load; a saturated edge is simply closed to further
+# flow for the rest of the step). Off: capacities are ignored. The former
+# "gradual" / "binary" modes (congestion cost labels, capacity-aware initial
+# assignment) were retired on 21 Sep 2026 and raise; that code lives on the
+# legacy/v2-capacity-routing branch.
+capacity_constraint: False
 
 
 # Share of transport cost in country import/export prices (for rerouting cost passthrough)

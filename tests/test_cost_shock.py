@@ -31,9 +31,7 @@ def _network() -> TransportNetwork:
     edges = [(1, 2, 10, "waterways", 1), (2, 3, 10, "waterways", 2), (1, 3, 25, "railways", 3)]
     for u, v, cost, mode, eid in edges:
         tn.add_edge(u, v, id=eid, type=mode, km=100.0, name=f"e{eid}", shipments={},
-                    disruption_duration=0, closed=False, overused=False,
-                    **{f"cost_per_ton_{CT}": float(cost), f"cost_per_ton_with_capacity_{CT}": float(cost),
-                       f"current_load_{CT}": 0})
+                    disruption_duration=0, closed=False, **{f"cost_per_ton_{CT}": float(cost)})
     return tn
 
 
@@ -42,8 +40,7 @@ def _link(tn: TransportNetwork) -> CommercialLink:
     link = CommercialLink(pid="L", supplier_id="S", buyer_id="B", product="P", product_type="mining",
                           category="domestic_B2B", origin_node=1, destination_node=3, route=route,
                           route_cost_per_ton=tn.compute_route_cost(route, CT), use_transport_network=True,
-                          cargo_type=CT, delivery=100.0, delivery_in_tons=50.0, eq_price=1.0, price=1.0,
-                          route_plan=[(route, 1.0)])
+                          cargo_type=CT, delivery=100.0, delivery_in_tons=50.0, eq_price=1.0, price=1.0)
     return link
 
 
@@ -163,8 +160,6 @@ def test_default_switching_cost_still_reroutes_other_cargo():
     tn.cargo_types = [CT, other]
     for u, v in tn.edges:
         tn[u][v][f"cost_per_ton_{other}"] = tn[u][v][f"cost_per_ton_{CT}"]
-        tn[u][v][f"cost_per_ton_with_capacity_{other}"] = tn[u][v][f"cost_per_ton_{CT}"]
-        tn[u][v][f"current_load_{other}"] = 0
     tp = _tp_bulk_cannot_switch()
     link = _link(tn)
     link.cargo_type = other
@@ -238,8 +233,6 @@ def _two_cargo_network():
     tn.cargo_types = [CT, other]
     for u, v in tn.edges:
         tn[u][v][f"cost_per_ton_{other}"] = tn[u][v][f"cost_per_ton_{CT}"]
-        tn[u][v][f"cost_per_ton_with_capacity_{other}"] = tn[u][v][f"cost_per_ton_{CT}"]
-        tn[u][v][f"current_load_{other}"] = 0
     return tn, other
 
 

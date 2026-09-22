@@ -42,9 +42,7 @@ def _network(with_canal: bool = False, road_access_km: float = 20.0) -> Transpor
         edges += [(2, 6, 12, "waterways", 7, 400), (6, 3, 12, "waterways", 8, 400)]
     for u, v, cost, mode, eid, km in edges:
         tn.add_edge(u, v, id=eid, type=mode, km=float(km), name=f"e{eid}", shipments={},
-                    disruption_duration=0, closed=False, overused=False,
-                    **{f"cost_per_ton_{CT}": float(cost), f"cost_per_ton_with_capacity_{CT}": float(cost),
-                       f"current_load_{CT}": 0})
+                    disruption_duration=0, closed=False, **{f"cost_per_ton_{CT}": float(cost)})
     return tn
 
 
@@ -56,9 +54,7 @@ def _road_network() -> TransportNetwork:
         tn.add_node(n, id=n, long=x, lat=y, shipments={}, disruption_duration=0, type="road")
     for u, v, cost, eid, km in [(10, 11, 6, 21, 120), (11, 12, 4, 22, 80), (10, 13, 8, 23, 150), (13, 12, 6, 24, 110)]:
         tn.add_edge(u, v, id=eid, type="roads", km=float(km), name=f"e{eid}", shipments={},
-                    disruption_duration=0, closed=False, overused=False,
-                    **{f"cost_per_ton_{CT}": float(cost), f"cost_per_ton_with_capacity_{CT}": float(cost),
-                       f"current_load_{CT}": 0})
+                    disruption_duration=0, closed=False, **{f"cost_per_ton_{CT}": float(cost)})
     return tn
 
 
@@ -67,8 +63,7 @@ def _link(tn: TransportNetwork) -> CommercialLink:
     return CommercialLink(pid="L", supplier_id="S", buyer_id="B", product="P", product_type="mining",
                           category="domestic_B2B", origin_node=1, destination_node=5, route=route,
                           route_cost_per_ton=tn.compute_route_cost(route, CT), use_transport_network=True,
-                          cargo_type=CT, delivery=100.0, delivery_in_tons=50.0, eq_price=1.0, price=1.0,
-                          route_plan=[(route, 1.0)])
+                          cargo_type=CT, delivery=100.0, delivery_in_tons=50.0, eq_price=1.0, price=1.0)
 
 
 def _closed_river(tn: TransportNetwork) -> TransportNetwork:
@@ -116,7 +111,7 @@ def test_all_road_bulk_shipper_keeps_the_km_rule_on_its_own_modes():
 
 def test_free_search_takes_the_rail_leg():
     tn = _network(); link = _link(tn); avail = _closed_river(tn)
-    route = discover_route(1, link, tn, avail, False, False)          # no switching costs: legacy behaviour
+    route = discover_route(1, link, tn, avail, False)                 # no switching costs: legacy behaviour
     assert _modes(route, tn) == {"railways", "roads"} and tn.compute_route_cost(route, CT) == 30.0
 
 
@@ -149,13 +144,13 @@ def test_bulk_with_a_long_road_leg_gives_up_unless_a_water_detour_exists():
 
 def test_cheap_penalty_takes_the_rail_leg_when_it_is_cheaper_all_in():
     tn = _network(with_canal=True); link = _link(tn); avail = _closed_river(tn)
-    route = discover_route(1, link, tn, avail, False, False, switching_costs=CHEAP)   # 30 + 0.15 x 25 = 33.75 < 39
+    route = discover_route(1, link, tn, avail, False, switching_costs=CHEAP)   # 30 + 0.15 x 25 = 33.75 < 39
     assert _modes(route, tn) == {"railways", "roads"}
 
 
 def test_cached_same_mode_search_is_invalidated_with_the_others():
     tn = _network(with_canal=True); link = _link(tn); avail = _closed_river(tn)
-    discover_route(1, link, tn, avail, False, True, switching_costs=PROHIBITIVE)
+    discover_route(1, link, tn, avail, True, switching_costs=PROHIBITIVE)
     same_keys = [k for k in tn.shortest_path_library if str(k).startswith("alternative_same_modes")]
     assert same_keys and tn.shortest_path_library[same_keys[0]][CT]
     tn.invalidate_alternative_routes()

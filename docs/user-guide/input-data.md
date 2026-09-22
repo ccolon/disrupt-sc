@@ -185,7 +185,7 @@ Primary transport network file for the scope.
     "highway": "primary",
     "length_km": 15.2,
     "max_speed": 80,
-    "capacity": 2000
+    "name": "Main Road North"
   },
   "geometry": {
     "type": "LineString",
@@ -197,7 +197,9 @@ Primary transport network file for the scope.
 **Required properties:**
 - `highway` or `road_type` - Road classification
 - `length_km` - Length in kilometers
-- Optional: `max_speed`, `capacity`, `surface_type`
+- Optional: `max_speed`, `surface_type`, `name` (the key of `transport_capacity_overrides`
+  and of the disruption `attribute: name` filters; a `capacity` column is ignored since
+  21 Sep 2026 — edge capacities come from the config, by name)
 
 #### Maritime Layer
 
@@ -331,8 +333,7 @@ International trade entry/exit points.
   "type": "Feature",
   "properties": {
     "region": "CHN",
-    "entry_type": "border_crossing",
-    "capacity": 1000
+    "entry_type": "border_crossing"
   },
   "geometry": {
     "type": "Point",

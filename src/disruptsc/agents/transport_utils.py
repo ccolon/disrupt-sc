@@ -16,18 +16,24 @@ if TYPE_CHECKING:
 
 def _discover(od_point: int, link: CommercialLink, transport_network: TransportNetwork,
               available_transport_network: TransportNetwork, weight: str, use_cache: bool,
-              library: str, allowed_modes=None, mode_weights=None) -> Route | None:
+              library: str, allowed_modes=None, mode_weights=None,
+              excluded_edges=None) -> Route | None:
     """One shortest-path search (optionally restricted to *allowed_modes*, with *mode_weights*
-    scaling modes in the search), cached under *library*."""
+    scaling modes in the search and *excluded_edges* removed), cached under *library*.
+
+    A cached route is used only while every edge of it is still open on the available
+    network: the alternative libraries persist across steps, and a route found under one
+    set of closures could cross an edge closed since (21 Sep 2026; the Rhine runs close
+    the same edge week after week, so they never met the case)."""
     if use_cache:
         cached = transport_network.retrieve_cached_route(
             od_point, link.destination_node, library, link.cargo_type,
         )
-        if cached:
+        if cached and available_transport_network.is_route_available(cached):
             return cached
     route = available_transport_network.provide_shortest_route(
         od_point, link.destination_node, link.cargo_type, route_weight=weight,
-        allowed_modes=allowed_modes, mode_weights=mode_weights,
+        allowed_modes=allowed_modes, mode_weights=mode_weights, excluded_edges=excluded_edges,
     )
     if route and use_cache:
         transport_network.cache_route(
@@ -40,9 +46,11 @@ def discover_route(od_point: int,
                    link: CommercialLink,
                    transport_network: TransportNetwork,
                    available_transport_network: TransportNetwork,
-                   capacity_constraint: bool,
                    use_route_cache: bool,
-                   switching_costs: dict | None = None) -> Route | None:
+                   switching_costs: dict | None = None,
+                   *,
+                   excluded_edges=None,
+                   exclusion_tag: str = "") -> Route | None:
     """Find the best alternative route from *od_point* to the link's destination.
 
     Penalty-aware (14 Sep 2026): the cheapest path by transport cost alone can introduce a
@@ -52,15 +60,18 @@ def discover_route(od_point: int,
     two candidates are searched, one restricted to the modes of the link's normal route and
     one free, and the cheaper INCLUDING the switching penalty (a fraction of the normal bill)
     is returned. Without *switching_costs* (or without a normal route) the free search is used.
+
+    *excluded_edges* (keys ``(min(u, v), max(u, v))``) are removed from the search - the
+    capacity gate passes the edges saturated earlier in the step - and *exclusion_tag* names
+    that set in the cache libraries, so that routes found under different exclusions are
+    never confused (the libraries are all 'alternative*' and are forgotten together when a
+    cost shock starts or ends).
     """
     weight = "cost_per_ton"
-    if capacity_constraint:
-        weight = "cost_per_ton_with_capacity"
-
-    effective_cache = use_route_cache and not capacity_constraint
+    suffix = f":{exclusion_tag}" if exclusion_tag else ""
     baseline = getattr(link, "route", None)
     free = _discover(od_point, link, transport_network, available_transport_network, weight,
-                     effective_cache, "alternative")
+                     use_route_cache, "alternative" + suffix, excluded_edges=excluded_edges)
     if switching_costs is None or baseline is None or not getattr(baseline, "transport_modes", None):
         return free
     # Same-mode candidate: the shipper's own modes only, and within them the modes that carry
@@ -68,26 +79,149 @@ def discover_route(od_point: int,
     # search, so that the path keeps to the line-haul mode wherever one exists (a canal
     # detour) and uses the access modes only where unavoidable. The line-haul rule then
     # judges the result like any other candidate.
-    costs = switching_costs or {}
-    base_km = link._km_by_mode(baseline, transport_network)
-    line_haul = link._line_haul_of(base_km, costs, link.cargo_type)   # km rule x per-cargo line-haul modes
-    penalty = link._switching_penalty(costs, "modal_switch", 0.15)
-    baseline_modes = set(baseline.transport_modes)
-    weights = {m: 1.0 + penalty for m in baseline_modes if m not in line_haul and m != "multimodal"}
-    library = "alternative_same_modes:" + "+".join(sorted(line_haul)) + f":{penalty:g}"
+    baseline_modes, weights, library = _same_mode_search(link, baseline, transport_network, switching_costs)
     same = _discover(od_point, link, transport_network, available_transport_network, weight,
-                     effective_cache, library, allowed_modes=baseline_modes, mode_weights=weights or None)
+                     use_route_cache, library + suffix, allowed_modes=baseline_modes,
+                     mode_weights=weights or None, excluded_edges=excluded_edges)
     candidates = [r for r in (same, free) if r is not None]
     if not candidates:
         return None
     normal_cost = float(getattr(link, "route_cost_per_ton", 0.0) or 0.0)
 
     def total_cost(route: Route) -> float:
-        cost = transport_network.compute_route_cost(route, link.cargo_type, with_capacity=capacity_constraint)
+        cost = transport_network.compute_route_cost(route, link.cargo_type)
         penalty = link.calculate_switching_cost_between(baseline, route, switching_costs, transport_network)
         return cost + penalty * normal_cost
 
     return min(candidates, key=total_cost)
+
+
+def _same_mode_search(link: CommercialLink, baseline: Route, transport_network: TransportNetwork,
+                      switching_costs: dict) -> tuple[frozenset, dict, str]:
+    """(allowed modes, mode weights, library name) of the own-modes candidate of *link*:
+    the baseline's modes, its access modes (no line haul for this cargo) weighted by
+    1 + penalty in the search. Shared by discover_route and its batched twin."""
+    costs = switching_costs or {}
+    base_km = link._km_by_mode(baseline, transport_network)
+    line_haul = link._line_haul_of(base_km, costs, link.cargo_type)   # km rule x per-cargo line-haul modes
+    penalty = link._switching_penalty(costs, "modal_switch", 0.15)
+    baseline_modes = frozenset(baseline.transport_modes)
+    weights = {m: 1.0 + penalty for m in baseline_modes if m not in line_haul and m != "multimodal"}
+    library = "alternative_same_modes:" + "+".join(sorted(line_haul)) + f":{penalty:g}"
+    return baseline_modes, weights, library
+
+
+def discover_routes_batched(requests: list, transport_network: TransportNetwork,
+                            available_transport_network: TransportNetwork,
+                            use_route_cache: bool, switching_costs: dict | None = None, *,
+                            excluded_edges=None, exclusion_tag: str = "") -> list:
+    """discover_route for many (od_point, link) *requests* at once.
+
+    Same candidates and the same choice as discover_route (own modes and free,
+    the cheaper including the switching penalty), but the searches of the cache
+    misses run as one scipy single-source Dijkstra per origin and search filter
+    (cargo, allowed modes, access-mode weights, excluded edges) over the CSR
+    view of the available network, instead of one networkx search per request.
+    The capacity gate re-sends thousands of cut shares per round from a few
+    hundred origins (Ecuador 22 Sep 2026: 16.6k shares from a network of 2k
+    edges); the batch is what makes the round cheap. Results are cached under
+    the same libraries, so a later round or step with the same saturated set
+    hits the cache. Exact cost ties can resolve differently from networkx, as
+    they can in the initial assignment (routing.shortest_paths_for).
+    """
+    from disruptsc.init_pipeline.routing import shortest_paths_for
+    from disruptsc.network.route import Route as _Route
+
+    suffix = f":{exclusion_tag}" if exclusion_tag else ""
+    excluded = frozenset(excluded_edges) if excluded_edges else None
+    n = len(requests)
+    free: list = [None] * n
+    same: list = [None] * n
+    plans: list = [None] * n            # (baseline, modes, weights, library) or None
+    # (cargo, modes key, weights key) -> {"weights": {...}, "modes": set|None, "sources": {origin: {dest}}, "items": [(i, kind, origin, dest)]}
+    groups: dict = {}
+
+    def _cached(od_point, link, library):
+        if not use_route_cache:
+            return None
+        cached = transport_network.retrieve_cached_route(od_point, link.destination_node, library, link.cargo_type)
+        if cached and available_transport_network.is_route_available(cached):
+            return cached
+        return None
+
+    def _want(i, kind, od_point, link, modes, weights):
+        key = (link.cargo_type, modes, tuple(sorted(weights.items())) if weights else None)
+        g = groups.setdefault(key, {"cargo": link.cargo_type, "modes": modes, "weights": weights or {},
+                                    "sources": {}, "items": []})
+        g["sources"].setdefault(od_point, set()).add(link.destination_node)
+        g["items"].append((i, kind, od_point, link))
+
+    for i, (od_point, link) in enumerate(requests):
+        cached = _cached(od_point, link, "alternative" + suffix)
+        if cached is not None:
+            free[i] = cached
+        else:
+            _want(i, "free", od_point, link, None, None)
+        baseline = getattr(link, "route", None)
+        if switching_costs is None or baseline is None or not getattr(baseline, "transport_modes", None):
+            continue
+        modes, weights, library = _same_mode_search(link, baseline, transport_network, switching_costs)
+        plans[i] = (baseline, library + suffix)
+        cached = _cached(od_point, link, library + suffix)
+        if cached is not None:
+            same[i] = cached
+        else:
+            _want(i, "same", od_point, link, modes, weights)
+
+    for g in groups.values():
+        label = f"cost_per_ton_{g['cargo']}"
+        modes, weights = g["modes"], g["weights"]
+
+        def weight_fn(u, v, d, _label=label, _modes=modes, _w=weights, _x=excluded):
+            if _label not in d:
+                return None
+            if _modes is not None and d.get("type") not in _modes:
+                return None
+            if _x is not None and ((u, v) in _x or (v, u) in _x):
+                return None
+            return d[_label] * _w.get(d.get("type"), 1.0)
+
+        paths = shortest_paths_for(available_transport_network, label, g["sources"], weight_fn=weight_fn)
+        built: dict = {}
+        for i, kind, od_point, link in g["items"]:
+            path = paths.get((od_point, link.destination_node))
+            if path is None:
+                continue
+            route = built.get((od_point, link.destination_node))
+            if route is None:
+                route = _Route(path, available_transport_network, g["cargo"])
+                built[(od_point, link.destination_node)] = route
+                if use_route_cache:
+                    library = ("alternative" + suffix) if kind == "free" else plans[i][1]
+                    transport_network.cache_route(od_point, link.destination_node, library, g["cargo"], route)
+            if kind == "free":
+                free[i] = route
+            else:
+                same[i] = route
+
+    out: list = [None] * n
+    for i, (od_point, link) in enumerate(requests):
+        if plans[i] is None:
+            out[i] = free[i]
+            continue
+        baseline = plans[i][0]
+        candidates = [r for r in (same[i], free[i]) if r is not None]
+        if not candidates:
+            continue
+        normal_cost = float(getattr(link, "route_cost_per_ton", 0.0) or 0.0)
+
+        def total_cost(route, _link=link, _base=baseline, _n=normal_cost):
+            cost = transport_network.compute_route_cost(route, _link.cargo_type)
+            penalty = _link.calculate_switching_cost_between(_base, route, switching_costs, transport_network)
+            return cost + penalty * _n
+
+        out[i] = min(candidates, key=total_cost)
+    return out
 
 
 def _base_route_cost(route: Route,
@@ -144,10 +278,6 @@ def send_shipment(agent_pid, od_point: int,
                   supplier_price: float | None = None):
     """Send a shipment along a transport route, handling disruption rerouting.
 
-    If the link has a multi-entry *route_plan*, the delivery is split
-    proportionally across routes.  Each sub-route is independently
-    checked for disruption.
-
     *supplier_price* is the supplier's current output price (firm.price or
     country equivalent). It defaults to link.eq_price for backward
     compatibility. Passing it enables propagation of input-cost-driven
@@ -155,20 +285,26 @@ def send_shipment(agent_pid, od_point: int,
 
     *after_shipment(link, route)* is called once on successful placement
     for agent-specific bookkeeping (e.g. updating product_stock or qty_sold).
+
+    The shipment records placed here carry the link, the route, the origin and
+    the sender's transport share, so that the capacity gate
+    (run_pipeline/capacity_gate.py) can cut them and re-send the cut share
+    after every agent has delivered.
     """
     base_price = supplier_price if supplier_price is not None else link.eq_price
+    link.delivery_offered = link.delivery
 
-    # --- Multi-route path (chunked delivery) ---
-    if len(link.route_plan) > 1:
-        _send_chunked_shipment(
-            agent_pid, od_point, transport_share,
-            link, transport_network, available_transport_network,
-            tp, routing_event_collector, after_shipment,
-            supplier_price=base_price,
+    def _place(route, key, tons, quantity, leg):
+        transport_network.place_shipment(
+            route, link.pid, tons, link.destination_node,
+            monetary_quantity=quantity, product_type=link.product_type,
+            flow_category=link.category, cargo_type=link.cargo_type,
+            accumulate_at_dest=True, dest_key=link.pid,
+            edge_key=key, link=link, origin=od_point, leg=leg,
+            agent_pid=agent_pid, transport_share=transport_share,
+            price=link.price, base_price=base_price,
         )
-        return
 
-    # --- Single-route path ---
     # Always try the main route first; if available, switch back to it
     main_route = link.route
     if (main_route and available_transport_network.is_route_available(main_route)
@@ -180,17 +316,13 @@ def send_shipment(agent_pid, od_point: int,
         # same pass-through / give-up rules as for a closed edge apply. The
         # closure and shock cases are kept separate so that closures keep
         # their exact previous behaviour.
-        shocked_cost = transport_network.compute_route_cost(
-            main_route, link.cargo_type, with_capacity=tp.capacity_constraint_enabled,
-        )
+        shocked_cost = transport_network.compute_route_cost(main_route, link.cargo_type)
         alt_route = discover_route(
             od_point, link, transport_network, available_transport_network,
-            tp.capacity_constraint_enabled, tp.use_route_cache,
-            switching_costs=tp.switching_costs,
+            tp.use_route_cache, switching_costs=tp.switching_costs,
         )
-        alt_cost = (transport_network.compute_route_cost(
-            alt_route, link.cargo_type, with_capacity=tp.capacity_constraint_enabled)
-            if alt_route is not None else float("inf"))
+        alt_cost = (transport_network.compute_route_cost(alt_route, link.cargo_type)
+                    if alt_route is not None else float("inf"))
         # The switching penalty (fraction of the normal bill, per cargo type)
         # is part of the alternative's cost when choosing: a bulk shipper whose
         # rerouting is prohibitively expensive stays on the surcharged river
@@ -257,26 +389,14 @@ def send_shipment(agent_pid, od_point: int,
                 agent_pid, link.buyer_id,
                 "surcharged" if alt_share == 0 else "rerouted", relative_increase,
             )
-        # place both parts (accumulated into one shipment at the destination)
+        # place both parts (accumulated into one shipment at the destination;
+        # distinct keys on the edges so that a shared edge counts both)
         if planned_tons > EPSILON:
             if main_share > 0:
-                transport_network.place_shipment(
-                    main_route, link.pid, planned_tons * main_share, link.destination_node,
-                    monetary_quantity=planned * main_share, product_type=link.product_type,
-                    flow_category=link.category, cargo_type=link.cargo_type,
-                    accumulate_at_dest=True, dest_key=link.pid,
-                    capacity_constraint=tp.capacity_constraint_enabled,
-                    capacity_constraint_mode=tp.capacity_constraint_mode,
-                )
+                _place(main_route, link.pid, planned_tons * main_share, planned * main_share, "main")
             if alt_share > 0:
-                transport_network.place_shipment(
-                    alt_route, link.pid, planned_tons * alt_share, link.destination_node,
-                    monetary_quantity=planned * alt_share, product_type=link.product_type,
-                    flow_category=link.category, cargo_type=link.cargo_type,
-                    accumulate_at_dest=True, dest_key=link.pid,
-                    capacity_constraint=tp.capacity_constraint_enabled,
-                    capacity_constraint_mode=tp.capacity_constraint_mode,
-                )
+                _place(alt_route, f"{link.pid}__alt", planned_tons * alt_share, planned * alt_share,
+                       "alternative")
         link.realized_delivery = link.delivery
         link.payment = link.delivery * link.price
         if after_shipment:
@@ -287,13 +407,13 @@ def send_shipment(agent_pid, od_point: int,
         link.price = base_price
         link.main_route_realized_delivery = link.delivery
         route = main_route
+        leg = "main"
     else:
         # Main route unavailable — try to find an alternative
         alt_route = discover_route(
             od_point, link,
             transport_network, available_transport_network,
-            tp.capacity_constraint_enabled, tp.use_route_cache,
-            switching_costs=tp.switching_costs,
+            tp.use_route_cache, switching_costs=tp.switching_costs,
         )
         if alt_route is None:
             link.realized_delivery = 0.0
@@ -307,10 +427,7 @@ def send_shipment(agent_pid, od_point: int,
 
         link.alternative_route = alt_route
         link.alternative_found = True
-        alt_cost = transport_network.compute_route_cost(
-            alt_route, link.cargo_type,
-            with_capacity=tp.capacity_constraint_enabled,
-        )
+        alt_cost = transport_network.compute_route_cost(alt_route, link.cargo_type)
         link.alternative_route_cost_per_ton = alt_cost
         relative_increase = link.calculate_relative_increase_in_transport_cost()
 
@@ -331,6 +448,7 @@ def send_shipment(agent_pid, od_point: int,
 
         link.current_route = "alternative"
         route = alt_route
+        leg = "alternative"
         price_change = transport_share * relative_increase
         link.price = base_price * (1 + price_change)
         # substitution ceiling of the closed edge(s): only this share of the
@@ -347,13 +465,7 @@ def send_shipment(agent_pid, od_point: int,
 
     # Place shipment on transport network
     if link.delivery_in_tons > EPSILON:
-        transport_network.place_shipment(
-            route, link.pid, link.delivery_in_tons, link.destination_node,
-            monetary_quantity=link.delivery, product_type=link.product_type,
-            flow_category=link.category, cargo_type=link.cargo_type,
-            capacity_constraint=tp.capacity_constraint_enabled,
-            capacity_constraint_mode=tp.capacity_constraint_mode,
-        )
+        _place(route, link.pid, link.delivery_in_tons, link.delivery, leg)
 
     link.realized_delivery = link.delivery
     link.payment = link.delivery * link.price
@@ -362,146 +474,13 @@ def send_shipment(agent_pid, od_point: int,
         after_shipment(link, route)
 
 
-def _send_chunked_shipment(
-    agent_pid, od_point: int,
-    transport_share: float,
-    link: CommercialLink,
-    transport_network: TransportNetwork,
-    available_transport_network: TransportNetwork,
-    tp: TransportParams,
-    routing_event_collector=None,
-    after_shipment: Callable | None = None,
-    supplier_price: float | None = None,
-):
-    base_price = supplier_price if supplier_price is not None else link.eq_price
-    """Split a delivery across multiple routes per the link's route_plan."""
-    total_tons = link.delivery_in_tons
-    total_monetary = link.delivery
-    if total_tons < EPSILON:
-        link.realized_delivery = link.delivery
-        link.payment = link.delivery * link.price
-        link.main_route_realized_delivery = link.delivery
-        if after_shipment:
-            after_shipment(link, link.route)
-        return
-
-    any_rerouted = False
-    delivered_value = 0.0
-    total_payment = 0.0
-    main_delivery = 0.0
-    rerouted_delivery = 0.0
-    rerouted_tons = 0.0
-    rerouted_cost_ton_weighted = 0.0
-    rerouted_length_weighted = 0.0
-    representative_alt_route = None
-    representative_alt_tons = 0.0
-
-    for i, (route, fraction) in enumerate(link.route_plan):
-        planned_route = route
-        sub_tons = total_tons * fraction
-        sub_monetary = total_monetary * fraction
-
-        if sub_tons < EPSILON:
-            continue
-
-        # Check route availability (disruption)
-        if not available_transport_network.is_route_available(planned_route):
-            alt_route = discover_route(
-                od_point, link,
-                transport_network, available_transport_network,
-                tp.capacity_constraint_enabled, tp.use_route_cache,
-                switching_costs=tp.switching_costs,
-            )
-            if alt_route is None:
-                # This portion is lost
-                if routing_event_collector:
-                    routing_event_collector.record_event(
-                        agent_pid, link.buyer_id, "no_route", 0.0,
-                    )
-                continue
-
-            # Check cost of alternative against price_increase_threshold
-            alt_cost = transport_network.compute_route_cost(
-                alt_route, link.cargo_type,
-                with_capacity=tp.capacity_constraint_enabled,
-            )
-            normal_cost = _base_route_cost(planned_route, transport_network, link.cargo_type)
-            relative_increase = 0.0
-            if normal_cost > EPSILON:
-                relative_increase = max(alt_cost - normal_cost, 0) / normal_cost
-            switching_penalty = link.calculate_switching_cost_between(
-                planned_route, alt_route, tp.switching_costs, transport_network,
-            )
-            relative_increase += switching_penalty
-            if too_expensive(tp, relative_increase, transport_share, link):
-                if routing_event_collector:
-                    routing_event_collector.record_event(
-                        agent_pid, link.buyer_id, "too_expensive",
-                        relative_increase,
-                    )
-                continue
-
-            route = alt_route
-            chunk_price = base_price * (1 + transport_share * relative_increase)
-            any_rerouted = True
-            rerouted_delivery += sub_monetary
-            rerouted_tons += sub_tons
-            rerouted_cost_ton_weighted += sub_tons * alt_cost
-            rerouted_length_weighted += sub_tons * alt_route.length
-            if sub_tons > representative_alt_tons:
-                representative_alt_route = alt_route
-                representative_alt_tons = sub_tons
-            if routing_event_collector:
-                routing_event_collector.record_event(
-                    agent_pid, link.buyer_id, "rerouted", relative_increase,
-                )
-        else:
-            route = planned_route
-            chunk_price = base_price
-            main_delivery += sub_monetary
-
-        if route is not planned_route:
-            link.alternative_found = True
-
-        # Place sub-shipment with unique chunk ID on edges
-        chunk_id = f"{link.pid}__r{i}" if i > 0 else link.pid
-        transport_network.place_shipment(
-            route, chunk_id, sub_tons, link.destination_node,
-            monetary_quantity=sub_monetary, product_type=link.product_type,
-            flow_category=link.category, cargo_type=link.cargo_type,
-            accumulate_at_dest=True,  # merge at destination node under link.pid
-            dest_key=link.pid,
-            capacity_constraint=tp.capacity_constraint_enabled,
-            capacity_constraint_mode=tp.capacity_constraint_mode,
-        )
-        delivered_value += sub_monetary
-        total_payment += sub_monetary * chunk_price
-
-    link.current_route = "alternative" if any_rerouted else "main"
-    link.main_route_realized_delivery = main_delivery
-    link.alternative_route_realized_delivery = rerouted_delivery
-    if any_rerouted and representative_alt_route is not None and rerouted_tons > EPSILON:
-        link.alternative_route = representative_alt_route
-        link.alternative_route_cost_per_ton = rerouted_cost_ton_weighted / rerouted_tons
-        link.alternative_route_length = rerouted_length_weighted / rerouted_tons
-
-    link.realized_delivery = delivered_value
-    link.payment = total_payment
-    if delivered_value > EPSILON:
-        link.price = total_payment / delivered_value
-    else:
-        link.price = base_price
-
-    if after_shipment and link.route:
-        after_shipment(link, link.route)
-
-
 def deliver_without_transport(link: CommercialLink,
                               after_delivery: Callable | None = None,
                               supplier_price: float | None = None):
     """Direct delivery (services, or when transport is off)."""
     if supplier_price is not None:
         link.price = supplier_price
+    link.delivery_offered = link.delivery
     link.realized_delivery = link.delivery
     link.payment = link.delivery * link.price
     link.main_route_realized_delivery = link.delivery

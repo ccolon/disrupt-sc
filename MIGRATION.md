@@ -79,8 +79,13 @@ The GeoPackages carry per-mode layers internally. v1 per-mode GeoJSONs are no lo
 
 ### New top-level keys
 
-- `capacity_routing_max_iterations` — number of capacity-aware routing iterations
-- `default_transport_capacity` — fallback capacity per mode
+- `cargo_mode_eligibility` — which cargo types may use which mode (replaces the
+  zeros of the former `default_transport_capacity`; since 21 Sep 2026 an edge has a
+  capacity only if `transport_capacity_overrides` names it, and `capacity_constraint`
+  is a bool: the within-step capacity gate; `gradual` / `binary`,
+  `capacity_routing_max_iterations`, `default_transport_capacity` and the
+  `logistics.initial_route_assignment` / `chunk_size` / `*_candidate_*` / `lp_*`
+  keys raise — that code is on the `legacy/v2-capacity-routing` branch)
 - `enable_household_inventories` — households can now hold inventories
 - `firm_transport_share`, `country_transport_share` — uniform transport-share defaults
 
