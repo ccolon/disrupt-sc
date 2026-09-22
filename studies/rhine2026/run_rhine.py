@@ -298,6 +298,12 @@ def build_disruptions(reductions: list[float], edges: list[str], min_reduction=0
         if closure_threshold is None:
             out.append({"type": "transport_disruption", "attribute": "name", "values": list(edges),
                         "capacity_reduction": float(r), "start_time": t, "duration": 1})
+            if voyage:
+                # gate + surcharge: the reduced edge is also surcharged (the capacity and the cost
+                # labels are separate edge state; the gate cuts the tonnage, the shipper pays the rest)
+                out.append({"type": "transport_cost_shock", "attribute": "name", "values": list(edges),
+                            "cost_multiplier": mult, "capacity_factor": 1.0, "substitution_share": 1.0,
+                            "start_time": t, "duration": 1})
         elif r >= closure_threshold:
             out.append({"type": "transport_disruption", "attribute": "name", "values": list(edges),
                         "capacity_reduction": 1.0, "start_time": t, "duration": 1,
@@ -317,10 +323,10 @@ def main():
     ap.add_argument("--edges", default=KAUB_EDGE, help="comma-separated rhine_* edge names")
     ap.add_argument("--draught-table", default=str(SCEN / "draught_table.csv"))
     ap.add_argument("--capacities", default=str(SCEN / "rhine_capacities.csv"))
-    ap.add_argument("--edge-capacities",
-                    default=str(ROOT.parent / "disrupt-sc-data" / "EU" / "Transport" / "scenario_edge_capacities.csv"),
+    ap.add_argument("--edge-capacities", default=None,
                     help="baseline-derived rail/road/waterway capacities (baseline_capacities.py); "
-                         "merged into transport_capacity_overrides for the scenario run when the file exists; "
+                         "merged into transport_capacity_overrides for the scenario run when given (since 22 Sep 2026 "
+                         "no default: the file of 3 Sep names edges that no longer exist in the rebuilt network); "
                          "pass an empty string to disable")
     ap.add_argument("--recovery-weeks", type=int, default=8, help="extra weeks after the profile ends")
     ap.add_argument("--flow-coverage", type=float, default=None)
@@ -333,8 +339,9 @@ def main():
                     help="weeks whose capacity reduction is >= this value close the Kaub edge entirely "
                          "(2026 profile at 0.75: the four weeks of 27 Jul-23 Aug); lighter weeks become "
                          "cost shocks x1/(1-reduction) (transport_cost_shock). Set to a negative value "
-                         "to emit partial capacity reductions instead (needs --constraint-mode "
-                         "gradual|binary)")
+                         "to emit partial capacity reductions instead (needs --constraint-mode on: the "
+                         "gate rations the Kaub edge to load factor x capacity every week, and since 22 Sep "
+                         "2026 the voyage surcharge is paid as well - gate + surcharge)")
     ap.add_argument("--surcharge-scope", choices=["voyage", "kaub"], default="voyage",
                     help="voyage (default since 7 Sep 2026): the week's multiplier on every Rhine edge from Koblenz "
                          "upstream (scenarios/rhine_capacities.csv order) and 1 + (m - 1) x --lower-rhine-factor on "
@@ -428,7 +435,9 @@ def main():
     if floors is not None and gauges is None:
         print("profile has no kaub_cm column: closure floors by cargo class not applicable, single floor used")
         floors = None
-    if args.surcharge_scope == "voyage" and closure is not None:
+    # gate + surcharge (22 Sep 2026, user decision): with the capacity gate the weekly load factor is a
+    # quantity constraint on the Kaub edge AND the observed surcharge is paid on the voyage
+    if args.surcharge_scope == "voyage" and (closure is not None or args.constraint_mode == "on"):
         upstream, lower_rhine = rhine_chain(args.capacities)
     else:
         upstream, lower_rhine = None, None
@@ -447,7 +456,8 @@ def main():
     if floors is not None:
         rule = "closure floors " + ", ".join(f"{ct} <= {floors.get(ct, floors['default']):.0f} cm" for ct in cargo_types)
     else:
-        rule = ("closure >= " + format(closure, ".0%")) if closure is not None else "partial reductions"
+        rule = ("closure >= " + format(closure, ".0%")) if closure is not None else (
+            "partial capacity reductions (gate)" + (" + voyage surcharge" if upstream else ""))
     scope = (f"voyage surcharge: {len(upstream)} upstream edges at m, {len(lower_rhine)} Lower Rhine edges at "
              f"1+(m-1)x{args.lower_rhine_factor:.2f}" if upstream else "surcharge on the Kaub edge only")
     print(f"profile {args.profile}: {len(reductions)} weeks, {len(kaub)} disrupted weeks ({rule}; {scope}), "

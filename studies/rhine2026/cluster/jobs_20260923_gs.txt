@@ -1,0 +1,21 @@
+# Rhine 2026 cluster batch (23 Sep 2026): the Rhine as a continuous constraint - capacity gate + surcharge.
+# User decisions of 22 Sep: the review's alternative representation is tested on both profiles, and it is the
+# gate WITH the observed surcharge (the two are not exclusive: the load factor is a quantity constraint on the
+# Kaub edge, the Kleinwasserzuschlag is paid on the voyage). --constraint-mode on --closure-threshold -1: every
+# week the Kaub edge's capacity is the draught table's load factor x its baseline flow, the within-step gate cuts
+# what exceeds it (cut bulk gives up under the prohibitive modal switch and returns to stock, cut containers go
+# by rail), the same week's multiplier 1/load factor is paid on the reach from Koblenz upstream and a third of it
+# on the Lower Rhine; no closure floors (a week at 11 cm is a -91 % capacity, not a closure). Rail and road
+# unlimited (the finite-substitution extension is left out). Pipelined flows on, x2 buffer, seed 42.
+# Capacities: scenarios/rhine_capacities_anchored.csv = max(CCNR file, modelled baseline flow + 2 %) per section
+# (anchor_rhine_capacities.py on the pipelined baseline: Kaub 150,500 t/day against the file's 137,000), so the
+# gate is inert at full load. The capacity overrides are a transport-stage cache key: the *_base job rebuilds
+# the transport network and the routes (agents and supply chain from cache), the 2018 job waits (afterok).
+# Paired with 2026_pipe_base and 2018_pipe (price with closures, same buffer, seed and recovery). Laptop smoke
+# run of the mode on the first ten weeks of 2026: smoke_gs10 (mechanism_checks/gate_smoke_check.py).
+# Launch WITHOUT --independent:
+#     cd /projects/disruptsc/disrupt-sc && git pull && bash studies/rhine2026/cluster/launch_rhine_batch.sh --jobs studies/rhine2026/cluster/jobs_20260923_gs.txt
+# Pack:
+#     bash studies/rhine2026/cluster/pack_results.sh --jobs studies/rhine2026/cluster/jobs_20260923_gs.txt --with-firms 2026_gs_base,2018_gs
+2026_gs_base | --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --recovery-weeks 20 --inventory-scale 2.0
+2018_gs      | --profile 2018 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --recovery-weeks 20 --inventory-scale 2.0
