@@ -184,12 +184,11 @@ class TransportNetwork(nx.Graph):
     def capacitated_edges(self) -> list[tuple[int, int]]:
         """Edges with a capacity (shared or per cargo), in a deterministic order."""
         out = []
-        for u, v in self.edges:
-            edge = self[u][v]
+        for u, v, edge in self.edges(data=True):
             if "capacity" in edge or any(f"capacity_{ct}" in edge for ct in (self.cargo_types or [])):
-                out.append((u, v))
-        out.sort(key=lambda uv: (self[uv[0]][uv[1]].get("id", 0), uv))
-        return out
+                out.append((edge.get("id", 0), u, v))
+        out.sort()
+        return [(u, v) for _, u, v in out]
 
     def capture_base_capacity_state(self):
         """Snapshot the edge capacities that represent the undisrupted network."""
@@ -525,8 +524,9 @@ class TransportNetwork(nx.Graph):
             "price": price,
             "base_price": base_price,
         }
+        adj = self._adj
         for u, v in route.transport_edges:
-            self[u][v]["shipments"][key] = shipment
+            adj[u][v]["shipments"][key] = shipment
 
         # At destination node: accumulate parts or overwrite
         dest_shipments = self._node[destination_node].setdefault("shipments", {})
@@ -555,8 +555,8 @@ class TransportNetwork(nx.Graph):
         The capacity gate statistics of the step are kept until the next gate
         run overwrites them (or a run reset clears them), so that a driver can
         read them after the step."""
-        for u, v in self.edges:
-            self[u][v]["shipments"] = {}
+        for _, _, edge in self.edges(data=True):
+            edge["shipments"] = {}
         for node_id in self.nodes:
             self._node[node_id]["shipments"] = {}
 
@@ -571,9 +571,9 @@ class TransportNetwork(nx.Graph):
 
     def compute_flow_per_segment(self, time_step: int) -> list[dict]:
         flows = []
-        for u, v in self.edges():
-            shipments = self[u][v]["shipments"].values()
-            data = {"time_step": time_step, "id": self[u][v]["id"], "flow_total": 0, "flow_total_tons": 0}
+        for _, _, edge in self.edges(data=True):
+            shipments = edge["shipments"].values()
+            data = {"time_step": time_step, "id": edge["id"], "flow_total": 0, "flow_total_tons": 0}
             for s in shipments:
                 fc, pt = s["flow_category"], s["product_type"]
                 ct = s.get("cargo_type", "")
@@ -613,8 +613,7 @@ class TransportNetwork(nx.Graph):
         n_with_flow = 0
         n_no_flow = 0
 
-        for u, v in self.edges():
-            edge = self[u][v]
+        for _, _, edge in self.edges(data=True):
             shipments = edge["shipments"].values()
 
             # Accumulate per-cargo-type tons and USD from shipments

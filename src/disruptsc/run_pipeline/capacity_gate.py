@@ -30,7 +30,7 @@ import logging
 import math
 from collections import defaultdict
 
-from disruptsc.agents.transport_utils import discover_route, too_expensive
+from disruptsc.agents.transport_utils import discover_routes_batched, too_expensive
 from disruptsc.config import EPSILON
 
 TON_TOL = 1e-9   # tons; below this a load or a difference is zero
@@ -114,12 +114,18 @@ def run_capacity_gate(transport_network, available_transport_network, firms: dic
                 saturated.add((min(u, v), max(u, v)))
                 stats[edge.get("id")]["saturated"] = True
 
-        # 3. re-send the cut shares on the network minus the saturated edges
+        # 3. re-send the cut shares on the network minus the saturated edges: one
+        #    batched search per origin and search filter, then the usual choice
         tag = _exclusion_tag(saturated)
         excluded = frozenset(saturated)
-        for rec, cut_tons, cut_qty in cut_parts:
-            resent_total += _resend(rec, cut_tons, cut_qty, rnd + 1, tn, available_transport_network,
-                                    tp, excluded, tag, firms, countries, routing_event_collector)
+        requests = [(rec["origin"] if rec.get("origin") is not None else rec["link"].origin_node, rec["link"])
+                    for rec, _, _ in cut_parts]
+        alternatives = discover_routes_batched(requests, tn, available_transport_network, tp.use_route_cache,
+                                               switching_costs=tp.switching_costs,
+                                               excluded_edges=excluded, exclusion_tag=tag)
+        for (rec, cut_tons, cut_qty), alt in zip(cut_parts, alternatives):
+            resent_total += _resend(rec, cut_tons, cut_qty, rnd + 1, alt, tn, tp, firms, countries,
+                                    routing_event_collector)
     else:
         logging.warning(f"Capacity gate t={time_step}: {max_rounds} rounds without convergence "
                         f"(the bound is |C| + 1 = {max_rounds}); the remaining cuts are blocked")
@@ -236,16 +242,13 @@ def _book_cut(rec: dict, cut_qty: float, cut_tons: float, firms: dict, countries
         supplier.tonkm_transported -= cut_tons * getattr(rec["route"], "length", 0.0)
 
 
-def _resend(rec: dict, cut_tons: float, cut_qty: float, next_round: int,
-            transport_network, available_transport_network, tp, excluded, tag: str,
-            firms: dict, countries: dict, routing_event_collector=None) -> float:
-    """Offer a cut share a route avoiding the saturated edges; place it if the
-    shipper accepts the price. Returns the tons re-sent (0 when blocked)."""
+def _resend(rec: dict, cut_tons: float, cut_qty: float, next_round: int, alt,
+            transport_network, tp, firms: dict, countries: dict, routing_event_collector=None) -> float:
+    """Place a cut share on *alt* (its route avoiding the saturated edges, found by
+    the batched search) if the shipper accepts the price. Returns the tons re-sent
+    (0 when blocked: no route, or too expensive)."""
     link = rec["link"]
     origin = rec["origin"] if rec.get("origin") is not None else link.origin_node
-    alt = discover_route(origin, link, transport_network, available_transport_network,
-                         tp.use_route_cache, switching_costs=tp.switching_costs,
-                         excluded_edges=excluded, exclusion_tag=tag)
     if alt is None:
         if routing_event_collector:
             routing_event_collector.record_event(rec.get("agent_pid"), link.buyer_id, "no_route", 0.0)

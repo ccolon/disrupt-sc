@@ -79,16 +79,10 @@ def discover_route(od_point: int,
     # search, so that the path keeps to the line-haul mode wherever one exists (a canal
     # detour) and uses the access modes only where unavoidable. The line-haul rule then
     # judges the result like any other candidate.
-    costs = switching_costs or {}
-    base_km = link._km_by_mode(baseline, transport_network)
-    line_haul = link._line_haul_of(base_km, costs, link.cargo_type)   # km rule x per-cargo line-haul modes
-    penalty = link._switching_penalty(costs, "modal_switch", 0.15)
-    baseline_modes = set(baseline.transport_modes)
-    weights = {m: 1.0 + penalty for m in baseline_modes if m not in line_haul and m != "multimodal"}
-    library = "alternative_same_modes:" + "+".join(sorted(line_haul)) + f":{penalty:g}" + suffix
+    baseline_modes, weights, library = _same_mode_search(link, baseline, transport_network, switching_costs)
     same = _discover(od_point, link, transport_network, available_transport_network, weight,
-                     use_route_cache, library, allowed_modes=baseline_modes, mode_weights=weights or None,
-                     excluded_edges=excluded_edges)
+                     use_route_cache, library + suffix, allowed_modes=baseline_modes,
+                     mode_weights=weights or None, excluded_edges=excluded_edges)
     candidates = [r for r in (same, free) if r is not None]
     if not candidates:
         return None
@@ -100,6 +94,134 @@ def discover_route(od_point: int,
         return cost + penalty * normal_cost
 
     return min(candidates, key=total_cost)
+
+
+def _same_mode_search(link: CommercialLink, baseline: Route, transport_network: TransportNetwork,
+                      switching_costs: dict) -> tuple[frozenset, dict, str]:
+    """(allowed modes, mode weights, library name) of the own-modes candidate of *link*:
+    the baseline's modes, its access modes (no line haul for this cargo) weighted by
+    1 + penalty in the search. Shared by discover_route and its batched twin."""
+    costs = switching_costs or {}
+    base_km = link._km_by_mode(baseline, transport_network)
+    line_haul = link._line_haul_of(base_km, costs, link.cargo_type)   # km rule x per-cargo line-haul modes
+    penalty = link._switching_penalty(costs, "modal_switch", 0.15)
+    baseline_modes = frozenset(baseline.transport_modes)
+    weights = {m: 1.0 + penalty for m in baseline_modes if m not in line_haul and m != "multimodal"}
+    library = "alternative_same_modes:" + "+".join(sorted(line_haul)) + f":{penalty:g}"
+    return baseline_modes, weights, library
+
+
+def discover_routes_batched(requests: list, transport_network: TransportNetwork,
+                            available_transport_network: TransportNetwork,
+                            use_route_cache: bool, switching_costs: dict | None = None, *,
+                            excluded_edges=None, exclusion_tag: str = "") -> list:
+    """discover_route for many (od_point, link) *requests* at once.
+
+    Same candidates and the same choice as discover_route (own modes and free,
+    the cheaper including the switching penalty), but the searches of the cache
+    misses run as one scipy single-source Dijkstra per origin and search filter
+    (cargo, allowed modes, access-mode weights, excluded edges) over the CSR
+    view of the available network, instead of one networkx search per request.
+    The capacity gate re-sends thousands of cut shares per round from a few
+    hundred origins (Ecuador 22 Sep 2026: 16.6k shares from a network of 2k
+    edges); the batch is what makes the round cheap. Results are cached under
+    the same libraries, so a later round or step with the same saturated set
+    hits the cache. Exact cost ties can resolve differently from networkx, as
+    they can in the initial assignment (routing.shortest_paths_for).
+    """
+    from disruptsc.init_pipeline.routing import shortest_paths_for
+    from disruptsc.network.route import Route as _Route
+
+    suffix = f":{exclusion_tag}" if exclusion_tag else ""
+    excluded = frozenset(excluded_edges) if excluded_edges else None
+    n = len(requests)
+    free: list = [None] * n
+    same: list = [None] * n
+    plans: list = [None] * n            # (baseline, modes, weights, library) or None
+    # (cargo, modes key, weights key) -> {"weights": {...}, "modes": set|None, "sources": {origin: {dest}}, "items": [(i, kind, origin, dest)]}
+    groups: dict = {}
+
+    def _cached(od_point, link, library):
+        if not use_route_cache:
+            return None
+        cached = transport_network.retrieve_cached_route(od_point, link.destination_node, library, link.cargo_type)
+        if cached and available_transport_network.is_route_available(cached):
+            return cached
+        return None
+
+    def _want(i, kind, od_point, link, modes, weights):
+        key = (link.cargo_type, modes, tuple(sorted(weights.items())) if weights else None)
+        g = groups.setdefault(key, {"cargo": link.cargo_type, "modes": modes, "weights": weights or {},
+                                    "sources": {}, "items": []})
+        g["sources"].setdefault(od_point, set()).add(link.destination_node)
+        g["items"].append((i, kind, od_point, link))
+
+    for i, (od_point, link) in enumerate(requests):
+        cached = _cached(od_point, link, "alternative" + suffix)
+        if cached is not None:
+            free[i] = cached
+        else:
+            _want(i, "free", od_point, link, None, None)
+        baseline = getattr(link, "route", None)
+        if switching_costs is None or baseline is None or not getattr(baseline, "transport_modes", None):
+            continue
+        modes, weights, library = _same_mode_search(link, baseline, transport_network, switching_costs)
+        plans[i] = (baseline, library + suffix)
+        cached = _cached(od_point, link, library + suffix)
+        if cached is not None:
+            same[i] = cached
+        else:
+            _want(i, "same", od_point, link, modes, weights)
+
+    for g in groups.values():
+        label = f"cost_per_ton_{g['cargo']}"
+        modes, weights = g["modes"], g["weights"]
+
+        def weight_fn(u, v, d, _label=label, _modes=modes, _w=weights, _x=excluded):
+            if _label not in d:
+                return None
+            if _modes is not None and d.get("type") not in _modes:
+                return None
+            if _x is not None and ((u, v) in _x or (v, u) in _x):
+                return None
+            return d[_label] * _w.get(d.get("type"), 1.0)
+
+        paths = shortest_paths_for(available_transport_network, label, g["sources"], weight_fn=weight_fn)
+        built: dict = {}
+        for i, kind, od_point, link in g["items"]:
+            path = paths.get((od_point, link.destination_node))
+            if path is None:
+                continue
+            route = built.get((od_point, link.destination_node))
+            if route is None:
+                route = _Route(path, available_transport_network, g["cargo"])
+                built[(od_point, link.destination_node)] = route
+                if use_route_cache:
+                    library = ("alternative" + suffix) if kind == "free" else plans[i][1]
+                    transport_network.cache_route(od_point, link.destination_node, library, g["cargo"], route)
+            if kind == "free":
+                free[i] = route
+            else:
+                same[i] = route
+
+    out: list = [None] * n
+    for i, (od_point, link) in enumerate(requests):
+        if plans[i] is None:
+            out[i] = free[i]
+            continue
+        baseline = plans[i][0]
+        candidates = [r for r in (same[i], free[i]) if r is not None]
+        if not candidates:
+            continue
+        normal_cost = float(getattr(link, "route_cost_per_ton", 0.0) or 0.0)
+
+        def total_cost(route, _link=link, _base=baseline, _n=normal_cost):
+            cost = transport_network.compute_route_cost(route, _link.cargo_type)
+            penalty = _link.calculate_switching_cost_between(_base, route, switching_costs, transport_network)
+            return cost + penalty * _n
+
+        out[i] = min(candidates, key=total_cost)
+    return out
 
 
 def _base_route_cost(route: Route,

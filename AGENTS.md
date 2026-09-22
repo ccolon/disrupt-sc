@@ -23,7 +23,7 @@ disruptsc <scope> --cache same_logistic_routes --cache_isolation
 disruptsc <scope> --cache auto             # reuse every stage whose fingerprint still matches
 - Production-rule parameters (`critical_input_threshold`, `filepaths.input_criticality`) are re-applied on every cache load (`run.py _configure_firms`) and are NOT part of the stage cache keys; a sensitivity on them reuses the caches. `onboarding/scripts/restamp_caches.py <Scope> --seed N` rewrites stored cache fingerprints after a key-set change when the cached content is known to be valid (never to paper over a real build change).
 validate-inputs <scope>                    # content checks before a run
-pytest                                     # works from a bare clone (158 tests)
+pytest                                     # works from a bare clone (160 tests)
 ```
 
 Scopes are configured in `config/`: `default.yaml` → committed
