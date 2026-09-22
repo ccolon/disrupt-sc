@@ -290,8 +290,63 @@ def send_shipment(agent_pid, od_point: int,
     the sender's transport share, so that the capacity gate
     (run_pipeline/capacity_gate.py) can cut them and re-send the cut share
     after every agent has delivered.
+
+    A link with a ``pipelined_share`` (config ``pipelined_flows``) delivers
+    that share without transport, at the supplier's price, whatever the
+    network does to the rest: the pipelined part is deposited at the
+    destination node (no edge carries it, no tonnage moves) and the routed
+    part goes through the rules above. The link then reports the two parts
+    together (delivery, realized_delivery, payment, a delivered-value weighted
+    price) with ``pipelined_delivery`` for the pipelined part and
+    ``delivery_in_tons`` for the tonnage that was actually placed.
     """
     base_price = supplier_price if supplier_price is not None else link.eq_price
+    piped_share = link.pipelined_share
+    if piped_share <= EPSILON:
+        _send_routed(agent_pid, od_point, transport_share, link, transport_network,
+                     available_transport_network, tp, base_price, routing_event_collector, after_shipment)
+        return
+
+    planned, planned_tons = link.delivery, link.delivery_in_tons
+    piped = planned * piped_share
+    routed_planned = planned - piped
+    route = None
+    if routed_planned > EPSILON:
+        link.delivery = routed_planned
+        link.delivery_in_tons = planned_tons * (1.0 - piped_share)
+        route = _send_routed(agent_pid, od_point, transport_share, link, transport_network,
+                             available_transport_network, tp, base_price, routing_event_collector, None)
+    else:
+        link.delivery = 0.0
+        link.delivery_in_tons = 0.0
+    routed = link.realized_delivery                 # what the network carried (0 when it gave up)
+    routed_payment = link.payment
+    if routed <= EPSILON:
+        link.delivery_in_tons = 0.0                 # nothing was placed: no tonnage moved
+    if link.destination_node in transport_network._node:
+        transport_network.place_direct_delivery(link.pid, link.destination_node, piped,
+                                                product_type=link.product_type, flow_category=link.category,
+                                                cargo_type=link.cargo_type)
+    link.pipelined_delivery = piped
+    link.delivery = routed + piped
+    link.delivery_offered = planned
+    link.realized_delivery = link.delivery
+    link.payment = routed_payment + piped * base_price
+    link.price = link.payment / link.delivery
+    if after_shipment:
+        after_shipment(link, route)
+
+
+def _send_routed(agent_pid, od_point: int, transport_share: float, link: CommercialLink,
+                 transport_network: TransportNetwork, available_transport_network: TransportNetwork,
+                 tp: TransportParams, base_price: float, routing_event_collector=None,
+                 after_shipment: Callable | None = None):
+    """The routed delivery of *link.delivery* (see send_shipment).
+
+    Returns the route the shipment was placed on, or None when the link gave
+    up (no route, too expensive, nothing deliverable), in which case the
+    delivery fields are zero and *after_shipment* is not called.
+    """
     link.delivery_offered = link.delivery
 
     def _place(route, key, tons, quantity, leg):
@@ -401,7 +456,7 @@ def send_shipment(agent_pid, od_point: int,
         link.payment = link.delivery * link.price
         if after_shipment:
             after_shipment(link, chosen)
-        return
+        return chosen
     elif main_route and available_transport_network.is_route_available(main_route):
         link.current_route = "main"
         link.price = base_price
@@ -472,6 +527,7 @@ def send_shipment(agent_pid, od_point: int,
 
     if after_shipment:
         after_shipment(link, route)
+    return route
 
 
 def deliver_without_transport(link: CommercialLink,

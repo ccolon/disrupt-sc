@@ -175,9 +175,9 @@ edge_003,port_001,port_002,maritime,5000,2500000,24.0
 | File | Content |
 |------|---------|
 | `baseline_capacity_check.csv` | one row per capacitated edge and cargo constraint: baseline tons of the initial assignment, capacity per step, ratio (above 1: the gate rations the edge from t = 0) |
-| `routing_summary.csv` | per step and cargo type: `total_usd`, `main_usd`, `alternative_usd`, `blocked_usd` (ordered but not delivered, every cause) and `capacity_blocked_usd` (the gate's part) |
+| `routing_summary.csv` | per step and cargo type: `total_usd`, `main_usd`, `alternative_usd`, `pipelined_usd` (delivered by pipeline: no route, no tonnage), `blocked_usd` (ordered but not delivered, every cause) and `capacity_blocked_usd` (the gate's part) |
 | `logistics_report.csv` | the monitored edges (those named in `transport_capacity_overrides`): tons and capacity per cargo type, utilisation, `offered_tons` (what arrived over the rounds of the step), `withheld_tons`, `gate_rounds` |
-| `link_data.csv` | per link and step: `delivery_offered` (decided before the substitution ceiling and the gate), `realized_delivery`, `capacity_blocked`; rationing = served order minus `delivery_offered`, withheld by transport = `delivery_offered` minus `realized_delivery` |
+| `link_data.csv` | per link and step: `delivery_offered` (decided before the substitution ceiling and the gate), `realized_delivery`, `capacity_blocked`, `pipelined_delivery` (the part delivered by pipeline; `delivery_in_tons` is the tonnage placed on the network); rationing = served order minus `delivery_offered`, withheld by transport = `delivery_offered` minus `realized_delivery` |
 
 ## Spatial Data
 

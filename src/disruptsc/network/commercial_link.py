@@ -69,6 +69,16 @@ class CommercialLink:
     # capacity (a route search that found nothing acceptable, or none at all).
     delivery_offered: float = 0.0
     capacity_blocked: float = 0.0
+    # --- Pipelined flows (22 Sep 2026) ---
+    # Share of the link's flow that reaches the buyer by pipeline (config
+    # `pipelined_flows`: 1 for a pipelined product, the products' composition
+    # share of an import bundle). That part is delivered without transport at
+    # the supplier's price whatever the network does - a pipeline is neither
+    # disrupted by the river nor a back-up for it; the rest is routed as
+    # before. A load-time rule on the final link set (supply_chain.
+    # load_pipelined_flows), re-applied on every cache load, not persisted.
+    pipelined_share: float = 0.0
+    pipelined_delivery: float = 0.0     # the part delivered by pipeline this step
 
     # ------------------------------------------------------------------
 
@@ -104,6 +114,7 @@ class CommercialLink:
         self.alternative_route_realized_delivery = 0.0
         self.delivery_offered = 0.0
         self.capacity_blocked = 0.0
+        self.pipelined_delivery = 0.0
 
     def determine_cargo_type(self, sector_to_cargo_type: dict):
         self.cargo_type = sector_to_cargo_type.get(
@@ -320,6 +331,10 @@ class CommercialLink:
         "capacity_blocked",
         "status",
         "current_route",
+        # the pipelined share is a load-time rule (re-applied on every load),
+        # so the caches stay what they were before the rule existed
+        "pipelined_share",
+        "pipelined_delivery",
     })
 
     def __getstate__(self) -> dict:
@@ -330,6 +345,8 @@ class CommercialLink:
         self.__dict__.update(state)
         # Restore transient fields to the same values reset_transport_tracking()
         # would write at the start of the next step.
+        self.pipelined_share = 0.0
+        self.pipelined_delivery = 0.0
         self.served_order = 0.0
         self.alternative_route = None
         self.alternative_route_length = 1.0

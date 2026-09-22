@@ -100,7 +100,8 @@ class Country:
 
         def _after_shipment(link, route):
             self.qty_sold += link.realized_delivery
-            self.usd_transported += link.realized_delivery
+            # the pipelined part of a delivery is sold but not transported
+            self.usd_transported += link.realized_delivery - link.pipelined_delivery
             self.tons_transported += _realized_tons(link)
             if hasattr(route, 'length'):
                 self.tonkm_transported += _realized_tons(link) * route.length

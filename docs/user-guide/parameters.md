@@ -140,7 +140,21 @@ for service quality and separates road from rail; the sea leg gets its own, lowe
 value so that a longer voyage to a bigger port is not priced like a slow inland mode.
 
 ```yaml
+pipelined_flows:                 # optional: products that reach their buyers by pipeline
+  products: [B06]                # sector codes (crude oil and natural gas)
+  # buyer_sectors: [C19, D]      # optional: restrict the rule to these buyers
 ```
+
+`pipelined_flows` marks the share of every commercial link that travels by
+pipeline, which the transport network does not carry: 1 for a link whose product
+is one of `products`, the products' MRIO composition share for an import bundle
+(`{BLOC}_imports`). That share is delivered without transport at the supplier's
+price whatever the network does to the rest (a pipeline is neither disrupted nor
+a back-up); the routed remainder follows the usual rules. The rule is applied on
+every cache load, not baked into the caches. The routing summary reports the
+pipelined value (`pipelined_usd`) and the link table the pipelined part of each
+delivery (`pipelined_delivery`); `delivery_in_tons` is the tonnage actually
+placed on the network.
 
 Transport networks are loaded from a GeoPackage configured by
 `filepaths.transport`. Layer names should match `transport_modes`.

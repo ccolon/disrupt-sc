@@ -540,6 +540,23 @@ class TransportNetwork(nx.Graph):
                                         "cargo_type": cargo_type, "link_pid": link_pid}
         return shipment
 
+    def place_direct_delivery(self, link_pid: str, destination_node: int, monetary_quantity: float,
+                              product_type: str = "", flow_category: str = "", cargo_type: str = ""):
+        """Deposit a quantity at a destination node without a route.
+
+        The pipelined part of a link's delivery: no edge carries it and no
+        tonnage moves on the network, but the receiving agent collects it with
+        the routed part under the link pid (accumulated like a second leg).
+        """
+        dest_shipments = self._node[destination_node].setdefault("shipments", {})
+        existing = dest_shipments.get(link_pid)
+        if existing is not None:
+            existing["quantity"] = existing.get("quantity", 0) + monetary_quantity
+        else:
+            dest_shipments[link_pid] = {"quantity": monetary_quantity, "tons": 0.0,
+                                        "product_type": product_type, "flow_category": flow_category,
+                                        "cargo_type": cargo_type, "link_pid": link_pid}
+
     def adjust_destination_shipment(self, destination_node: int, dest_key: str,
                                     quantity_delta: float, tons_delta: float):
         """Change the quantity waiting at a destination node (a gate cut or re-send)."""

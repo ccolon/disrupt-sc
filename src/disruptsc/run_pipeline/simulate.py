@@ -633,6 +633,7 @@ def _collect_routing_summary(sc_network, time_step: int) -> list[dict]:
         "total_usd": 0.0,
         "main_usd": 0.0,
         "alternative_usd": 0.0,
+        "pipelined_usd": 0.0,          # delivered by pipeline: no route, no tonnage on the network
         "blocked_usd": 0.0,
         "capacity_blocked_usd": 0.0,   # the part of blocked_usd withheld by the capacity gate
     })
@@ -656,7 +657,8 @@ def _collect_routing_summary(sc_network, time_step: int) -> list[dict]:
 
         main_delivery = link.main_route_realized_delivery
         alternative_delivery = link.alternative_route_realized_delivery
-        tracked_total = main_delivery + alternative_delivery
+        pipelined_delivery = getattr(link, "pipelined_delivery", 0.0)
+        tracked_total = main_delivery + alternative_delivery + pipelined_delivery
         if tracked_total <= EPSILON and link.realized_delivery > EPSILON:
             if link.current_route == "alternative":
                 alternative_delivery = link.realized_delivery
@@ -665,6 +667,7 @@ def _collect_routing_summary(sc_network, time_step: int) -> list[dict]:
 
         buckets[bucket]["main_usd"] += main_delivery * link.eq_price
         buckets[bucket]["alternative_usd"] += alternative_delivery * link.eq_price
+        buckets[bucket]["pipelined_usd"] += pipelined_delivery * link.eq_price
 
         # Blocked = ordered but not delivered (supplier rationing, refusals,
         # the substitution ceiling and the capacity gate together); the gate's
