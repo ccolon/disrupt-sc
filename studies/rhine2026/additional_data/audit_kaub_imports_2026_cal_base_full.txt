@@ -1,0 +1,68 @@
+Kaub-crossing links at t=0: 5,746; value 1,243 mUSD/week; 1,313 kt/week
+imports across Kaub: 702 mUSD/week = 57 % of the value across Kaub; by buyer sector (mUSD/week):
+buyer_sector
+C19       253.3
+D         143.9
+C10T12     66.3
+C20        19.6
+C24A       15.4
+C23        14.4
+H49        13.7
+G          12.2
+A01         7.0
+H51         5.2
+
+REFINERIES: imported inputs across Kaub 253 mUSD/week, 199 kt/week, cargo classes ['dry_bulk', 'liquid_bulk']
+     115 AUT_C19_0   AUT lat 48.15 lon 16.49 importance    4263:    2.1 mUSD/wk    0.7 kt/wk from AME,GBR,USA  OMV Schwechat: crude by the AWP pipeline from the TAL system and Austrian fields
+   12727 AUT_C19_1   AUT lat 48.15 lon 16.49 importance    4263:    2.1 mUSD/wk    0.7 kt/wk from AME,GBR,USA  OMV Schwechat: crude by the AWP pipeline from the TAL system and Austrian fields
+   12732 CHE_C19_1   CHE lat 46.95 lon 7.41 importance     208:    0.2 mUSD/wk    0.1 kt/wk from AME,NOR,USA  Cressier (agent at the Swiss centroid): crude by pipeline from the SPSE system
+    1331 CHE_C19_0   CHE lat 46.95 lon 7.41 importance     208:    0.1 mUSD/wk    0.0 kt/wk from AME,NOR,USA  Cressier (agent at the Swiss centroid): crude by pipeline from the SPSE system
+    2720 DEU_C19_1   DEU lat 48.99 lon 8.44 importance   16732:  133.7 mUSD/wk  106.7 kt/wk from AFR,AME,GBR,NOR,RUS,TUR,USA  MiRO Karlsruhe: crude by the TAL pipeline (Trieste) and the SPSE pipeline (Fos); no crude by barge
+    2724 DEU_C19_5   DEU lat 48.58 lon 11.59 importance    5026:   28.6 mUSD/wk   22.8 kt/wk from AFR,AME,GBR,NOR,RUS,USA  Bayernoil Vohburg/Neustadt: crude by the TAL pipeline
+    2726 DEU_C19_7   DEU lat 48.58 lon 11.59 importance    6032:   47.5 mUSD/wk   37.9 kt/wk from AFR,AME,GBR,NOR,RUS,USA  Bayernoil Vohburg/Neustadt: crude by the TAL pipeline
+    2728 DEU_C19_9   DEU lat 48.58 lon 11.59 importance    5460:   22.4 mUSD/wk   17.9 kt/wk from AFR,AME,GBR,NOR,RUS,USA  Bayernoil Vohburg/Neustadt: crude by the TAL pipeline
+    2730 DEU_C19_11  DEU lat 47.82 lon 13.01 importance    3921:   16.8 mUSD/wk   11.8 kt/wk from AME,GBR,NOR,USA  OMV Burghausen: crude by the TAL pipeline
+
+ELECTRICITY AND GAS: imported inputs across Kaub 144 mUSD/week, 100 kt/week, cargo classes ['dry_bulk', 'liquid_bulk']
+   12135 SVK_D_0     SVK lat 48.20 lon 17.23 importance    1209:    0.6 mUSD/wk    0.2 kt/wk from AME,USA  
+    1426 CHE_D_1     CHE lat 47.45 lon 8.24 importance   69016:    3.7 mUSD/wk    4.8 kt/wk from AFR  
+    1427 CHE_D_2     CHE lat 47.41 lon 8.57 importance     162:    0.0 mUSD/wk    0.0 kt/wk from AFR  
+     227 AUT_D_0     AUT lat 47.02 lon 16.62 importance    4363:    0.1 mUSD/wk    0.0 kt/wk from GBR  
+     228 AUT_D_1     AUT lat 48.12 lon 16.32 importance   13657:    2.3 mUSD/wk    0.8 kt/wk from AME,GBR,USA  
+     229 AUT_D_2     AUT lat 48.19 lon 16.42 importance    6922:    1.7 mUSD/wk    0.6 kt/wk from AME,GBR,USA  
+     232 AUT_D_5     AUT lat 48.18 lon 13.99 importance    8748:    1.0 mUSD/wk    0.3 kt/wk from AME,GBR,USA  
+     233 AUT_D_6     AUT lat 47.77 lon 12.98 importance    7517:    0.7 mUSD/wk    0.2 kt/wk from AME,GBR,USA  
+     234 AUT_D_7     AUT lat 47.25 lon 11.35 importance    9490:    1.8 mUSD/wk    0.6 kt/wk from AME,GBR,USA  
+     235 AUT_D_8     AUT lat 47.46 lon 9.73 importance    8096:    1.7 mUSD/wk    0.6 kt/wk from AME,GBR,USA  
+    3203 DEU_D_0     DEU lat 49.16 lon 9.30 importance    6855:   21.7 mUSD/wk   15.0 kt/wk from AFR,AME,ASI,GBR,MEA,NOR,ROW,RUS,USA  
+    3204 DEU_D_1     DEU lat 48.97 lon 8.44 importance    6370:   18.4 mUSD/wk   13.7 kt/wk from AFR,AME,GBR,NOR,RUS,USA  
+    3205 DEU_D_2     DEU lat 48.47 lon 7.90 importance    3166:    2.9 mUSD/wk    2.2 kt/wk from AFR,AME,GBR,NOR,RUS,USA  
+    3206 DEU_D_3     DEU lat 47.49 lon 9.74 importance    1234:    1.5 mUSD/wk    1.0 kt/wk from AME,GBR,NOR,RUS,USA  
+    3207 DEU_D_4     DEU lat 48.17 lon 11.74 importance    9433:   15.1 mUSD/wk    9.4 kt/wk from AME,GBR,NOR,USA  
+    3208 DEU_D_5     DEU lat 48.94 lon 12.58 importance    3524:    6.9 mUSD/wk    5.1 kt/wk from AFR,AME,GBR,NOR,RUS,USA  
+    3209 DEU_D_6     DEU lat 49.52 lon 12.16 importance    2938:    2.7 mUSD/wk    1.8 kt/wk from AFR,AME,GBR,NOR,USA  
+    3211 DEU_D_8     DEU lat 49.36 lon 11.12 importance    3590:   11.3 mUSD/wk    8.4 kt/wk from AFR,AME,GBR,NOR,RUS,USA  
+    3212 DEU_D_9     DEU lat 50.00 lon 10.08 importance    3426:    8.5 mUSD/wk    5.9 kt/wk from AFR,AME,ASI,GBR,MEA,NOR,ROW,RUS,USA  
+    3213 DEU_D_10    DEU lat 48.00 lon 10.22 importance    2744:    3.4 mUSD/wk    2.5 kt/wk from AFR,AME,GBR,NOR,RUS,USA  
+    3218 DEU_D_15    DEU lat 50.06 lon 8.72 importance    5487:   20.7 mUSD/wk   14.4 kt/wk from AFR,AME,ASI,GBR,MEA,NOR,ROW,RUS,USA  
+    3219 DEU_D_16    DEU lat 50.47 lon 8.73 importance    1169:    2.0 mUSD/wk    1.4 kt/wk from AFR,AME,ASI,GBR,MEA,NOR,ROW,RUS,USA  
+    3233 DEU_D_30    DEU lat 49.46 lon 7.80 importance    3677:    8.9 mUSD/wk    6.2 kt/wk from AFR,AME,ASI,GBR,MEA,NOR,ROW,RUS,USA  
+    6297 FRA_D_8     FRA lat 48.51 lon 7.58 importance    2804:    2.8 mUSD/wk    2.5 kt/wk from AFR,ASI,MEA,NOR,RUS,USA  
+    7915 HUN_D_0     HUN lat 47.57 lon 19.16 importance     808:    0.2 mUSD/wk    0.1 kt/wk from USA  
+    7916 HUN_D_1     HUN lat 47.51 lon 19.30 importance     887:    0.2 mUSD/wk    0.1 kt/wk from USA  
+    7919 HUN_D_4     HUN lat 45.99 lon 18.58 importance    2582:    2.6 mUSD/wk    2.3 kt/wk from RUS,USA  
+    7920 HUN_D_5     HUN lat 47.88 lon 20.83 importance    2289:    0.3 mUSD/wk    0.1 kt/wk from USA  
+    7921 HUN_D_6     HUN lat 47.80 lon 21.24 importance     848:    0.2 mUSD/wk    0.0 kt/wk from USA  
+    7922 HUN_D_7     HUN lat 46.31 lon 20.04 importance     570:    0.1 mUSD/wk    0.0 kt/wk from USA  
+
+all deliveries TO refineries across Kaub by seller sector and cargo class (mUSD/week):
+                            mUSD     kt  links
+seller_sector cargo_type                      
+B06           dry_bulk       3.2    5.1     13
+B08           dry_bulk       0.0    0.0      1
+B09           dry_bulk       0.3    0.3     29
+C19           liquid_bulk   52.7   62.8     18
+imports       dry_bulk     253.2  198.6     40
+              liquid_bulk    0.2    0.0      1
+
+refined products FROM refineries across Kaub (real tank-barge traffic): 407 mUSD/week, 485 kt/week; buyers: {'C20': 61.0, 'C19': 53.0, 'H49': 32.0, 'G': 29.0, 'D': 25.0, 'H51': 14.0, 'H50': 14.0, 'F': 12.0}
