@@ -1,0 +1,16 @@
+# Rhine 2026 cluster batch (24 Sep 2026): the input-stock ladder under gate + surcharge, 2018 profile.
+# The gate + surcharge runs of 23 Sep (jobs_20260923_gs.txt) give the matched estimand its shape (onset in
+# August, peak in November) but at the x2 buffer the level is two to three times below the record (2.11
+# vs 3.7-6.2 %-months; Aug-Sep 0.12-0.13 against about 1). The x2 was picked for the price variant, so the
+# ladder is rerun under the kept representation: 2018 at x1, x1.25, x1.5 (x2 = 2018_gs), same flags as
+# jobs_20260923_gs.txt (gate on, partial reductions, anchored capacities, voyage surcharge, pipelined flows,
+# 20 recovery weeks, seed 42, light export). Read with matched_estimand_2018.py --runs 2018_gs_inv100,
+# 2018_gs_inv125,2018_gs_inv150,2018_gs (onset month, peak month, integral against the record).
+# The cluster's caches were rebuilt with the capacity labels by 2026_gs_base (23 Sep); nothing rebuilds here,
+# so launch with --independent (a job list without a *_base line behaves the same way).
+#     cd /projects/disruptsc/disrupt-sc && git pull && bash studies/rhine2026/cluster/launch_rhine_batch.sh --independent --jobs studies/rhine2026/cluster/jobs_20260924_gsladder.txt
+# Pack:
+#     bash studies/rhine2026/cluster/pack_results.sh --jobs studies/rhine2026/cluster/jobs_20260924_gsladder.txt --with-firms 2018_gs_inv100,2018_gs_inv125,2018_gs_inv150
+2018_gs_inv100 | --profile 2018 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --recovery-weeks 20 --inventory-scale 1.0
+2018_gs_inv125 | --profile 2018 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --recovery-weeks 20 --inventory-scale 1.25
+2018_gs_inv150 | --profile 2018 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --recovery-weeks 20 --inventory-scale 1.5
