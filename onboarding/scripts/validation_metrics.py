@@ -199,7 +199,8 @@ def main() -> int:
     # one per crossing and mode, so their flows ARE the border assignment.
     if "special" in g_all.columns:
         st = g_all[g_all["special"].isin(["stitch", "bridge"])
-                   | g_all["name"].astype(str).str.contains("border section", na=False)]
+                   | g_all["name"].astype(str).str.contains("border section", na=False)
+                   | g_all["name"].astype(str).str.startswith("BCP: ")]
         if len(st):
             GAZ = {"Nadlac/Curtici": (20.9, 46.2), "Bors/Episcopia": (21.9, 47.1),
                    "Petea/Halmeu": (23.1, 47.9), "Siret/Vicsani": (26.1, 47.9),
