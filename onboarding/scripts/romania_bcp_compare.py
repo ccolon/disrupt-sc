@@ -22,6 +22,8 @@ REPO = Path(r"C:\Users\Celian\OneDrive\DisruptSC\disrupt-sc")
 # counts are trucks both directions incl. empties, converted at 10-15 t)
 OBSERVED = {
     "Porubne-Siret":        ("road",  1.4, "UA-exits only (260 veh/day)"),
+    "Stanca-Costesti":      ("road",  0.35, "both dir, 2.4k trucks/month"),
+    "Radauti-Prut":         ("road",  0.03, "both dir, 170 trucks/month"),
     "Vadul-Siret/Vicsani":  ("rail",  2.0, "UA-exits only (165 kt/month)"),
     "Dyakove-Halmeu":       ("road",  0.45, "UA-exits only (83 veh/day)"),
     "Dyakove/Halmeu rail":  ("rail",  0.44, "UA-exits only (37 kt/month)"),
@@ -34,18 +36,20 @@ OBSERVED = {
     "Giurgiulesti rail":    ("rail",  0.7, "both dir, 18.3k wagons/yr"),
 }
 
-NAME_MAP = {  # edge-name token -> observed row
-    "Porubne-Siret": "Porubne-Siret",
-    "Vadul-Siret/Vicsani": "Vadul-Siret/Vicsani",
-    "Dyakove-Halmeu": "Dyakove-Halmeu",
-    "gauge break Dyakove/Halmeu": "Dyakove/Halmeu rail",
-    "Orlivka-Isaccea": "Orlivka-Isaccea ferry",
-    "Leuseni-Albita": "Leuseni-Albita",
-    "Sculeni": "Sculeni",
-    "Giurgiulesti-Galati": "Giurgiulesti-Galati",
-    "Cahul-Oancea": "Cahul-Oancea",
-    "stitch railways @(27.81,47.23)": "Ungheni rail",
-    "stitch railways @(28.20,45.47)": "Giurgiulesti rail",
+NAME_MAP = {  # edge-name token -> observed row (v15 'BCP:' naming)
+    "BCP: Siret-Porubne (roads)": "Porubne-Siret",
+    "BCP: Vicsani-Vadul-Siret (railways)": "Vadul-Siret/Vicsani",
+    "BCP: Halmeu-Dyakove (roads)": "Dyakove-Halmeu",
+    "BCP: Halmeu-Dyakove (railways)": "Dyakove/Halmeu rail",
+    "BCP: Isaccea-Orlivka (roads)": "Orlivka-Isaccea ferry",
+    "BCP: Albita-Leuseni (roads)": "Leuseni-Albita",
+    "BCP: Sculeni (roads)": "Sculeni",
+    "BCP: Giurgiulesti-Galati (roads)": "Giurgiulesti-Galati",
+    "BCP: Oancea-Cahul (roads)": "Cahul-Oancea",
+    "BCP: Ungheni (railways)": "Ungheni rail",
+    "BCP: Giurgiulesti CFR (railways)": "Giurgiulesti rail",
+    "BCP: Stanca-Costesti (roads)": "Stanca-Costesti",
+    "BCP: Radauti-Prut-Lipcani (roads)": "Radauti-Prut",
 }
 
 
