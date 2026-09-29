@@ -260,11 +260,16 @@ inventory_duration_targets:
   definition: per_buying_sector
   unit: day
   service_days: 90
+  # construction joined the non-storable inputs on 30 Sep 2026 (user decision, review point EC6): its buyers
+  # held goods-stock days of it (real estate 10 d; builders 10 d of subcontracting, 31 % of their inputs), which
+  # cost real estate 2.0 bn USD and doubled the construction loss; tested in jobs_20260929_constr.txt (2026
+  # 1.58 -> 1.24 % of a quarter, every other sector and the 2018 industrial path unchanged)
   service_types:
   - service
   - services
   - trade
   - transport
+  - construction
   values:
     default: 30
     A01: 30

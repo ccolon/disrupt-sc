@@ -5,10 +5,10 @@ waves (length, depth), not a test of the claim that a low-water season is priced
 experiment isolates the memory of the stocks:
 
     A alone          weeks 1-10 of the 2026 profile (22 June - 30 August: the descent and the August trough)
-    B alone          weeks 11-19 (31 August - 1 November: the September-October trough and the recovery)
+    B alone          weeks 11 to the end of the profile (from 31 August: the autumn trough and the recovery)
     A, gap g, B      A, then g weeks of normal water, then B, for g = 1, 2, 4, 8
                      (g = 0 is the 2026 profile itself, run 2026_gs1_base)
-    flat             19 weeks at the mean load factor of the 2026 profile: the same tonnage turned away,
+    flat             the whole profile at its mean load factor: the same tonnage turned away,
                      spread evenly, no trough
 
 Statistic: the interaction I(g) = L(A, gap g, B) - L(A) - L(B), with L the cumulated German value-added

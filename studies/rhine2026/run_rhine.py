@@ -68,7 +68,7 @@ sys.setrecursionlimit(50000)
 
 from disruptsc.config import load_config, setup_logging  # noqa: E402
 from disruptsc.run import execute                        # noqa: E402
-from disruptsc.run_pipeline.cache import setup_cache_isolation  # noqa: E402
+from disruptsc.run_pipeline.cache import setup_cache_dir, setup_cache_isolation  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 SCEN = HERE / "scenarios"
@@ -342,7 +342,13 @@ def main():
                          "to emit partial capacity reductions instead (needs --constraint-mode on: the "
                          "gate rations the Kaub edge to load factor x capacity every week, and since 22 Sep "
                          "2026 the voyage surcharge is paid as well - gate + surcharge)")
-    ap.add_argument("--surcharge-scope", choices=["voyage", "kaub"], default="voyage",
+    ap.add_argument("--nb-suppliers-per-input", type=float, default=None,
+                    help="sensitivity: suppliers drawn per input (config default 1); a supply-chain cache key, "
+                         "use with --cache-isolation")
+    ap.add_argument("--cache-dir", default=None,
+                    help="named cache directory tmp/<name>, shared by the paired runs of one supply-chain draw "
+                         "(the first run builds it, the others reuse it)")
+    ap.add_argument("--surcharge-scope", choices=["voyage", "kaub", "none"], default="voyage",
                     help="voyage (default since 7 Sep 2026): the week's multiplier on every Rhine edge from Koblenz "
                          "upstream (scenarios/rhine_capacities.csv order) and 1 + (m - 1) x --lower-rhine-factor on "
                          "the Lower Rhine edges; kaub: the Kaub edge only (runs of 3-7 Sep, surcharge under-priced)")
@@ -459,7 +465,7 @@ def main():
         rule = ("closure >= " + format(closure, ".0%")) if closure is not None else (
             "partial capacity reductions (gate)" + (" + voyage surcharge" if upstream else ""))
     scope = (f"voyage surcharge: {len(upstream)} upstream edges at m, {len(lower_rhine)} Lower Rhine edges at "
-             f"1+(m-1)x{args.lower_rhine_factor:.2f}" if upstream else "surcharge on the Kaub edge only")
+             f"1+(m-1)x{args.lower_rhine_factor:.2f}" if upstream else ("no surcharge" if args.surcharge_scope == "none" else "surcharge on the Kaub edge only"))
     print(f"profile {args.profile}: {len(reductions)} weeks, {len(kaub)} disrupted weeks ({rule}; {scope}), "
           f"max reduction {max(reductions):.0%}, t_final={t_final}, edges={edges}")
     for d in kaub:
@@ -538,6 +544,8 @@ def main():
         config["adaptive_supplier_weight"] = False
     if args.no_pipelines:
         config["pipelined_flows"] = {"products": []}
+    if args.nb_suppliers_per_input is not None:
+        config["nb_suppliers_per_input"] = args.nb_suppliers_per_input
     if args.light_export:
         config["export_link_data"] = False
         config["export_inventory_data"] = False
@@ -545,6 +553,8 @@ def main():
 
     if args.cache_isolation:
         setup_cache_isolation(args.scope)
+    elif args.cache_dir:
+        setup_cache_dir(args.cache_dir)
     export_folder = Path(args.out) if args.out else RUNS_DIR / f"{args.profile}_seed{args.seed}"
     print(f"Export folder: {export_folder}")
     execute(config, cache=(args.cache or None), export_folder=export_folder, open_report=not args.no_open)

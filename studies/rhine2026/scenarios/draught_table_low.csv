@@ -1,0 +1,13 @@
+kaub_cm,load_factor,load_factor_vessel_gms,anchor
+5,0.02,0.0,loading-table band (30 Sep 2026): the shortfall 1 - load factor of draught_table.csv x 1.15 (pessimistic); full loading unchanged
+10,0.02,0.0,loading-table band (30 Sep 2026): the shortfall 1 - load factor of draught_table.csv x 1.15 (pessimistic); full loading unchanged
+15,0.02,0.02,loading-table band (30 Sep 2026): the shortfall 1 - load factor of draught_table.csv x 1.15 (pessimistic); full loading unchanged
+25,0.103,0.09,loading-table band (30 Sep 2026): the shortfall 1 - load factor of draught_table.csv x 1.15 (pessimistic); full loading unchanged
+30,0.138,0.11,loading-table band (30 Sep 2026): the shortfall 1 - load factor of draught_table.csv x 1.15 (pessimistic); full loading unchanged
+40,0.195,0.16,loading-table band (30 Sep 2026): the shortfall 1 - load factor of draught_table.csv x 1.15 (pessimistic); full loading unchanged
+55,0.31,0.24,loading-table band (30 Sep 2026): the shortfall 1 - load factor of draught_table.csv x 1.15 (pessimistic); full loading unchanged
+78,0.54,0.35,loading-table band (30 Sep 2026): the shortfall 1 - load factor of draught_table.csv x 1.15 (pessimistic); full loading unchanged
+100,0.77,0.46,loading-table band (30 Sep 2026): the shortfall 1 - load factor of draught_table.csv x 1.15 (pessimistic); full loading unchanged
+120,0.885,0.56,loading-table band (30 Sep 2026): the shortfall 1 - load factor of draught_table.csv x 1.15 (pessimistic); full loading unchanged
+150,1.0,0.71,loading-table band (30 Sep 2026): the shortfall 1 - load factor of draught_table.csv x 1.15 (pessimistic); full loading unchanged
+250,1.0,1.0,loading-table band (30 Sep 2026): the shortfall 1 - load factor of draught_table.csv x 1.15 (pessimistic); full loading unchanged

@@ -31,7 +31,7 @@ stamp=$(date +%Y%m%d_%H%M)
 list=$(mktemp)
 for d in $RUNS; do
     [[ -d "$d" ]] || continue
-    for f in analysis.txt country_data.csv household_data.csv routing_summary.csv parameters.yaml run_fingerprint.json figures.log mrio_by_sector.csv mrio_by_region.csv mrio_by_country.csv validation_outputs.csv validation_outputs.txt kaub_links_check.csv kaub_links_check.txt; do
+    for f in analysis.txt country_data.csv household_data.csv routing_summary.csv parameters.yaml run_fingerprint.json figures.log mrio_by_sector.csv mrio_by_region.csv mrio_by_country.csv validation_outputs.csv validation_outputs.txt kaub_links_check.csv kaub_links_check.txt link_flows_disrupted.csv.gz price_by_cargo.csv inventory_trace.csv extract_link_flows.txt; do
         [[ -f "$d/$f" ]] && echo "$d/$f" >> "$list"
     done
     [[ -d "$d/figures" ]] && find "$d/figures" -type f >> "$list"
@@ -45,6 +45,7 @@ for d in $RUNS; do
         done
     fi
 done
+if [[ -n "$JOBS" ]]; then tag=$(basename "$JOBS" .txt); ls compare_runs_batch_${tag}.* >> "$list" 2>/dev/null || true; fi
 ls compare_runs_batch.* >> "$list" 2>/dev/null || true
 tar czf "rhine_batch_${stamp}.tgz" -T "$list"
 rm -f "$list"

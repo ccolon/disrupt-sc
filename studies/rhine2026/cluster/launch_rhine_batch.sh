@@ -27,7 +27,7 @@ DATA_PATH="/projects/disruptsc/disrupt-sc-data"
 OUTPUT_DIR="/projects/disruptsc/runs/rhine2026"
 SLURM_LOG_DIR="${SCRIPT_DIR}/slurm_logs/rhine2026"
 TIME_RUN="16:00:00";  MEM_RUN="20G";  CPUS_RUN=2      # up to 43 weekly steps at ~10 min (+ build), ~13 GB RAM on the laptop
-TIME_POST="01:00:00"; MEM_POST="12G"
+TIME_POST="02:00:00"; MEM_POST="12G"
 # ===========================================================================
 
 COMMON="--profile 2026 --no-open --seed 42 --recovery-weeks 12 --light-export"
@@ -106,7 +106,7 @@ while IFS='|' read -r name flags; do
 python studies/rhine2026/plots/scenario_figures.py --profile ${profile} --run ${out} --out ${out}/figures > ${out}/figures.log 2>&1; \
 rm -f ${out}/household_data_by_sector.csv"
     if $full; then
-        post="${post}; python studies/rhine2026/build_kaub_links.py --definition any --expect --out ${out}/kaub_links_check.csv > ${out}/kaub_links_check.txt 2>&1 && python studies/rhine2026/validation_outputs.py ${out} --flags ${out}/kaub_links_check.csv --out ${out}/validation_outputs.csv > ${out}/validation_outputs.txt 2>&1"
+        post="${post}; python studies/rhine2026/build_kaub_links.py --definition any --expect --out ${out}/kaub_links_check.csv > ${out}/kaub_links_check.txt 2>&1 && python studies/rhine2026/validation_outputs.py ${out} --flags ${out}/kaub_links_check.csv --out ${out}/validation_outputs.csv > ${out}/validation_outputs.txt 2>&1; python studies/rhine2026/extract_link_flows.py ${out} > ${out}/extract_link_flows.txt 2>&1"
     fi
     pid=$(submit "post_${name}" "$TIME_POST" "$MEM_POST" 1 "$id" "$post")
     ALL_IDS="${ALL_IDS}${ALL_IDS:+:}${pid}"
@@ -114,7 +114,10 @@ rm -f ${out}/household_data_by_sector.csv"
 done < "$JOBS_FILE"
 
 if [[ -n "$ALL_IDS" ]]; then
-    cmp="python studies/rhine2026/compare_runs.py ${RUN_DIRS} --weekly DEU --csv ${OUTPUT_DIR}/compare_runs_batch.csv > ${OUTPUT_DIR}/compare_runs_batch.txt 2>&1"
+    # 30 Sep 2026: the table carries the name of the job list, so that two lists launched the same day do not
+    # overwrite each other's comparison
+    tag=$(basename "$JOBS_FILE" .txt)
+    cmp="python studies/rhine2026/compare_runs.py ${RUN_DIRS} --weekly DEU --csv ${OUTPUT_DIR}/compare_runs_batch_${tag}.csv > ${OUTPUT_DIR}/compare_runs_batch_${tag}.txt 2>&1"
     submit "compare_rhine_batch" "00:30:00" "8G" 1 "$ALL_IDS" "$cmp" >/dev/null
     echo "  compare job queued after all postprocess jobs" >&2
 fi
