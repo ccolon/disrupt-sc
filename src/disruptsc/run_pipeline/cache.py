@@ -28,6 +28,15 @@ def setup_cache_isolation(scope: str):
     logging.info(f"Isolated cache: {_isolated_dir}")
 
 
+def setup_cache_dir(name: str):
+    """Use the named cache directory tmp/<name>: shared by the runs that name it (the paired runs of one
+    supply-chain draw), built by the first and reused by the others through the stage fingerprints."""
+    global _isolated_dir
+    _isolated_dir = TMP_FOLDER / str(name)
+    _isolated_dir.mkdir(parents=True, exist_ok=True)
+    logging.info(f"Named cache: {_isolated_dir}")
+
+
 def get_cache_dir() -> Path:
     if _isolated_dir:
         return _isolated_dir
