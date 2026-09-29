@@ -1,0 +1,97 @@
+# Inventory targets of config/user_defined_EU.yaml with ONE change (29 Sep 2026, review point EC6): construction
+# joins the non-storable inputs (service_types), so that every buyer of construction holds the 90-day coping
+# duration of a service input instead of the goods-stock days of its industry (real estate: 10 days of
+# 'construction'; construction itself: 10 days of subcontracting). The survey criticality matrix is untouched.
+# Passed to run_rhine.py with --inventory-targets.
+definition: per_buying_sector
+values:
+  default: 30
+  utility: 3
+  agriculture: 15
+  manufacturing: 30
+  service: 90
+  services: 90
+  trade: 30
+  transport: 5
+  A01: 30
+  A02: 30
+  A03: 30
+  B05: 30
+  B06: 30
+  B07: 30
+  B08: 30
+  B09: 30
+  C10T12: 18
+  C13T15: 40
+  C16: 33
+  C17_18: 33
+  C19: 12
+  C20: 30
+  C21: 60
+  C22: 40
+  C23: 30
+  C24A: 40
+  C24B: 40
+  C25: 36
+  C26: 60
+  C27: 60
+  C28: 55
+  C29: 18
+  C301: 60
+  C302T309: 60
+  C31T33: 40
+  D: 20
+  E: 10
+  F: 10
+  G: 5
+  H49: 7
+  H50: 7
+  H51: 7
+  H52: 7
+  H53: 7
+  I: 5
+  J58T60: 10
+  J61: 10
+  J62_63: 10
+  K: 7
+  L: 10
+  M: 10
+  N: 10
+  O: 15
+  P: 15
+  Q: 20
+  R: 7
+  S: 7
+  T: 7
+unit: day
+service_days: 90
+service_types:
+- service
+- services
+- trade
+- transport
+- construction
+overrides:
+  '*':
+    D: 90
+    E: 90
+    utility: 90
+  D:
+    B05: 30
+    B06: 90
+    C19: 10
+  C19:
+    B06: 90
+  C24A:
+    B07: 40
+    B05: 40
+  C20:
+    C19: 14
+    B06: 14
+  C10T12:
+    A01: 10
+  C23:
+    B05: 25
+    C19: 25
+  H49:
+    C19: 7
