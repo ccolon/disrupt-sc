@@ -1,0 +1,12 @@
+L(A alone) = 6,299 mUSD = 0.659 % of a quarter; L(B alone) = 4,632 = 0.485 %; sum 10,931 = 1.144 %
+
+gap (weeks of normal water)   L(A, gap, B) mUSD   % of a quarter   interaction I(g) mUSD   I(g) / (L(A)+L(B))
+         0                       15,056            1.576                  4,125                 38 %
+         1                       12,775            1.337                  1,844                 17 %
+         2                       11,660            1.221                    729                  7 %
+         4                       10,746            1.125                   -185                 -2 %
+         8                       10,116            1.059                   -815                 -7 %
+
+flat profile (same tonnage turned away, spread evenly): 9,232 mUSD = 0.966 % of a quarter, -39 % against the 2026 profile
+
+peak week (% of a week's value added, run week): wave_A 1.62 (wk 10), wave_B 1.46 (wk 5), wave_AB_gap1 1.91 (wk 17), wave_AB_gap2 1.64 (wk 17), wave_AB_gap4 1.62 (wk 10), wave_AB_gap8 1.62 (wk 10), wave_flat 0.83 (wk 6)
