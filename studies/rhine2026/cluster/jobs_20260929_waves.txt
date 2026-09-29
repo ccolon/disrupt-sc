@@ -1,0 +1,19 @@
+# Rhine 2026 cluster batch (29 Sep 2026): the wave-isolation experiment (review point NS4, test T5).
+# The claim "a low-water season is priced by its calendar" rests on comparing the two troughs of 2026,
+# which differ in length and depth. This batch isolates the memory of the stocks: wave A alone (weeks 1-10
+# of the 2026 profile), wave B alone (weeks 11-19), A then B with 1, 2, 4 and 8 weeks of normal water between
+# them (gap 0 is the 2026 profile itself = 2026_gs1_base, not rerun), and a flat profile with the same tonnage
+# turned away spread evenly over 19 weeks. Profiles: build_wave_profiles.py -> scenarios/2026_wave*.csv.
+# Statistic: I(g) = L(A, gap g, B) - L(A) - L(B) on the cumulated German loss (wave_isolation.py, from the
+# batch table). Same representation and settings as the paper set: gate + surcharge, stocks x1, pipelined
+# flows, seed 42, 20 recovery weeks after the last profile week, light export. Caches valid: independent jobs.
+#     cd /projects/disruptsc/disrupt-sc && git pull && bash studies/rhine2026/cluster/launch_rhine_batch.sh --independent --jobs studies/rhine2026/cluster/jobs_20260929_waves.txt
+# Pack (no firm data needed):
+#     bash studies/rhine2026/cluster/pack_results.sh --jobs studies/rhine2026/cluster/jobs_20260929_waves.txt
+wave_A        | --profile 2026_waveA --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20
+wave_B        | --profile 2026_waveB --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20
+wave_AB_gap1  | --profile 2026_waveAB_gap1 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20
+wave_AB_gap2  | --profile 2026_waveAB_gap2 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20
+wave_AB_gap4  | --profile 2026_waveAB_gap4 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20
+wave_AB_gap8  | --profile 2026_waveAB_gap8 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20
+wave_flat     | --profile 2026_waveflat --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20
