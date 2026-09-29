@@ -63,11 +63,16 @@ def style(ax, title=None, ylabel=None):
         ax.set_ylabel(ylabel, fontsize=8, color=INK2)
 
 
-def fig_shock(profile: str, closure_threshold: float, out: Path, closure_floors: str | None = DEFAULT_CLOSURE_FLOORS):
+def fig_shock(profile: str, closure_threshold: float, out: Path, closure_floors: str | None = DEFAULT_CLOSURE_FLOORS,
+              representation: str = "gate"):
+    """The shock as the model receives it. representation "gate" (the paper since 29 Sep 2026): the share of the
+    normal tonnage that the Kaub reach can pass and the voyage surcharge, every low-water week, no closure;
+    "priced": the surcharge while vessels sail and the closures below the sailing floors (SI)."""
+    gate = representation == "gate"
     prof = pd.read_csv(HERE / "scenarios" / f"{profile}.csv")
     curve = load_factor_curve(HERE / "scenarios" / "draught_table.csv")
     red = weekly_reductions(prof, curve)
-    floors = parse_closure_floors(closure_floors) if "kaub_cm" in prof.columns else None
+    floors = parse_closure_floors(closure_floors) if ("kaub_cm" in prof.columns and not gate) else None
     cts = list(DEFAULT_CARGO_TYPES)
     sched = {d["start_time"]: d for d in kaub_entries(build_disruptions(
         red, ["rhine_mainz_koblenz"], closure_threshold=closure_threshold,
@@ -88,6 +93,9 @@ def fig_shock(profile: str, closure_threshold: float, out: Path, closure_floors:
     mult = [_mult(sched[t]) if t in sched and sched[t]["type"] == "transport_cost_shock" else np.nan
             for t in range(1, len(red) + 1)]
     closed = [t in sched and sched[t]["type"] == "transport_disruption" for t in range(1, len(red) + 1)]
+    if gate:
+        mult = [min(20.0, 1.0 / (1.0 - r)) if 0.01 <= r < 1.0 else np.nan for r in red]
+        closed = [False] * len(red)
     closed_for = [_closed_for(sched[t]) if t in sched else [] for t in range(1, len(red) + 1)]
 
     fig, axes = plt.subplots(4 if floors else 3, 1, figsize=(8.5, 8.2 if floors else 7), sharex=True,
@@ -100,7 +108,8 @@ def fig_shock(profile: str, closure_threshold: float, out: Path, closure_floors:
     style(ax, f"Kaub gauge, weekly mean ({profile})", "cm")
     ax = axes[1]
     ax.plot(weeks, [100 * f for f in factor], color=SERIES[2], linewidth=2, marker="o", markersize=5)
-    style(ax, "Fleet capacity past Kaub implied by the draught table", "% of normal")
+    style(ax, "Share of the normal tonnage that the Kaub reach can pass (draught table)" if gate
+          else "Fleet capacity past Kaub implied by the draught table", "% of normal")
     ax.set_ylim(0, 105)
     ax = axes[2]
     ax.bar(weeks, [m if not np.isnan(m) else 0 for m in mult], width=5.5, color=SERIES[0], linewidth=0)
@@ -111,7 +120,8 @@ def fig_shock(profile: str, closure_threshold: float, out: Path, closure_floors:
             ax.bar(w, ymax, width=5.5, color=SERIES[1], alpha=0.35, linewidth=0)
             ax.text(w, ymax * 0.55, "closed", rotation=90, ha="center", va="center", fontsize=7, color=INK2)
     ax.axhline(1, color=INK3, linewidth=0.8)
-    style(ax, "What the model receives: cost multiplier on the Kaub edge (orange = closed for every class)", "× baseline cost")
+    style(ax, "Voyage surcharge: cost multiplier on the reaches from Koblenz upstream" if gate
+          else "What the model receives: cost multiplier on the Kaub edge (orange = closed for every class)", "× baseline cost")
     if floors:
         ax = axes[3]
         for i, ct in enumerate(cts):
@@ -204,11 +214,14 @@ def main():
     ap.add_argument("--closure-threshold", type=float, default=0.75)
     ap.add_argument("--closure-floors", default=DEFAULT_CLOSURE_FLOORS,
                     help="per-cargo sailing floors as in run_rhine.py; 'none' = single floor")
+    ap.add_argument("--representation", choices=["gate", "priced"], default="gate",
+                    help="gate = quantity constraint with the surcharge (the paper); priced = surcharge and closures (SI)")
     ap.add_argument("--run", default=None, help="scenario run folder for F5/F6")
     ap.add_argument("--out", default=str(HERE / "figures"))
     args = ap.parse_args()
     out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
-    fig_shock(args.profile, args.closure_threshold, out, closure_floors=args.closure_floors)
+    fig_shock(args.profile, args.closure_threshold, out, closure_floors=args.closure_floors,
+              representation=args.representation)
     print(f"F4 written for profile {args.profile}")
     if args.run:
         run = Path(args.run)

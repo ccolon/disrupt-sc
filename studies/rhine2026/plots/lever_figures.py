@@ -31,7 +31,7 @@ from scenario_figures import INK, INK2, SERIES, SURFACE, style  # noqa: E402
 LEVER_LABELS = {
     "deep20": "Fairway +20 cm (Abladeoptimierung Mittelrhein)",
     "fleet40": "Tank barges sail to 40 cm",
-    "fleet20": "Low-water bulk fleet (sails to 20 cm)",
+    "fleet20": "Low-water fleet (loading table of low-water vessels)",
     "stock7": "+7 days of input stocks, all buyers",
     "stock7t": "+7 days of stocks, barge-dependent buyers",
     "rail04": "Rail at the bulk rate (tank-car trains)",
@@ -156,7 +156,7 @@ def fig_levers(base: pd.Series, table: pd.DataFrame, weekly: dict[str, pd.Series
         ax.plot(s.index, s.values, color=SERIES[(i + 1) % len(SERIES)], linewidth=1.6, label=table.loc[n, "label"])
     style(ax, "Weekly value-added loss of Germany, mUSD: base and levers", "mUSD / week")
     ax.set_xlabel(f"week of the run (1 = {first_week})", fontsize=8, color=INK2)
-    ax.legend(frameon=False, fontsize=7, labelcolor=INK2, ncol=2, loc="upper right")
+    ax.legend(frameon=False, fontsize=7, labelcolor=INK2, ncol=1, loc="center right")
     for ext in ("png", "pdf"):
         fig.savefig(out / f"F7_levers.{ext}", dpi=300, facecolor=SURFACE, bbox_inches="tight")
     plt.close(fig)
