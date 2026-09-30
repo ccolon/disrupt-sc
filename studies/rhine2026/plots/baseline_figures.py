@@ -102,7 +102,7 @@ def fig_modal_split(edges: gpd.GeoDataFrame, out: Path):
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower center", ncol=6, frameon=False, fontsize=8, labelcolor=INK2,
                bbox_to_anchor=(0.5, 0.045))
-    fig.text(0.01, 0.005, "Filled = model baseline (run 20260903_150745); hatched outline = data. Model shares exclude short-haul "
+    fig.text(0.01, 0.005, "Filled = model baseline; hatched outline = data. Model shares exclude short-haul "
              "road traffic by construction (firms at NUTS2/3 points); judge rail and waterways by tonne-km as well.",
              fontsize=7, color=INK3)
     fig.suptitle("Inland freight by mode, % of tonne-km", x=0.01, ha="left", fontsize=11, color=INK)
@@ -193,7 +193,9 @@ def main():
     ap.add_argument("--out", default=str(HERE / "figures"))
     args = ap.parse_args()
     out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
-    run = ROOT / "output" / "EU" / args.run
+    run = Path(args.run)
+    if not run.exists():
+        run = ROOT / "output" / "EU" / args.run
     edges = gpd.read_file(run / "transport_edges_with_flows_0.geojson")
     firms = gpd.read_file(run / "firm_table.geojson")
     fig_modal_split(edges, out)
