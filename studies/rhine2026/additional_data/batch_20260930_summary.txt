@@ -1,0 +1,111 @@
+runs in the two tables: 96; completed (Done.): 96; missing: []
+
+== headline (main list, all but seeds and waves) ==
+                        DEU_cum_mUSD  DEU_%quarter  DEU_peak_%week  DEU_peak_week  DEU_loss_weeks  EU_cum_mUSD  cons_loss_cum_mUSD  DEU_net_mUSD  DEU_gross_perishable_mUSD  firms<99%_peak_%
+run                                                                                                                                                                                          
+2026_s30_base                16612.0         1.739           2.842             17              23      18908.0             22956.0       15073.0                     9878.0              3.78
+2018_s30_base                 9836.0         1.030           1.398             21              23      11528.0             12505.0        9146.0                     6768.0              3.43
+2026_s30_nopool              73129.0         7.655          11.635             19              27     183813.0            258468.0       63623.0                    30014.0             21.65
+2018_s30_nopool              26748.0         2.800           4.746             23              25      50193.0             65591.0       22675.0                    13134.0              9.69
+2026_s30_stock7               9609.0         1.006           1.780             17              22      11127.0             12006.0        8954.0                     6603.0              3.16
+2026_s30_deep20              10308.0         1.079           1.793             18              22      12036.0             13527.0        9562.0                     6910.0              3.82
+2026_s30_fleet               14036.0         1.469           3.020             17              23      16173.0             18877.0       12708.0                     8587.0              3.91
+2026_s30_stock7t             13357.0         1.398           2.853             17              23      15411.0             18838.0       12063.0                     8077.0              3.62
+2026_s30_package              3448.0         0.361           0.793             17              19       4490.0              4932.0        3319.0                     2542.0              2.71
+2026_s30_gateonly            18091.0         1.894           2.803             17              24      20457.0             25364.0       16352.0                    10510.0              3.81
+2026_s30_surchargeonly           1.0         0.000           0.000             39               0          7.0                 0.0           1.0                        1.0              0.13
+2026_s30_tablelow            20577.0         2.154           2.925             16              24      23097.0             28869.0       18467.0                    11614.0              3.74
+2026_s30_tablehigh           11416.0         1.195           1.935             17              23      13269.0             15450.0       10571.0                     7439.0              3.71
+2018_s30_tablelow            13882.0         1.453           1.897             21              23      15932.0             18113.0       12607.0                     8700.0              3.67
+2018_s30_tablehigh            6643.0         0.695           0.826             16              23       7976.0              8229.0        6448.0                     5081.0              3.08
+2026_s30_sup2                 7032.0         0.736           0.998             17              22       8004.0              7204.0        6942.0                     5375.0              3.61
+2018_s30_sup2                 4027.0         0.422           0.662             16              21       4684.0              4109.0        3977.0                     3275.0              3.21
+2026_s30_full                16612.0         1.739           2.842             17              23      18908.0             22956.0       15073.0                     9878.0              3.78
+2018_s30_full                 9836.0         1.030           1.398             21              23      11528.0             12505.0        9146.0                     6768.0              3.43
+
+2026 ensemble (11 draws): DEU 1.46 +/- 0.41 % of a quarter, range 0.74-1.91; peak weeks [16, 17]; EU 9,690-19,508 mUSD
+
+2018 ensemble (11 draws): DEU 0.87 +/- 0.25 % of a quarter, range 0.42-1.17; peak weeks [16, 17, 21]; EU 5,625-12,156 mUSD
+
+== levers: German gross loss avoided, % of the base ==
+  lever  seed42_%  EU_seed42_%  paired_mean_%  paired_sd  paired_min  paired_max
+ stock7      42.0         41.0           38.0        7.0        28.0        50.0
+ deep20      38.0         36.0           38.0        4.0        31.0        44.0
+  fleet      16.0         14.0           16.0        3.0        11.0        20.0
+stock7t      20.0         18.0           22.0        5.0        17.0        30.0
+package      79.0         76.0           78.0        4.0        73.0        83.0
+ranking of the four single levers by seed: deep20 > stock7 > stock7t > fleet x6; stock7 > deep20 > stock7t > fleet x3; deep20 > stock7 > fleet > stock7t x1
+
+== wave isolation (gap 0 = 2026_s30_base) ==
+A alone 0.626, B alone 0.952, sum 1.577 % of a quarter
+  gap 0: 1.739 %; interaction +10 % of the sum; B adds 1.113 (1.17 x B alone)
+  gap 1: 1.692 %; interaction +7 % of the sum; B adds 1.066 (1.12 x B alone)
+  gap 2: 1.656 %; interaction +5 % of the sum; B adds 1.031 (1.08 x B alone)
+  gap 4: 1.604 %; interaction +2 % of the sum; B adds 0.978 (1.03 x B alone)
+  gap 8: 1.522 %; interaction -3 % of the sum; B adds 0.897 (0.94 x B alone)
+  flat (same tonnage, spread evenly): 1.326 %; the season is +31 % against it
+
+== channel decomposition ==
+  2026_s30_gateonly        DEU 1.894 % of a quarter, peak 2.80 % wk 17, EU 20,457
+  2026_s30_surchargeonly   DEU 0.000 % of a quarter, peak 0.00 % wk 39, EU 7
+  2026_s30_base            DEU 1.739 % of a quarter, peak 2.84 % wk 17, EU 18,908
+
+== structural sensitivities ==
+  2026_s30_tablelow    DEU 2.154 % of a quarter, peak 2.92 % wk 16
+  2026_s30_base        DEU 1.739 % of a quarter, peak 2.84 % wk 17
+  2026_s30_tablehigh   DEU 1.195 % of a quarter, peak 1.94 % wk 17
+  2026_s30_sup2        DEU 0.736 % of a quarter, peak 1.00 % wk 17
+  2026_s30_nopool      DEU 7.655 % of a quarter, peak 11.63 % wk 19
+  2018_s30_tablelow    DEU 1.453 % of a quarter, peak 1.90 % wk 21
+  2018_s30_base        DEU 1.030 % of a quarter, peak 1.40 % wk 21
+  2018_s30_tablehigh   DEU 0.695 % of a quarter, peak 0.83 % wk 16
+  2018_s30_sup2        DEU 0.422 % of a quarter, peak 0.66 % wk 16
+  2018_s30_nopool      DEU 2.800 % of a quarter, peak 4.75 % wk 23
+
+== 2018 industrial path (matched estimand; record Aug-Dec 1.02, 1.23, 1.38, 1.74, 0.82 = 6.19 with the lag, 3.67 without) ==
+  2018_s30_base      0.76 0.70 1.63 1.91 1.28  integral 5.57  peak Nov
+  2018_s30_tablelow  1.03 0.93 2.11 2.46 1.65  integral 7.25  peak Nov
+  2018_s30_tablehigh 0.52 0.51 1.22 1.36 0.88  integral 4.01  peak Nov
+  2018_s30_sup2      0.17 0.02 0.57 0.48 0.20  integral 1.37  peak Oct
+  2018_s30_seed1     0.38 0.28 0.87 1.02 0.56  integral 2.81  peak Nov
+  2018_s30_seed2     0.60 0.50 1.44 1.98 1.67  integral 5.26  peak Nov
+  2018_s30_seed3     0.10 -0.02 0.16 0.24 -0.01  integral 0.48  peak Nov
+  2018_s30_seed4     0.28 0.18 0.86 1.30 1.07  integral 3.10  peak Nov
+  2018_s30_seed5     0.91 0.69 1.76 2.15 1.39  integral 6.12  peak Nov
+  2018_s30_seed6     0.77 0.64 1.62 1.75 1.20  integral 5.33  peak Nov
+  2018_s30_seed7     0.49 0.38 1.18 1.59 1.23  integral 4.18  peak Nov
+  2018_s30_seed8     0.71 0.48 1.43 1.63 0.90  integral 4.65  peak Nov
+  2018_s30_seed9     0.22 0.03 0.22 0.25 -0.13  integral 0.66  peak Nov
+  2018_s30_seed10    0.50 0.45 1.66 2.66 1.48  integral 5.92  peak Nov
+  11 draws: integral 4.01 +/- 2.00 (range 0.48-6.12); peak month Nov x11; Aug 0.52, Sep 0.39 (record 1.02, 1.23)
+
+== 2026 base: German loss by sector and wave ==
+  shares %: F 16.2, H52 15.8, H49 13.8, D 13.4, C20 9.5, I 7.8, H50 6.5, C19 4.7, C23 3.7, A01 3.2
+  industry (B-E) 34 %; total 16,612 mUSD = 1.739 % of a quarter; industry 0.594 %
+  weeks 1-6: 0.117 % of a quarter
+  weeks 7-11 (August trough): 0.480 % of a quarter
+  weeks 12-19 (autumn trough): 1.053 % of a quarter
+  weeks 20-27: 0.089 % of a quarter
+  tail 28+: 0.000 % of a quarter
+  weekly DEU mUSD wk 1-30: [0, 100, 75, 146, 286, 512, 707, 925, 1065, 1192, 693, 403, 499, 998, 1407, 1918, 2088, 1741, 1006, 274, 275, 170, 88, 33, 7, 2, 1, 1, 1, 1]
+  countries mUSD: DEU 16,612, FRA 1,386, ESP 201, AUT 180, NLD 162, CZE 68, DNK 44; non-DE share of EU 12 %
+  net 15,073 (91 % of gross), perishable 59 %, delay 410 mUSD, consumption loss 22,956
+
+== link-level run 2026_s30_full: delivered prices of the routed deliveries (value-weighted) ==
+  dry_bulk     median max 1.000, p90 max 1.001, max 1.99, share of value paying > 1 % more: max 4 % (week 16)
+  liquid_bulk  median max 1.000, p90 max 1.002, max 2.45, share of value paying > 1 % more: max 6 % (week 16)
+  container    median max 1.000, p90 max 1.002, max 1.07, share of value paying > 1 % more: max 2 % (week 16)
+== disrupted chains, cumulated shortfall of deliveries (mUSD, eq. prices), by buyer country and input ==
+  FRA: C10T12->Household 1,037 (transport 0); C10T12->C10T12 582 (transport 0); A01->C10T12 434 (transport 502); C20->Household 224 (transport 0); D->D 153 (transport 0); I->Household 139 (transport 0)
+  DEU: F->Household 4,295 (transport 0); D->Household 2,671 (transport 0); I->Household 2,202 (transport 0); H49->Household 1,959 (transport 0); H52->Household 1,535 (transport 0); F->F 1,485 (transport 0)
+  NLD: imports->C19 221 (transport 0); C10T12->Household 50 (transport 0); B06->C19 48 (transport 0); C23->F 35 (transport 0); A01->C10T12 28 (transport 9); C19->C19 20 (transport 0)
+  AUT: H49->Household 211 (transport 0); H52->Household 101 (transport 0); C19->D 69 (transport 14); C19->H49 35 (transport 11); A01->C10T12 34 (transport 9); C24B->C24B 31 (transport 0)
+  FRA shortfall by seller region: FRA 3,246, DEU 1,336, RUS 89, MEA 36, ESP 32
+== stock trace, German firms, days of cover (need-weighted) at t = 0 / 10 / 11 / 15 / 19 ==
+  H49 <- C19: 7 / 6 / 7 / 6 / 8
+  D <- C19: 10 / 8 / 9 / 7 / 9
+  H52 <- C19: 7 / 6 / 7 / 6 / 8
+  F <- C23: 10 / 9 / 9 / 8 / 9
+  F <- B08: 10 / 9 / 10 / 10 / 14
+  C20 <- C19: 14 / 12 / 12 / 11 / 12
+  C23 <- B05: 25 / 26 / 27 / 30 / 36

@@ -102,6 +102,19 @@ def fig_shock(profile: str, closure_threshold: float, out: Path, closure_floors:
                              gridspec_kw={"height_ratios": [1, 1, 1, 0.45]} if floors else None)
     fig.patch.set_facecolor(SURFACE)
     ax = axes[0]
+    # provenance of the weeks (30 Sep 2026, review NS1/A10): observed, partly observed, forecast, assumed
+    if "status" in prof.columns:
+        shade = {"observed+forecast": ("#f5d58a", "partly observed"), "forecast": ("#f2b56b", "BfG six-week outlook"), "assumption": ("#d9d9d9", "assumed recovery")}
+        seen = set()
+        for w, st in zip(weeks, prof["status"].astype(str)):
+            if st in shade:
+                col, lab = shade[st]
+                for a in axes:
+                    a.axvspan(w - pd.Timedelta(days=3.5), w + pd.Timedelta(days=3.5), color=col, alpha=0.35, linewidth=0,
+                              label=(lab if (lab not in seen and a is axes[0]) else None))
+                seen.add(lab)
+        if seen:
+            axes[0].legend(frameon=False, fontsize=7, loc="lower left")
     ax.plot(weeks, prof["kaub_cm"], color=SERIES[0], linewidth=2, marker="o", markersize=5)
     ax.axhline(78, color=INK3, linewidth=1, linestyle="--")
     ax.text(weeks.iloc[0], 80, "GlW 78 cm (equivalent low water)", fontsize=7, color=INK3, va="bottom")

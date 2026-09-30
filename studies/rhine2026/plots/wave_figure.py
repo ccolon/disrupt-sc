@@ -54,16 +54,16 @@ def style(ax):
 
 
 def main(out: Path):
-    w = weekly_block(AD / "compare_runs_batch_waves.txt")
-    base = weekly_block(AD / "compare_runs_batch_20260929_gs1paper.txt")["2026_gs1_base"]
-    t = table(AD / "compare_runs_batch_waves.csv")
-    b0 = table(AD / "compare_runs_batch_20260929_gs1paper.csv").loc["2026_gs1_base"]
+    w = weekly_block(AD / "compare_runs_batch_jobs_20260930_main.txt")
+    base = weekly_block(AD / "compare_runs_batch_jobs_20260930_main.txt")["2026_s30_base"]
+    t = table(AD / "compare_runs_batch_jobs_20260930_main.csv")
+    b0 = t.loc["2026_s30_base"]
     q = b0["DEU_cum_mUSD"] / b0["DEU_%quarter"]                 # mUSD per 1 % of a quarter
     wk = q / 13.0                                                  # mUSD per 1 % of a week
 
-    weeks = range(0, 30)
-    a = w["wave_A"].reindex(weeks).fillna(0.0)
-    b = w["wave_B"].reindex(weeks).fillna(0.0)
+    weeks = range(0, 34)
+    a = w["wave30_A"].reindex(weeks).fillna(0.0)
+    b = w["wave30_B"].reindex(weeks).fillna(0.0)
     b_shift = pd.Series([b.get(i - SPLIT, 0.0) if i >= SPLIT else 0.0 for i in weeks], index=weeks)
     season = base.reindex(weeks).fillna(0.0)
     dates = [FIRST + pd.Timedelta(weeks=i - 1) for i in weeks]
@@ -77,34 +77,34 @@ def main(out: Path):
                     label="interaction: what the sequence adds")
     ax.plot(dates, season / wk, color=INK, linewidth=2.2, label="the 2026 season (A then B)")
     ax.plot(dates, total, color=MUTED, linewidth=1.3, linestyle="--", label="A alone + B alone")
-    ax.plot(dates, a / wk, color=BLUE, linewidth=1.5, label="wave A alone (22 June – 30 August)")
-    ax.plot(dates, b_shift / wk, color=GREEN, linewidth=1.5, label="wave B alone (from 31 August)")
+    ax.plot(dates, a / wk, color=BLUE, linewidth=1.5, label="first wave alone (22 June – 30 August)")
+    ax.plot(dates, b_shift / wk, color=GREEN, linewidth=1.5, label="second wave alone (from 31 August)")
     ax.axvline(FIRST + pd.Timedelta(weeks=SPLIT), color=MUTED, linewidth=0.8, linestyle=":")
     ax.set_ylabel("German value-added loss, % of a week", color=MUTED, fontsize=8)
-    ax.set_ylim(0, 3.1)
+    ax.set_ylim(0, 3.2)
     import matplotlib.dates as mdates
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%d %b"))
-    ax.set_xlim(FIRST - pd.Timedelta(weeks=1), FIRST + pd.Timedelta(weeks=24))
+    ax.set_xlim(FIRST - pd.Timedelta(weeks=1), FIRST + pd.Timedelta(weeks=28))
     ax.legend(frameon=False, fontsize=7.5, loc="upper left")
     ax.set_title("a  Two troughs, alone and in sequence", loc="left", fontsize=9.5, color=INK)
 
     ax = axes[1]; style(ax)
     gaps = [0, 1, 2, 4, 8]
-    L = [b0["DEU_cum_mUSD"]] + [t.loc[f"wave_AB_gap{g}", "DEU_cum_mUSD"] for g in gaps[1:]]
-    s = (t.loc["wave_A", "DEU_cum_mUSD"] + t.loc["wave_B", "DEU_cum_mUSD"]) / q
+    L = [b0["DEU_cum_mUSD"]] + [t.loc[f"wave30_AB_gap{g}", "DEU_cum_mUSD"] for g in gaps[1:]]
+    s = (t.loc["wave30_A", "DEU_cum_mUSD"] + t.loc["wave30_B", "DEU_cum_mUSD"]) / q
     ax.axhline(s, color=MUTED, linewidth=1.3, linestyle="--")
     ax.text(8.0, s + 0.02, f"A alone + B alone: {s:.2f}", color=MUTED, fontsize=7.5, ha="right", va="bottom")
     ax.plot(gaps, [v / q for v in L], color=INK, linewidth=1.8, marker="o", markersize=5)
     for g, v in zip(gaps, L):
         ax.annotate(f"{v / q:.2f}", (g, v / q), textcoords="offset points", xytext=(6, 5) if g != 4 else (6, -13), fontsize=7.5, color=INK)
-    f = t.loc["wave_flat", "DEU_cum_mUSD"] / q
+    f = t.loc["wave30_flat", "DEU_cum_mUSD"] / q
     ax.axhline(f, color=GREEN, linewidth=1.0, linestyle=":")
     ax.text(8.0, f - 0.02, f"same tonnage turned away, spread evenly: {f:.2f}", color=GREEN, fontsize=7.5, ha="right", va="top")
     ax.set_xticks(gaps)
     ax.set_xlabel("weeks of normal water between the two troughs", color=MUTED, fontsize=8)
     ax.set_ylabel("German loss, % of a quarter", color=MUTED, fontsize=8)
-    ax.set_ylim(0.8, 1.7)
-    ax.set_title("b  The memory lasts about a month", loc="left", fontsize=9.5, color=INK)
+    ax.set_ylim(1.2, 1.85)
+    ax.set_title("b  The interaction fades within a month", loc="left", fontsize=9.5, color=INK)
 
     fig.tight_layout(w_pad=2.0)
     out.mkdir(parents=True, exist_ok=True)
