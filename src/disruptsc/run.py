@@ -225,6 +225,9 @@ def execute(config: dict, *, cache: str | None = None,
         """
         for firm in firms.values():
             firm.critical_input_threshold = ap.critical_input_threshold
+            # the refill time of a stock gap (config inventory_restoration_time, days -> steps) acts in
+            # plan_purchase only, so a sensitivity on it re-uses the caches (6 Oct 2026, review OR4)
+            firm.inventory_restoration_time = ap.inventory_restoration_time
         # Import bundles ("{BLOC}_imports") lose their sector when the supply
         # chain folds them; the MRIO still knows the composition.
         bundle_shares = import_bundle_shares(mrio)

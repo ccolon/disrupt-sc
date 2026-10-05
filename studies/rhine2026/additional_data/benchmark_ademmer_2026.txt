@@ -1,0 +1,6 @@
+Ex-post benchmark for 2026: the published dynamic specification (Kiel WP 2155, Table 2) applied to the low-water days at Kaub (< 78 cm)
+  days by month: {'2026-05': 0, '2026-06': 0, '2026-07': 19, '2026-08': 31, '2026-09': 30, '2026-10': 31, '2026-11': 15, '2026-12': 0, '2027-01': 0, '2027-02': 0}
+  baseline (column 1)                    07=0.65 08=1.40 09=1.52 10=1.51 11=0.99 12=0.19  integral 6.26 (16-84 % 4.23-8.41; 2.5-97.5 % 2.36-10.65)  peak 09 1.52
+  with global production (column 2)      07=0.72 08=1.41 09=1.44 10=1.44 11=0.86 12=0.08  integral 5.96 (16-84 % 4.23-7.69; 2.5-97.5 % 2.61-9.38)  peak 10 1.44
+  contemporaneous term only (column 3)   07=0.55 08=0.71 09=0.62 10=0.68 11=0.20 12=-0.07  integral 2.70 (16-84 % 1.48-3.90; 2.5-97.5 % 0.32-5.10)  peak 08 0.71
+  sample to 2017 (column 4)              07=0.78 08=1.68 09=1.74 10=1.72 11=1.11 12=0.14  integral 7.17 (16-84 % 4.78-9.54; 2.5-97.5 % 2.55-11.86)  peak 09 1.74

@@ -1,0 +1,24 @@
+week_start,kaub_cm,status,note
+2026-06-22,91.6,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 81, max 106; previous value 91.6 (observed)"
+2026-06-29,101.0,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 80, max 121; previous value 101.0 (observed)"
+2026-07-06,80.5,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 58, max 108; previous value 80.5 (observed)"
+2026-07-13,54.9,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 42, max 78; previous value 54.9 (observed)"
+2026-07-20,60.4,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 38, max 84; previous value 60.4 (observed)"
+2026-07-27,29.3,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 27, max 34; previous value 29.3 (observed)"
+2026-08-03,23.4,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 20, max 27; previous value 23.4 (observed)"
+2026-08-10,11.0,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 7, max 16; previous value 11.0 (observed)"
+2026-08-17,27.6,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 6, max 45; previous value 27.6 (observed)"
+2026-08-24,67.0,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 60, max 72; previous value 67.0 (observed)"
+2026-08-31,52.1,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 33, max 73; previous value 52.1 (observed)"
+2026-09-07,25.3,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 21, max 33; previous value 27.1 (observed+forecast)"
+2026-09-14,25.2,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min 18, max 31; previous value 12.0 (forecast)"
+2026-09-21,6.6,observed,"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min -1, max 16; previous value 22.0 (forecast)"
+2026-09-28,-3.0,observed+forecast,"bounding profile (p25 of the BfG outlook of 28 Sep for the five unobserved days); 2026-09-28 to 2026-09-29 observed daily means (2, 2), remaining 5 days at -3 cm (BfG 6-week outlook of 28 Sep 2026, ENS median of the week); previous value 42.0 (forecast)"
+2026-10-05,-1.0,forecast,"bounding profile: BfG outlook of 28 Sep, p25 (-1 cm; median 6); BfG 6-week forecast issued 2026-09-28: ENS median 6 cm (5-95 % -9 to 25, 25-75 % -1 to 14); previous value 49.0 (forecast)"
+2026-10-12,8.0,forecast,"bounding profile: BfG outlook of 28 Sep, p25 (8 cm; median 24); BfG 6-week forecast issued 2026-09-28: ENS median 24 cm (5-95 % -10 to 70, 25-75 % 8 to 42); previous value 68.0 (forecast)"
+2026-10-19,14.0,forecast,"bounding profile: BfG outlook of 28 Sep, p25 (14 cm; median 36); BfG 6-week forecast issued 2026-09-28: ENS median 36 cm (5-95 % -10 to 103, 25-75 % 14 to 62); previous value 85.0 (assumption)"
+2026-10-26,20.0,forecast,"bounding profile: BfG outlook of 28 Sep, p25 (20 cm; median 43); BfG 6-week forecast issued 2026-09-28: ENS median 43 cm (5-95 % -4 to 110, 25-75 % 20 to 69); previous value 105.0 (assumption)"
+2026-11-02,32.0,forecast,"bounding profile: BfG outlook of 28 Sep, p25 (32 cm; median 58); BfG 6-week forecast issued 2026-09-28: ENS median 58 cm (5-95 % 2 to 137, 25-75 % 32 to 89); new week"
+2026-11-09,49.0,assumption,bounding profile: the assumed recovery shifted by the last forecast week's offset (-26 cm); assumption: recovery continuing at the trend of the BfG ENS median (about +20 cm a week); replace with observations
+2026-11-16,64.0,assumption,bounding profile: the assumed recovery shifted by the last forecast week's offset (-26 cm); assumption: recovery continuing at the trend of the BfG ENS median (about +20 cm a week); replace with observations
+2026-11-23,79.0,assumption,bounding profile: the assumed recovery shifted by the last forecast week's offset (-26 cm); assumption: recovery continuing at the trend of the BfG ENS median (about +20 cm a week); replace with observations

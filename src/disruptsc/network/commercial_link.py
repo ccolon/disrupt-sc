@@ -69,6 +69,10 @@ class CommercialLink:
     # capacity (a route search that found nothing acceptable, or none at all).
     delivery_offered: float = 0.0
     capacity_blocked: float = 0.0
+    # The part of a cut share delivered through the bounded substitution of the
+    # gate (TransportParams.bulk_relief, 6 Oct 2026); counted in the alternative
+    # delivery as well, reported apart in the routing summary.
+    relief_delivery: float = 0.0
     # --- Pipelined flows (22 Sep 2026) ---
     # Share of the link's flow that reaches the buyer by pipeline (config
     # `pipelined_flows`: 1 for a pipelined product, the products' composition
@@ -114,6 +118,7 @@ class CommercialLink:
         self.alternative_route_realized_delivery = 0.0
         self.delivery_offered = 0.0
         self.capacity_blocked = 0.0
+        self.relief_delivery = 0.0
         self.pipelined_delivery = 0.0
 
     def determine_cargo_type(self, sector_to_cargo_type: dict):
@@ -329,6 +334,7 @@ class CommercialLink:
         "alternative_route_realized_delivery",
         "delivery_offered",
         "capacity_blocked",
+        "relief_delivery",
         "status",
         "current_route",
         # the pipelined share is a load-time rule (re-applied on every load),
@@ -358,5 +364,6 @@ class CommercialLink:
         self.alternative_route_realized_delivery = 0.0
         self.delivery_offered = 0.0
         self.capacity_blocked = 0.0
+        self.relief_delivery = 0.0
         self.status = "ok"
         self.current_route = "main"

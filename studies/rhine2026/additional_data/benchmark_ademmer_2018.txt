@@ -1,0 +1,6 @@
+Ex-post benchmark for 2018: the published dynamic specification (Kiel WP 2155, Table 2) applied to the low-water days at Kaub (< 78 cm)
+  days by month: {'2018-06': 0, '2018-07': 0, '2018-08': 29, '2018-09': 14, '2018-10': 31, '2018-11': 30, '2018-12': 3, '2019-01': 0, '2019-02': 0}
+  baseline (column 1)                    08=0.99 09=1.00 10=1.22 11=1.55 12=0.56  integral 5.32 (16-84 % 3.59-7.11; 2.5-97.5 % 2.00-8.97)  peak 11 1.55
+  with global production (column 2)      08=1.10 09=0.89 10=1.22 11=1.51 12=0.35  integral 5.08 (16-84 % 3.60-6.56; 2.5-97.5 % 2.21-8.00)  peak 11 1.51
+  contemporaneous term only (column 3)   08=0.84 09=0.12 10=0.86 11=0.57 12=-0.11  integral 2.28 (16-84 % 1.25-3.29; 2.5-97.5 % 0.27-4.30)  peak 10 0.86
+  sample to 2017 (column 4)              08=1.19 09=1.19 10=1.35 11=1.86 12=0.53  integral 6.12 (16-84 % 4.08-8.15; 2.5-97.5 % 2.16-10.13)  peak 11 1.86

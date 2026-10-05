@@ -238,11 +238,14 @@ def build_disruptions(reductions: list[float], edges: list[str], min_reduction=0
                       cargo_types: list[str] | None = None,
                       surcharge_edges: list[str] | None = None,
                       lower_rhine_edges: list[str] | None = None,
-                      lower_rhine_factor: float = DEFAULT_LOWER_RHINE_FACTOR) -> list[dict]:
+                      lower_rhine_factor: float = DEFAULT_LOWER_RHINE_FACTOR,
+                      voyage_reductions: list[float] | None = None) -> list[dict]:
     """One disruption entry per week on the Kaub edge (*edges*), plus - with
     *surcharge_edges* (voyage-level surcharge) - one scalar cost shock on the
     other upstream edges at the week's multiplier and one on *lower_rhine_edges*
-    at 1 + (m - 1) x lower_rhine_factor.
+    at 1 + (m - 1) x lower_rhine_factor. *voyage_reductions* (6 Oct 2026), when
+    given, replace *reductions* for those other reaches' surcharges (the
+    fairway offset applied to the Kaub reach alone).
 
     With *closure_floors* (cm per cargo class) and the weekly *gauges*, a week
     closes the edge for the classes at or below their floor (per-cargo
@@ -269,8 +272,10 @@ def build_disruptions(reductions: list[float], edges: list[str], min_reduction=0
     voyage = surcharge_edges is not None
     for t, r in enumerate(reductions, start=1):
         mult = round(min(max_multiplier, 1.0 / (1.0 - r)), 3) if r < 1.0 else float(max_multiplier)
-        if voyage and r >= min_reduction:
-            out.extend(_voyage_entries(t, mult, upstream_other, lower, lower_rhine_factor))
+        rv = voyage_reductions[t - 1] if voyage_reductions is not None else r
+        mult_v = round(min(max_multiplier, 1.0 / (1.0 - rv)), 3) if rv < 1.0 else float(max_multiplier)
+        if voyage and rv >= min_reduction:
+            out.extend(_voyage_entries(t, mult_v, upstream_other, lower, lower_rhine_factor))
         if use_floors:
             closed = closed_classes(gauges[t - 1], closure_floors, cargo_types)
             if closed and len(closed) == len(cargo_types):
@@ -398,6 +403,19 @@ def main():
     ap.add_argument("--rail-relief", type=float, default=None,
                     help="adaptation counterfactual: cost multiplier (< 1) on every rail edge for liquid and dry bulk "
                          "in the shock weeks (tank-car trains and paths at the bulk rate: 0.4 = 0.085 -> 0.034 USD/tkm)")
+    ap.add_argument("--bulk-relief-tons", type=float, default=None,
+                    help="bounded substitution (6 Oct 2026, review OR2): tonnes per week of cut bulk that may complete a "
+                         "modal switch to rail after the gate, allocated pro rata (0 or absent = the paper's rule). Anchors: "
+                         "about 50 kt = DB Cargo's 400 wagons at short notice (two rotations a week, 60 t net), about 140 kt = "
+                         "the +0.07 % of rail tonnage per low-water day of Ademmer et al. (Appendix B) in a full low-water month")
+    ap.add_argument("--bulk-relief-penalty", type=float, default=0.15,
+                    help="switching penalty of the relief switch, fraction of the normal freight bill (the container value)")
+    ap.add_argument("--gauge-offset-scope", default="all", choices=["all", "kaub"],
+                    help="where --gauge-offset acts: 'all' = every reach's surcharge and the Kaub capacity see the shifted gauge "
+                         "(the paper's fairway lever); 'kaub' = the Kaub reach's capacity and surcharge only, the other reaches "
+                         "at the observed gauge (the local-reach case, review NS3)")
+    ap.add_argument("--restoration-days", type=float, default=None,
+                    help="inventory_restoration_time in days (the refill of a stock gap; config 30): sensitivity (review OR4)")
     ap.add_argument("--cache-isolation", action="store_true",
                     help="private cache directory for this process (cluster batches with several seeds)")
     ap.add_argument("--light-export", action="store_true",
@@ -422,13 +440,17 @@ def main():
     args = ap.parse_args()
 
     setup_logging(args.log_level)
-    profile = pd.read_csv(SCEN / f"{args.profile}.csv")
+    profile_observed = pd.read_csv(SCEN / f"{args.profile}.csv")
+    profile = profile_observed
     if args.gauge_offset:
         profile = profile.assign(kaub_cm=profile["kaub_cm"].astype(float) + args.gauge_offset)
         print(f"gauge offset {args.gauge_offset:+.0f} cm on every week (fairway counterfactual; the table and the "
-              f"floors see the shifted gauge)")
+              f"floors see the shifted gauge" + ("; Kaub reach only, the other reaches' surcharges at the observed gauge)"
+                                                 if args.gauge_offset_scope == "kaub" else ")"))
     curve = load_factor_curve(Path(args.draught_table))
     reductions = weekly_reductions(profile, curve)
+    # the surcharges of the other reaches follow the observed gauge when the offset is local to Kaub
+    voyage_reductions = weekly_reductions(profile_observed, curve) if (args.gauge_offset and args.gauge_offset_scope == "kaub") else None
     edges = [e.strip() for e in args.edges.split(",") if e.strip()]
     closure = args.closure_threshold if (args.closure_threshold is not None and args.closure_threshold >= 0) else None
     if closure is None and args.constraint_mode == "off":
@@ -451,7 +473,8 @@ def main():
                                     substitution_share=args.substitution_share,
                                     gauges=gauges, closure_floors=floors, cargo_types=cargo_types,
                                     surcharge_edges=upstream, lower_rhine_edges=lower_rhine,
-                                    lower_rhine_factor=args.lower_rhine_factor)
+                                    lower_rhine_factor=args.lower_rhine_factor,
+                                    voyage_reductions=voyage_reductions)
     if args.rail_relief is not None:
         rail = rail_relief_entries(reductions, args.rail_relief, cargo_types)
         disruptions.extend(rail)
@@ -539,6 +562,15 @@ def main():
         config.setdefault("filepaths", {})["input_criticality"] = str(Path(args.input_criticality).resolve())
     if args.critical_input_threshold is not None:
         config["critical_input_threshold"] = args.critical_input_threshold
+    if args.restoration_days is not None:
+        config["inventory_restoration_time"] = float(args.restoration_days)
+        print(f"inventory restoration time {args.restoration_days:g} days (config {load_config(args.scope).get('inventory_restoration_time', 30)})")
+    if args.bulk_relief_tons is not None and args.bulk_relief_tons > 0:
+        config.setdefault("logistics", {})["bulk_relief"] = {
+            "weekly_tons": float(args.bulk_relief_tons), "cargo_types": ["dry_bulk", "liquid_bulk"],
+            "modes": ["railways"], "penalty": float(args.bulk_relief_penalty)}
+        print(f"bounded substitution: up to {args.bulk_relief_tons:,.0f} t a week of cut bulk may switch to rail at a "
+              f"penalty of {args.bulk_relief_penalty:.2f} of the freight bill, pro rata when the candidates exceed it")
     if args.no_pooling:
         config["input_pooling"] = {"enabled": False}
         config["adaptive_supplier_weight"] = False

@@ -34,25 +34,15 @@ AD = HERE / "additional_data"
 INK, MUTED, GRID = "#1f2328", "#6e7781", "#e6e8eb"
 BLUE, ORANGE, GREEN = "#2f6fdb", "#e0842a", "#3a9a5b"
 MONTHS = ["Aug", "Sep", "Oct", "Nov", "Dec"]
-RECORD_LAG = [1.02, 1.23, 1.38, 1.74, 0.82]        # matched_estimand_2018.py: with the lagged term, 6.19 %-months
-RECORD_NOLAG = [1.02, 0.51, 1.02, 1.02, 0.10]      # contemporaneous term only, 3.67
-PRICED_X2 = [0.00, 0.00, 0.17, 1.23, 1.37]         # priced river with closures, stocks x2 (2018_pipe), 1.96
-INT_GATE = {1.25: 4.29, 1.5: 3.36, 2.0: 2.11}      # the ladder of 28 Sep at x1.25, x1.5, x2 (x1 computed below)
-INT_PRICED = {1.0: 4.95, 1.5: 3.19, 2.0: 1.96}
-INDUSTRY = ("B", "C", "D", "E")
+import sys
+sys.path.insert(0, str(HERE))
+from matched_estimand_2018 import model_path       # noqa: E402  one integration rule for every industrial path (6 Oct 2026)
+from benchmark_ademmer import record, EVENT_MONTHS  # noqa: E402  the published dynamic specification with its band
 
 
-def matched(run: Path, first="2018-07-16") -> dict:
-    fd = pd.read_csv(run / "firm_data.csv", usecols=["time_step", "firm", "region", "sector", "production"])
-    b0 = fd[fd.time_step == 0].set_index("firm").production
-    fd = fd[(fd.region == "DEU") & fd.time_step.between(1, 22)].copy()
-    fd["base"] = fd.firm.map(b0)
-    fd["month"] = (pd.Timestamp(first) + pd.to_timedelta((fd.time_step - 1) * 7, unit="D")).dt.strftime("%b")
-    ind = fd[fd.sector.str[:1].isin(INDUSTRY)]
-    out = {m: 100 * (ind[ind.month == m].base - ind[ind.month == m].production).sum() / ind[ind.month == m].base.sum() for m in MONTHS}
-    weeks = {m: ind[ind.month == m].time_step.nunique() for m in MONTHS}
-    out["integral"] = sum(out[m] * weeks[m] / 4.345 for m in MONTHS)
-    return out
+def matched(run: Path) -> dict:
+    d = model_path(run, 2018)
+    return {**{m: d[f"ind_{m}"] for m in MONTHS}, "integral": d["ind_integrated_pct_months"]}
 
 
 def weekly_block(txt_path: Path) -> pd.DataFrame:
@@ -84,6 +74,16 @@ def main(runs: Path, out: Path):
     seeds = [matched(runs / f"2018_s30_seed{s}") for s in range(1, 11)]
     low, high = matched(runs / "2018_s30_tablelow"), matched(runs / "2018_s30_tablehigh")
     sup2 = matched(runs / "2018_s30_sup2")
+    # the record: the published dynamic specification (column 1) with its 16-84 % band
+    rec_t, rec_s = record(2018, 1)
+    ev = rec_t[rec_t.month.isin(EVENT_MONTHS[2018])]
+    REC, REC16, REC84 = ev.central.values, ev.p16.values, ev.p84.values
+    # the stock ladder of 28 Sep (x1.25, x1.5, x2) and the priced river with closures (x1, x1.5, x2), same rule
+    INT_GATE = {1.25: matched(runs / "2018_gs_inv125")["integral"], 1.5: matched(runs / "2018_gs_inv150")["integral"],
+                2.0: matched(runs / "2018_gs")["integral"]}
+    priced1 = matched(runs / "2018_baseline")
+    INT_PRICED = {1.0: priced1["integral"], 1.5: matched(runs / "2018_inv150")["integral"], 2.0: matched(runs / "2018_pipe")["integral"]}
+    PRICED_X1 = [priced1[mo] for mo in MONTHS]
     m = table(AD / "compare_runs_batch_jobs_20260930_main.csv")
     p = table(AD / "compare_runs_batch_jobs_20260930_paired.csv")
     Q_DEU = m.loc["2026_s30_base", "DEU_cum_mUSD"] / m.loc["2026_s30_base", "DEU_%quarter"]
@@ -96,10 +96,10 @@ def main(runs: Path, out: Path):
     x = np.arange(len(MONTHS))
     band = np.array([[s[mo] for mo in MONTHS] for s in seeds])
     ax.fill_between(x, band.min(axis=0), band.max(axis=0), color=BLUE, alpha=0.13, linewidth=0, label="ten further draws (range)")
-    ax.fill_between(x, RECORD_NOLAG, RECORD_LAG, color=GREEN, alpha=0.2, linewidth=0, label="record: with and without the lagged term")
-    ax.plot(x, RECORD_LAG, color=GREEN, linewidth=1.5, marker="s", markersize=4)
+    ax.fill_between(x, REC16, REC84, color=GREEN, alpha=0.2, linewidth=0, label="record: published specification, 16–84 % band")
+    ax.plot(x, REC, color=GREEN, linewidth=1.5, marker="s", markersize=4)
     ax.plot(x, [ref[mo] for mo in MONTHS], color=INK, linewidth=2.2, marker="o", markersize=5, label="model, reference draw")
-    ax.plot(x, PRICED_X2, color=ORANGE, linewidth=1.3, linestyle="--", marker="o", markersize=3.5, label="priced river with closures, stocks ×2")
+    ax.plot(x, PRICED_X1, color=ORANGE, linewidth=1.3, linestyle="--", marker="o", markersize=3.5, label="priced river with closures, same stocks")
     ax.set_xticks(x); ax.set_xticklabels([f"{mo} 2018" for mo in MONTHS], fontsize=8)
     ax.set_ylabel("shortfall of German industrial production, %", color=MUTED, fontsize=8)
     ax.set_ylim(0, 3.0)
@@ -108,8 +108,10 @@ def main(runs: Path, out: Path):
 
     # (b) cumulated shortfall: stocks, loading table, suppliers
     ax = axes[0, 1]; style(ax)
-    ax.axhspan(sum(RECORD_NOLAG), sum(RECORD_LAG), color=GREEN, alpha=0.2, linewidth=0)
-    ax.text(2.0, sum(RECORD_LAG) + 0.1, "record: 3.7–6.2 percent-months", color=GREEN, fontsize=7.5, ha="right", va="bottom")
+    ax.axhspan(rec_s["p16"], rec_s["p84"], color=GREEN, alpha=0.2, linewidth=0)
+    ax.axhline(rec_s["integral"], color=GREEN, linewidth=1.2)
+    ax.text(0.82, rec_s["p84"] + 0.1, f"record: {rec_s['integral']:.1f} percent-months ({rec_s['p16']:.1f}–{rec_s['p84']:.1f}, 16–84 % band)",
+            color=GREEN, fontsize=7.5, ha="left", va="bottom")
     gate = {1.0: ref["integral"], **INT_GATE}
     ax.plot(list(gate), list(gate.values()), color=INK, linewidth=1.8, marker="o", markersize=5, label="stock multiplier (reference draw)")
     ax.plot(list(INT_PRICED), list(INT_PRICED.values()), color=ORANGE, linewidth=1.3, linestyle="--", marker="o", markersize=4, label="priced river with closures")
@@ -119,7 +121,7 @@ def main(runs: Path, out: Path):
     ax.scatter([0.93] * len(ints), ints, color=BLUE, s=14, alpha=0.7, zorder=3, label="ten further draws at ×1")
     ax.plot([1.0, 1.0], [high["integral"], low["integral"]], color=GREEN, linewidth=2.5, alpha=0.8, solid_capstyle="round", zorder=2)
     ax.text(1.03, low["integral"], f"loading table ×1.15: {low['integral']:.1f}", fontsize=7, color=GREEN, va="center")
-    ax.text(1.03, high["integral"], f"loading table ×0.85: {high['integral']:.1f}", fontsize=7, color=GREEN, va="center")
+    ax.text(1.03, high["integral"] - 0.12, f"loading table ×0.85: {high['integral']:.1f}", fontsize=7, color=GREEN, va="top")
     ax.scatter([1.0], [sup2["integral"]], color=INK, marker="x", s=40, zorder=4)
     ax.text(1.03, sup2["integral"], f"two suppliers per input: {sup2['integral']:.1f}", fontsize=7, color=INK, va="center")
     ax.set_xticks([1.0, 1.25, 1.5, 2.0]); ax.set_xticklabels(["×1\n(evidence value)", "×1.25", "×1.5", "×2"], fontsize=8)
@@ -127,7 +129,7 @@ def main(runs: Path, out: Path):
     ax.set_xlabel("multiplier on the stock days of the balance-sheet statistics", color=MUTED, fontsize=8)
     ax.set_ylabel("industrial shortfall, Aug–Dec 2018, percent-months", color=MUTED, fontsize=8)
     ax.set_ylim(0, 8.2)
-    ax.legend(frameon=False, fontsize=7.5, loc="upper right")
+    ax.legend(frameon=False, fontsize=7.5, loc="lower left")
     ax.set_title("b  The size of the loss: stocks, loading table, suppliers", loc="left", fontsize=9.5, color=INK)
 
     # (c) weekly 2018 loss with the band

@@ -19,7 +19,13 @@ AD = ROOT / "studies/rhine2026/additional_data"
 LEVERS = ["stock7", "deep20", "fleet", "stock7t", "package"]
 INDUSTRY = ("B", "C", "D", "E")
 MONTHS = ["Aug", "Sep", "Oct", "Nov", "Dec"]
-RECORD = {"Aug": 1.02, "Sep": 1.23, "Oct": 1.38, "Nov": 1.74, "Dec": 0.82}
+import sys
+sys.path.insert(0, str(ROOT / "studies/rhine2026"))
+from matched_estimand_2018 import model_path      # noqa: E402  one integration rule for every industrial path (6 Oct 2026)
+from benchmark_ademmer import record, EVENT_MONTHS  # noqa: E402  the published dynamic specification with its band
+_rec_t, REC_S = record(2018, 1)
+RECORD = {pd.Timestamp(m + "-01").strftime("%b"): float(v) for m, v in
+          zip(_rec_t.month, _rec_t.central) if m in EVENT_MONTHS[2018]}
 
 
 def table(path: Path) -> pd.DataFrame:
@@ -40,18 +46,10 @@ def firm_losses(run: Path):
     return fd
 
 
-def matched(run: Path, first="2018-07-16") -> dict:
-    fd = pd.read_csv(run / "firm_data.csv", usecols=["time_step", "firm", "region", "sector", "production"])
-    b0 = fd[fd.time_step == 0].set_index("firm").production
-    fd = fd[(fd.region == "DEU") & fd.time_step.between(1, 22)].copy()
-    fd["base"] = fd.firm.map(b0)
-    fd["month"] = (pd.Timestamp(first) + pd.to_timedelta((fd.time_step - 1) * 7, unit="D")).dt.strftime("%b")
-    ind = fd[fd.sector.str[:1].isin(INDUSTRY)]
-    out = {m: 100 * (ind[ind.month == m].base - ind[ind.month == m].production).sum() / ind[ind.month == m].base.sum() for m in MONTHS}
-    weeks = {m: ind[ind.month == m].time_step.nunique() for m in MONTHS}
-    out["integral"] = sum(out[m] * weeks[m] / 4.345 for m in MONTHS)
-    out["peak"] = max(MONTHS, key=lambda m: out[m])
-    return out
+def matched(run: Path) -> dict:
+    """Monthly industrial shortfall (%), plain-sum integral (percent-months) and peak month, from the shared rule."""
+    d = model_path(run, 2018)
+    return {**{m: d[f"ind_{m}"] for m in MONTHS}, "integral": d["ind_integrated_pct_months"], "peak": d["peak_month_ind"]}
 
 
 def main(runs: Path):
@@ -110,7 +108,8 @@ def main(runs: Path):
               "2018_s30_tablelow", "2018_s30_base", "2018_s30_tablehigh", "2018_s30_sup2", "2018_s30_nopool"):
         L.append(f"  {r:20s} DEU {main_t.loc[r, 'DEU_%quarter']:.3f} % of a quarter, peak {main_t.loc[r, 'DEU_peak_%week']:.2f} % wk {int(main_t.loc[r, 'DEU_peak_week'])}")
 
-    L.append("\n== 2018 industrial path (matched estimand; record Aug-Dec " + ", ".join(f"{RECORD[m]:.2f}" for m in MONTHS) + " = 6.19 with the lag, 3.67 without) ==")
+    L.append("\n== 2018 industrial path (matched estimand; record = the published dynamic specification, Aug-Dec " + ", ".join(f"{RECORD[m]:.2f}" for m in MONTHS)
+             + f" = {REC_S['integral']:.2f} percent-months, 16-84 % band {REC_S['p16']:.2f}-{REC_S['p84']:.2f}) ==")
     ens = []
     for r in ["2018_s30_base", "2018_s30_tablelow", "2018_s30_tablehigh", "2018_s30_sup2"] + [f"2018_s30_seed{s}" for s in range(1, 11)]:
         if (runs / r / "firm_data.csv").exists():
@@ -122,7 +121,7 @@ def main(runs: Path):
         ints = [m["integral"] for m in ens]
         L.append(f"  11 draws: integral {np.mean(ints):.2f} +/- {np.std(ints, ddof=1):.2f} (range {min(ints):.2f}-{max(ints):.2f}); peak month " +
                  ", ".join(f"{k} x{v}" for k, v in pd.Series([m['peak'] for m in ens]).value_counts().items()) +
-                 f"; Aug {np.mean([m['Aug'] for m in ens]):.2f}, Sep {np.mean([m['Sep'] for m in ens]):.2f} (record 1.02, 1.23)")
+                 f"; Aug {np.mean([m['Aug'] for m in ens]):.2f}, Sep {np.mean([m['Sep'] for m in ens]):.2f} (record {RECORD['Aug']:.2f}, {RECORD['Sep']:.2f})")
 
     L.append("\n== 2026 base: German loss by sector and wave ==")
     fd = firm_losses(runs / "2026_s30_base"); de = fd[fd.region == "DEU"]; tot = de.loss.sum()

@@ -364,15 +364,24 @@ def representations_table(out: Path):
                 lines[parts[0]] = parts[1:6] + [parts[6]]
     order = [("2018_gs_inv100", "quantity constraint, stocks $\\times$1"), ("2018_gs_inv125", "quantity constraint, $\\times$1.25"),
              ("2018_gs_inv150", "quantity constraint, $\\times$1.5"), ("2018_gs", "quantity constraint, $\\times$2"),
-             ("2018_baseline", "priced river with closures, $\\times$1"), ("2018_pipe", "priced river with closures, $\\times$2")]
-    rows = ["record (with the lagged term) & 1.02 & 1.23 & 1.38 & 1.74 & 0.82 & 6.19 \\\\", "record (contemporaneous term) & 1.02 & 0.51 & 1.02 & 1.02 & 0.10 & 3.67 \\\\"]
+             ("2018_baseline", "priced river with closures, $\\times$1"), ("2018_inv150", "priced river with closures, $\\times$1.5"),
+             ("2018_pipe", "priced river with closures, $\\times$2")]
+    from benchmark_ademmer import record, EVENT_MONTHS
+    t, s = record(2018, 1)
+    ev = t[t.month.isin(EVENT_MONTHS[2018])]
+    rows = ["record, published specification (central) & " + " & ".join(f"{v:.2f}" for v in ev.central) + f" & {s['integral']:.2f} \\\\",
+            "record, 16--84\\,\\% band & " + " & ".join(f"{a:.2f}--{b:.2f}" for a, b in zip(ev.p16, ev.p84)) + f" & {s['p16']:.2f}--{s['p84']:.2f} \\\\"]
+    t3, s3 = record(2018, 3, draws=1)
+    ev3 = t3[t3.month.isin(EVENT_MONTHS[2018])]
+    rows.append("record, contemporaneous term only & " + " & ".join(f"{v:.2f}" for v in ev3.central) + f" & {s3['integral']:.2f} \\\\")
+    rows.append(r"\midrule")
     for key, lab in order:
         if key in lines:
             v = lines[key]
             rows.append(f"{lab} & " + " & ".join(v[:5]) + f" & {v[5]} \\\\")
     (out / "si_representations.tex").write_text(r"""\begin{table}[tbp]
 \centering\small
-\caption{\textbf{Two representations of the river on the 2018 record.} Monthly shortfall of German industrial production (\%), August to December 2018, and its integral (percent-months): the path implied by the published coefficients, the quantity constraint with the surcharge at four stock levels, and the priced river with closures at two. Runs of 22--28 September 2026 on the reference draw; the industrial path is unchanged by the later treatment of construction as a non-storable input.}
+\caption{\textbf{Two representations of the river on the 2018 record.} Monthly shortfall of German industrial production (\%), August to December 2018, and its integral (percent-months, the plain sum of the months). The record is the dynamic counterfactual of the published specification (ref.~\citep{ademmer2023}; Table~2, column 1, of the working paper) on the low-water days of the daily gauge record, with the 16--84\,\% band of a Monte Carlo over its coefficients and, for comparison, the contemporaneous-only specification (column 3). The model rows are the quantity constraint with the surcharge at four stock levels and the priced river with closures at three; runs of 22--28 September 2026 on the reference draw, the industrial path unchanged by the later treatment of construction as a non-storable input. Each month of a model row is the mean of its days, every day carrying the value of the model week it belongs to.}
 \label{tab:representations}
 \begin{tabular}{lrrrrrr}
 \toprule
@@ -385,10 +394,98 @@ def representations_table(out: Path):
 """, encoding="utf-8")
 
 
+# ------------------------------------------------------------------------------------------------ S4: channels, gate
+RUNS = Path("C:/dsc_runs/rhine2026")
+
+
+def channels_table(out: Path):
+    """What leaves the normal route and what the gate withholds, by cargo class, base against each channel alone
+    (routing_summary.csv totals over the run; revision of 6 Oct 2026, review C05)."""
+    rows = []
+    for run, lab in (("2026_s30_base", "constraint and surcharge (the paper)"), ("2026_s30_gateonly", "constraint alone"),
+                     ("2026_s30_surchargeonly", "surcharge alone")):
+        s = pd.read_csv(RUNS / run / "routing_summary.csv")
+        b = s[s.cargo_type.isin(["dry_bulk", "liquid_bulk"])]; c = s[s.cargo_type == "container"]
+        rows.append(f"{lab} & {b.alternative_usd.sum() / 1e3:.1f} & {b.capacity_blocked_usd.sum() / 1e3:.1f} & {c.alternative_usd.sum() / 1e3:.1f} & {c.capacity_blocked_usd.sum() / 1e3:.1f} \\\\")
+    (out / "si_channels.tex").write_text(r"""\begin{table}[tbp]
+\centering\small
+\caption{\textbf{The two channels at the routing level.} Value (billion USD, summed over the 43 weeks of the 2026 run) that leaves its normal route for an alternative, and value that the capacity gate withholds, by cargo class, in the reference run and with each channel alone. No container is cut by the gate or rerouted around it in any run: the model's containers do not use the gated reaches. The surcharge moves bulk with an alternative on its own modes off the river before the cut.}
+\label{tab:channels}
+\begin{tabular}{lrrrr}
+\toprule
+ & bulk, alternative & bulk, withheld & containers, alternative & containers, withheld \\
+\midrule
+""" + "\n".join(rows) + r"""
+\bottomrule
+\end{tabular}
+\end{table}
+""", encoding="utf-8")
+
+
+def gate_table(out: Path):
+    """The gate at Kaub week by week in the reference run: load factor, tonnage cut, re-sent and withheld (the run's
+    log; review OR1, the offered/accepted/withheld report)."""
+    prof = pd.read_csv(HERE / "scenarios" / "2026.csv")
+    curve = pd.read_csv(HERE / "scenarios" / "draught_table.csv")
+    import numpy as np
+    lf = lambda cm: float(np.interp(cm, curve.kaub_cm, curve.load_factor, left=curve.load_factor.iloc[0], right=1.0))
+    gt = {}
+    for line in (RUNS / "2026_s30_base.log").read_text(encoding="utf-8", errors="replace").splitlines():
+        m = re.search(r"Capacity gate t=(\d+):.*cut ([\d,]+) t, re-sent ([\d,]+) t, blocked ([\d,]+) t", line)
+        if m:
+            gt[int(m.group(1))] = tuple(float(m.group(i).replace(",", "")) for i in (2, 3, 4))
+    rows = []
+    for t in range(1, len(prof) + 1):
+        r = prof.iloc[t - 1]
+        cut, resent, blocked = gt.get(t, (0.0, 0.0, 0.0))
+        rows.append(f"{t} & {r.week_start} & {tex(r.status)} & {float(r.kaub_cm):.1f} & {lf(float(r.kaub_cm)):.2f} & {cut / 1e3:.0f} & {resent / 1e3:.0f} & {blocked / 1e3:.0f} \\\\")
+    (out / "si_gate.tex").write_text(r"""\begingroup\footnotesize
+\begin{longtable}{rllrrrrr}
+\caption{\textbf{The gate week by week, 2026 reference run.} For each profile week: the status of the gauge, its weekly mean (cm), the load factor of the loading table, and the tonnage (kt) that the gates of the Rhine chain cut, re-sent on another route and withheld (returned to the supplier's stock), from the run's log. The cut tonnage is the offered load above capacity; the withheld tonnage is what found no acceptable route. The baseline flow at Kaub is 1,036 kt a week.}
+\label{tab:gate} \\
+\toprule
+week & start & status & Kaub & load factor & cut & re-sent & withheld \\
+\midrule
+\endfirsthead
+\toprule
+week & start & status & Kaub & load factor & cut & re-sent & withheld \\
+\midrule
+\endhead
+""" + "\n".join(rows) + r"""
+\bottomrule
+\end{longtable}
+\endgroup
+""", encoding="utf-8")
+
+
+def prospective_table(out: Path):
+    """The prospective test (review NS4, E3): the model's monthly industrial shortfall of 2026 on the reference draw
+    against the path the published specification implies for the same low-water days."""
+    from matched_estimand_2018 import model_path
+    from benchmark_ademmer import record, EVENT_MONTHS
+    labs = ["Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    d = model_path(RUNS / "2026_s30_base", 2026)
+    t, s = record(2026, 1)
+    ev = t[t.month.isin(EVENT_MONTHS[2026])]
+    rows = ["model, reference draw (forecast of 30 September) & " + " & ".join(f"{d[f'ind_{m}']:.1f}" for m in labs) + f" & {d['ind_integrated_pct_months']:.1f} \\\\",
+            "published specification on the same low-water days & " + " & ".join(f"{v:.1f}" for v in ev.central) + f" & {s['integral']:.1f} \\\\",
+            "its 16--84\\,\\% band & " + " & ".join(f"{a:.1f}--{b:.1f}" for a, b in zip(ev.p16, ev.p84)) + f" & {s['p16']:.1f}--{s['p84']:.1f} \\\\",
+            "low-water days (observed to 29 September, then the profile) & " + " & ".join(str(int(v)) for v in ev.low_water_days) + " & \\\\"]
+    (out / "prospective.tex").write_text(r"""\begin{tabular}{lrrrrrrr}
+\toprule
+ & Jul & Aug & Sep & Oct & Nov & Dec & Jul--Dec \\
+\midrule
+""" + "\n".join(rows) + r"""
+\bottomrule
+\end{tabular}
+""", encoding="utf-8")
+
+
 def main(overleaf: Path):
     out = overleaf / "tables"; out.mkdir(exist_ok=True)
     rates_table(out); stocks_table(out); criticality_table(out); thresholds_table(out)
     loading_table(out); forecast_table(out); runs_table(out); representations_table(out)
+    channels_table(out); gate_table(out); prospective_table(out)
     print("tables written to", out)
 
 
