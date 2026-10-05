@@ -1,0 +1,10 @@
+Stationarity of the undisturbed baseline: stationarity6w, 6 weeks at 250 cm, constraint off, early stop off
+  12719 firms, of which 12429 material (> 0.01 mUSD a week at t = 0)
+
+  week 0: below target 5 firms (material 0); production / t0: min 1.00000 max 1.00000 (material), total 1.000000; input stock / t0: min 1.00000 max 1.00000 (material), min 1.0000 all; fill ratio min 1.0000; household consumption loss 0.000000 mUSD; tons transported 14,531,391
+  week 1: below target 8 firms (material 1); production / t0: min 0.97943 max 1.00000 (material), total 1.000000; input stock / t0: min 0.99986 max 1.00154 (material), min 0.8643 all; fill ratio min 0.9461; household consumption loss 0.000000 mUSD; tons transported 14,531,387
+  week 2: below target 10 firms (material 1); production / t0: min 0.97930 max 1.00001 (material), total 0.999999; input stock / t0: min 0.99980 max 1.00155 (material), min 0.7417 all; fill ratio min 0.8571; household consumption loss 0.000000 mUSD; tons transported 14,531,385
+  week 3: below target 10 firms (material 1); production / t0: min 0.97926 max 1.00002 (material), total 0.999999; input stock / t0: min 0.99976 max 1.00156 (material), min 0.6550 all; fill ratio min 0.0000; household consumption loss 0.000000 mUSD; tons transported 14,531,385
+  week 4: below target 19 firms (material 1); production / t0: min 0.97925 max 1.00002 (material), total 0.999999; input stock / t0: min 0.99958 max 1.00181 (material), min 0.6023 all; fill ratio min 0.0000; household consumption loss 0.000000 mUSD; tons transported 14,531,385
+  week 5: below target 18 firms (material 1); production / t0: min 0.97925 max 1.00002 (material), total 0.999999; input stock / t0: min 0.99924 max 1.00235 (material), min 0.5439 all; fill ratio min 0.0000; household consumption loss 0.000000 mUSD; tons transported 14,531,384
+  week 6: below target 20 firms (material 1); production / t0: min 0.97924 max 1.00002 (material), total 0.999999; input stock / t0: min 0.99880 max 1.00290 (material), min 0.4699 all; fill ratio min 0.0000; household consumption loss 0.000000 mUSD; tons transported 14,531,384
