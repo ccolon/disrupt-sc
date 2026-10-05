@@ -1,0 +1,36 @@
+Revision batch of 6 Oct 2026 (jobs_20261006_rev.txt): sensitivities against the reference runs
+
+== German loss (% of a quarter), peak (% of a week, week), EU loss (bn); change against the base ==
+  2026_rev_base        (not in the tables yet)
+  2026_rev_rail50      (not in the tables yet)
+  2026_rev_rail140     (not in the tables yet)
+  2018_rev_rail50      (not in the tables yet)
+  2018_rev_rail140     (not in the tables yet)
+  2026_rev_head10      (not in the tables yet)
+  2026_rev_head25      (not in the tables yet)
+  2026_rev_rest15      (not in the tables yet)
+  2026_rev_rest60      (not in the tables yet)
+  2026_rev_floor02     (not in the tables yet)
+  2026_rev_floor10     (not in the tables yet)
+  2026_rev_deeplocal   (not in the tables yet)
+  2026_rev_fleetwide   (not in the tables yet)
+  2026_rev_dfuel0      (not in the tables yet)
+  2026_rev_serv45      (not in the tables yet)
+  2026_rev_q25         (not in the tables yet)
+  2026_rev_q75         (not in the tables yet)
+
+== Bounded substitution: relief value and tonnage by week ==
+    2026_rev_rail50: no routing summary
+    2026_rev_rail140: no routing summary
+    2018_rev_rail50: no routing summary
+    2018_rev_rail140: no routing summary
+
+== The fleet lever's weekly path against the base (repacked firm data) ==
+  2026_s30_base        weeks 12-22 (mUSD): 402, 498, 997, 1406, 1917, 2088, 1741, 1005, 273, 274, 170; sum 1-11 5,701, 12-19 10,059, 20+ 852, peak wk 17 2,088
+  2026_s30_fleet       no firm data
+  2026_rev_fleetwide   no firm data
+  2026_s30_stock7      no firm data
+  2026_s30_deep20      no firm data
+
+== Prospective 2026 path: the band across the seed bases and the loading tables (monthly industrial shortfall, %) ==
+  2026_s30_base          Jul  0.53 Aug  2.89 Sep  1.79 Oct  3.00 Nov -0.45 Dec -1.63  integral 6.14 peak Oct

@@ -1,5 +1,5 @@
 kaub_cm,load_factor,load_factor_vessel_gms,anchor
-5,0.08,0.0,"assumed: the low-water tankers (Stolt Ludwigshafen ~800 t at 30 cm; nine such ships Aug 2026) and the small units; the press reports shipping past Kaub stopped at 6 cm (14 Aug 2026), but the KBN count of the week at 23 -> 6 cm gave 0.22; held below 5 cm"
+5,0.04,0.0,sensitivity (6 Oct 2026): the floor below 5 cm at 0.04 instead of 0.08; the other rows unchanged
 10,0.18,0.0,interpolated towards the KBN count of the week to 13 Aug 2026 (0.22 at a mean gauge of about 12 cm)
 15,0.24,0.02,"KBN week to ~13 Aug 2026 (Kaub 23 -> 6 cm, mean about 12): 60 kt dry + 30 kt wet vs normal 300 + 100 kt = 22%; partly small Class II-IV units"
 25,0.28,0.09,"Argus: 1,200 t tanker loads 180 t (15%) at 23 cm; low-water tankers 700-800 t of 5,100 t (15%); times a redeployment of 1.9"

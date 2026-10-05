@@ -1,0 +1,27 @@
+# Rhine 2026 cluster batch (7 Oct 2026), list 3 of 3: the sensitivities of the revision after the review of 5 Oct, on the
+# loading table rebuilt on 6 Oct (list 1 is the paper set on that table). Blocks: rail50/rail140 bounded substitution by
+# rail (review OR2; 50 kt = DB Cargo's 400 wagons at short notice, 140 kt = the rail response of Ademmer et al. App. B);
+# head10/head25 capacity headroom (OR1; private caches); rest15/rest60 refill time (OR4); floor04/floor16 the floor below
+# 5 cm at half and twice 0.08 (NS1); deeplocal the fairway on the Kaub reach alone (NS3); fleetwide the fleet gain carried
+# to 100 cm (NS2); dfuel0 the power sector's fuel-oil input non-critical and serv45 a 45-day coping duration (E4);
+# q25/q75 the outlook's percentile paths (NS4). The shared caches are built by 2026_s07_base of list 1: launch this list
+# AFTER that run has finished, with --independent.
+#     bash studies/rhine2026/cluster/launch_rhine_batch.sh --jobs studies/rhine2026/cluster/jobs_20261007_rev.txt --independent
+# Collect:
+#     bash studies/rhine2026/cluster/pack_results.sh --jobs studies/rhine2026/cluster/jobs_20261007_rev.txt --with-firms 2026_rev_rail50,2026_rev_rail140,2018_rev_rail50,2018_rev_rail140,2026_rev_head10,2026_rev_head25,2026_rev_rest15,2026_rev_rest60,2026_rev_floor04,2026_rev_floor16,2026_rev_deeplocal,2026_rev_fleetwide,2026_rev_dfuel0,2026_rev_serv45,2026_rev_q25,2026_rev_q75
+2026_rev_rail50        | --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --bulk-relief-tons 50000
+2026_rev_rail140       | --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --bulk-relief-tons 140000
+2018_rev_rail50        | --profile 2018 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --bulk-relief-tons 50000
+2018_rev_rail140       | --profile 2018 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --bulk-relief-tons 140000
+2026_rev_head10        | --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored_h10.csv --inventory-scale 1.0 --recovery-weeks 20 --cache-dir rev_head10
+2026_rev_head25        | --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored_h25.csv --inventory-scale 1.0 --recovery-weeks 20 --cache-dir rev_head25
+2026_rev_rest15        | --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --restoration-days 15
+2026_rev_rest60        | --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --restoration-days 60
+2026_rev_floor04       | --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --draught-table studies/rhine2026/scenarios/draught_table_floor04.csv
+2026_rev_floor16       | --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --draught-table studies/rhine2026/scenarios/draught_table_floor16.csv
+2026_rev_deeplocal     | --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --gauge-offset 20 --gauge-offset-scope kaub
+2026_rev_fleetwide     | --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --draught-table studies/rhine2026/scenarios/draught_table_lowwater_wide.csv
+2026_rev_dfuel0        | --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --input-criticality studies/rhine2026/additional_data/input_criticality_dfuel0.csv
+2026_rev_serv45        | --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --inventory-targets studies/rhine2026/additional_data/inventory_targets_service45.yaml
+2026_rev_q25           | --profile 2026_q25 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20
+2026_rev_q75           | --profile 2026_q75 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20

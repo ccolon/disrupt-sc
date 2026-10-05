@@ -54,16 +54,16 @@ def style(ax):
 
 
 def main(out: Path):
-    w = weekly_block(AD / "compare_runs_batch_jobs_20260930_main.txt")
-    base = weekly_block(AD / "compare_runs_batch_jobs_20260930_main.txt")["2026_s30_base"]
-    t = table(AD / "compare_runs_batch_jobs_20260930_main.csv")
-    b0 = t.loc["2026_s30_base"]
+    w = weekly_block(AD / "compare_runs_batch_jobs_20261007_main.txt")
+    base = weekly_block(AD / "compare_runs_batch_jobs_20261007_main.txt")["2026_s07_base"]
+    t = table(AD / "compare_runs_batch_jobs_20261007_main.csv")
+    b0 = t.loc["2026_s07_base"]
     q = b0["DEU_cum_mUSD"] / b0["DEU_%quarter"]                 # mUSD per 1 % of a quarter
     wk = q / 13.0                                                  # mUSD per 1 % of a week
 
     weeks = range(0, 34)
-    a = w["wave30_A"].reindex(weeks).fillna(0.0)
-    b = w["wave30_B"].reindex(weeks).fillna(0.0)
+    a = w["wave07_A"].reindex(weeks).fillna(0.0)
+    b = w["wave07_B"].reindex(weeks).fillna(0.0)
     b_shift = pd.Series([b.get(i - SPLIT, 0.0) if i >= SPLIT else 0.0 for i in weeks], index=weeks)
     season = base.reindex(weeks).fillna(0.0)
     dates = [FIRST + pd.Timedelta(weeks=i - 1) for i in weeks]
@@ -93,14 +93,14 @@ def main(out: Path):
 
     ax = axes[1]; style(ax)
     gaps = [0, 1, 2, 4, 8]
-    L = [b0["DEU_cum_mUSD"]] + [t.loc[f"wave30_AB_gap{g}", "DEU_cum_mUSD"] for g in gaps[1:]]
-    s = (t.loc["wave30_A", "DEU_cum_mUSD"] + t.loc["wave30_B", "DEU_cum_mUSD"]) / q
+    L = [b0["DEU_cum_mUSD"]] + [t.loc[f"wave07_AB_gap{g}", "DEU_cum_mUSD"] for g in gaps[1:]]
+    s = (t.loc["wave07_A", "DEU_cum_mUSD"] + t.loc["wave07_B", "DEU_cum_mUSD"]) / q
     ax.axhline(s, color=MUTED, linewidth=1.3, linestyle="--")
     ax.text(8.0, s + 0.02, f"A alone + B alone: {s:.2f}", color=MUTED, fontsize=7.5, ha="right", va="bottom")
     ax.plot(gaps, [v / q for v in L], color=INK, linewidth=1.8, marker="o", markersize=5)
     for g, v in zip(gaps, L):
         ax.annotate(f"{v / q:.2f}", (g, v / q), textcoords="offset points", xytext=(6, 5) if g != 4 else (6, -13), fontsize=7.5, color=INK)
-    f = t.loc["wave30_flat", "DEU_cum_mUSD"] / q
+    f = t.loc["wave07_flat", "DEU_cum_mUSD"] / q
     ax.axhline(f, color=GREEN, linewidth=1.0, linestyle=":")
     ax.text(8.0, f - 0.02, f"same tonnage turned away, spread evenly: {f:.2f}", color=GREEN, fontsize=7.5, ha="right", va="top")
     ax.set_xticks(gaps)

@@ -6,7 +6,7 @@
 
 Usage:
     python studies/rhine2026/plots/paired_lever_figure.py [--out studies/rhine2026/figures]
-Inputs: additional_data/compare_runs_batch_jobs_20260930_main.{csv,txt}, compare_runs_batch_jobs_20260930_paired.csv.
+Inputs: additional_data/compare_runs_batch_jobs_20261007_main.{csv,txt}, compare_runs_batch_jobs_20261007_paired.csv.
 """
 from __future__ import annotations
 
@@ -54,33 +54,33 @@ def style(ax):
 
 
 def main(out: Path):
-    m = table(AD / "compare_runs_batch_jobs_20260930_main.csv")
-    p = table(AD / "compare_runs_batch_jobs_20260930_paired.csv")
-    w = weekly_block(AD / "compare_runs_batch_jobs_20260930_main.txt")
+    m = table(AD / "compare_runs_batch_jobs_20261007_main.csv")
+    p = table(AD / "compare_runs_batch_jobs_20261007_paired.csv")
+    w = weekly_block(AD / "compare_runs_batch_jobs_20261007_main.txt")
     fig = plt.figure(figsize=(11, 7.4))
     gs = fig.add_gridspec(2, 2, height_ratios=[1, 0.95], width_ratios=[1, 1])
     fig.patch.set_facecolor("white")
     rng = np.random.default_rng(1)
     for col, (region, key) in enumerate((("Germany", "DEU_cum_mUSD"), ("European Union", "EU_cum_mUSD"))):
         ax = fig.add_subplot(gs[0, col]); style(ax); ax.grid(axis="x", color=GRID, linewidth=0.6)
-        base = m.loc["2026_s30_base", key]
+        base = m.loc["2026_s07_base", key]
         ys = np.arange(len(LEVERS))[::-1]
         for y, (lv, lab) in zip(ys, LEVERS):
-            ref = 100 * (1 - m.loc[f"2026_s30_{lv}", key] / base)
+            ref = 100 * (1 - m.loc[f"2026_s07_{lv}", key] / base)
             ax.barh(y, ref, color=COLORS[lv], alpha=0.85, height=0.55)
-            paired = [100 * (1 - p.loc[f"2026_s30_seed{s}_{lv}", key] / p.loc[f"2026_s30_seed{s}_base", key]) for s in range(1, 11)]
+            paired = [100 * (1 - p.loc[f"2026_s07_seed{s}_{lv}", key] / p.loc[f"2026_s07_seed{s}_base", key]) for s in range(1, 11)]
             ax.scatter(paired, y + rng.uniform(-0.16, 0.16, 10), color=INK, s=13, zorder=3, alpha=0.75)
             ax.text(max(ref, max(paired)) + 1.5, y, f"{ref:.0f} % (draws {min(paired):.0f}–{max(paired):.0f})", va="center", fontsize=7.5, color=INK)
         ax.set_yticks(ys); ax.set_yticklabels([lab for _, lab in LEVERS] if col == 0 else [""] * len(LEVERS), fontsize=8)
         ax.set_xlim(0, 105); ax.set_xlabel(f"{region}: value-added loss avoided, % of the base", color=MUTED, fontsize=8)
         ax.set_title(("a  " if col == 0 else "b  ") + f"{region}: reference draw (bars) and ten paired draws (dots)", loc="left", fontsize=8.8, color=INK)
     ax = fig.add_subplot(gs[1, :]); style(ax); ax.grid(axis="y", color=GRID, linewidth=0.6)
-    q = m.loc["2026_s30_base", "DEU_cum_mUSD"] / m.loc["2026_s30_base", "DEU_%quarter"] / 13.0
+    q = m.loc["2026_s07_base", "DEU_cum_mUSD"] / m.loc["2026_s07_base", "DEU_%quarter"] / 13.0
     first = pd.Timestamp("2026-06-22")
     weeks = range(0, 30); dates = [first + pd.Timedelta(weeks=i - 1) for i in weeks]
-    ax.plot(dates, w["2026_s30_base"].reindex(weeks).fillna(0) / q, color=INK, linewidth=2.2, label="base")
+    ax.plot(dates, w["2026_s07_base"].reindex(weeks).fillna(0) / q, color=INK, linewidth=2.2, label="base")
     for lv, lab in LEVERS:
-        ax.plot(dates, w[f"2026_s30_{lv}"].reindex(weeks).fillna(0) / q, color=COLORS[lv], linewidth=1.5, label=lab)
+        ax.plot(dates, w[f"2026_s07_{lv}"].reindex(weeks).fillna(0) / q, color=COLORS[lv], linewidth=1.5, label=lab)
     import matplotlib.dates as mdates
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%d %b"))
     ax.set_ylabel("German value-added loss, % of a week", color=MUTED, fontsize=8)

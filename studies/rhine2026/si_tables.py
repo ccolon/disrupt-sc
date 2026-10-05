@@ -301,7 +301,7 @@ def loading_table(out: Path):
                      for cm in d.kaub_cm)
     (out / "si_loading_table.tex").write_text(r"""\begingroup\footnotesize
 \begin{longtable}{rrrp{15mm}p{38mm}p{34mm}p{40mm}}
-\caption{\textbf{The loading table as a source ledger.} Share of the normal tonnage that the Kaub reach can pass at a weekly mean gauge (fleet, the column the model uses) and the load factor of a single large vessel (for comparison), with, for each anchor, its nature (measured, a convention, interpolated or assumed), its source and date, what the source measures (reach, cargo class, period, denominator) and the transformation to the fleet value. Linear between anchors; below 5\,cm the fleet value is held at 0.05. The anchors mix single-vessel payloads, an association's weekly count, a national monthly response and operators' thresholds; they do not measure one quantity, and the table is the authors' reading of them. At the lowest gauges the table sits below the one weekly count available (0.12 at 15\,cm against 0.22 at a mean gauge of about 12\,cm), outside the $\pm$15\,\% band on the shortfall; the sensitivity on the floor below 5\,cm (Section~S4) and the loading-table band bound the result on that side.}
+\caption{\textbf{The loading table as a source ledger.} Share of the normal tonnage that the Kaub reach can pass at a weekly mean gauge (fleet, the column the model uses) and the load factor of a single large vessel (for comparison), with, for each anchor, its nature (measured, a convention, interpolated or assumed), its source and date, what the source measures (reach, cargo class, period, denominator) and the transformation to the fleet value. Linear between anchors; below 5\,cm the fleet value is held at 0.08. The anchors mix single-vessel payloads, an association's weekly count, a national monthly response and operators' thresholds; they do not measure one quantity, and the table is the authors' reading of them. The table was rebuilt on this ledger on 6 October 2026 (the low end lifted to the weekly count and the single-vessel loads times the fleet's redeployment; unchanged from 55\,cm up); the band of $\pm$15\,\% on the shortfall and the sensitivity on the floor below 5\,cm (Section~S4) bound the result on either side.}
 \label{tab:loading} \\
 \toprule
 cm & fleet & vessel & nature & source & measures & transformation \\
@@ -343,14 +343,14 @@ week of & vintage 10 Sep & status & vintage 30 Sep & status \\
 
 # ------------------------------------------------------------------------------------------------ S6, S7
 def runs_table(out: Path):
-    m = table(AD / "compare_runs_batch_jobs_20260930_main.csv")
-    p = table(AD / "compare_runs_batch_jobs_20260930_paired.csv")
+    m = table(AD / "compare_runs_batch_jobs_20261007_main.csv")
+    p = table(AD / "compare_runs_batch_jobs_20261007_paired.csv")
     t = pd.concat([m, p])
     cols = ["DEU_%quarter", "DEU_peak_%week", "DEU_peak_week", "EU_cum_mUSD", "cons_loss_cum_mUSD"]
     rows = "\n".join(f"{tex(r)} & {v['DEU_%quarter']:.2f} & {v['DEU_peak_%week']:.2f} & {int(v['DEU_peak_week'])} & {v['EU_cum_mUSD'] / 1e3:.1f} & {v['cons_loss_cum_mUSD'] / 1e3:.1f} \\\\"
                      for r, v in t[cols].iterrows())
     (out / "si_runs.tex").write_text(r"""\begin{longtable}{lrrrrr}
-\caption{\textbf{Every run of the batch of 30 September 2026.} German value-added loss as a share of a quarter, its peak (share of a week's value added, run week), the EU loss and the household consumption loss (billion USD). Names: \texttt{2026\_s30\_*} and \texttt{2018\_s30\_*} the two events on the reference draw and their variants; \texttt{seedN} the further draws; \texttt{wave30\_*} the wave-isolation profiles; \texttt{seedN\_<lever>} a lever paired with the base of the same draw.}
+\caption{\textbf{Every run of the batch of 7 October 2026.} German value-added loss as a share of a quarter, its peak (share of a week's value added, run week), the EU loss and the household consumption loss (billion USD). Names: \texttt{2026\_s30\_*} and \texttt{2018\_s30\_*} the two events on the reference draw and their variants; \texttt{seedN} the further draws; \texttt{wave30\_*} the wave-isolation profiles; \texttt{seedN\_<lever>} a lever paired with the base of the same draw.}
 \label{tab:runs} \\
 \toprule
 run & DEU (\% of a quarter) & peak (\% of a week) & peak week & EU (bn) & consumption (bn) \\
@@ -413,8 +413,8 @@ def channels_table(out: Path):
     """What leaves the normal route and what the gate withholds, by cargo class, base against each channel alone
     (routing_summary.csv totals over the run; revision of 6 Oct 2026, review C05)."""
     rows = []
-    for run, lab in (("2026_s30_base", "constraint and surcharge (the paper)"), ("2026_s30_gateonly", "constraint alone"),
-                     ("2026_s30_surchargeonly", "surcharge alone")):
+    for run, lab in (("2026_s07_base", "constraint and surcharge (the paper)"), ("2026_s07_gateonly", "constraint alone"),
+                     ("2026_s07_surchargeonly", "surcharge alone")):
         s = pd.read_csv(RUNS / run / "routing_summary.csv")
         b = s[s.cargo_type.isin(["dry_bulk", "liquid_bulk"])]; c = s[s.cargo_type == "container"]
         rows.append(f"{lab} & {b.alternative_usd.sum() / 1e3:.1f} & {b.capacity_blocked_usd.sum() / 1e3:.1f} & {c.alternative_usd.sum() / 1e3:.1f} & {c.capacity_blocked_usd.sum() / 1e3:.1f} \\\\")
@@ -441,7 +441,7 @@ def gate_table(out: Path):
     import numpy as np
     lf = lambda cm: float(np.interp(cm, curve.kaub_cm, curve.load_factor, left=curve.load_factor.iloc[0], right=1.0))
     gt = {}
-    for line in (RUNS / "2026_s30_base.log").read_text(encoding="utf-8", errors="replace").splitlines():
+    for line in (RUNS / "2026_s07_base.log").read_text(encoding="utf-8", errors="replace").splitlines():
         m = re.search(r"Capacity gate t=(\d+):.*cut ([\d,]+) t, re-sent ([\d,]+) t, blocked ([\d,]+) t", line)
         if m:
             gt[int(m.group(1))] = tuple(float(m.group(i).replace(",", "")) for i in (2, 3, 4))
@@ -475,7 +475,7 @@ def prospective_table(out: Path):
     from matched_estimand_2018 import model_path
     from benchmark_ademmer import record, EVENT_MONTHS
     labs = ["Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-    d = model_path(RUNS / "2026_s30_base", 2026)
+    d = model_path(RUNS / "2026_s07_base", 2026)
     t, s = record(2026, 1)
     ev = t[t.month.isin(EVENT_MONTHS[2026])]
     rows = ["model, reference draw (forecast of 30 September) & " + " & ".join(f"{d[f'ind_{m}']:.1f}" for m in labs) + f" & {d['ind_integrated_pct_months']:.1f} \\\\"]
@@ -483,7 +483,7 @@ def prospective_table(out: Path):
     if band.exists():
         bd = pd.read_csv(band)
         rows.append("model, range of the eleven draws & " + " & ".join(f"{a:.1f}--{b:.1f}" for a, b in zip(bd["min"], bd["max"])) + " & \\\\")
-    for run, lab in (("2026_s30_tablelow", "model, loading table with the shortfall $\\times$1.15"), ("2026_s30_tablehigh", "model, loading table $\\times$0.85")):
+    for run, lab in (("2026_s07_tablelow", "model, loading table with the shortfall $\\times$1.15"), ("2026_s07_tablehigh", "model, loading table $\\times$0.85")):
         if (RUNS / run / "firm_data.csv").exists():
             dd = model_path(RUNS / run, 2026)
             rows.append(f"{lab} & " + " & ".join(f"{dd[f'ind_{m}']:.1f}" for m in labs) + f" & {dd['ind_integrated_pct_months']:.1f} \\\\")

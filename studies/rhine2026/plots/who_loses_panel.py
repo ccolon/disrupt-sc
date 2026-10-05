@@ -2,7 +2,7 @@
 (gross and net) and the loss by country (30 Sep 2026; review G6, F5 note).
 
 Usage:
-    python studies/rhine2026/plots/who_loses_panel.py [--run C:/dsc_runs/rhine2026/2026_s30_base] [--out studies/rhine2026/figures]
+    python studies/rhine2026/plots/who_loses_panel.py [--run C:/dsc_runs/rhine2026/2026_s07_base] [--out studies/rhine2026/figures]
 """
 from __future__ import annotations
 
@@ -89,7 +89,7 @@ def main(run: Path, out: Path):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--run", default="C:/dsc_runs/rhine2026/2026_s30_base")
+    ap.add_argument("--run", default="C:/dsc_runs/rhine2026/2026_s07_base")
     ap.add_argument("--out", default=str(HERE / "figures"))
     a = ap.parse_args()
     main(Path(a.run), Path(a.out))

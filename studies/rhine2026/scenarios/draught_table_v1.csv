@@ -1,5 +1,5 @@
 kaub_cm,load_factor,load_factor_vessel_gms,anchor
-5,0.02,0.0,sensitivity (6 Oct 2026): the floor below 5 cm at 0.02 instead of 0.05; the 10 cm row unchanged
+5,0.05,0.0,only purpose-built low-water vessels move (Stolt Ludwigshafen ~800 t at 30 cm; 9 such ships Aug 2026); Kaub 5-6 cm 14-17 Aug 2026
 10,0.08,0.0,press: shipping past Kaub stopped; Contargo/CMA CGM: no barge <24 cm
 15,0.12,0.02,KBN week to ~13 Aug 2026 (Kaub 10-17 cm): 60 kt dry + 30 kt wet vs normal 300 + 100 kt = 22%; partly small Class II-IV units
 25,0.22,0.09,"KBN 22% at ~20-25 cm; Argus: 1,200 t tanker loads 180 t (15%) at 23 cm; low-water ships 700-800 t of 5,100 t"

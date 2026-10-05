@@ -1,6 +1,6 @@
 """Read the revision batch of 6 Oct 2026 (cluster/jobs_20261006_rev.txt) once its results are extracted in C:/dsc_runs/rhine2026.
 
-Prints, against the reference run 2026_s30_base (and 2018_s30_base), each sensitivity's German loss, peak and EU loss;
+Prints, against the reference run 2026_s07_base (and 2018_s07_base), each sensitivity's German loss, peak and EU loss;
 the bounded-substitution runs with the relief value and tonnage per week; the fleet lever's weekly path against the base
 (from the repacked firm data); the prospective band of the 2026 industrial path across the seed bases and the loading
 tables; and the determinism check of 2026_rev_base. Writes additional_data/batch_20261006_summary.txt.
@@ -21,32 +21,32 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[2]
 AD = ROOT / "studies/rhine2026/additional_data"
 sys.path.insert(0, str(ROOT / "studies/rhine2026"))
-from read_batch_20260930 import table, firm_losses  # noqa: E402
+from read_batch_20261007 import table, firm_losses  # noqa: E402
 from matched_estimand_2018 import model_path  # noqa: E402
 
 PAIRS = [  # (run, label, base)
-    ("2026_rev_base", "the reference run repeated after the fingerprint change (must equal 2026_s30_base)", "2026_s30_base"),
-    ("2026_rev_rail50", "bounded substitution by rail, 50 kt a week", "2026_s30_base"),
-    ("2026_rev_rail140", "bounded substitution by rail, 140 kt a week", "2026_s30_base"),
-    ("2018_rev_rail50", "2018, bounded substitution 50 kt a week", "2018_s30_base"),
-    ("2018_rev_rail140", "2018, bounded substitution 140 kt a week", "2018_s30_base"),
-    ("2026_rev_head10", "capacity headroom 10 % (private caches)", "2026_s30_base"),
-    ("2026_rev_head25", "capacity headroom 25 % (private caches)", "2026_s30_base"),
-    ("2026_rev_rest15", "refill time 15 days", "2026_s30_base"),
-    ("2026_rev_rest60", "refill time 60 days", "2026_s30_base"),
-    ("2026_rev_floor02", "loading-table floor below 5 cm at 0.02", "2026_s30_base"),
-    ("2026_rev_floor10", "loading-table floor below 5 cm at 0.10", "2026_s30_base"),
-    ("2026_rev_deeplocal", "fairway +20 cm on the Kaub reach alone", "2026_s30_base"),
-    ("2026_rev_fleetwide", "low-water fleet with its gain carried to 100 cm", "2026_s30_base"),
-    ("2026_rev_dfuel0", "power sector's fuel-oil input non-critical", "2026_s30_base"),
-    ("2026_rev_serv45", "45-day coping duration for the non-storable inputs", "2026_s30_base"),
-    ("2026_rev_q25", "outlook's 25th percentile path", "2026_s30_base"),
-    ("2026_rev_q75", "outlook's 75th percentile path", "2026_s30_base"),
+    ("2026_rev_base", "the reference run repeated after the fingerprint change (must equal 2026_s07_base)", "2026_s07_base"),
+    ("2026_rev_rail50", "bounded substitution by rail, 50 kt a week", "2026_s07_base"),
+    ("2026_rev_rail140", "bounded substitution by rail, 140 kt a week", "2026_s07_base"),
+    ("2018_rev_rail50", "2018, bounded substitution 50 kt a week", "2018_s07_base"),
+    ("2018_rev_rail140", "2018, bounded substitution 140 kt a week", "2018_s07_base"),
+    ("2026_rev_head10", "capacity headroom 10 % (private caches)", "2026_s07_base"),
+    ("2026_rev_head25", "capacity headroom 25 % (private caches)", "2026_s07_base"),
+    ("2026_rev_rest15", "refill time 15 days", "2026_s07_base"),
+    ("2026_rev_rest60", "refill time 60 days", "2026_s07_base"),
+    ("2026_rev_floor02", "loading-table floor below 5 cm at 0.02", "2026_s07_base"),
+    ("2026_rev_floor10", "loading-table floor below 5 cm at 0.10", "2026_s07_base"),
+    ("2026_rev_deeplocal", "fairway +20 cm on the Kaub reach alone", "2026_s07_base"),
+    ("2026_rev_fleetwide", "low-water fleet with its gain carried to 100 cm", "2026_s07_base"),
+    ("2026_rev_dfuel0", "power sector's fuel-oil input non-critical", "2026_s07_base"),
+    ("2026_rev_serv45", "45-day coping duration for the non-storable inputs", "2026_s07_base"),
+    ("2026_rev_q25", "outlook's 25th percentile path", "2026_s07_base"),
+    ("2026_rev_q75", "outlook's 75th percentile path", "2026_s07_base"),
 ]
 
 
 def load_tables() -> pd.DataFrame:
-    frames = [table(AD / f) for f in ("compare_runs_batch_jobs_20260930_main.csv", "compare_runs_batch_jobs_20260930_paired.csv")]
+    frames = [table(AD / f) for f in ("compare_runs_batch_jobs_20261007_main.csv", "compare_runs_batch_jobs_20261007_paired.csv")]
     rev = AD / "compare_runs_batch_jobs_20261006_rev.csv"
     if rev.exists():
         frames.append(table(rev))
@@ -88,15 +88,15 @@ def main(runs: Path):
                  f"peak {r['DEU_peak_%week']:.2f} % wk {int(r['DEU_peak_week'])} (base {b['DEU_peak_%week']:.2f} wk {int(b['DEU_peak_week'])}), "
                  f"EU {r['EU_cum_mUSD'] / 1e3:.1f} bn (base {b['EU_cum_mUSD'] / 1e3:.1f})   {lab}")
     if "2026_rev_base" in t.index:
-        d = abs(t.loc["2026_rev_base", "DEU_cum_mUSD"] - t.loc["2026_s30_base", "DEU_cum_mUSD"])
-        L.append(f"  determinism: 2026_rev_base differs from 2026_s30_base by {d:.3f} mUSD" + (" (identical)" if d < 0.5 else " (NOT identical: investigate)"))
+        d = abs(t.loc["2026_rev_base", "DEU_cum_mUSD"] - t.loc["2026_s07_base", "DEU_cum_mUSD"])
+        L.append(f"  determinism: 2026_rev_base differs from 2026_s07_base by {d:.3f} mUSD" + (" (identical)" if d < 0.5 else " (NOT identical: investigate)"))
 
     L.append("\n== Bounded substitution: relief value and tonnage by week ==")
     for run in ("2026_rev_rail50", "2026_rev_rail140", "2018_rev_rail50", "2018_rev_rail140"):
         L += relief_by_week(runs, run)
 
     L.append("\n== The fleet lever's weekly path against the base (repacked firm data) ==")
-    for run in ("2026_s30_base", "2026_s30_fleet", "2026_rev_fleetwide", "2026_s30_stock7", "2026_s30_deep20"):
+    for run in ("2026_s07_base", "2026_s07_fleet", "2026_rev_fleetwide", "2026_s07_stock7", "2026_s07_deep20"):
         if (runs / run / "firm_data.csv").exists():
             fd = firm_losses(runs / run); w = fd[fd.region == "DEU"].groupby("time_step").loss.sum()
             L.append(f"  {run:20s} weeks 12-22 (mUSD): " + ", ".join(f"{int(w.get(k, 0))}" for k in range(12, 23)) + f"; sum 1-11 {w.loc[1:11].sum():,.0f}, 12-19 {w.loc[12:19].sum():,.0f}, 20+ {w.loc[20:].sum():,.0f}, peak wk {int(w.idxmax())} {w.max():,.0f}")
@@ -106,11 +106,11 @@ def main(runs: Path):
     L.append("\n== Prospective 2026 path: the band across the seed bases and the loading tables (monthly industrial shortfall, %) ==")
     labs = ["Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     paths = {}
-    for run in ["2026_s30_base"] + [f"2026_s30_seed{s}_base" for s in range(1, 11)] + ["2026_s30_tablelow", "2026_s30_tablehigh", "2026_rev_q25", "2026_rev_q75"]:
+    for run in ["2026_s07_base"] + [f"2026_s07_seed{s}_base" for s in range(1, 11)] + ["2026_s07_tablelow", "2026_s07_tablehigh", "2026_rev_q25", "2026_rev_q75"]:
         if (runs / run / "firm_data.csv").exists():
             d = model_path(runs / run, 2026); paths[run] = [d[f"ind_{m}"] for m in labs]
             L.append(f"  {run:22s} " + " ".join(f"{m} {v:5.2f}" for m, v in zip(labs, paths[run])) + f"  integral {d['ind_integrated_pct_months']:.2f} peak {d['peak_month_ind']}")
-    draws = [paths[r] for r in paths if "seed" in r or r == "2026_s30_base"]
+    draws = [paths[r] for r in paths if "seed" in r or r == "2026_s07_base"]
     if len(draws) > 1:
         a = np.array(draws)
         L.append("  eleven draws, min-max by month: " + " ".join(f"{m} {a[:, i].min():.2f}-{a[:, i].max():.2f}" for i, m in enumerate(labs)))

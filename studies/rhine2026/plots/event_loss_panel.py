@@ -4,7 +4,7 @@ band of the eleven supply-chain draws, on the calendar of the gauge, with the pr
 
 Usage:
     python studies/rhine2026/plots/event_loss_panel.py [--out studies/rhine2026/figures]
-Inputs: additional_data/compare_runs_batch_jobs_20260930_{main,paired}.{csv,txt}, scenarios/2026.csv.
+Inputs: additional_data/compare_runs_batch_jobs_20261007_{main,paired}.{csv,txt}, scenarios/2026.csv.
 """
 from __future__ import annotations
 
@@ -41,16 +41,16 @@ def table(path: Path) -> pd.DataFrame:
 
 
 def main(out: Path):
-    m = table(AD / "compare_runs_batch_jobs_20260930_main.csv")
-    wm = weekly_block(AD / "compare_runs_batch_jobs_20260930_main.txt")
-    wp = weekly_block(AD / "compare_runs_batch_jobs_20260930_paired.txt")
-    q_week = m.loc["2026_s30_base", "DEU_cum_mUSD"] / m.loc["2026_s30_base", "DEU_%quarter"] / 13.0
+    m = table(AD / "compare_runs_batch_jobs_20261007_main.csv")
+    wm = weekly_block(AD / "compare_runs_batch_jobs_20261007_main.txt")
+    wp = weekly_block(AD / "compare_runs_batch_jobs_20261007_paired.txt")
+    q_week = m.loc["2026_s07_base", "DEU_cum_mUSD"] / m.loc["2026_s07_base", "DEU_%quarter"] / 13.0
     prof = pd.read_csv(HERE / "scenarios" / "2026.csv")
     first = pd.Timestamp(prof.week_start.iloc[0])
     weeks = range(0, 30)
     dates = [first + pd.Timedelta(weeks=i - 1) for i in weeks]
-    ref = wm["2026_s30_base"].reindex(weeks).fillna(0) / q_week
-    band = pd.DataFrame({s: wp[f"2026_s30_seed{s}_base"].reindex(weeks).fillna(0) / q_week for s in range(1, 11)})
+    ref = wm["2026_s07_base"].reindex(weeks).fillna(0) / q_week
+    band = pd.DataFrame({s: wp[f"2026_s07_seed{s}_base"].reindex(weeks).fillna(0) / q_week for s in range(1, 11)})
     fig, ax = plt.subplots(figsize=(11, 3.6))
     fig.patch.set_facecolor("white")
     for s in ("top", "right"):

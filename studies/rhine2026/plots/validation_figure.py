@@ -11,8 +11,8 @@
 
 Usage:
     python studies/rhine2026/plots/validation_figure.py [--runs C:/dsc_runs/rhine2026] [--out studies/rhine2026/figures]
-Inputs: firm_data.csv of 2018_s30_base, 2018_s30_seed1..10, 2018_s30_tablelow/high, 2018_s30_sup2 (matched
-estimand computed here); additional_data/compare_runs_batch_jobs_20260930_{main,paired}.{csv,txt}; scenarios/2018.csv.
+Inputs: firm_data.csv of 2018_s07_base, 2018_s07_seed1..10, 2018_s07_tablelow/high, 2018_s07_sup2 (matched
+estimand computed here); additional_data/compare_runs_batch_jobs_20261007_{main,paired}.{csv,txt}; scenarios/2018.csv.
 The stock ladder (x1.25, x1.5, x2) and the priced river come from the runs of 22-28 Sep (before construction was
 made non-storable, which leaves the 2018 industrial path unchanged: 5.57 percent-months before and after).
 """
@@ -70,10 +70,10 @@ def style(ax):
 
 
 def main(runs: Path, out: Path):
-    ref = matched(runs / "2018_s30_base")
-    seeds = [matched(runs / f"2018_s30_seed{s}") for s in range(1, 11)]
-    low, high = matched(runs / "2018_s30_tablelow"), matched(runs / "2018_s30_tablehigh")
-    sup2 = matched(runs / "2018_s30_sup2")
+    ref = matched(runs / "2018_s07_base")
+    seeds = [matched(runs / f"2018_s07_seed{s}") for s in range(1, 11)]
+    low, high = matched(runs / "2018_s07_tablelow"), matched(runs / "2018_s07_tablehigh")
+    sup2 = matched(runs / "2018_s07_sup2")
     # the record: the published dynamic specification (column 1) with its 16-84 % band
     rec_t, rec_s = record(2018, 1)
     ev = rec_t[rec_t.month.isin(EVENT_MONTHS[2018])]
@@ -84,9 +84,9 @@ def main(runs: Path, out: Path):
     priced1 = matched(runs / "2018_baseline")
     INT_PRICED = {1.0: priced1["integral"], 1.5: matched(runs / "2018_inv150")["integral"], 2.0: matched(runs / "2018_pipe")["integral"]}
     PRICED_X1 = [priced1[mo] for mo in MONTHS]
-    m = table(AD / "compare_runs_batch_jobs_20260930_main.csv")
-    p = table(AD / "compare_runs_batch_jobs_20260930_paired.csv")
-    Q_DEU = m.loc["2026_s30_base", "DEU_cum_mUSD"] / m.loc["2026_s30_base", "DEU_%quarter"]
+    m = table(AD / "compare_runs_batch_jobs_20261007_main.csv")
+    p = table(AD / "compare_runs_batch_jobs_20261007_paired.csv")
+    Q_DEU = m.loc["2026_s07_base", "DEU_cum_mUSD"] / m.loc["2026_s07_base", "DEU_%quarter"]
 
     fig, axes = plt.subplots(2, 2, figsize=(11, 7.8), gridspec_kw={"height_ratios": [1.1, 1]})
     fig.patch.set_facecolor("white")
@@ -134,15 +134,15 @@ def main(runs: Path, out: Path):
 
     # (c) weekly 2018 loss with the band
     ax = axes[1, 0]; style(ax)
-    ens = weekly_block(AD / "compare_runs_batch_jobs_20260930_main.txt")
-    cols = [f"2018_s30_seed{s}" for s in range(1, 11)]
+    ens = weekly_block(AD / "compare_runs_batch_jobs_20261007_main.txt")
+    cols = [f"2018_s07_seed{s}" for s in range(1, 11)]
     first = pd.Timestamp(pd.read_csv(HERE / "scenarios" / "2018.csv")["week_start"].iloc[0])
     dates = [first + pd.Timedelta(weeks=int(t) - 1) for t in ens.index]
     band = ens[cols] * 13 / Q_DEU
     ax.fill_between(dates, band.min(axis=1), band.max(axis=1), color=BLUE, alpha=0.15, linewidth=0, label="ten further draws (range)")
     ax.fill_between(dates, band.quantile(0.25, axis=1), band.quantile(0.75, axis=1), color=BLUE, alpha=0.3, linewidth=0, label="interquartile range")
-    ax.plot(dates, ens["2018_s30_base"] * 13 / Q_DEU, color=INK, linewidth=2, label="reference draw")
-    top = float(max(band.max().max(), (ens["2018_s30_base"] * 13 / Q_DEU).max())) * 1.15
+    ax.plot(dates, ens["2018_s07_base"] * 13 / Q_DEU, color=INK, linewidth=2, label="reference draw")
+    top = float(max(band.max().max(), (ens["2018_s07_base"] * 13 / Q_DEU).max())) * 1.15
     ax.set_ylim(0, top)
     for d in ("2018-10-22", "2018-10-25"):
         ax.axvline(pd.Timestamp(d), color=ORANGE, linewidth=1, linestyle="--")
@@ -158,8 +158,8 @@ def main(runs: Path, out: Path):
 
     # (d) the two ensembles
     ax = axes[1, 1]; style(ax)
-    e26 = [p.loc[f"2026_s30_seed{s}_base", "DEU_%quarter"] for s in range(1, 11)] + [m.loc["2026_s30_base", "DEU_%quarter"]]
-    e18 = [m.loc[f"2018_s30_seed{s}", "DEU_%quarter"] for s in range(1, 11)] + [m.loc["2018_s30_base", "DEU_%quarter"]]
+    e26 = [p.loc[f"2026_s07_seed{s}_base", "DEU_%quarter"] for s in range(1, 11)] + [m.loc["2026_s07_base", "DEU_%quarter"]]
+    e18 = [m.loc[f"2018_s07_seed{s}", "DEU_%quarter"] for s in range(1, 11)] + [m.loc["2018_s07_base", "DEU_%quarter"]]
     rng = np.random.default_rng(3)
     for xx, vals, col in [(0, e18, BLUE), (1, e26, ORANGE)]:
         jitter = rng.uniform(-0.12, 0.12, len(vals))

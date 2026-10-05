@@ -22,7 +22,7 @@ to months by their start date and weighted each month by its number of run weeks
 record's integral does; the review of 5 Oct found the printed integrals inconsistent with the monthly values.)
 
 Usage:
-    python studies/rhine2026/matched_estimand_2018.py [--runs 2018_s30_base,...] [--year 2018|2026] [--out FILE]
+    python studies/rhine2026/matched_estimand_2018.py [--runs 2018_s07_base,...] [--year 2018|2026] [--out FILE]
 """
 from __future__ import annotations
 
@@ -140,7 +140,7 @@ def main(runs: list[str], out: Path | None, year: int):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--runs", default="2018_s30_base")
+    ap.add_argument("--runs", default="2018_s07_base")
     ap.add_argument("--year", type=int, default=2018)
     ap.add_argument("--out", default=None)
     a = ap.parse_args()

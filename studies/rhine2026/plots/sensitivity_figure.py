@@ -8,7 +8,7 @@ constraint). These are not one distribution: the panel keeps them apart.
 
 Usage:
     python studies/rhine2026/plots/sensitivity_figure.py [--out studies/rhine2026/figures]
-Inputs: additional_data/compare_runs_batch_jobs_20260930_{main,paired}.csv.
+Inputs: additional_data/compare_runs_batch_jobs_20261007_{main,paired}.csv.
 """
 from __future__ import annotations
 
@@ -45,23 +45,23 @@ def style(ax):
 
 
 def main(out: Path):
-    m = table(AD / "compare_runs_batch_jobs_20260930_main.csv")
-    p = table(AD / "compare_runs_batch_jobs_20260930_paired.csv")
+    m = table(AD / "compare_runs_batch_jobs_20261007_main.csv")
+    p = table(AD / "compare_runs_batch_jobs_20261007_paired.csv")
     q = "DEU_%quarter"
     fig, axes = plt.subplots(1, 2, figsize=(11, 4.6), gridspec_kw={"width_ratios": [1.15, 1]})
     fig.patch.set_facecolor("white")
     rng = np.random.default_rng(2)
     for ax, year in zip(axes, ("2026", "2018")):
         style(ax)
-        base = m.loc[f"{year}_s30_base", q]
-        draws = ([p.loc[f"2026_s30_seed{s}_base", q] for s in range(1, 11)] if year == "2026"
-                 else [m.loc[f"2018_s30_seed{s}", q] for s in range(1, 11)])
+        base = m.loc[f"{year}_s07_base", q]
+        draws = ([p.loc[f"2026_s07_seed{s}_base", q] for s in range(1, 11)] if year == "2026"
+                 else [m.loc[f"2018_s07_seed{s}", q] for s in range(1, 11)])
         groups = [("supply-chain\ndraws (11)", draws + [base], BLUE),
-                  ("loading table\n(shortfall ×1.15, ×0.85)", [m.loc[f"{year}_s30_tablelow", q], m.loc[f"{year}_s30_tablehigh", q]], GREEN),
-                  ("two suppliers\nper input", [m.loc[f"{year}_s30_sup2", q]], PINK),
-                  ("no input\npooling", [m.loc[f"{year}_s30_nopool", q]], ORANGE)]
+                  ("loading table\n(shortfall ×1.15, ×0.85)", [m.loc[f"{year}_s07_tablelow", q], m.loc[f"{year}_s07_tablehigh", q]], GREEN),
+                  ("two suppliers\nper input", [m.loc[f"{year}_s07_sup2", q]], PINK),
+                  ("no input\npooling", [m.loc[f"{year}_s07_nopool", q]], ORANGE)]
         if year == "2026":
-            groups.append(("one channel:\nconstraint only,\nsurcharge only", [m.loc["2026_s30_gateonly", q], m.loc["2026_s30_surchargeonly", q]], MUTED))
+            groups.append(("one channel:\nconstraint only,\nsurcharge only", [m.loc["2026_s07_gateonly", q], m.loc["2026_s07_surchargeonly", q]], MUTED))
         ax.axhline(base, color=INK, linewidth=1.2, linestyle="--")
         ax.text(-0.45, base + 0.04, f"reference {base:.2f}", color=INK, fontsize=7.5, ha="left", va="bottom")
         top = max(max(v) for lab, v, _ in groups if not lab.startswith("no input")) * 1.25

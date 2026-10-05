@@ -28,7 +28,7 @@ import pandas as pd
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from read_batch_20260930 import firm_losses, table  # noqa: E402
+from read_batch_20261007 import firm_losses, table  # noqa: E402
 from matched_estimand_2018 import model_path  # noqa: E402
 
 GROUP = {"A": "A agriculture", "B": "B-E industry", "C": "B-E industry", "D": "B-E industry", "E": "B-E industry",
@@ -72,12 +72,12 @@ def routing(runs: Path, run: str) -> pd.DataFrame:
 
 def channels(runs: Path) -> list[str]:
     L = ["  totals over the run, mUSD (routing_summary.csv): what leaves the normal route for an alternative, and what the gate withholds"]
-    for run in ("2026_s30_base", "2026_s30_gateonly", "2026_s30_surchargeonly"):
+    for run in ("2026_s07_base", "2026_s07_gateonly", "2026_s07_surchargeonly"):
         s = routing(runs, run)
         bulk = s[s.cargo_type.isin(["dry_bulk", "liquid_bulk"])]; cont = s[s.cargo_type == "container"]
         L.append(f"    {run:24s} bulk: alternative {bulk.alternative_usd.sum():8,.0f}, capacity-blocked {bulk.capacity_blocked_usd.sum():8,.0f}, "
                  f"blocked {bulk.blocked_usd.sum():8,.0f} | containers: alternative {cont.alternative_usd.sum():8,.0f}, capacity-blocked {cont.capacity_blocked_usd.sum():6,.0f}")
-    b = routing(runs, "2026_s30_base"); g = routing(runs, "2026_s30_gateonly")
+    b = routing(runs, "2026_s07_base"); g = routing(runs, "2026_s07_gateonly")
     L.append("  by week, bulk alternative value (base / constraint-only) and capacity-blocked (base / constraint-only), mUSD:")
     for t in range(1, 24):
         bb = b[(b.time_step == t) & b.cargo_type.isin(["dry_bulk", "liquid_bulk"])]; gg = g[(g.time_step == t) & g.cargo_type.isin(["dry_bulk", "liquid_bulk"])]
@@ -99,7 +99,7 @@ def gate_tons(log: Path) -> dict[int, tuple[float, float, float]]:
 
 def flat(runs: Path) -> list[str]:
     L = []
-    for run in ("2026_s30_base", "wave30_flat"):
+    for run in ("2026_s07_base", "wave07_flat"):
         s = routing(runs, run); bulk = s[s.cargo_type.isin(["dry_bulk", "liquid_bulk"])]
         gt = gate_tons(runs / f"{run}.log")
         tons = f"; gate (log): cut {sum(v[0] for v in gt.values()):,.0f} t, re-sent {sum(v[1] for v in gt.values()):,.0f} t, blocked {sum(v[2] for v in gt.values()):,.0f} t over {len(gt)} gated weeks" if gt else "; gate tonnage not in the packed log"
@@ -124,7 +124,7 @@ def horizons(runs: Path, run: str, q: float) -> list[str]:
     return L
 
 
-def supplier_weights(runs: Path, run: str = "2026_s30_full") -> list[str]:
+def supplier_weights(runs: Path, run: str = "2026_s07_full") -> list[str]:
     f = runs / run / "link_flows_disrupted.csv.gz"
     if not f.exists():
         return [f"  {run}: no link table"]
@@ -157,19 +157,19 @@ def prospective(runs: Path, names: list[str]) -> list[str]:
 
 
 def main(runs: Path, out: Path):
-    m = table(HERE / "additional_data" / "compare_runs_batch_jobs_20260930_main.csv")
-    q26 = m.loc["2026_s30_base", "DEU_cum_mUSD"] / m.loc["2026_s30_base", "DEU_%quarter"]
-    q18 = m.loc["2018_s30_base", "DEU_cum_mUSD"] / m.loc["2018_s30_base", "DEU_%quarter"]
+    m = table(HERE / "additional_data" / "compare_runs_batch_jobs_20261007_main.csv")
+    q26 = m.loc["2026_s07_base", "DEU_cum_mUSD"] / m.loc["2026_s07_base", "DEU_%quarter"]
+    q18 = m.loc["2018_s07_base", "DEU_cum_mUSD"] / m.loc["2018_s07_base", "DEU_%quarter"]
     L = ["Revision diagnostics, 6 Oct 2026 (review of 5 Oct), on the packed outputs of the batch of 30 Sep", ""]
     L += ["== 1. German gross loss by sector group (mutually exclusive), and the catch-up attribute apart =="]
-    L += sector_groups(runs, "2026_s30_base", q26) + sector_groups(runs, "2018_s30_base", q18)
+    L += sector_groups(runs, "2026_s07_base", q26) + sector_groups(runs, "2018_s07_base", q18)
     L += ["", "== 2. Delivered prices: the share of value paying more than 1 % above baseline, with its denominators =="]
-    L += price_shares(runs, "2026_s30_full") + price_shares(runs, "2018_s30_full")
+    L += price_shares(runs, "2026_s07_full") + price_shares(runs, "2018_s07_full")
     L += ["", "== 3. Channel decomposition at the routing level =="] + channels(runs)
     L += ["", "== 4. The flat profile against the season =="] + flat(runs)
-    L += ["", "== 5. Horizons and the catch-up tail =="] + horizons(runs, "2026_s30_base", q26) + horizons(runs, "2018_s30_base", q18)
+    L += ["", "== 5. Horizons and the catch-up tail =="] + horizons(runs, "2026_s07_base", q26) + horizons(runs, "2018_s07_base", q18)
     L += ["", "== 6. Supplier weights of the Kaub-served buyers through the season =="] + supplier_weights(runs)
-    L += ["", "== 7. The prospective 2026 path =="] + prospective(runs, ["2026_s30_base", "2026_s30_package", "2026_s30_sup2", "2026_s30_gateonly", "2026_s30_surchargeonly"])
+    L += ["", "== 7. The prospective 2026 path =="] + prospective(runs, ["2026_s07_base", "2026_s07_package", "2026_s07_sup2", "2026_s07_gateonly", "2026_s07_surchargeonly"])
     text = "\n".join(L)
     print(text)
     out.write_text(text + "\n", encoding="utf-8")
