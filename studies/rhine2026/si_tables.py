@@ -502,9 +502,12 @@ def prospective_table(out: Path):
 
 def main(overleaf: Path):
     out = overleaf / "tables"; out.mkdir(exist_ok=True)
-    rates_table(out); stocks_table(out); criticality_table(out); thresholds_table(out)
-    loading_table(out); forecast_table(out); runs_table(out); representations_table(out)
-    channels_table(out); gate_table(out); prospective_table(out)
+    for fn in (rates_table, stocks_table, criticality_table, thresholds_table, loading_table, forecast_table,
+               runs_table, representations_table, channels_table, gate_table, prospective_table):
+        try:
+            fn(out)
+        except FileNotFoundError as e:      # a table whose runs are not extracted yet keeps its previous version
+            print(f"  {fn.__name__}: skipped, missing input {Path(str(e).split(': ')[-1].strip(chr(39))).name}")
     print("tables written to", out)
 
 
