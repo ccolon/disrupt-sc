@@ -416,6 +416,9 @@ def main():
                          "at the observed gauge (the local-reach case, review NS3)")
     ap.add_argument("--restoration-days", type=float, default=None,
                     help="inventory_restoration_time in days (the refill of a stock gap; config 30): sensitivity (review OR4)")
+    ap.add_argument("--no-early-stop", action="store_true",
+                    help="run every week of the profile and the recovery even when the model is back at equilibrium "
+                         "(epsilon_stop_condition 0): stationarity checks on an undisturbed profile (6 Oct 2026)")
     ap.add_argument("--cache-isolation", action="store_true",
                     help="private cache directory for this process (cluster batches with several seeds)")
     ap.add_argument("--light-export", action="store_true",
@@ -562,6 +565,9 @@ def main():
         config.setdefault("filepaths", {})["input_criticality"] = str(Path(args.input_criticality).resolve())
     if args.critical_input_threshold is not None:
         config["critical_input_threshold"] = args.critical_input_threshold
+    if args.no_early_stop:
+        config["epsilon_stop_condition"] = 0.0
+        print("early stop off: every week of the profile and the recovery is run")
     if args.restoration_days is not None:
         config["inventory_restoration_time"] = float(args.restoration_days)
         print(f"inventory restoration time {args.restoration_days:g} days (config {load_config(args.scope).get('inventory_restoration_time', 30)})")
