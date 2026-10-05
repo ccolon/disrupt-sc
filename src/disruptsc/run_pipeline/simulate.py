@@ -93,10 +93,14 @@ def run_disruption(sc_network, transport_network, firms, households, countries,
             time_resolution=sp.time_resolution,
         )
         if not disruptions:
-            logging.info("No disruptions — running one baseline step and returning")
+            # One baseline step, unless the early stop is off and a longer horizon is asked for:
+            # then every step runs undisturbed (a stationarity check, 6 Oct 2026).
+            undisturbed_final = t_final if (not sp.epsilon_stop and t_final and t_final > 1) else 1
+            logging.info("No disruptions — running one baseline step and returning" if undisturbed_final == 1
+                         else f"No disruptions, early stop off — running {undisturbed_final} undisturbed steps (stationarity check)")
             all_data, logistics_reports, all_routing_summaries = continue_disruption_run(
                 sc_network, transport_network, firms, households, countries,
-                tp, sp, disruptions=[], t_start=1, t_final=1,
+                tp, sp, disruptions=[], t_start=1, t_final=undisturbed_final,
                 all_data=all_data,
                 logistics_reports=logistics_reports,
                 all_routing_summaries=all_routing_summaries,
