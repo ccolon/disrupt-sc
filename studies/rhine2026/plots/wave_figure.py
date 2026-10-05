@@ -73,8 +73,11 @@ def main(out: Path):
 
     ax = axes[0]; style(ax)
     total = (a + b_shift) / wk
+    # signed interaction (6 Oct 2026, review G3): orange where the sequence costs more than the sum, blue where less
     ax.fill_between(dates, total, season / wk, where=(season / wk) >= total, color=ORANGE, alpha=0.22, linewidth=0,
-                    label="interaction: what the sequence adds")
+                    label="interaction: the sequence costs more than the sum")
+    ax.fill_between(dates, total, season / wk, where=(season / wk) < total, color=BLUE, alpha=0.22, linewidth=0,
+                    label="the sequence costs less than the sum")
     ax.plot(dates, season / wk, color=INK, linewidth=2.2, label="the 2026 season (A then B)")
     ax.plot(dates, total, color=MUTED, linewidth=1.3, linestyle="--", label="A alone + B alone")
     ax.plot(dates, a / wk, color=BLUE, linewidth=1.5, label="first wave alone (22 June – 30 August)")

@@ -67,6 +67,12 @@ def main(out: Path):
     ax.fill_between(dates, band.quantile(0.25, axis=1), band.quantile(0.75, axis=1), color=BLUE, alpha=0.3, linewidth=0, label="interquartile range")
     ax.plot(dates, ref, color=INK, linewidth=2.2, label="reference draw")
     ax.axvline(first + pd.Timedelta(weeks=10), color=MUTED, linewidth=0.8, linestyle=":")
+    # the last fully observed week of the profile (6 Oct 2026, review G3)
+    obs = prof[prof.status.astype(str) == "observed"]
+    if len(obs):
+        last_obs = pd.Timestamp(obs.week_start.max()) + pd.Timedelta(days=3.5)
+        ax.axvline(last_obs, color=MUTED, linewidth=0.9)
+        ax.text(last_obs, max(ref.max(), band.max().max()) * 1.08, " forecast from here", color=MUTED, fontsize=7.5, ha="left", va="top")
     pk1, pk2 = ref.loc[1:10].idxmax(), ref.loc[11:].idxmax()
     ax.text(dates[pk1], ref[pk1] + 0.12, "August trough", color=MUTED, fontsize=8, ha="center")
     ax.text(dates[pk2], ref[pk2] + 0.12, "autumn trough", color=MUTED, fontsize=8, ha="center")
@@ -75,7 +81,7 @@ def main(out: Path):
     ax.set_xlim(first - pd.Timedelta(weeks=1), first + pd.Timedelta(weeks=27))
     ax.set_ylim(0, max(ref.max(), band.max().max()) * 1.12)
     ax.legend(frameon=False, fontsize=7.5, loc="upper left", ncol=2)
-    ax.set_title("c  Weekly German value-added loss, reference draw and eleven draws", loc="left", fontsize=9.5, color=INK)
+    ax.set_title("d  Weekly German value-added loss, reference draw and eleven draws", loc="left", fontsize=9.5, color=INK)
     fig.tight_layout()
     out.mkdir(parents=True, exist_ok=True)
     for ext in ("png", "pdf"):

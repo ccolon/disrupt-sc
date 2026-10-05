@@ -57,23 +57,28 @@ def main(run: Path, out: Path):
         ax.tick_params(colors=MUTED, labelsize=8); ax.grid(axis="x", color=GRID, linewidth=0.6); ax.set_axisbelow(True)
     ax = axes[0]
     ys = np.arange(len(top))[::-1]
+    # two classifications kept apart (6 Oct 2026, review G3): the NACE group in the label, the catch-up convention in the colour
+    GROUP = {"A": "agriculture", "F": "construction"}
+    def group(s: str) -> str:
+        c = s[:1]
+        return GROUP.get(c, "industry B–E" if c in "BCDE" else "services G–T")
     ax.barh(ys, top.values / 1e3, color=[ORANGE if s[:1] in DEFERRABLE else BLUE for s in top.index], height=0.6, label=None)
     ax.scatter([net[s] / 1e3 for s in top.index], ys, color=INK, s=16, zorder=3, label="net of the backlog worked off")
     for y, (s, v) in zip(ys, top.items()):
         ax.text(v / 1e3 + 0.05, y, f"{100 * v / gross.sum():.0f} %", va="center", fontsize=7.5, color=INK)
-    ax.set_yticks(ys); ax.set_yticklabels([NAMES.get(s, s) for s in top.index], fontsize=8)
-    ax.set_xlabel("German value-added loss, billion USD (bars: gross; orange: goods and construction, can catch up)", color=MUTED, fontsize=8)
+    ax.set_yticks(ys); ax.set_yticklabels([f"{NAMES.get(s, s)}  ({group(s)})" for s in top.index], fontsize=8)
+    ax.set_xlabel("German value-added loss, billion USD (bars: gross; orange: can catch up by the accounting convention, blue: cannot)", color=MUTED, fontsize=7.5)
     ax.legend(frameon=False, fontsize=7.5, loc="lower right")
-    ax.set_title("b  By sector, cumulated over the event", loc="left", fontsize=9.5, color=INK)
+    ax.set_title("b  By sector, cumulated over the event (NACE group in brackets)", loc="left", fontsize=9.5, color=INK)
     ax = axes[1]
     cty = fd.groupby("region").gross.sum().sort_values(ascending=False).head(8)
     ys = np.arange(len(cty))[::-1]
-    ax.barh(ys, cty.values / 1e3, color=GREEN, height=0.6)
+    ax.scatter(cty.values / 1e3, ys, color=GREEN, s=36, zorder=3)
     for y, v in zip(ys, cty.values):
-        ax.text(v / 1e3 * 1.15, y, f"{v / 1e3:.2f}" if v < 100 else f"{v / 1e3:.1f}", va="center", fontsize=7.5, color=INK)
+        ax.text(v / 1e3 * 1.25, y, f"{v / 1e3:.2f}" if v < 100 else f"{v / 1e3:.1f}", va="center", fontsize=7.5, color=INK)
     ax.set_yticks(ys); ax.set_yticklabels(list(cty.index), fontsize=8)
     ax.set_xscale("log"); ax.set_xlim(0.02, cty.max() / 1e3 * 3)
-    ax.set_xlabel("value-added loss, billion USD (log scale)", color=MUTED, fontsize=8)
+    ax.set_xlabel("value-added loss, billion USD (points, log scale)", color=MUTED, fontsize=8)
     ax.set_title("c  By country", loc="left", fontsize=9.5, color=INK)
     fig.tight_layout(w_pad=2.0)
     out.mkdir(parents=True, exist_ok=True)

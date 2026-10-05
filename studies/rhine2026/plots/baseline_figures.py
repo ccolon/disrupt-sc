@@ -169,12 +169,45 @@ def fig_network_map(edges: gpd.GeoDataFrame, firms: gpd.GeoDataFrame, out: Path)
             sub.plot(ax=ax, color=SERIES.get(mode, INK3), linewidth=lw, alpha=alpha, zorder=2)
     rh = e[e["name"].astype(str).str.startswith("rhine")]
     rh.plot(ax=ax, color=SERIES["waterways"], linewidth=2.2, zorder=4)
+    kaub = rh[rh["name"].astype(str) == "rhine_mainz_koblenz"]
     f = firms.to_crs(3035)
     size = np.sqrt(f["importance"].clip(lower=0).fillna(0))
     size = 60 * size / (size.max() or 1) + 1
     ax.scatter(f.geometry.x, f.geometry.y, s=size, color=INK, alpha=0.25, linewidths=0, zorder=3)
     ax.set_xlim(2.4e6, 6.3e6); ax.set_ylim(1.3e6, 5.4e6)
     ax.set_axis_off()
+    # the Kaub reach marked and labelled, with a corridor inset (6 Oct 2026, review G3)
+    if len(kaub):
+        kaub.plot(ax=ax, color=SERIES.get("orange", "#e0842a"), linewidth=3.2, zorder=5)
+        c = kaub.geometry.unary_union.centroid
+        ax.annotate("Kaub reach", xy=(c.x, c.y), xytext=(c.x - 7.5e5, c.y - 5.5e5), fontsize=8, color=INK,
+                    arrowprops=dict(arrowstyle="-", color=INK2, linewidth=0.8), zorder=6)
+        ins = ax.inset_axes([0.015, 0.50, 0.36, 0.36])
+        ins.set_facecolor("white")
+        x0, y0, x1, y1 = rh.total_bounds
+        pad = 0.6e5
+        for mode, lw, alpha in (("roads", 0.4, 0.4), ("railways", 0.5, 0.5), ("waterways", 1.0, 0.9)):
+            sub = e[e["type"] == mode].cx[x0 - pad:x1 + pad, y0 - pad:y1 + pad]
+            if len(sub):
+                sub.plot(ax=ins, color=SERIES.get(mode, INK3), linewidth=lw, alpha=alpha, zorder=2)
+        rh.plot(ax=ins, color=SERIES["waterways"], linewidth=2.4, zorder=4)
+        kaub.plot(ax=ins, color=SERIES.get("orange", "#e0842a"), linewidth=4, zorder=5)
+        fi = f.cx[x0 - pad:x1 + pad, y0 - pad:y1 + pad]
+        ins.scatter(fi.geometry.x, fi.geometry.y, s=(60 * np.sqrt(fi["importance"].clip(lower=0).fillna(0)) / (np.sqrt(f["importance"].clip(lower=0).fillna(0)).max() or 1) + 1) * 0.6,
+                    color=INK, alpha=0.3, linewidths=0, zorder=3)
+        for name, label, dx, dy in (("rhine_basel", "Basel", 2e4, -3e4), ("rhine_mainz_koblenz", "Kaub", 2.5e4, 1e4),
+                                    ("rhine_duisburg", "Duisburg", 2.5e4, 0), ("rhine_dordrecht_rotterdam", "Rotterdam", -1.3e5, 1.5e4),
+                                    ("rhine_koeln", "Cologne", 2.5e4, 0), ("rhine_mannheim", "Mannheim", 2.5e4, 0)):
+            seg = rh[rh["name"].astype(str) == name]
+            if len(seg):
+                cc = seg.geometry.unary_union.centroid
+                ins.text(cc.x + dx, cc.y + dy, label, fontsize=7, color=INK, zorder=7,
+                         bbox=dict(boxstyle="round,pad=0.1", facecolor="white", edgecolor="none", alpha=0.8))
+        ins.set_xlim(x0 - pad, x1 + pad); ins.set_ylim(y0 - pad, y1 + pad)
+        ins.set_xticks([]); ins.set_yticks([])
+        for sp in ins.spines.values():
+            sp.set_edgecolor(INK3); sp.set_linewidth(0.8)
+        ins.set_title("The Rhine chain, Basel to Rotterdam; the Kaub reach in orange", fontsize=7, color=INK2, loc="left")
     from matplotlib.lines import Line2D
     handles = [Line2D([0], [0], color=SERIES[m], lw=2, label=MODE_LABEL[m]) for m in ("roads", "railways", "waterways")]
     handles.append(Line2D([0], [0], color=INK3, lw=1.5, alpha=0.6, label="Maritime lanes"))

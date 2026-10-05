@@ -118,11 +118,17 @@ def fig_shock(profile: str, closure_threshold: float, out: Path, closure_floors:
     ax.plot(weeks, prof["kaub_cm"], color=SERIES[0], linewidth=2, marker="o", markersize=5)
     ax.axhline(78, color=INK3, linewidth=1, linestyle="--")
     ax.text(weeks.iloc[0], 80, "GlW 78 cm (equivalent low water)", fontsize=7, color=INK3, va="bottom")
-    style(ax, f"Kaub gauge, weekly mean ({profile})", "cm")
+    style(ax, f"a  Kaub gauge, weekly mean ({profile})", "cm")
+    # the last fully observed week (6 Oct 2026, review G3): a vertical line on every panel
+    if "status" in prof.columns and (prof["status"].astype(str) == "observed").any():
+        last_obs = weeks[prof["status"].astype(str) == "observed"].max() + pd.Timedelta(days=3.5)
+        for a in axes:
+            a.axvline(last_obs, color=INK2, linewidth=0.9, linestyle="-")
+        axes[0].text(last_obs, axes[0].get_ylim()[1] if axes[0].get_ylim()[1] > 0 else 100, " last observed week", fontsize=7, color=INK2, va="top", ha="left")
     ax = axes[1]
     ax.plot(weeks, [100 * f for f in factor], color=SERIES[2], linewidth=2, marker="o", markersize=5)
-    style(ax, "Share of the normal tonnage that the Kaub reach can pass (draught table)" if gate
-          else "Fleet capacity past Kaub implied by the draught table", "% of normal")
+    style(ax, "b  Share of the normal tonnage that the Kaub reach can pass (loading table)" if gate
+          else "b  Fleet capacity past Kaub implied by the draught table", "% of normal")
     ax.set_ylim(0, 105)
     ax = axes[2]
     ax.bar(weeks, [m if not np.isnan(m) else 0 for m in mult], width=5.5, color=SERIES[0], linewidth=0)
@@ -133,8 +139,8 @@ def fig_shock(profile: str, closure_threshold: float, out: Path, closure_floors:
             ax.bar(w, ymax, width=5.5, color=SERIES[1], alpha=0.35, linewidth=0)
             ax.text(w, ymax * 0.55, "closed", rotation=90, ha="center", va="center", fontsize=7, color=INK2)
     ax.axhline(1, color=INK3, linewidth=0.8)
-    style(ax, "Voyage surcharge: cost multiplier on the reaches from Koblenz upstream" if gate
-          else "What the model receives: cost multiplier on the Kaub edge (orange = closed for every class)", "× baseline cost")
+    style(ax, "c  Voyage surcharge: cost multiplier on the reaches from Koblenz upstream" if gate
+          else "c  What the model receives: cost multiplier on the Kaub edge (orange = closed for every class)", "× baseline cost")
     if floors:
         ax = axes[3]
         for i, ct in enumerate(cts):
