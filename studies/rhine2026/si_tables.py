@@ -478,8 +478,16 @@ def prospective_table(out: Path):
     d = model_path(RUNS / "2026_s30_base", 2026)
     t, s = record(2026, 1)
     ev = t[t.month.isin(EVENT_MONTHS[2026])]
-    rows = ["model, reference draw (forecast of 30 September) & " + " & ".join(f"{d[f'ind_{m}']:.1f}" for m in labs) + f" & {d['ind_integrated_pct_months']:.1f} \\\\",
-            "published specification on the same low-water days & " + " & ".join(f"{v:.1f}" for v in ev.central) + f" & {s['integral']:.1f} \\\\",
+    rows = ["model, reference draw (forecast of 30 September) & " + " & ".join(f"{d[f'ind_{m}']:.1f}" for m in labs) + f" & {d['ind_integrated_pct_months']:.1f} \\\\"]
+    band = AD / "prospective_band_2026.csv"      # written by read_batch_20261006.py once the seed bases are repacked with firm data
+    if band.exists():
+        bd = pd.read_csv(band)
+        rows.append("model, range of the eleven draws & " + " & ".join(f"{a:.1f}--{b:.1f}" for a, b in zip(bd["min"], bd["max"])) + " & \\\\")
+    for run, lab in (("2026_s30_tablelow", "model, loading table with the shortfall $\\times$1.15"), ("2026_s30_tablehigh", "model, loading table $\\times$0.85")):
+        if (RUNS / run / "firm_data.csv").exists():
+            dd = model_path(RUNS / run, 2026)
+            rows.append(f"{lab} & " + " & ".join(f"{dd[f'ind_{m}']:.1f}" for m in labs) + f" & {dd['ind_integrated_pct_months']:.1f} \\\\")
+    rows += ["published specification on the same low-water days & " + " & ".join(f"{v:.1f}" for v in ev.central) + f" & {s['integral']:.1f} \\\\",
             "its 16--84\\,\\% band & " + " & ".join(f"{a:.1f}--{b:.1f}" for a, b in zip(ev.p16, ev.p84)) + f" & {s['p16']:.1f}--{s['p84']:.1f} \\\\",
             "low-water days (observed to 29 September, then the profile) & " + " & ".join(str(int(v)) for v in ev.low_water_days) + " & \\\\"]
     (out / "prospective.tex").write_text(r"""\begin{tabular}{lrrrrrrr}
