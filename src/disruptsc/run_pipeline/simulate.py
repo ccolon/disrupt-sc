@@ -636,6 +636,7 @@ def _collect_routing_summary(sc_network, time_step: int) -> list[dict]:
         "pipelined_usd": 0.0,          # delivered by pipeline: no route, no tonnage on the network
         "blocked_usd": 0.0,
         "capacity_blocked_usd": 0.0,   # the part of blocked_usd withheld by the capacity gate
+        "relief_usd": 0.0,             # delivered through the gate's bounded substitution (bulk_relief)
     })
 
     for u, v, data in sc_network.edges(data=True):
@@ -675,6 +676,7 @@ def _collect_routing_summary(sc_network, time_step: int) -> list[dict]:
         blocked = max(0.0, link.served_order - link.realized_delivery) * link.eq_price
         buckets[bucket]["blocked_usd"] += blocked
         buckets[bucket]["capacity_blocked_usd"] += getattr(link, "capacity_blocked", 0.0) * link.eq_price
+        buckets[bucket]["relief_usd"] += getattr(link, "relief_delivery", 0.0) * link.eq_price
 
     rows = []
     for bucket, vals in sorted(buckets.items()):

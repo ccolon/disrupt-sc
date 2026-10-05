@@ -18,6 +18,14 @@ class TransportParams:
     rationing_mode: str = "equal"
     use_route_cache: bool = True
     switching_costs: dict = field(default_factory=lambda: {"modal_switch": 0.15, "port_switch": 0.05})
+    # Bounded substitution for the cargo classes whose modal switch is prohibitive
+    # (6 Oct 2026, review OR2): after the capacity gate, the cut shares of these
+    # classes that found no acceptable route may complete a switch to the listed
+    # modes at *penalty* (a fraction of the normal freight bill), up to *weekly_tons*
+    # in the step, allocated pro rata when the candidates exceed the ceiling (the
+    # gate's own convention). {} = no relief, the rule of every run before that
+    # date (a ceiling of zero). Keys: weekly_tons, cargo_types, modes, penalty.
+    bulk_relief: dict = field(default_factory=dict)
     price_increase_threshold: float | None = 2.0  # None = no threshold
     # Optional give-up rule on the DELIVERED price instead of the freight bill:
     # drop a delivery when transport_share x relative transport-cost increase

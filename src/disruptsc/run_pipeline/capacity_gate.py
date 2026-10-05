@@ -63,6 +63,7 @@ def run_capacity_gate(transport_network, available_transport_network, firms: dic
     saturated: set[tuple] = set()
     max_rounds = len(cap_edges) + 1
     cut_tons_total = resent_total = 0.0
+    blocked_parts: list[tuple] = []      # the cut shares that found no acceptable route (for the relief pass)
     rnd = 0
     while rnd < max_rounds:
         rnd += 1
@@ -124,11 +125,20 @@ def run_capacity_gate(transport_network, available_transport_network, firms: dic
                                                switching_costs=tp.switching_costs,
                                                excluded_edges=excluded, exclusion_tag=tag)
         for (rec, cut_tons, cut_qty), alt in zip(cut_parts, alternatives):
-            resent_total += _resend(rec, cut_tons, cut_qty, rnd + 1, alt, tn, tp, firms, countries,
-                                    routing_event_collector)
+            sent = _resend(rec, cut_tons, cut_qty, rnd + 1, alt, tn, tp, firms, countries,
+                           routing_event_collector)
+            resent_total += sent
+            if sent <= TON_TOL:
+                blocked_parts.append((rec, cut_tons, cut_qty))
     else:
         logging.warning(f"Capacity gate t={time_step}: {max_rounds} rounds without convergence "
                         f"(the bound is |C| + 1 = {max_rounds}); the remaining cuts are blocked")
+
+    # bounded substitution (6 Oct 2026, review OR2): the blocked shares of the classes whose
+    # modal switch is prohibitive may complete a switch to the relief modes, up to the ceiling
+    relief_tons, relief_offered = _relief_pass(blocked_parts, saturated, rnd + 1, tn, available_transport_network,
+                                               tp, firms, countries, routing_event_collector)
+    tn.capacity_relief_stats = {"offered_tons": relief_offered, "tons": relief_tons}
 
     # accepted loads and the per-edge report
     for u, v in cap_edges:
@@ -137,14 +147,77 @@ def run_capacity_gate(transport_network, available_transport_network, firms: dic
         st["accepted_tons"] = math.fsum(r["tons"] for r in edge["shipments"].values())
         st["withheld_tons"] = max(0.0, st["offered_tons"] - st["accepted_tons"])
     tn.capacity_gate_stats = stats
-    blocked = max(0.0, cut_tons_total - resent_total)
+    blocked = max(0.0, cut_tons_total - resent_total - relief_tons)
     n_sat = len(saturated)
     if cut_tons_total > TON_TOL:
         logging.info(f"Capacity gate t={time_step}: {rnd} round(s), {n_sat} saturated edge(s), "
                      f"cut {cut_tons_total:,.0f} t, re-sent {resent_total:,.0f} t, "
-                     f"blocked {blocked:,.0f} t")
+                     f"blocked {blocked:,.0f} t"
+                     + (f", relief {relief_tons:,.0f} t of {relief_offered:,.0f} t offered" if relief_offered > TON_TOL else ""))
     return {"rounds": rnd, "n_saturated": n_sat, "cut_tons": cut_tons_total,
-            "resent_tons": resent_total, "blocked_tons": blocked, "edges": stats}
+            "resent_tons": resent_total, "blocked_tons": blocked, "relief_tons": relief_tons,
+            "relief_offered_tons": relief_offered, "edges": stats}
+
+
+def _relief_route_ok(link, alt, transport_network, costs: dict, modes: set) -> bool:
+    """A relief route may add line haul on the relief modes only: no road leg longer than the
+    access allowance beyond the normal route's (road at volume stays excluded for bulk), and no
+    new line-haul mode outside *modes*."""
+    base = getattr(link, "route", None)
+    if base is None:
+        return False
+    base_km = link._km_by_mode(base, transport_network)
+    alt_km = link._km_by_mode(alt, transport_network)
+    access = float(costs.get("access_km", 50.0))
+    line_haul = float(costs.get("line_haul_km", 100.0))
+    if alt_km.get("roads", 0.0) > base_km.get("roads", 0.0) + access:
+        return False
+    for mode, km in alt_km.items():
+        if mode in ("multimodal", "roads"):
+            continue
+        if km >= line_haul and base_km.get(mode, 0.0) < line_haul and mode not in modes:
+            return False
+    return True
+
+
+def _relief_pass(blocked_parts: list, saturated: set, next_round: int, transport_network,
+                 available_transport_network, tp, firms: dict, countries: dict,
+                 routing_event_collector=None) -> tuple[float, float]:
+    """Bounded substitution (TransportParams.bulk_relief): the blocked shares of the relief cargo
+    classes search a route with the modal switch at the relief penalty; the candidates that keep to
+    the relief modes are placed pro rata to the weekly ceiling. Returns (tons placed, tons offered)."""
+    relief = getattr(tp, "bulk_relief", None) or {}
+    weekly = float(relief.get("weekly_tons", 0.0) or 0.0)
+    if weekly <= TON_TOL or not blocked_parts:
+        return 0.0, 0.0
+    classes = set(relief.get("cargo_types") or ("dry_bulk", "liquid_bulk"))
+    modes = set(relief.get("modes") or ("railways",))
+    penalty = float(relief.get("penalty", 0.15))
+    costs = dict(tp.switching_costs or {})
+    ms = costs.get("modal_switch", 0.15)
+    ms = dict(ms) if isinstance(ms, dict) else {"default": float(ms)}
+    ms.update({c: penalty for c in classes})
+    costs["modal_switch"] = ms
+    parts = [(rec, ct, cq) for rec, ct, cq in blocked_parts if rec.get("cargo_type") in classes and ct > TON_TOL]
+    if not parts:
+        return 0.0, 0.0
+    tn = transport_network
+    requests = [(rec["origin"] if rec.get("origin") is not None else rec["link"].origin_node, rec["link"])
+                for rec, _, _ in parts]
+    alts = discover_routes_batched(requests, tn, available_transport_network, tp.use_route_cache,
+                                   switching_costs=costs, excluded_edges=frozenset(saturated),
+                                   exclusion_tag=_exclusion_tag(saturated) + ":relief")
+    cand = [(rec, ct, cq, alt) for (rec, ct, cq), alt in zip(parts, alts)
+            if alt is not None and _relief_route_ok(rec["link"], alt, tn, costs, modes)]
+    offered = math.fsum(ct for _, ct, _, _ in cand)
+    if offered <= TON_TOL:
+        return 0.0, 0.0
+    factor = min(1.0, weekly / offered)
+    sent = 0.0
+    for rec, ct, cq, alt in cand:
+        sent += _resend(rec, ct * factor, cq * factor, next_round, alt, tn, tp, firms, countries,
+                        routing_event_collector, switching_costs=costs, relief=True)
+    return sent, offered
 
 
 # ------------------------------------------------------------------
@@ -243,21 +316,26 @@ def _book_cut(rec: dict, cut_qty: float, cut_tons: float, firms: dict, countries
 
 
 def _resend(rec: dict, cut_tons: float, cut_qty: float, next_round: int, alt,
-            transport_network, tp, firms: dict, countries: dict, routing_event_collector=None) -> float:
+            transport_network, tp, firms: dict, countries: dict, routing_event_collector=None,
+            switching_costs: dict | None = None, relief: bool = False) -> float:
     """Place a cut share on *alt* (its route avoiding the saturated edges, found by
     the batched search) if the shipper accepts the price. Returns the tons re-sent
-    (0 when blocked: no route, or too expensive)."""
+    (0 when blocked: no route, or too expensive). *switching_costs* replaces the
+    run's costs (the relief pass passes its own penalty); *relief* marks the share
+    as delivered through the bounded substitution."""
     link = rec["link"]
     origin = rec["origin"] if rec.get("origin") is not None else link.origin_node
     if alt is None:
         if routing_event_collector:
             routing_event_collector.record_event(rec.get("agent_pid"), link.buyer_id, "no_route", 0.0)
         return 0.0
+    if cut_tons <= TON_TOL:
+        return 0.0
+    costs = switching_costs if switching_costs is not None else tp.switching_costs
     normal_cost = float(link.route_cost_per_ton or 0.0)
     alt_cost = transport_network.compute_route_cost(alt, link.cargo_type)
     relative_increase = max(alt_cost - normal_cost, 0.0) / normal_cost if normal_cost > EPSILON else 0.0
-    relative_increase += link.calculate_switching_cost_between(link.route, alt, tp.switching_costs,
-                                                               transport_network)
+    relative_increase += link.calculate_switching_cost_between(link.route, alt, costs, transport_network)
     transport_share = float(rec.get("transport_share", 0.0))
     if too_expensive(tp, relative_increase, transport_share, link):
         if routing_event_collector:
@@ -270,7 +348,7 @@ def _resend(rec: dict, cut_tons: float, cut_qty: float, next_round: int, alt,
         monetary_quantity=cut_qty, product_type=rec["product_type"],
         flow_category=rec["flow_category"], cargo_type=rec["cargo_type"],
         accumulate_at_dest=True, dest_key=rec["dest_key"],
-        edge_key=f"{rec['edge_key']}__g{next_round}", link=link, origin=origin,
+        edge_key=f"{rec['edge_key']}__{'r' if relief else 'g'}{next_round}", link=link, origin=origin,
         leg="alternative", round_no=next_round, agent_pid=rec.get("agent_pid"),
         transport_share=transport_share, price=price, base_price=rec["base_price"],
     )
@@ -279,6 +357,8 @@ def _resend(rec: dict, cut_tons: float, cut_qty: float, next_round: int, alt,
     link.realized_delivery += cut_qty
     link.payment += cut_qty * price
     link.alternative_route_realized_delivery += cut_qty
+    if relief:
+        link.relief_delivery = getattr(link, "relief_delivery", 0.0) + cut_qty
     link.capacity_blocked = max(0.0, link.capacity_blocked - cut_qty)
     link.price = link.payment / link.delivery if link.delivery > EPSILON else rec["base_price"]
     link.alternative_route = alt

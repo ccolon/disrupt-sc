@@ -124,7 +124,8 @@ _STAGE_CONFIG_KEYS = {
         # inventory targets are re-applied on every cache load (run.py
         # _configure_firms), like the household-inventory config — a
         # sensitivity on them must not rebuild the agents (EU: ~1 h per run).
-        "inventory_restoration_time",
+        # NOT inventory_restoration_time since 6 Oct 2026: re-applied on load
+        # (run.py _configure_firms), it acts in plan_purchase only.
         "capital_to_value_added_ratio", "country_transport_share",
         "firm_transport_share",
     ),
@@ -212,7 +213,7 @@ def build_stage_fingerprint(config: dict, stage: str) -> dict:
 # invalidate the build caches: the modal-switch penalty is read in
 # send_shipment when a link is rerouted, never during network, agent or route
 # construction (a sensitivity on it re-uses every cache).
-_STAGE_EXCLUDED_SUBKEYS = {"logistics": ("switching_costs",)}
+_STAGE_EXCLUDED_SUBKEYS = {"logistics": ("switching_costs", "bulk_relief")}   # bulk_relief: read by the capacity gate only (6 Oct 2026)
 
 
 def _without_subkeys(key: str, value):
