@@ -290,20 +290,31 @@ setting of the rule & gives up (\% of the week's Kaub bulk orders) \\
 
 # ------------------------------------------------------------------------------------------------ S3: loading, forecast
 def loading_table(out: Path):
+    """The loading table as a source ledger (6 Oct 2026, review NS1): for each anchor its nature, source and date,
+    what the source measures (reach, cargo, period, denominator) and the transformation to the fleet value."""
     d = pd.read_csv(HERE / "scenarios" / "draught_table.csv")
-    rows = "\n".join(f"{int(r.kaub_cm)} & {r.load_factor:.2f} & {r.load_factor_vessel_gms:.2f} & {tex(r.anchor)} \\\\" for r in d.itertuples())
-    (out / "si_loading_table.tex").write_text(r"""\begin{table}[tbp]
-\centering\small
-\caption{\textbf{The loading table.} Share of the normal tonnage that the Kaub reach can pass at a weekly mean gauge (fleet level, the column the model uses) and the load factor of a single large vessel (for comparison), with the evidence behind each anchor. Linear between anchors; below 5\,cm the fleet value is held at 0.05. Sources as noted: KBN and Schuttevaer tonnage counts of August 2026, Argus and Contargo loading reports, van Dorsser et al. (2020), the WSV and GlW conventions, PEGELONLINE gauges.}
-\label{tab:loading}
-\begin{tabular}{rrrp{95mm}}
+    led = pd.read_csv(HERE / "scenarios" / "draught_table_ledger.csv").set_index("kaub_cm")
+    assert list(led.index) == [int(x) for x in d.kaub_cm], "ledger rows must match the table's anchors"
+    for cm, r in zip(d.kaub_cm, d.itertuples()):
+        assert abs(led.fleet[int(cm)] - r.load_factor) < 1e-9, (cm, led.fleet[int(cm)], r.load_factor)
+    rows = "\n".join(f"{int(cm)} & {led.fleet[int(cm)]:.2f} & {led.vessel[int(cm)]:.2f} & {tex(led.nature[int(cm)])} & {tex(led.source[int(cm)])} & {tex(led.measures[int(cm)])} & {tex(led.transformation[int(cm)])} \\\\"
+                     for cm in d.kaub_cm)
+    (out / "si_loading_table.tex").write_text(r"""\begingroup\footnotesize
+\begin{longtable}{rrrp{15mm}p{38mm}p{34mm}p{40mm}}
+\caption{\textbf{The loading table as a source ledger.} Share of the normal tonnage that the Kaub reach can pass at a weekly mean gauge (fleet, the column the model uses) and the load factor of a single large vessel (for comparison), with, for each anchor, its nature (measured, a convention, interpolated or assumed), its source and date, what the source measures (reach, cargo class, period, denominator) and the transformation to the fleet value. Linear between anchors; below 5\,cm the fleet value is held at 0.05. The anchors mix single-vessel payloads, an association's weekly count, a national monthly response and operators' thresholds; they do not measure one quantity, and the table is the authors' reading of them. At the lowest gauges the table sits below the one weekly count available (0.12 at 15\,cm against 0.22 at a mean gauge of about 12\,cm), outside the $\pm$15\,\% band on the shortfall; the sensitivity on the floor below 5\,cm (Section~S4) and the loading-table band bound the result on that side.}
+\label{tab:loading} \\
 \toprule
-Kaub (cm) & fleet & vessel & anchor \\
+cm & fleet & vessel & nature & source & measures & transformation \\
 \midrule
+\endfirsthead
+\toprule
+cm & fleet & vessel & nature & source & measures & transformation \\
+\midrule
+\endhead
 """ + rows + r"""
 \bottomrule
-\end{tabular}
-\end{table}
+\end{longtable}
+\endgroup
 """, encoding="utf-8")
 
 
