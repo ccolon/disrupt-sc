@@ -57,6 +57,20 @@ def load_config(scope: str, parameter_folder: Path = None) -> dict:
             f"No user-defined or local parameter file for {scope}; using defaults"
         )
 
+    # Final overlay from DISRUPT_SC_EXTRA_CONFIG (a YAML file path): lets
+    # cluster batch tasks inject per-task parameters (e.g. a criticality
+    # edge chunk) without touching the shared config files.
+    extra = os.environ.get("DISRUPT_SC_EXTRA_CONFIG")
+    if extra:
+        if not os.path.exists(extra):
+            raise FileNotFoundError(f"DISRUPT_SC_EXTRA_CONFIG points to a "
+                                    f"missing file: {extra}")
+        logging.info(f"Loading extra config overlay: {extra}")
+        with open(extra, "r") as f:
+            overrides = yaml.safe_load(f)
+        if overrides:
+            _merge_dicts(config, overrides)
+
     config["scope"] = scope
     if config.get("events") and not config.get("disruptions"):
         logging.warning("'events' is deprecated; use 'disruptions' instead.")
