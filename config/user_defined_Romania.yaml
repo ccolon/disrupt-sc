@@ -1,0 +1,221 @@
+# ============================================================================
+# Romania scope — initial_state calibration (new-scope pipeline, 2026-08-27)
+# MRIO: OECD ICIO 2022, ROU x 50 native sectors, 9 external blocs
+#       (HUN, BGR, UKR, DEU, TUR individual + EUR, ASI, AME, ROW)
+# Transport: OSM roads L2 / railways / Danube waterways + Jasper maritime clip
+# ============================================================================
+
+filepaths:
+  mrio: "Economic/mrio.csv"
+  sector_table: "Economic/sector_table.csv"
+  # UA transit background load (WB Jun 2025 figures; see header comments in the
+  # csv for basis and v1 limitations). Off-MRIO by design: country-to-country
+  # flows in tons/yr that ride the scope network without touching scope totals.
+  transit_matrix: "Economic/transit_matrix.csv"
+  # firm-level weights (firm-extractor, 2026-08-31): SPAM crops (A01), GEM
+  # cement/steel/power plants, population fallback elsewhere. Previous
+  # population-only file kept as Spatial/firms.geojson - swap back to A/B test.
+  # v7 fine mesh (2026-09-07): NE/NV/SE regions at urban-LAU resolution -
+  # 123 municipality/town points (rural pop folded to nearest urban locality,
+  # counties rescaled to census 2021), county points elsewhere; county-level
+  # regional_stats/households_fallback firm rows re-disaggregated onto the
+  # urban mesh with a 0.1%-of-sector cutoff. Swap back to the two previous
+  # files to A/B against the county-resolution setup.
+  firms_spatial: "Spatial/firms_firmlevel_fine.geojson"
+  households_spatial: "Spatial/households_fine.geojson"
+  countries_spatial: "Spatial/countries.geojson"
+  transport: "Transport/transport.gpkg"
+  multimodal: "Transport/multimodal.gpkg"
+
+transport_modes: [roads, railways, waterways, maritime]
+with_transport: True
+
+monetary_units_in_model: mUSD
+monetary_units_in_data: mUSD   # OECD ICIO is million USD
+time_resolution: week
+
+flow_coverage: 0.9
+
+simulation_type: initial_state
+export_files: True
+
+logistics:
+  # Mode-choice calibration, FINAL (v5, 2026-08-27, run 20260827_235725) against
+  # Eurostat NST targets in ../disrupt-sc-data/Romania/mode_split_targets_RO_2023.csv.
+  # Fit (road/rail/IWW % of tkm, model vs target):
+  #   dry_bulk  43.1/25.4/31.5  vs 35.4/22.9/41.7   container 92.5/6.8/0.8 vs 89.2/6.5/4.3
+  #   liquid    47.9/21.9/30.2  vs 21.6/68.5/10.0   TOTAL     72.0/14.4/13.6 vs 63.3/17.5/19.2
+  # Residuals are structural, not cost-tunable: (a) upstream-Danube international barge
+  # trade (~3.8bn tkm bulk) cannot exist while all EU trade enters at the Nadlac ROAD
+  # node - a waterway gateway would be a scope-structure change; (b) liquid rail
+  # dominance needs refinery-siding economics (no transfer cost) the model lacks.
+  # Cost levels grounded in CNR Romania trucking (~0.06/tkm), CFR access-charge
+  # build-up (0.042 = top of range; CFR Marfa is expensive), CCNR/viadonau Danube
+  # rates; per-cargo cost_of_time = freight VOT (containers ~1.6-2, bulk ~0.1 USD/t-h).
+  speeds:  # km/hour
+    # v7: class-resolved road speeds (secondary roads added in NE/NV/SE must
+    # not ride free: 35 km/h prices them through the VOT machinery). Values
+    # chosen so the trunk-network weighted mean stays ~50 (the flat value all
+    # previous calibrations used); 'default' catches TEN-T foreign classes
+    # and stitches.
+    roads: {attribute: class, motorway: 62, trunk: 52, primary: 46, secondary: 35, default: 50}
+    railways: 25      # RFC Orient/East-Med commercial speed
+    waterways: 10     # Danube barge
+    maritime: 35
+  # v6 FINAL (2026-09-02, run 20260902_181436, seed 42): refit on the settled
+  # firm-level geography (48/50 sectors on real weights). Fit vs Eurostat 2023
+  # (road/rail/IWW % of inland tkm, model vs target):
+  #   TOTAL      68.5/18.0/13.5  vs 72.6/14.1/13.3   (sum|err| 8.2pp; v5: 18.6)
+  #   dry_bulk   33.8/27.1/39.0  vs 35.4/22.9/41.7   (within 4pp on all modes)
+  #   container  95.4/ 4.4/ 0.2  vs 89.2/ 6.5/ 4.3
+  #   liquid     81.3/11.0/ 7.8  vs 21.6/68.5/10.0   (IWW on target)
+  # Changes vs v5: rail 0.042->0.046 (CFR Marfa upper range - the only lever
+  # that gets dry bulk OFF rail), roads 0.06->0.055 (lower CNR range),
+  # waterways 0.0035->0.0052 (all-in incl. fairway/port dues), port transfers
+  # to realistic 16h/3.5USD (v5's 3h/1USD let barges take 50% of liquid),
+  # liquid VOT 0.5 (suppresses fuel barges; sits on a winner-take-all knife
+  # edge - 0.45 flips ~25% of liquid tkm back to barge).
+  # Structural residuals (documented, NOT cost-tunable):
+  # (a) liquid road/rail swap: the 68.5% GT07 rail share needs refinery-siding
+  #     /unit-train economics, i.e. PER-CARGO transfer costs (dwell_times/
+  #     loading_fees keyed by cargo type) - candidate model enhancement; the
+  #     rail-cost sweep bounds it: rail 0.032->51% liquid rail but 49% dry rail,
+  #     0.046->16%/31% - no scalar satisfies both.
+  # (b) container rail/IWW slightly under: intermodal container-train and
+  #     container-on-barge line economics absent for the same reason.
+  # Calibration used --seed 42; unseeded runs wobble +/-2-4pp (supplier RNG).
+  basic_cost:  # USD per ton*km
+    # v12 (2026-09-18): class-resolved road costs (same mechanism as rail_1520).
+    # HGV per-km operating cost is lower at motorway steady state (fuel, wear,
+    # flat rovinieta - no per-km toll in RO) and higher on secondary/county
+    # roads (village transits, weight limits). Ladder centered on the CNR
+    # ~0.055 average; sized so through-freight to Nadlac takes the A1 Arad
+    # leg instead of the Biled-plain county-road shortcut (user-spotted
+    # artifact). Validation pending CNAIR/CESTRIN section counts.
+    # Ladder v2: NEAR-MEAN-PRESERVING. v1 (motorway 0.045/primary 0.058)
+    # stole long hauls from rail (liquid road 30->40%, rail tkm 12.1->10.4)
+    # and still could not flip the Biled shortcut - DN6 is a genuine primary
+    # road ~40% shorter than the A1 detour, so no defensible per-km gap
+    # rebalances it (elsewhere motorway alignments were already correct:
+    # A2 19.4 vs DN3 0.4 Mt/yr). Biled stays a documented residual pending
+    # CNAIR section counts.
+    # Ladder v3 (user decision): NO motorway discount - the calibrated 0.055
+    # is the motorway/main-road baseline; lower classes carry PENALTIES
+    # (surface, village transits, enforcement). Preserves the rail-vs-road
+    # calibration by construction.
+    roads: {attribute: class, motorway: 0.055, trunk: 0.055, primary: 0.058,
+            secondary: 0.066, foreign_skeleton: 0.055, default: 0.055}
+    # v9: 1520 mm UA/MD rail (class rail_1520) at UZ-tariff level ~half the
+    # CFR-calibrated rate - the real reason rail dominates UA export logistics.
+    # v19.1 refit on the registry geography (24 Sep 2026): the new firm
+    # layer moved dispersed industry toward rail-served counties (dry-bulk
+    # rail 29.0 vs 22.9 target; rail 14.1 bn tkm vs 12.65). Domestic tariff
+    # up one notch; rail_1520 (UA/MD corridors) deliberately untouched.
+    railways: {attribute: class, rail_1520: 0.025, default: 0.048}
+    # v10: per-sector import links enlarged the dry-bulk base and IWW drifted
+    # to 48% of dry-bulk tkm (target 41.7); bulk barge rate up one notch.
+    # KNIFE EDGE (v10): raising the dry-bulk barge rate to 0.0058+ flips the
+    # whole Odesa-Constanta OD block from barge to the Isaccea ferry (ferry
+    # 0.4 -> 1.6 Mt/yr) without curing the IWW overshoot - documented, kept
+    # at the flat CCNR-anchored rate; territorial IWW tkm reads high vs 2023.
+    waterways: 0.0052
+    maritime: 0.0015
+  # USD per ton-hour, per cargo type (per-cargo VOT is what separates the
+  # cargo classes' mode choice; scalar also accepted).
+  cost_of_time:
+    container: 1.6
+    dry_bulk: 0.08
+    liquid_bulk: 0.08
+    default: 2.0
+  # v6.1 FINAL (2026-09-02, run 20260902_191203, seed 42): per-cargo transfer
+  # costs (disrupt-sc >= fa4a39f) resolve v6's structural residual (a).
+  # Liquid bulk gets refinery-siding rail economics (0.5h, free transfer) and
+  # prohibitive waterway transfers (no fuel river terminals: 72h, 28 USD/t);
+  # its VOT drops to 0.08 so rail's slowness stops penalizing fuel once
+  # barges are priced out at the transfer. Fit (model vs target):
+  #   liquid     38.9/57.3/ 3.8  vs 21.6/68.5/10.0   (rail-dominant, was 11% rail in v6)
+  #   dry_bulk   30.5/29.0/40.4  vs 35.4/22.9/41.7
+  #   container  95.7/ 4.0/ 0.3  vs 89.2/ 6.5/ 4.3
+  #   TOTAL      64.8/21.2/14.0  vs 72.6/14.1/13.3
+  # Every cargo class now has the CORRECT DOMINANT MODE - the fit that matters
+  # for disruption analysis (a rail cut now hits fuel supply). The aggregate
+  # rail excess vs v6 is partly the targets' own bias: Eurostat road tkm =
+  # registered hauliers anywhere (inflated), rail/IWW on-territory.
+  # KNIFE EDGE: liquid waterway loading_fee 24 flips ~16% of liquid tkm back
+  # to barge (one large OD group) - keep >= 28. Remaining residual: liquid
+  # road 39 vs 22 = short hauls + sparse rail network (structural).
+  # v8 (2026-09-17): UA/MD skeleton networks, UKR at Kyiv / MDA at Chisinau.
+  # Border friction applies to edges with special~'border' (only the UA/MD
+  # crossings are marked): rail = 1520<->1435 gauge break (transshipment /
+  # bogie change at Vicsani, Halmeu, Ungheni, Giurgiulesti), road = BCP
+  # queue. CALIBRATION LEVERS for the crossing/mode split vs the WB BCP
+  # counts (rail fee is the strong one: bulk VOT 0.08 makes hours cheap).
+  border_crossing_times:  # hours
+    roads: 24         # BCP queues (Porubne/Leuseni run at 75-90% capacity)
+    railways: 24      # gauge-break transshipment / bogie change
+  border_crossing_fees:   # USD/ton
+    roads: 2          # customs/broker cost; the 24 h queue already prices
+                      # containers via VOT (iteration 1 at 8 killed all road)
+    railways: 3       # gauge-break transshipment per ton
+  # Per-edge crossing friction (calibration vs WB BCP counts): small
+  # facilities flood under winner-take-all routing without a local fee.
+  name-specific:      # USD/ton on the named edge (v15.1: refit on the
+    # extracted networks - real geometry already prices the MD road
+    # detours, so the old Sculeni/Giurgiulesti road fees went to 0)
+    "BCP: Isaccea-Orlivka (roads)": 3   # ferry, not a bridge: wait + fee
+    # (6 flipped the whole Odesa block off the ferry - knife edge, see p14)
+    "BCP: Ungheni (railways)": 2        # v20: back to 2 - the reshaped
+    # short road BCPs undercut rail entirely at 4 (0.00 vs 0.40 obs)
+    "BCP: Sculeni (roads)": 2           # v20: the user's real 2.4-km bridge
+    # made Sculeni the winner gate (2.09 vs 1.3 obs incl empties)
+    "BCP: Giurgiulesti CFR (railways)": 1  # v21: was 4 on the fictional
+    # geometry; the real 127-km weave now prices the corridor by itself
+    # (CFR read 0.00 vs 0.70 with the fee kept at 4)
+    "BCP: Giurgiulesti-Reni (roads)": 4    # v18: MD->Constanta flows took the
+    # double-border shortcut via Reni (1.69 vs ~0.1 obs); second set of
+    # customs formalities is not free in reality
+    "BCP: Giurgiulesti-Galati (roads)": 2  # v18.1: winner-take-all put all
+    # southbound MD flow on Galati (3.35 vs 1.3); three-country-corner queue
+    "UAMD:Izmail-Danube link": 6   # Sulina canal dues + war-risk premium
+    "UAMD:Reni-Danube link": 5     # idem
+  dwell_times:  # hours, one key per multimodes string from multimodal_config.yml
+    roads-railways: {default: 6, liquid_bulk: 0.5, dry_bulk: 2}  # v8: silo/mine sidings - bulk originates on rail
+    roads-waterways: {default: 16, liquid_bulk: 72}
+    roads-maritime: 24
+    railways-waterways: {default: 16, liquid_bulk: 72}
+    railways-maritime: 24
+    waterways-maritime: 8
+  loading_fees:  # USD/ton
+    roads-railways: {default: 3.5, liquid_bulk: 0}
+    roads-waterways: {default: 3.5, liquid_bulk: 28}
+    roads-maritime: 7
+    railways-waterways: {default: 3.5, liquid_bulk: 28}
+    railways-maritime: 7
+    waterways-maritime: 2
+# v8 (2026-09-07, run 20260907_215549, seed 42): firm supplier-selection
+# gravity calibrated against FIGARO-REG 2013 regional trade structure.
+# Sweep w in {1.0, 0.75, 0.5, 0.25}: intra-region sales shares fall
+# monotonically (RO21 .66->.60) toward FIGARO's band (.41-.52), purchases
+# reach the band at 0.25 (2 of 3 focus regions on target), and the RO 8x8
+# interregional correlation IMPROVES with lower home bias (r .53->.60,
+# rho .47->.56). Residual sales-side intra excess (~5-8pp) is structural
+# (importance-weighted local dominance); w<0.25 ~ no distance sensitivity,
+# rejected on principle. Mode split at 0.25: 67.5/16.9/15.6 (modest drift,
+# within tolerance). Details: disrupt-sc-data/Romania/crossval/.
+weight_localization_firm: 0.25
+
+# v8b (2026-09-07): import-side border effect for partner-specific border
+# scenarios (UKR border disruption planned). Each buyer's import mix is tilted
+# by distance to the partners' gateways (d^-gamma vs partner mean) and
+# RAS-rebalanced so national MRIO totals per partner stay exact. gamma has NO
+# observational target (FIGARO-REG regional differentiation is itself
+# assumption - see crossval report); 0.5 is a judgment value between the
+# domestic gravity exponent (0.25) and the classical trade-gravity distance
+# elasticity (~1). Sensitivity-test in the UKR scenario study. 0 = off.
+weight_localization_import: 0.5
+# v10 (2026-09-17): per-sector country sellers - one import link per (buyer,
+# country, product), same granularity as exports. Each product rides at its
+# own density (BACI sector values, rescaled per country to the observed
+# aggregate density where countries.geojson carries an override) and its own
+# cargo class, instead of the country average and dominant type.
+per_sector_import_links: True
