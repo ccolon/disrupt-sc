@@ -35,7 +35,10 @@ TIME_GATHER="00:30:00"; MEM_GATHER="8G"
 # ===========================================================================
 
 ACTIVATE="source $(dirname "$(dirname "${PYTHON_ENV}")")/bin/activate ${PYTHON_ENV}"
-EXPORTS="export DISRUPT_SC_DATA_PATH=${DATA_PATH} && export PYTHONHASHSEED=0 && export PYTHONIOENCODING=utf-8 && cd ${SCRIPT_DIR}"
+# PYTHONPATH: the cluster dsc env does not have disrupt-sc pip-installed
+# (run_rhine.py sys.path-inserts src/ itself; `python -m disruptsc.run`
+# needs the path exported instead)
+EXPORTS="export DISRUPT_SC_DATA_PATH=${DATA_PATH} && export PYTHONPATH=${SCRIPT_DIR}/src && export PYTHONHASHSEED=0 && export PYTHONIOENCODING=utf-8 && cd ${SCRIPT_DIR}"
 CHUNK_DIR="${SCRIPT_DIR}/studies/criticality_ro/chunks"
 GATHER_SH="${SCRIPT_DIR}/studies/criticality_ro/cluster/gather_and_merge.sh"
 
