@@ -1,0 +1,9 @@
+# Rhine 2026 cluster batch (7 Oct 2026), list 4: the 2018 stock ladder on the rebuilt loading table (the ladder of 28 Sep
+# was run on the earlier table; the paper's Fig. 4b and the stock-level selection need it on the table every other run
+# uses). Shared caches of the reference draw (built by 2026_s07_base): launch with --independent.
+#     bash studies/rhine2026/cluster/launch_rhine_batch.sh --jobs studies/rhine2026/cluster/jobs_20261007_ladder.txt --independent
+# Collect:
+#     bash studies/rhine2026/cluster/pack_results.sh --jobs studies/rhine2026/cluster/jobs_20261007_ladder.txt --with-firms 2018_s07_inv125,2018_s07_inv150,2018_s07_inv200
+2018_s07_inv125        | --profile 2018 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.25 --recovery-weeks 20
+2018_s07_inv150        | --profile 2018 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.5 --recovery-weeks 20
+2018_s07_inv200        | --profile 2018 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 2.0 --recovery-weeks 20

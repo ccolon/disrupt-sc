@@ -1,32 +1,31 @@
-Revision batch of 6 Oct 2026 (jobs_20261006_rev.txt): sensitivities against the reference runs
+Revision batch of 6 Oct 2026 (jobs_20261007_rev.txt): sensitivities against the reference runs
 
 == German loss (% of a quarter), peak (% of a week, week), EU loss (bn); change against the base ==
-  2026_rev_base        (not in the tables yet)
-  2026_rev_rail50      (not in the tables yet)
-  2026_rev_rail140     (not in the tables yet)
-  2018_rev_rail50      (not in the tables yet)
-  2018_rev_rail140     (not in the tables yet)
-  2026_rev_head10      (not in the tables yet)
-  2026_rev_head25      (not in the tables yet)
-  2026_rev_rest15      (not in the tables yet)
-  2026_rev_rest60      (not in the tables yet)
-  2026_rev_floor02     (not in the tables yet)
-  2026_rev_floor10     (not in the tables yet)
-  2026_rev_deeplocal   (not in the tables yet)
-  2026_rev_fleetwide   (not in the tables yet)
-  2026_rev_dfuel0      (not in the tables yet)
-  2026_rev_serv45      (not in the tables yet)
-  2026_rev_q25         (not in the tables yet)
-  2026_rev_q75         (not in the tables yet)
+  2026_rev_rail50      1.233 % (base 1.545, -20 %), peak 2.09 % wk 17 (base 2.62 wk 17), EU 13.6 bn (base 16.9)   bounded substitution by rail, 50 kt a week
+  2026_rev_rail140     0.750 % (base 1.545, -51 %), peak 1.31 % wk 17 (base 2.62 wk 17), EU 8.6 bn (base 16.9)   bounded substitution by rail, 140 kt a week
+  2018_rev_rail50      0.689 % (base 0.935, -26 %), peak 0.87 % wk 16 (base 1.09 wk 21), EU 7.9 bn (base 10.5)   2018, bounded substitution 50 kt a week
+  2018_rev_rail140     0.388 % (base 0.935, -59 %), peak 0.61 % wk 16 (base 1.09 wk 21), EU 4.6 bn (base 10.5)   2018, bounded substitution 140 kt a week
+  2026_rev_head10      1.423 % (base 1.545, -8 %), peak 2.64 % wk 17 (base 2.62 wk 17), EU 15.6 bn (base 16.9)   capacity headroom 10 % (private caches)
+  2026_rev_head25      1.213 % (base 1.545, -21 %), peak 2.20 % wk 18 (base 2.62 wk 17), EU 13.4 bn (base 16.9)   capacity headroom 25 % (private caches)
+  2026_rev_rest15      1.103 % (base 1.545, -29 %), peak 1.81 % wk 18 (base 2.62 wk 17), EU 12.2 bn (base 16.9)   refill time 15 days
+  2026_rev_rest60      2.035 % (base 1.545, +32 %), peak 2.94 % wk 17 (base 2.62 wk 17), EU 22.3 bn (base 16.9)   refill time 60 days
+  2026_rev_floor04     1.593 % (base 1.545, +3 %), peak 2.87 % wk 17 (base 2.62 wk 17), EU 17.4 bn (base 16.9)   loading-table floor below 5 cm at 0.04
+  2026_rev_floor16     1.459 % (base 1.545, -6 %), peak 2.13 % wk 17 (base 2.62 wk 17), EU 16.0 bn (base 16.9)   loading-table floor below 5 cm at 0.16
+  2026_rev_deeplocal   0.930 % (base 1.545, -40 %), peak 1.20 % wk 17 (base 2.62 wk 17), EU 10.5 bn (base 16.9)   fairway +20 cm on the Kaub reach alone
+  2026_rev_fleetwide   1.242 % (base 1.545, -20 %), peak 2.32 % wk 17 (base 2.62 wk 17), EU 13.8 bn (base 16.9)   low-water fleet with its gain carried to 100 cm
+  2026_rev_dfuel0      1.334 % (base 1.545, -14 %), peak 2.40 % wk 17 (base 2.62 wk 17), EU 14.9 bn (base 16.9)   power sector's fuel-oil input non-critical
+  2026_rev_serv45      2.095 % (base 1.545, +36 %), peak 4.73 % wk 18 (base 2.62 wk 17), EU 22.2 bn (base 16.9)   45-day coping duration for the non-storable inputs
+  2026_rev_q25         1.743 % (base 1.545, +13 %), peak 2.65 % wk 17 (base 2.62 wk 17), EU 18.9 bn (base 16.9)   outlook's 25th percentile path
+  2026_rev_q75         1.365 % (base 1.545, -12 %), peak 2.43 % wk 17 (base 2.62 wk 17), EU 15.0 bn (base 16.9)   outlook's 75th percentile path
 
 == Bounded substitution: relief value and tonnage by week ==
-    2026_rev_rail50: relief 1,318 mUSD over the run, capacity-blocked 9,798 (base 12,096), by week (relief / blocked): 0:0/0, 1:42/136, 2:43/82, 3:43/188, 4:43/343, 5:43/318, 6:44/427, 7:44/451, 8:44/533, 9:44/462, 10:44/309, 11:43/415, 12:44/514, 13:45/515, 14:45/665, 15:45/696, 16:46/682, 17:46/532, 18:46/498, 19:45/497, 20:44/438, 21:44/349, 22:44/278, 23:44/199
+    2026_rev_rail50: relief 1,318 mUSD over the run, capacity-blocked 9,798 (base 11,475), by week (relief / blocked): 0:0/0, 1:42/136, 2:43/82, 3:43/188, 4:43/343, 5:43/318, 6:44/427, 7:44/451, 8:44/533, 9:44/462, 10:44/309, 11:43/415, 12:44/514, 13:45/515, 14:45/665, 15:45/696, 16:46/682, 17:46/532, 18:46/498, 19:45/497, 20:44/438, 21:44/349, 22:44/278, 23:44/199
       tonnage by week (withheld / relief placed / relief offered, kt): 1:155/50/147, 2:93/50/109, 3:214/50/192, 4:390/50/345, 5:359/50/299, 6:479/50/432, 7:502/50/460, 8:589/50/535, 9:508/50/463, 10:337/50/282, 11:456/50/399, 12:565/50/513, 13:562/50/510, 14:723/50/648, 15:748/50/668, 16:728/50/651, 17:564/50/514, 18:528/50/467, 19:531/50/462, 20:467/50/393, 21:374/50/309, 22:300/50/254, 23:215/50/204
-    2026_rev_rail140: relief 3,026 mUSD over the run, capacity-blocked 7,578 (base 12,096), by week (relief / blocked): 0:0/0, 1:119/59, 2:91/32, 3:119/107, 4:119/257, 5:120/233, 6:122/353, 7:122/374, 8:123/441, 9:124/370, 10:121/222, 11:121/328, 12:123/418, 13:124/416, 14:124/564, 15:125/592, 16:126/580, 17:126/436, 18:126/412, 19:125/405, 20:122/345, 21:122/255, 22:121/183, 23:121/102
+    2026_rev_rail140: relief 3,026 mUSD over the run, capacity-blocked 7,578 (base 11,475), by week (relief / blocked): 0:0/0, 1:119/59, 2:91/32, 3:119/107, 4:119/257, 5:120/233, 6:122/353, 7:122/374, 8:123/441, 9:124/370, 10:121/222, 11:121/328, 12:123/418, 13:124/416, 14:124/564, 15:125/592, 16:126/580, 17:126/436, 18:126/412, 19:125/405, 20:122/345, 21:122/255, 22:121/183, 23:121/102
       tonnage by week (withheld / relief placed / relief offered, kt): 1:65/140/147, 2:34/107/107, 3:120/140/189, 4:290/140/336, 5:260/140/291, 6:396/140/440, 7:417/140/465, 8:489/140/526, 9:407/140/454, 10:240/140/278, 11:359/140/394, 12:461/140/502, 13:455/140/496, 14:616/140/633, 15:640/140/652, 16:622/140/639, 17:465/140/508, 18:443/140/475, 19:436/140/461, 20:369/140/389, 21:272/140/302, 22:195/140/244, 23:107/140/190
-    2018_rev_rail50: relief 1,182 mUSD over the run, capacity-blocked 6,379 (base 12,096), by week (relief / blocked): 0:0/0, 1:43/69, 2:43/79, 3:43/202, 4:43/249, 5:43/258, 6:43/303, 7:43/247, 8:43/104, 9:43/218, 10:43/307, 11:43/257, 12:43/313, 13:43/365, 14:44/455, 15:44/473, 16:44/401, 17:44/448, 18:44/454, 19:45/497, 20:45/500, 21:44/45, 22:38/15, 23:43/32
+    2018_rev_rail50: relief 1,182 mUSD over the run, capacity-blocked 6,379 (base 7,904), by week (relief / blocked): 0:0/0, 1:43/69, 2:43/79, 3:43/202, 4:43/249, 5:43/258, 6:43/303, 7:43/247, 8:43/104, 9:43/218, 10:43/307, 11:43/257, 12:43/313, 13:43/365, 14:44/455, 15:44/473, 16:44/401, 17:44/448, 18:44/454, 19:45/497, 20:45/500, 21:44/45, 22:38/15, 23:43/32
       tonnage by week (withheld / relief placed / relief offered, kt): 1:79/50/98, 2:90/50/106, 3:230/50/204, 4:283/50/243, 5:291/50/249, 6:341/50/286, 7:276/50/237, 8:116/50/127, 9:244/50/217, 10:345/50/290, 11:287/50/246, 12:349/50/292, 13:407/50/348, 14:507/50/449, 15:524/50/469, 16:441/50/383, 17:492/50/431, 18:497/50/435, 19:544/50/487, 20:545/50/488, 21:47/50/74, 22:15/43/43, 23:33/50/62
-    2018_rev_rail140: relief 2,568 mUSD over the run, capacity-blocked 4,582 (base 12,096), by week (relief / blocked): 0:0/0, 1:83/28, 2:90/31, 3:119/122, 4:119/167, 5:119/170, 6:120/222, 7:120/174, 8:107/38, 9:119/122, 10:119/214, 11:120/172, 12:120/224, 13:119/274, 14:123/357, 15:123/374, 16:121/305, 17:122/352, 18:123/354, 19:124/396, 20:124/396, 21:52/19, 22:28/11, 23:39/15
+    2018_rev_rail140: relief 2,568 mUSD over the run, capacity-blocked 4,582 (base 7,904), by week (relief / blocked): 0:0/0, 1:83/28, 2:90/31, 3:119/122, 4:119/167, 5:119/170, 6:120/222, 7:120/174, 8:107/38, 9:119/122, 10:119/214, 11:120/172, 12:120/224, 13:119/274, 14:123/357, 15:123/374, 16:121/305, 17:122/352, 18:123/354, 19:124/396, 20:124/396, 21:52/19, 22:28/11, 23:39/15
       tonnage by week (withheld / relief placed / relief offered, kt): 1:31/98/98, 2:33/105/105, 3:137/140/201, 4:187/140/237, 5:190/140/240, 6:247/140/283, 7:192/140/243, 8:39/124/124, 9:133/140/200, 10:237/140/275, 11:189/140/240, 12:247/140/283, 13:302/140/336, 14:398/140/433, 15:414/140/452, 16:333/140/369, 17:386/140/418, 18:388/140/419, 19:434/140/470, 20:433/140/469, 21:18/59/59, 22:11/32/32, 23:15/45/45
 
 == The fleet lever's weekly path against the base (repacked firm data) ==

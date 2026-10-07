@@ -1,12 +1,12 @@
-"""Read the revision batch of 6 Oct 2026 (cluster/jobs_20261006_rev.txt) once its results are extracted in C:/dsc_runs/rhine2026.
+"""Read the revision batch of 6 Oct 2026 (cluster/jobs_20261007_rev.txt) once its results are extracted in C:/dsc_runs/rhine2026.
 
 Prints, against the reference run 2026_s07_base (and 2018_s07_base), each sensitivity's German loss, peak and EU loss;
 the bounded-substitution runs with the relief value and tonnage per week; the fleet lever's weekly path against the base
 (from the repacked firm data); the prospective band of the 2026 industrial path across the seed bases and the loading
-tables; and the determinism check of 2026_rev_base. Writes additional_data/batch_20261006_summary.txt.
+tables; and the determinism check of 2026_rev_base. Writes additional_data/batch_20261007_rev_summary.txt.
 
 Usage:
-    python studies/rhine2026/read_batch_20261006.py [--runs C:/dsc_runs/rhine2026]
+    python studies/rhine2026/read_batch_20261007_rev.py [--runs C:/dsc_runs/rhine2026]
 """
 from __future__ import annotations
 
@@ -25,7 +25,6 @@ from read_batch_20261007 import table, firm_losses  # noqa: E402
 from matched_estimand_2018 import model_path  # noqa: E402
 
 PAIRS = [  # (run, label, base)
-    ("2026_rev_base", "the reference run repeated after the fingerprint change (must equal 2026_s07_base)", "2026_s07_base"),
     ("2026_rev_rail50", "bounded substitution by rail, 50 kt a week", "2026_s07_base"),
     ("2026_rev_rail140", "bounded substitution by rail, 140 kt a week", "2026_s07_base"),
     ("2018_rev_rail50", "2018, bounded substitution 50 kt a week", "2018_s07_base"),
@@ -34,8 +33,8 @@ PAIRS = [  # (run, label, base)
     ("2026_rev_head25", "capacity headroom 25 % (private caches)", "2026_s07_base"),
     ("2026_rev_rest15", "refill time 15 days", "2026_s07_base"),
     ("2026_rev_rest60", "refill time 60 days", "2026_s07_base"),
-    ("2026_rev_floor02", "loading-table floor below 5 cm at 0.02", "2026_s07_base"),
-    ("2026_rev_floor10", "loading-table floor below 5 cm at 0.10", "2026_s07_base"),
+    ("2026_rev_floor04", "loading-table floor below 5 cm at 0.04", "2026_s07_base"),
+    ("2026_rev_floor16", "loading-table floor below 5 cm at 0.16", "2026_s07_base"),
     ("2026_rev_deeplocal", "fairway +20 cm on the Kaub reach alone", "2026_s07_base"),
     ("2026_rev_fleetwide", "low-water fleet with its gain carried to 100 cm", "2026_s07_base"),
     ("2026_rev_dfuel0", "power sector's fuel-oil input non-critical", "2026_s07_base"),
@@ -47,7 +46,7 @@ PAIRS = [  # (run, label, base)
 
 def load_tables() -> pd.DataFrame:
     frames = [table(AD / f) for f in ("compare_runs_batch_jobs_20261007_main.csv", "compare_runs_batch_jobs_20261007_paired.csv")]
-    rev = AD / "compare_runs_batch_jobs_20261006_rev.csv"
+    rev = AD / "compare_runs_batch_jobs_20261007_rev.csv"
     if rev.exists():
         frames.append(table(rev))
     return pd.concat(frames)
@@ -58,11 +57,13 @@ def relief_by_week(runs: Path, run: str) -> list[str]:
     if not f.exists():
         return [f"    {run}: no routing summary"]
     s = pd.read_csv(f)
+    sb = pd.read_csv(runs / ("2018_s07_base" if run.startswith("2018") else "2026_s07_base") / "routing_summary.csv")
+    base_blocked = sb[sb.cargo_type.isin(["dry_bulk", "liquid_bulk"])].capacity_blocked_usd.sum()
     if "relief_usd" not in s.columns:
         return [f"    {run}: no relief column"]
     b = s[s.cargo_type.isin(["dry_bulk", "liquid_bulk"])].groupby("time_step")[["relief_usd", "capacity_blocked_usd", "alternative_usd"]].sum()
     tot = b.sum()
-    L = [f"    {run}: relief {tot.relief_usd:,.0f} mUSD over the run, capacity-blocked {tot.capacity_blocked_usd:,.0f} (base 12,096), "
+    L = [f"    {run}: relief {tot.relief_usd:,.0f} mUSD over the run, capacity-blocked {tot.capacity_blocked_usd:,.0f} (base {base_blocked:,.0f}), "
          f"by week (relief / blocked): " + ", ".join(f"{t}:{r.relief_usd:.0f}/{r.capacity_blocked_usd:.0f}" for t, r in b.iterrows() if t <= 23)]
     gt = {}
     log = runs / f"{run}.log"
@@ -78,7 +79,7 @@ def relief_by_week(runs: Path, run: str) -> list[str]:
 
 def main(runs: Path):
     t = load_tables()
-    L = ["Revision batch of 6 Oct 2026 (jobs_20261006_rev.txt): sensitivities against the reference runs", ""]
+    L = ["Revision batch of 6 Oct 2026 (jobs_20261007_rev.txt): sensitivities against the reference runs", ""]
     L.append("== German loss (% of a quarter), peak (% of a week, week), EU loss (bn); change against the base ==")
     for run, lab, base in PAIRS:
         if run not in t.index:
@@ -117,7 +118,7 @@ def main(runs: Path):
         pd.DataFrame({"month": labs, "min": a.min(axis=0), "max": a.max(axis=0), "mean": a.mean(axis=0)}).to_csv(AD / "prospective_band_2026.csv", index=False)
     text = "\n".join(L)
     print(text)
-    (AD / "batch_20261006_summary.txt").write_text(text + "\n", encoding="utf-8")
+    (AD / "batch_20261007_rev_summary.txt").write_text(text + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":

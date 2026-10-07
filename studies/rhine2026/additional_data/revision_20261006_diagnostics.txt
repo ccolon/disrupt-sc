@@ -1,90 +1,90 @@
 Revision diagnostics, 6 Oct 2026 (review of 5 Oct), on the packed outputs of the batch of 30 Sep
 
 == 1. German gross loss by sector group (mutually exclusive), and the catch-up attribute apart ==
-  2026_s30_base: gross loss 16,612 mUSD = 1.739 % of a quarter
-    A agriculture      3.6 %
-    B-E industry      34.2 %   (of which D+E utilities 13.4 %)
-    F construction    16.2 %
-    G-T services      46.0 %
-    cannot catch up (D, E, G-T): 59 %; can (A, B, C, F): 41 %
-    largest sectors: F 16.2, H52 15.8, H49 13.8, D 13.4, C20 9.5, I 7.8, H50 6.5, C19 4.7
-  2018_s30_base: gross loss 9,836 mUSD = 1.030 % of a quarter
-    A agriculture      2.4 %
-    B-E industry      36.1 %   (of which D+E utilities 15.5 %)
-    F construction     8.1 %
-    G-T services      53.3 %
-    cannot catch up (D, E, G-T): 69 %; can (A, B, C, F): 31 %
-    largest sectors: H52 20.5, H49 16.0, D 15.5, C20 11.5, H50 8.3, F 8.1, I 5.9, C19 5.3
+  2026_s07_base: gross loss 14,762 mUSD = 1.545 % of a quarter
+    A agriculture      3.3 %
+    B-E industry      34.9 %   (of which D+E utilities 13.7 %)
+    F construction    14.5 %
+    G-T services      47.4 %
+    cannot catch up (D, E, G-T): 61 %; can (A, B, C, F): 39 %
+    largest sectors: H52 16.4, F 14.5, H49 14.3, D 13.7, C20 10.3, I 7.5, H50 7.0, C19 5.0
+  2018_s07_base: gross loss 8,928 mUSD = 0.935 % of a quarter
+    A agriculture      2.2 %
+    B-E industry      37.2 %   (of which D+E utilities 16.1 %)
+    F construction     5.7 %
+    G-T services      55.0 %
+    cannot catch up (D, E, G-T): 71 %; can (A, B, C, F): 29 %
+    largest sectors: H52 21.5, H49 16.6, D 16.0, C20 12.2, H50 8.8, F 5.7, C19 5.6, I 5.4
 
 == 2. Delivered prices: the share of value paying more than 1 % above baseline, with its denominators ==
-  2026_s30_full: share of the value delivered on the network paying > 1 % above its baseline price, economy-wide (value-weighted over the cargo classes)
-    week 15: 2.35 %; by class container 2.0 %, dry_bulk 3.7 %, liquid_bulk 4.8 %; value shares container 85 %, dry_bulk 10 %, liquid_bulk 5 %
-    week 16: 2.77 %; by class container 2.4 %, dry_bulk 4.0 %, liquid_bulk 6.0 %; value shares container 85 %, dry_bulk 10 %, liquid_bulk 5 %
-    week 17: 2.53 %; by class container 2.2 %, dry_bulk 3.5 %, liquid_bulk 5.8 %; value shares container 84 %, dry_bulk 11 %, liquid_bulk 5 %
-  2018_s30_full: share of the value delivered on the network paying > 1 % above its baseline price, economy-wide (value-weighted over the cargo classes)
-    week 15: 0.73 %; by class container 0.4 %, dry_bulk 1.8 %, liquid_bulk 3.3 %; value shares container 84 %, dry_bulk 11 %, liquid_bulk 5 %
-    week 19: 0.67 %; by class container 0.4 %, dry_bulk 1.8 %, liquid_bulk 3.3 %; value shares container 84 %, dry_bulk 11 %, liquid_bulk 5 %
-    week 20: 0.73 %; by class container 0.4 %, dry_bulk 1.8 %, liquid_bulk 4.6 %; value shares container 84 %, dry_bulk 11 %, liquid_bulk 5 %
+  2026_s07_full: share of the value delivered on the network paying > 1 % above its baseline price, economy-wide (value-weighted over the cargo classes)
+    week 15: 1.40 %; by class container 1.1 %, dry_bulk 2.8 %, liquid_bulk 3.8 %; value shares container 85 %, dry_bulk 10 %, liquid_bulk 5 %
+    week 16: 2.20 %; by class container 2.0 %, dry_bulk 2.8 %, liquid_bulk 4.9 %; value shares container 85 %, dry_bulk 10 %, liquid_bulk 5 %
+    week 17: 1.78 %; by class container 1.6 %, dry_bulk 1.9 %, liquid_bulk 5.1 %; value shares container 84 %, dry_bulk 11 %, liquid_bulk 5 %
+  2018_s07_full: share of the value delivered on the network paying > 1 % above its baseline price, economy-wide (value-weighted over the cargo classes)
+    week 15: 0.58 %; by class container 0.3 %, dry_bulk 1.4 %, liquid_bulk 3.3 %; value shares container 84 %, dry_bulk 11 %, liquid_bulk 5 %
+    week 19: 0.56 %; by class container 0.3 %, dry_bulk 1.4 %, liquid_bulk 3.1 %; value shares container 84 %, dry_bulk 11 %, liquid_bulk 5 %
+    week 20: 0.61 %; by class container 0.4 %, dry_bulk 1.4 %, liquid_bulk 3.1 %; value shares container 84 %, dry_bulk 11 %, liquid_bulk 5 %
 
 == 3. Channel decomposition at the routing level ==
   totals over the run, mUSD (routing_summary.csv): what leaves the normal route for an alternative, and what the gate withholds
-    2026_s30_base            bulk: alternative   22,317, capacity-blocked   12,096, blocked   17,969 | containers: alternative   41,554, capacity-blocked      0
-    2026_s30_gateonly        bulk: alternative    3,762, capacity-blocked   12,718, blocked   19,067 | containers: alternative        0, capacity-blocked      0
-    2026_s30_surchargeonly   bulk: alternative   26,814, capacity-blocked        0, blocked        0 | containers: alternative   41,512, capacity-blocked      0
+    2026_s07_base            bulk: alternative   21,849, capacity-blocked   11,475, blocked   16,829 | containers: alternative   41,734, capacity-blocked      0
+    2026_s07_gateonly        bulk: alternative    3,584, capacity-blocked   12,176, blocked   18,057 | containers: alternative        0, capacity-blocked      0
+    2026_s07_surchargeonly   bulk: alternative   25,621, capacity-blocked        0, blocked        0 | containers: alternative   41,702, capacity-blocked      0
   by week, bulk alternative value (base / constraint-only) and capacity-blocked (base / constraint-only), mUSD:
     t= 1: alternative  1,042 /     57; capacity-blocked    178 /    182
     t= 2: alternative  1,055 /     40; capacity-blocked    126 /    130
     t= 3: alternative  1,041 /     80; capacity-blocked    233 /    261
-    t= 4: alternative    926 /    130; capacity-blocked    392 /    432
+    t= 4: alternative    926 /    130; capacity-blocked    391 /    432
     t= 5: alternative    979 /    117; capacity-blocked    351 /    386
-    t= 6: alternative    858 /    162; capacity-blocked    514 /    539
-    t= 7: alternative    806 /    172; capacity-blocked    557 /    580
-    t= 8: alternative    882 /    200; capacity-blocked    668 /    680
-    t= 9: alternative    874 /    172; capacity-blocked    556 /    584
-    t=10: alternative    998 /    118; capacity-blocked    351 /    393
-    t=11: alternative    906 /    154; capacity-blocked    464 /    506
-    t=12: alternative    907 /    189; capacity-blocked    622 /    648
-    t=13: alternative    900 /    184; capacity-blocked    623 /    651
-    t=14: alternative    932 /    218; capacity-blocked    769 /    780
-    t=15: alternative    933 /    223; capacity-blocked    784 /    793
-    t=16: alternative    941 /    226; capacity-blocked    774 /    784
-    t=17: alternative    915 /    199; capacity-blocked    633 /    660
-    t=18: alternative    917 /    189; capacity-blocked    567 /    601
-    t=19: alternative    862 /    184; capacity-blocked    562 /    598
-    t=20: alternative  1,018 /    155; capacity-blocked    487 /    530
-    t=21: alternative  1,085 /    123; capacity-blocked    401 /    428
-    t=22: alternative  1,120 /     99; capacity-blocked    334 /    337
-    t=23: alternative  1,145 /     78; capacity-blocked    257 /    260
+    t= 6: alternative    826 /    151; capacity-blocked    472 /    502
+    t= 7: alternative    860 /    158; capacity-blocked    501 /    531
+    t= 8: alternative    762 /    178; capacity-blocked    582 /    605
+    t= 9: alternative    856 /    160; capacity-blocked    512 /    546
+    t=10: alternative    993 /    119; capacity-blocked    357 /    399
+    t=11: alternative    914 /    150; capacity-blocked    464 /    504
+    t=12: alternative    874 /    174; capacity-blocked    567 /    599
+    t=13: alternative    869 /    171; capacity-blocked    569 /    602
+    t=14: alternative    849 /    207; capacity-blocked    720 /    737
+    t=15: alternative    918 /    216; capacity-blocked    753 /    768
+    t=16: alternative    875 /    213; capacity-blocked    735 /    751
+    t=17: alternative    900 /    180; capacity-blocked    578 /    612
+    t=18: alternative    851 /    177; capacity-blocked    542 /    581
+    t=19: alternative    849 /    175; capacity-blocked    547 /    586
+    t=20: alternative  1,011 /    153; capacity-blocked    488 /    532
+    t=21: alternative  1,080 /    122; capacity-blocked    398 /    426
+    t=22: alternative  1,115 /     98; capacity-blocked    329 /    334
+    t=23: alternative  1,141 /     77; capacity-blocked    251 /    256
 
 == 4. The flat profile against the season ==
-  2026_s30_base    capacity-blocked value 12,096 mUSD, alternative 22,317 mUSD; gate (log): cut 16,808,821 t, re-sent 3,698,832 t, blocked 13,109,985 t over 38 gated weeks
-  wave30_flat      capacity-blocked value 11,791 mUSD, alternative 20,179 mUSD; gate (log): cut 16,276,022 t, re-sent 3,333,319 t, blocked 12,942,704 t over 38 gated weeks
+  2026_s07_base    capacity-blocked value 11,475 mUSD, alternative 21,849 mUSD; gate (log): cut 16,006,352 t, re-sent 3,503,863 t, blocked 12,502,486 t over 37 gated weeks
+  wave07_flat      capacity-blocked value 11,104 mUSD, alternative 22,208 mUSD; gate (log): cut 15,359,302 t, re-sent 3,125,178 t, blocked 12,234,121 t over 37 gated weeks
 
 == 5. Horizons and the catch-up tail ==
-  2026_s30_base: 43 steps after t=0; goods sectors (A, B, C, F) gross shortfall 6,734 mUSD, backlog left at the end 2,862 (42 % of the gross; 58 % worked off)
-    catch-up production by week (mUSD): 20:191, 21:321, 22:257, 23:255, 24:336, 25:320, 26:274, 27:228, 28:187, 29:153, 30:126, 31:105, 32:84, 33:67, 34:53, 35:42, 36:33, 37:27, 38:21, 39:17, 40:14, 41:11, 42:9, 43:7
-    backlog by week (mUSD): 20:5474, 21:5292, 22:5136, 23:4946, 24:4629, 25:4314, 26:4041, 27:3814, 28:3628, 29:3476, 30:3350, 31:3246, 32:3162, 33:3095, 34:3043, 35:3001, 36:2968, 37:2942, 38:2921, 39:2903, 40:2889, 41:2878, 42:2869, 43:2862
-  2018_s30_base: 42 steps after t=0; goods sectors (A, B, C, F) gross shortfall 3,068 mUSD, backlog left at the end 1,065 (35 % of the gross; 65 % worked off)
-    catch-up production by week (mUSD): 19:53, 20:54, 21:60, 22:77, 23:106, 24:175, 25:200, 26:194, 27:171, 28:143, 29:113, 30:86, 31:64, 32:48, 33:35, 34:26, 35:19, 36:14, 37:10, 38:8, 39:6, 40:4, 41:3, 42:2
-    backlog by week (mUSD): 19:1286, 20:1547, 21:1956, 22:2285, 23:2368, 24:2206, 25:2009, 26:1816, 27:1646, 28:1503, 29:1391, 30:1305, 31:1241, 32:1193, 33:1158, 34:1132, 35:1113, 36:1098, 37:1088, 38:1080, 39:1074, 40:1070, 41:1067, 42:1065
+  2026_s07_base: 43 steps after t=0; goods sectors (A, B, C, F) gross shortfall 5,744 mUSD, backlog left at the end 2,370 (41 % of the gross; 59 % worked off)
+    catch-up production by week (mUSD): 20:201, 21:278, 22:200, 23:225, 24:298, 25:283, 26:243, 27:203, 28:166, 29:137, 30:111, 31:87, 32:68, 33:53, 34:41, 35:33, 36:26, 37:20, 38:16, 39:13, 40:10, 41:8, 42:6, 43:5
+    backlog by week (mUSD): 20:4554, 21:4422, 22:4336, 23:4170, 24:3889, 25:3610, 26:3369, 27:3167, 28:3001, 29:2865, 30:2755, 31:2668, 32:2600, 33:2547, 34:2506, 35:2474, 36:2448, 37:2428, 38:2412, 39:2399, 40:2389, 41:2381, 42:2375, 43:2370
+  2018_s07_base: 42 steps after t=0; goods sectors (A, B, C, F) gross shortfall 2,587 mUSD, backlog left at the end 847 (33 % of the gross; 67 % worked off)
+    catch-up production by week (mUSD): 19:52, 20:56, 21:56, 22:74, 23:101, 24:146, 25:164, 26:159, 27:141, 28:115, 29:89, 30:68, 31:51, 32:38, 33:28, 34:21, 35:15, 36:11, 37:8, 38:6, 39:4, 40:3, 41:2, 42:2
+    backlog by week (mUSD): 19:1198, 20:1360, 21:1638, 22:1880, 23:1902, 24:1766, 25:1604, 26:1446, 27:1305, 28:1191, 29:1102, 30:1034, 31:984, 32:947, 33:919, 34:898, 35:883, 36:872, 37:864, 38:858, 39:854, 40:851, 41:848, 42:847
 
 == 6. Supplier weights of the Kaub-served buyers through the season ==
-  2026_s30_full: German buyers with at least one supplier pair cut at Kaub in the August trough (weeks 7-9): 48 region-sectors; share of their offered deliveries that comes from those supplier pairs, by week (value-weighted over the buyers):
-    t= 0: 13.2 % (offered 35,225; from the Kaub pairs 4,643)
-    t= 6: 13.4 % (offered 34,206; from the Kaub pairs 4,597)
-    t=10: 14.2 % (offered 32,819; from the Kaub pairs 4,670)
-    t=11: 14.2 % (offered 34,147; from the Kaub pairs 4,843)
-    t=12: 13.8 % (offered 34,887; from the Kaub pairs 4,804)
-    t=15: 14.4 % (offered 32,545; from the Kaub pairs 4,686)
-    t=19: 14.5 % (offered 33,879; from the Kaub pairs 4,921)
-    t=23: 13.5 % (offered 37,127; from the Kaub pairs 5,030)
-    t=30: 13.3 % (offered 36,478; from the Kaub pairs 4,845)
-    t=40: 13.2 % (offered 35,443; from the Kaub pairs 4,667)
+  2026_s07_full: German buyers with at least one supplier pair cut at Kaub in the August trough (weeks 7-9): 48 region-sectors; share of their offered deliveries that comes from those supplier pairs, by week (value-weighted over the buyers):
+    t= 0: 13.4 % (offered 34,637; from the Kaub pairs 4,643)
+    t= 6: 13.7 % (offered 33,617; from the Kaub pairs 4,597)
+    t=10: 14.2 % (offered 32,834; from the Kaub pairs 4,678)
+    t=11: 14.3 % (offered 33,662; from the Kaub pairs 4,810)
+    t=12: 13.8 % (offered 34,546; from the Kaub pairs 4,779)
+    t=15: 14.4 % (offered 32,553; from the Kaub pairs 4,691)
+    t=19: 14.6 % (offered 33,597; from the Kaub pairs 4,918)
+    t=23: 13.8 % (offered 36,295; from the Kaub pairs 5,009)
+    t=30: 13.5 % (offered 35,788; from the Kaub pairs 4,828)
+    t=40: 13.4 % (offered 34,798; from the Kaub pairs 4,661)
 
 == 7. The prospective 2026 path ==
   monthly shortfall of German industrial production, % (months = mean of their days; June covers 22-30 June only):
-    2026_s30_base          Jul 0.53 Aug 2.89 Sep 1.79 Oct 3.00 Nov -0.45 Dec -1.63  integral Jul-Dec 6.14  peak Oct
-    2026_s30_package       Jul 0.07 Aug 0.55 Sep 0.58 Oct 1.19 Nov -0.34 Dec -0.63  integral Jul-Dec 1.42  peak Oct
-    2026_s30_sup2          Jul 0.14 Aug 1.12 Sep 0.45 Oct 0.91 Nov -0.35 Dec -0.36  integral Jul-Dec 1.91  peak Aug
-    2026_s30_gateonly      Jul 0.64 Aug 3.08 Sep 1.96 Oct 2.98 Nov -0.33 Dec -1.74  integral Jul-Dec 6.59  peak Aug
-    2026_s30_surchargeonly Jul 0.00 Aug 0.00 Sep 0.00 Oct 0.00 Nov 0.00 Dec 0.00  integral Jul-Dec 0.00  peak Nov
+    2026_s07_base          Jul 0.53 Aug 2.47 Sep 1.71 Oct 2.74 Nov -0.29 Dec -1.55  integral Jul-Dec 5.62  peak Oct
+    2026_s07_package       Jul 0.07 Aug 0.47 Sep 0.55 Oct 0.90 Nov -0.23 Dec -0.56  integral Jul-Dec 1.20  peak Oct
+    2026_s07_sup2          Jul 0.14 Aug 0.88 Sep 0.41 Oct 0.82 Nov -0.27 Dec -0.34  integral Jul-Dec 1.64  peak Aug
+    2026_s07_gateonly      Jul 0.64 Aug 2.69 Sep 1.90 Oct 2.77 Nov -0.21 Dec -1.67  integral Jul-Dec 6.12  peak Oct
+    2026_s07_surchargeonly Jul 0.00 Aug 0.00 Sep 0.00 Oct 0.00 Nov 0.00 Dec 0.00  integral Jul-Dec 0.00  peak Nov

@@ -61,7 +61,7 @@ def main(out: Path):
     gs = fig.add_gridspec(2, 2, height_ratios=[1, 0.95], width_ratios=[1, 1])
     fig.patch.set_facecolor("white")
     rng = np.random.default_rng(1)
-    for col, (region, key) in enumerate((("Germany", "DEU_cum_mUSD"), ("European Union", "EU_cum_mUSD"))):
+    for col, (region, key) in enumerate((("Germany", "DEU_cum_mUSD"), ("28 economies (EU-27 and Switzerland)", "EU_cum_mUSD"))):
         ax = fig.add_subplot(gs[0, col]); style(ax); ax.grid(axis="x", color=GRID, linewidth=0.6)
         base = m.loc["2026_s07_base", key]
         ys = np.arange(len(LEVERS))[::-1]

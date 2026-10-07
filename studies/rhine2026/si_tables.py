@@ -500,10 +500,55 @@ def prospective_table(out: Path):
 """, encoding="utf-8")
 
 
+def revision_table(out: Path):
+    """The sensitivities of the revision (jobs_20261007_rev.txt) against the reference runs (review of 5 Oct 2026)."""
+    m = table(AD / "compare_runs_batch_jobs_20261007_main.csv"); r = table(AD / "compare_runs_batch_jobs_20261007_rev.csv")
+    rows = []
+    for run, lab, base in (
+        ("2026_rev_rail50", "bounded substitution by rail, 50 kt a week (review OR2)", "2026_s07_base"),
+        ("2026_rev_rail140", "bounded substitution by rail, 140 kt a week", "2026_s07_base"),
+        ("2018_rev_rail50", "2018: bounded substitution, 50 kt a week", "2018_s07_base"),
+        ("2018_rev_rail140", "2018: bounded substitution, 140 kt a week", "2018_s07_base"),
+        ("2026_rev_head10", "headroom of the capacity at normal water 10\\,\\% (OR1)", "2026_s07_base"),
+        ("2026_rev_head25", "headroom 25\\,\\%", "2026_s07_base"),
+        ("2026_rev_rest15", "refill time of a stock gap 15 days (OR4)", "2026_s07_base"),
+        ("2026_rev_rest60", "refill time 60 days", "2026_s07_base"),
+        ("2026_rev_floor04", "loading-table floor below 5\\,cm at 0.04 (NS1)", "2026_s07_base"),
+        ("2026_rev_floor16", "floor at 0.16", "2026_s07_base"),
+        ("2026_rev_deeplocal", "fairway +20\\,cm on the Kaub reach alone (NS3)", "2026_s07_base"),
+        ("2026_rev_fleetwide", "low-water fleet with its gain carried to 100\\,cm (NS2)", "2026_s07_base"),
+        ("2026_rev_dfuel0", "power sector's fuel-oil input non-critical (E4)", "2026_s07_base"),
+        ("2026_rev_serv45", "45-day coping duration for the non-storable inputs (E4)", "2026_s07_base"),
+        ("2026_rev_q25", "outlook's 25th percentile path (NS4)", "2026_s07_base"),
+        ("2026_rev_q75", "outlook's 75th percentile path", "2026_s07_base"),
+    ):
+        if run not in r.index:
+            continue
+        v, b = r.loc[run], m.loc[base]
+        rows.append(f"{lab} & {v['DEU_%quarter']:.2f} & {100 * (v['DEU_%quarter'] / b['DEU_%quarter'] - 1):+.0f} & {v['DEU_peak_%week']:.2f} & {int(v['DEU_peak_week'])} & {v['EU_cum_mUSD'] / 1e3:.1f} \\\\".replace("+", "$+$").replace("-", "$-$", 1) if False else
+                    f"{lab} & {v['DEU_%quarter']:.2f} & {100 * (v['DEU_%quarter'] / b['DEU_%quarter'] - 1):+.0f} & {v['DEU_peak_%week']:.2f} & {int(v['DEU_peak_week'])} & {v['EU_cum_mUSD'] / 1e3:.1f} \\\\")
+    b26, b18 = m.loc["2026_s07_base"], m.loc["2018_s07_base"]
+    head = [f"reference run 2026 & {b26['DEU_%quarter']:.2f} & & {b26['DEU_peak_%week']:.2f} & {int(b26.DEU_peak_week)} & {b26.EU_cum_mUSD / 1e3:.1f} \\\\",
+            f"reference run 2018 & {b18['DEU_%quarter']:.2f} & & {b18['DEU_peak_%week']:.2f} & {int(b18.DEU_peak_week)} & {b18.EU_cum_mUSD / 1e3:.1f} \\\\", r"\midrule"]
+    (out / "si_revision.tex").write_text(r"""\begin{table}[tbp]
+\centering\small
+\caption{\textbf{The sensitivities of the revision.} German value-added loss as a share of a quarter, its change against the reference run of the same event, the peak week (share of a week's value added, run week) and the loss of the 28 economies (billion USD), for the sensitivities run after the review of 5 October 2026 on the rebuilt loading table (the review's points in brackets; \texttt{jobs\_20261007\_rev.txt}). The rail ceilings are 50 kt a week (the 400 wagons that the national rail freight operator could add at short notice in August 2026, at two rotations a week) and 140 kt (the rail response of past low waters, +0.07\,\% of rail tonnage per low-water day over a full low-water month).}
+\label{tab:revision}
+\begin{tabular}{lrrrrr}
+\toprule
+ & DEU (\% of a quarter) & change (\%) & peak (\% of a week) & peak week & 28 economies (bn) \\
+\midrule
+""" + "\n".join(head + rows) + r"""
+\bottomrule
+\end{tabular}
+\end{table}
+""", encoding="utf-8")
+
+
 def main(overleaf: Path):
     out = overleaf / "tables"; out.mkdir(exist_ok=True)
     for fn in (rates_table, stocks_table, criticality_table, thresholds_table, loading_table, forecast_table,
-               runs_table, representations_table, channels_table, gate_table, prospective_table):
+               runs_table, representations_table, channels_table, gate_table, prospective_table, revision_table):
         try:
             fn(out)
         except FileNotFoundError as e:      # a table whose runs are not extracted yet keeps its previous version
