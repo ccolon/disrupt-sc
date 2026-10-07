@@ -79,8 +79,13 @@ def main(runs: Path, out: Path):
     ev = rec_t[rec_t.month.isin(EVENT_MONTHS[2018])]
     REC, REC16, REC84 = ev.central.values, ev.p16.values, ev.p84.values
     # the stock ladder of 28 Sep (x1.25, x1.5, x2) and the priced river with closures (x1, x1.5, x2), same rule
-    INT_GATE = {1.25: matched(runs / "2018_gs_inv125")["integral"], 1.5: matched(runs / "2018_gs_inv150")["integral"],
-                2.0: matched(runs / "2018_gs")["integral"]}
+    # the ladder on the rebuilt table (7 Oct 2026) when its runs are there, else the ladder of 28 Sep on the earlier table
+    if all((runs / f"2018_s07_inv{k}" / "firm_data.csv").exists() for k in ("125", "150", "200")):
+        INT_GATE = {1.25: matched(runs / "2018_s07_inv125")["integral"], 1.5: matched(runs / "2018_s07_inv150")["integral"],
+                    2.0: matched(runs / "2018_s07_inv200")["integral"]}
+    else:
+        INT_GATE = {1.25: matched(runs / "2018_gs_inv125")["integral"], 1.5: matched(runs / "2018_gs_inv150")["integral"],
+                    2.0: matched(runs / "2018_gs")["integral"]}
     priced1 = matched(runs / "2018_baseline")
     INT_PRICED = {1.0: priced1["integral"], 1.5: matched(runs / "2018_inv150")["integral"], 2.0: matched(runs / "2018_pipe")["integral"]}
     PRICED_X1 = [priced1[mo] for mo in MONTHS]

@@ -345,7 +345,8 @@ week of & vintage 10 Sep & status & vintage 30 Sep & status \\
 def runs_table(out: Path):
     m = table(AD / "compare_runs_batch_jobs_20261007_main.csv")
     p = table(AD / "compare_runs_batch_jobs_20261007_paired.csv")
-    t = pd.concat([m, p])
+    extra = [table(AD / f"compare_runs_batch_jobs_20261007_{k}.csv") for k in ("rev", "ladder") if (AD / f"compare_runs_batch_jobs_20261007_{k}.csv").exists()]
+    t = pd.concat([m, p] + extra)
     cols = ["DEU_%quarter", "DEU_peak_%week", "DEU_peak_week", "EU_cum_mUSD", "cons_loss_cum_mUSD"]
     rows = "\n".join(f"{tex(r)} & {v['DEU_%quarter']:.2f} & {v['DEU_peak_%week']:.2f} & {int(v['DEU_peak_week'])} & {v['EU_cum_mUSD'] / 1e3:.1f} & {v['cons_loss_cum_mUSD'] / 1e3:.1f} \\\\"
                      for r, v in t[cols].iterrows())

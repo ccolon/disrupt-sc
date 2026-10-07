@@ -47,7 +47,9 @@ def main(tag: str, overleaf: Path, date_list: str):
     p = table(AD / f"compare_runs_batch_jobs_{date_list}_paired.csv")
     rv = AD / f"compare_runs_batch_jobs_{date_list}_rev.csv"
     r = table(rv) if rv.exists() else pd.DataFrame()
-    t = pd.concat([m, p] + ([r] if len(r) else []))
+    lv = AD / f"compare_runs_batch_jobs_{date_list}_ladder.csv"
+    ld = table(lv) if lv.exists() else pd.DataFrame()
+    t = pd.concat([m, p] + ([r] if len(r) else []) + ([ld] if len(ld) else []))
     B, B18 = f"2026_{tag}_base", f"2018_{tag}_base"
     q26 = m.loc[B, "DEU_cum_mUSD"] / m.loc[B, "DEU_%quarter"]
     q18 = m.loc[B18, "DEU_cum_mUSD"] / m.loc[B18, "DEU_%quarter"]
