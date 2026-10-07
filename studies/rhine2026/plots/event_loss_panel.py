@@ -72,7 +72,7 @@ def main(out: Path):
     if len(obs):
         last_obs = pd.Timestamp(obs.week_start.max()) + pd.Timedelta(days=3.5)
         ax.axvline(last_obs, color=MUTED, linewidth=0.9)
-        ax.text(last_obs, max(ref.max(), band.max().max()) * 1.08, " forecast from here", color=MUTED, fontsize=7.5, ha="left", va="top")
+        ax.text(last_obs, max(ref.max(), band.max().max()) * 0.30, " forecast from here", color=MUTED, fontsize=7.5, ha="left", va="center", rotation=90)
     pk1, pk2 = ref.loc[1:10].idxmax(), ref.loc[11:].idxmax()
     ax.text(dates[pk1], ref[pk1] + 0.12, "August trough", color=MUTED, fontsize=8, ha="center")
     ax.text(dates[pk2], ref[pk2] + 0.12, "autumn trough", color=MUTED, fontsize=8, ha="center")
