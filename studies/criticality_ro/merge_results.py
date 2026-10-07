@@ -11,8 +11,8 @@ output/Romania/criticality/<prefix>_merged/:
   * tier2_top150.yaml        - (tier1 only) the Tier-2 chunk config: top 150
     edges by total loss, duration 4, run_id t2_top150
 
-Usage: python studies/criticality_ro/merge_results.py [--prefix t1] [--ref RUN]
-       python studies/criticality_ro/merge_results.py --prefix t2 --ref RUN
+Usage: python studies/criticality_ro/merge_results.py [--prefix t1]
+       python studies/criticality_ro/merge_results.py --prefix t2
 """
 
 from __future__ import annotations
@@ -30,21 +30,25 @@ HERE = Path(__file__).resolve().parent
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--prefix", default="t1")
-    ap.add_argument("--ref", default=None)
     ap.add_argument("--top", type=int, default=150)
     args = ap.parse_args()
-    ref = args.ref or (HERE / "chunks" / "REFERENCE_RUN.txt").read_text().strip()
-
+    # chunk CSVs: the gathered/committed copies (laptop after git pull) take
+    # precedence; fall back to the live run outputs (on the cluster)
+    gathered = sorted((HERE / "results" / f"{args.prefix}_chunks").glob("*.csv"))
     crit_dir = REPO / "output" / "Romania" / "criticality"
-    parts = sorted(crit_dir.glob(f"{args.prefix}_*/criticality_results.csv"))
-    parts = [p for p in parts if "_merged" not in p.parent.name]
+    live = [p for p in sorted(crit_dir.glob(f"{args.prefix}_*/criticality_results.csv"))
+            if "_merged" not in p.parent.name]
+    parts = gathered or live
     if not parts:
-        raise SystemExit(f"no {args.prefix}_* results under {crit_dir}")
+        raise SystemExit(f"no {args.prefix} chunk results in "
+                         f"{HERE / 'results'} nor {crit_dir}")
     df = pd.concat([pd.read_csv(p) for p in parts], ignore_index=True)
     df = df.drop_duplicates(subset="edge_id", keep="last")
     print(f"{len(parts)} chunk files, {len(df)} unique edges")
 
-    exp = REPO / "output" / "Romania" / ref / "transport_edges_with_flows_0.geojson"
+    # committed slim copy of the reference run's edge table - makes the
+    # merge runnable on the cluster with nothing but the git checkout
+    exp = HERE / "reference_edges.geojson"
     edges = gpd.read_file(exp)[["id", "type", "name", "class", "km",
                                 "flow_total_tons", "geometry"]]
     m = edges.merge(df, left_on="id", right_on="edge_id", how="inner")
@@ -60,8 +64,8 @@ def main() -> int:
     m["loss_per_km"] = m["total_loss"] / m["km"].clip(lower=1e-3)
     m = m.sort_values("total_loss", ascending=False).reset_index(drop=True)
 
-    out = crit_dir / f"{args.prefix}_merged"
-    out.mkdir(exist_ok=True)
+    out = HERE / "results" / f"{args.prefix}_merged"
+    out.mkdir(parents=True, exist_ok=True)
     m.drop(columns="geometry").to_csv(out / "criticality_ranked.csv", index=False)
     gpd.GeoDataFrame(m, crs=edges.crs).to_file(out / "criticality_map.geojson",
                                                driver="GeoJSON")

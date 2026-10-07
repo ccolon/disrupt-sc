@@ -1,19 +1,25 @@
 #!/bin/bash
 #
 # Romania per-edge criticality sweep (manifest p29) - Slurm launcher.
+# GIT-ONLY workflow (no ssh/rsync from the laptop, as for the Rhine study):
+#   laptop:  git push (disrupt-sc AND disrupt-sc-data)
+#   cluster: git pull both repos, then
+#            bash studies/criticality_ro/cluster/launch_criticality.sh
+#   ... jobs run; the final job gathers results into
+#   studies/criticality_ro/results/ , merges, generates the Tier-2 chunks and
+#   COMMITS on the cluster -> git push there (or however Rhine results come
+#   back), git pull on the laptop.
+#   cluster: bash studies/criticality_ro/cluster/launch_criticality.sh --tier2
 #
-# Tier 1: 40 chunk jobs (studies/criticality_ro/chunks/t1_chunk_*.yaml,
-#         ~42 edges each, duration 1 week, t_final 3). Each task injects its
-#         chunk through DISRUPT_SC_EXTRA_CONFIG and writes resume-safe
-#         results to output/Romania/criticality/t1_chunk_NN/. A parity job
-#         runs FIRST: it validates the synced caches by checking that a
-#         seed-42 baseline reproduces the laptop fingerprints (the chunk
-#         jobs depend on it with afterok).
-# Tier 2: after merging tier 1 on the laptop (merge_results.py writes
-#         chunks/t2_top150.yaml), launch with --tier2 (single job,
-#         150 edges, duration 4, t_final 6).
+# Tier 1: setup job BUILDS the stage caches on the cluster (seed 42,
+#   PYTHONHASHSEED=0 - the KI-34 determinism fix makes the build reproducible),
+#   then 40 chunk jobs (42 edges each, duration 1, t_final 3) run afterok on
+#   it, each injecting its chunk via DISRUPT_SC_EXTRA_CONFIG; per-chunk
+#   results are resume-safe (re-submitting a failed chunk continues it).
+# Tier 2: 15 chunk jobs over the top 150 (duration 4, t_final 6), generated
+#   by the Tier-1 gather job.
 #
-# Usage:  bash studies/criticality_ro/cluster/launch_criticality.sh [--dry-run] [--tier2] [--only NN,NN]
+# Usage:  bash launch_criticality.sh [--dry-run] [--tier2] [--only NN,NN] [--no-gather]
 #
 set -e
 
@@ -22,21 +28,24 @@ SCRIPT_DIR="/projects/disruptsc/disrupt-sc"
 PYTHON_ENV="/projects/disruptsc/miniforge3/envs/dsc"
 DATA_PATH="/projects/disruptsc/disrupt-sc-data"
 SLURM_LOG_DIR="${SCRIPT_DIR}/slurm_logs/criticality_ro"
+TIME_SETUP="02:00:00"; MEM_SETUP="16G"
 TIME_CHUNK="12:00:00"; MEM_CHUNK="16G"; CPUS_CHUNK=2   # smoke: ~10 min/edge at t_final 3 -> 42 edges = 7 h + margin
 TIME_T2="12:00:00";    MEM_T2="16G"                    # ~10 heavy edges x ~40 min (t_final 6) + margin
-TIME_PARITY="01:00:00"; MEM_PARITY="16G"
+TIME_GATHER="00:30:00"; MEM_GATHER="8G"
 # ===========================================================================
 
 ACTIVATE="source $(dirname "$(dirname "${PYTHON_ENV}")")/bin/activate ${PYTHON_ENV}"
 EXPORTS="export DISRUPT_SC_DATA_PATH=${DATA_PATH} && export PYTHONHASHSEED=0 && export PYTHONIOENCODING=utf-8 && cd ${SCRIPT_DIR}"
 CHUNK_DIR="${SCRIPT_DIR}/studies/criticality_ro/chunks"
+GATHER_SH="${SCRIPT_DIR}/studies/criticality_ro/cluster/gather_and_merge.sh"
 
-DRY_RUN=false; TIER2=false; ONLY=""
+DRY_RUN=false; TIER2=false; ONLY=""; GATHER=true
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --dry-run) DRY_RUN=true; shift ;;
-        --tier2)   TIER2=true; shift ;;
-        --only)    ONLY=$2; shift 2 ;;
+        --dry-run)   DRY_RUN=true; shift ;;
+        --tier2)     TIER2=true; shift ;;
+        --only)      ONLY=$2; shift 2 ;;
+        --no-gather) GATHER=false; shift ;;
         *) shift ;;
     esac
 done
@@ -53,28 +62,41 @@ submit() {   # job time mem dep payload -> job id
 }
 
 if $TIER2; then
-    ls "${CHUNK_DIR}"/t2_chunk_*.yaml >/dev/null 2>&1 || { echo "t2 chunks missing - run merge_results.py --prefix t1 first and git pull"; exit 1; }
+    ls "${CHUNK_DIR}"/t2_chunk_*.yaml >/dev/null 2>&1 || { echo "t2 chunks missing - the tier-1 gather job generates them; git pull first"; exit 1; }
+    T2IDS=""
     for yml in "${CHUNK_DIR}"/t2_chunk_*.yaml; do
         nn=$(basename "$yml" .yaml | sed 's/t2_chunk_//')
-        submit "crit_t2_${nn}" "$TIME_T2" "$MEM_T2" "" \
-            "export DISRUPT_SC_EXTRA_CONFIG=${yml} && python -m disruptsc.run Romania --seed 42 --cache auto"
+        jid=$(submit "crit_t2_${nn}" "$TIME_T2" "$MEM_T2" "" \
+            "export DISRUPT_SC_EXTRA_CONFIG=${yml} && python -m disruptsc.run Romania --seed 42 --cache auto")
+        T2IDS="${T2IDS}:${jid}"
     done
-    echo "tier-2 chunk jobs submitted"
+    if $GATHER; then
+        submit "crit_gather_t2" "$TIME_GATHER" "$MEM_GATHER" "${T2IDS#:}" \
+            "bash ${GATHER_SH} t2"
+    fi
+    echo "tier-2 jobs submitted"
     exit 0
 fi
 
-# Parity gate: an initial_state on the synced caches must COME UP from cache
-# (a cache rebuild here means the data/code on the cluster differ from the
-# laptop - investigate before burning 40 jobs). grep is the assertion.
-PARITY=$(submit "crit_parity" "$TIME_PARITY" "$MEM_PARITY" "" \
-    "python -m disruptsc.run Romania --simulation_type initial_state --seed 42 --cache auto 2>&1 | tee /tmp/crit_parity.log && grep -q 'Loaded cache agents' /tmp/crit_parity.log && grep -q 'Loading logistic routes from cache' /tmp/crit_parity.log")
-echo "parity job: ${PARITY}"
+# Setup: build (or validate) the stage caches once, so the 40 chunk jobs load
+# the same world instead of racing to rebuild it into the shared tmp/.
+SETUP=$(submit "crit_setup" "$TIME_SETUP" "$MEM_SETUP" "" \
+    "python -m disruptsc.run Romania --simulation_type initial_state --seed 42 --cache auto")
+echo "setup (cache build) job: ${SETUP}"
 
+T1IDS=""
 for yml in "${CHUNK_DIR}"/t1_chunk_*.yaml; do
     nn=$(basename "$yml" .yaml | sed 's/t1_chunk_//')
     if [[ -n "$ONLY" && ",$ONLY," != *",$nn,"* ]]; then continue; fi
-    submit "crit_t1_${nn}" "$TIME_CHUNK" "$MEM_CHUNK" "$PARITY" \
-        "export DISRUPT_SC_EXTRA_CONFIG=${yml} && python -m disruptsc.run Romania --seed 42 --cache auto"
+    jid=$(submit "crit_t1_${nn}" "$TIME_CHUNK" "$MEM_CHUNK" "$SETUP" \
+        "export DISRUPT_SC_EXTRA_CONFIG=${yml} && python -m disruptsc.run Romania --seed 42 --cache auto")
+    T1IDS="${T1IDS}:${jid}"
 done
-echo "tier-1 chunk jobs submitted (afterok:${PARITY})"
-echo "collect with: studies/criticality_ro/cluster/collect_from_cluster.sh, then merge_results.py --prefix t1"
+echo "tier-1 chunk jobs submitted (afterok:${SETUP})"
+if $GATHER && [[ -z "$ONLY" ]]; then
+    submit "crit_gather_t1" "$TIME_GATHER" "$MEM_GATHER" "${T1IDS#:}" \
+        "bash ${GATHER_SH} t1"
+    echo "gather+merge job queued after all chunks; it COMMITS the results -"
+    echo "push from the cluster (or your usual channel), git pull on the laptop,"
+    echo "then: bash studies/criticality_ro/cluster/launch_criticality.sh --tier2"
+fi
