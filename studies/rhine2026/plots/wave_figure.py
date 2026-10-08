@@ -3,7 +3,7 @@
 (a) Weekly German value-added loss: the 2026 season (A then B, no gap), wave A alone, wave B alone placed at
     its calendar position, and their sum - the area between the season and the sum is the interaction.
 (b) Cumulated loss of A then B against the weeks of normal water between them, with L(A) + L(B) as the
-    reference, and the flat profile (same tonnage turned away, spread evenly).
+    reference, and the flat profile (the same cumulated capacity shortfall, spread evenly).
 
 Usage:
     python studies/rhine2026/plots/wave_figure.py [--out studies/rhine2026/figures]
@@ -93,20 +93,20 @@ def main(out: Path):
 
     ax = axes[1]; style(ax)
     gaps = [0, 1, 2, 4, 8]
-    L = [b0["DEU_cum_mUSD"]] + [t.loc[f"wave07_AB_gap{g}", "DEU_cum_mUSD"] for g in gaps[1:]]
-    s = (t.loc["wave07_A", "DEU_cum_mUSD"] + t.loc["wave07_B", "DEU_cum_mUSD"]) / q
+    L = [b0["DEU_%quarter"]] + [t.loc[f"wave07_AB_gap{g}", "DEU_%quarter"] for g in gaps[1:]]      # the run table's column, as Table S-runs prints it
+    s = t.loc["wave07_A", "DEU_%quarter"] + t.loc["wave07_B", "DEU_%quarter"]
     ax.axhline(s, color=MUTED, linewidth=1.3, linestyle="--")
     ax.text(8.0, s + 0.02, f"A alone + B alone: {s:.2f}", color=MUTED, fontsize=7.5, ha="right", va="bottom")
-    ax.plot(gaps, [v / q for v in L], color=INK, linewidth=1.8, marker="o", markersize=5)
+    ax.plot(gaps, L, color=INK, linewidth=1.8, marker="o", markersize=5)
     for g, v in zip(gaps, L):
-        ax.annotate(f"{v / q:.2f}", (g, v / q), textcoords="offset points", xytext=(6, 5) if g != 4 else (6, -13), fontsize=7.5, color=INK)
-    f = t.loc["wave07_flat", "DEU_cum_mUSD"] / q
+        ax.annotate(f"{v:.2f}", (g, v), textcoords="offset points", xytext=(6, 5) if g != 4 else (6, -13), fontsize=7.5, color=INK)
+    f = t.loc["wave07_flat", "DEU_%quarter"]
     ax.axhline(f, color=GREEN, linewidth=1.0, linestyle=":")
-    ax.text(8.0, f - 0.02, f"same tonnage turned away, spread evenly: {f:.2f}", color=GREEN, fontsize=7.5, ha="right", va="top")
+    ax.text(8.0, f + 0.012, f"flat profile, same cumulated capacity shortfall: {f:.2f}", color=GREEN, fontsize=7.5, ha="right", va="bottom")
     ax.set_xticks(gaps)
     ax.set_xlabel("weeks of normal water between the two troughs", color=MUTED, fontsize=8)
     ax.set_ylabel("German loss, % of a quarter", color=MUTED, fontsize=8)
-    ax.set_ylim(1.2, 1.85)
+    ax.set_ylim(1.08, 1.85)
     ax.set_title("b  The interaction fades within a month", loc="left", fontsize=9.5, color=INK)
 
     fig.tight_layout(w_pad=2.0)

@@ -125,8 +125,8 @@ def main(runs: Path, out: Path):
     ints = [s["integral"] for s in seeds]
     ax.scatter([0.93] * len(ints), ints, color=BLUE, s=14, alpha=0.7, zorder=3, label="ten further draws at ×1")
     ax.plot([1.0, 1.0], [high["integral"], low["integral"]], color=GREEN, linewidth=2.5, alpha=0.8, solid_capstyle="round", zorder=2)
-    ax.text(1.03, low["integral"], f"loading table ×1.15: {low['integral']:.1f}", fontsize=7, color=GREEN, va="center")
-    ax.text(1.03, high["integral"] - 0.12, f"loading table ×0.85: {high['integral']:.1f}", fontsize=7, color=GREEN, va="top")
+    ax.text(1.03, low["integral"], f"shortfall ×1.15 (loading table): {low['integral']:.1f}", fontsize=7, color=GREEN, va="center")
+    ax.text(1.03, high["integral"] - 0.12, f"shortfall ×0.85: {high['integral']:.1f}", fontsize=7, color=GREEN, va="top")
     ax.scatter([1.0], [sup2["integral"]], color=INK, marker="x", s=40, zorder=4)
     ax.text(1.03, sup2["integral"], f"two suppliers per input: {sup2['integral']:.1f}", fontsize=7, color=INK, va="center")
     ax.set_xticks([1.0, 1.25, 1.5, 2.0]); ax.set_xticklabels(["×1\n(evidence value)", "×1.25", "×1.5", "×2"], fontsize=8)
@@ -134,7 +134,7 @@ def main(runs: Path, out: Path):
     ax.set_xlabel("multiplier on the stock days of the balance-sheet statistics", color=MUTED, fontsize=8)
     ax.set_ylabel("industrial shortfall, Aug–Dec 2018, percent-months", color=MUTED, fontsize=8)
     ax.set_ylim(0, 8.2)
-    ax.legend(frameon=False, fontsize=7.5, loc="lower left")
+    ax.legend(frameon=True, framealpha=0.9, edgecolor="none", fontsize=7.5, loc="center right")
     ax.set_title("b  The size of the loss: stocks, loading table, suppliers", loc="left", fontsize=9.5, color=INK)
 
     # (c) weekly 2018 loss with the band

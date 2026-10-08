@@ -117,7 +117,7 @@ def rates_table(out: Path):
     ]
     (out / "si_rates.tex").write_text(r"""\begin{table}[tbp]
 \centering\footnotesize
-\caption{\textbf{Transport cost parameters and the rate evidence.} The values used by every run of this paper (the configuration of the batch of 30 September 2026) and the evidence behind them. Operator costs are the Panteia cost figures for the Netherlands Institute for Transport Policy Analysis (KiM, 2023; price level 2021), fleet averages that include empty legs and waiting; the rates are spot quotes and published tariffs as cited in the evidence dossier of the code repository; USD and EUR are treated as equal. No public source prints a full normal-water rate table by vessel class (the CCNR publishes indices), so the waterway values rest on operator costs and the quoted lanes; the rail and road values are calibrated on the modal split (Fig.~S2). ARA: Amsterdam--Rotterdam--Antwerp.}
+\caption{\textbf{Transport cost parameters and the rate evidence.} The values used by every run of this paper (the configuration of the batches of 30 September and 7 October 2026, identical but for the loading table) and the evidence behind them. Operator costs are the Panteia cost figures for the Netherlands Institute for Transport Policy Analysis (KiM, 2023; price level 2021), fleet averages that include empty legs and waiting; the rates are spot quotes and published tariffs as cited in the evidence dossier of the code repository; USD and EUR are treated as equal. No public source prints a full normal-water rate table by vessel class (the CCNR publishes indices), so the waterway values rest on operator costs and the quoted lanes; the rail and road values are calibrated on the modal split (Fig.~S2). ARA: Amsterdam--Rotterdam--Antwerp.}
 \label{tab:rates}
 \begin{tabular}{lp{34mm}p{82mm}}
 \toprule
@@ -351,7 +351,7 @@ def runs_table(out: Path):
     rows = "\n".join(f"{tex(r)} & {v['DEU_%quarter']:.2f} & {v['DEU_peak_%week']:.2f} & {int(v['DEU_peak_week'])} & {v['EU_cum_mUSD'] / 1e3:.1f} & {v['cons_loss_cum_mUSD'] / 1e3:.1f} \\\\"
                      for r, v in t[cols].iterrows())
     (out / "si_runs.tex").write_text(r"""\begin{longtable}{lrrrrr}
-\caption{\textbf{Every run of the batch of 7 October 2026.} German value-added loss as a share of a quarter, its peak (share of a week's value added, run week), the EU loss and the household consumption loss (billion USD). Names: \texttt{2026\_s30\_*} and \texttt{2018\_s30\_*} the two events on the reference draw and their variants; \texttt{seedN} the further draws; \texttt{wave30\_*} the wave-isolation profiles; \texttt{seedN\_<lever>} a lever paired with the base of the same draw.}
+\caption{\textbf{Every run of the batch of 7 October 2026.} German value-added loss as a share of a quarter, its peak (share of a week's value added, run week), the EU loss and the household consumption loss (billion USD). The four job lists of 7 October 2026 (\texttt{cluster/jobs\_20261007\_*.txt}), all on the loading table rebuilt on 6 October: the paper set (36 runs), the paired levers (60), the sensitivities of the revision (16) and the stock ladder (3). Names: \texttt{2026\_s07\_*} and \texttt{2018\_s07\_*} the two events on the reference draw and their variants (\texttt{s07} for the batch of 7 October; the batch of 30 September on the earlier table carried \texttt{s30}); \texttt{seedN} the further draws; \texttt{wave07\_*} the wave-isolation profiles; \texttt{seedN\_<lever>} a lever paired with the base of the same draw; \texttt{rev\_*} the sensitivities of the revision; \texttt{s07\_invNNN} the stock ladder.}
 \label{tab:runs} \\
 \toprule
 run & DEU (\% of a quarter) & peak (\% of a week) & peak week & EU (bn) & consumption (bn) \\
@@ -446,6 +446,13 @@ def gate_table(out: Path):
         m = re.search(r"Capacity gate t=(\d+):.*cut ([\d,]+) t, re-sent ([\d,]+) t, blocked ([\d,]+) t", line)
         if m:
             gt[int(m.group(1))] = tuple(float(m.group(i).replace(",", "")) for i in (2, 3, 4))
+    n_prof = len(prof)
+    tot = lambda sel: tuple(sum(v[i] for t, v in gt.items() if sel(t)) / 1e6 for i in range(3))
+    tp, tr, ta = tot(lambda t: t <= n_prof), tot(lambda t: t > n_prof), tot(lambda t: True)
+    n_rec = sum(1 for t in gt if t > n_prof)
+    horizon = (f"The table covers the {n_prof} profile weeks (cut {tp[0]:.1f}~Mt, re-sent {tp[1]:.1f}, withheld {tp[2]:.1f}); the gate also cuts in the {n_rec} recovery weeks "
+               f"in which the refill traffic exceeds the reopened capacity ({tr[0]:.1f}, {tr[1]:.1f} and {tr[2]:.1f}~Mt), for a season total of {ta[0]:.1f}, {ta[1]:.1f} and {ta[2]:.1f}~Mt, "
+               "the totals of the text. The totals of a week sum over its rounds, so a share re-sent in one round and cut again at another reach in the next counts in both.")
     rows = []
     for t in range(1, len(prof) + 1):
         r = prof.iloc[t - 1]
@@ -453,7 +460,7 @@ def gate_table(out: Path):
         rows.append(f"{t} & {r.week_start} & {tex(r.status)} & {float(r.kaub_cm):.1f} & {lf(float(r.kaub_cm)):.2f} & {cut / 1e3:.0f} & {resent / 1e3:.0f} & {blocked / 1e3:.0f} \\\\")
     (out / "si_gate.tex").write_text(r"""\begingroup\footnotesize
 \begin{longtable}{rllrrrrr}
-\caption{\textbf{The gate week by week, 2026 reference run.} For each profile week: the status of the gauge, its weekly mean (cm), the load factor of the loading table, and the tonnage (kt) that the gates of the Rhine chain cut, re-sent on another route and withheld (returned to the supplier's stock), from the run's log. The cut tonnage is the offered load above capacity; the withheld tonnage is what found no acceptable route. The baseline flow at Kaub is 1,036 kt a week.}
+\caption{\textbf{The gate week by week, 2026 reference run.} For each profile week: the status of the gauge, its weekly mean (cm), the load factor of the loading table, and the tonnage (kt) that the gates of the Rhine chain cut, re-sent on another route and withheld (returned to the supplier's stock), from the run's log. The cut tonnage is the offered load above capacity; the withheld tonnage is what found no acceptable route. The baseline flow at Kaub is 1,036 kt a week. """ + horizon + r"""}
 \label{tab:gate} \\
 \toprule
 week & start & status & Kaub & load factor & cut & re-sent & withheld \\
@@ -479,12 +486,12 @@ def prospective_table(out: Path):
     d = model_path(RUNS / "2026_s07_base", 2026)
     t, s = record(2026, 1)
     ev = t[t.month.isin(EVENT_MONTHS[2026])]
-    rows = ["model, reference draw (forecast of 30 September) & " + " & ".join(f"{d[f'ind_{m}']:.1f}" for m in labs) + f" & {d['ind_integrated_pct_months']:.1f} \\\\"]
+    rows = ["model, reference draw (river information of 30 September, issued 7 October) & " + " & ".join(f"{d[f'ind_{m}']:.1f}" for m in labs) + f" & {d['ind_integrated_pct_months']:.1f} \\\\"]
     band = AD / "prospective_band_2026.csv"      # written by read_batch_20261006.py once the seed bases are repacked with firm data
     if band.exists():
         bd = pd.read_csv(band)
         rows.append("model, range of the eleven draws & " + " & ".join(f"{a:.1f}--{b:.1f}" for a, b in zip(bd["min"], bd["max"])) + " & \\\\")
-    for run, lab in (("2026_s07_tablelow", "model, loading table with the shortfall $\\times$1.15"), ("2026_s07_tablehigh", "model, loading table $\\times$0.85")):
+    for run, lab in (("2026_s07_tablelow", "model, loading table with the shortfall $\\times$1.15"), ("2026_s07_tablehigh", "model, loading table with the shortfall $\\times$0.85")):
         if (RUNS / run / "firm_data.csv").exists():
             dd = model_path(RUNS / run, 2026)
             rows.append(f"{lab} & " + " & ".join(f"{dd[f'ind_{m}']:.1f}" for m in labs) + f" & {dd['ind_integrated_pct_months']:.1f} \\\\")
@@ -498,6 +505,41 @@ def prospective_table(out: Path):
 """ + "\n".join(rows) + r"""
 \bottomrule
 \end{tabular}
+""", encoding="utf-8")
+
+
+def prospective_sectors_table(out: Path):
+    """Sectoral signatures of the 2026 forecast (review 8 Oct, G2/E3): monthly production shortfall of the German sectors on
+    the river and of the transport operators, reference draw, production-weighted within the sector."""
+    from matched_estimand_2018 import monthly_from_weekly, FIRST
+    run = RUNS / "2026_s07_base"
+    fd = pd.read_csv(run / "firm_data.csv", usecols=["time_step", "firm", "region", "sector", "production"])
+    b0 = fd[fd.time_step == 0].set_index("firm")["production"]
+    de = fd[(fd.region == "DEU") & (fd.time_step >= 1)].copy(); de["base"] = de.firm.map(b0)
+    months = ["2026-07", "2026-08", "2026-09", "2026-10", "2026-11", "2026-12"]
+    names = [("C19", "refined petroleum (C19)"), ("C20", "chemicals (C20)"), ("C23", "non-metallic minerals, cement (C23)"), ("C24A", "iron and steel (C24A)"),
+             ("D", "electricity and gas (D)"), ("F", "construction (F)"), ("H49", "land transport (H49)"), ("H50", "water transport (H50)"),
+             ("H52", "warehousing and logistics (H52)"), ("B-E", "industry, all (B--E)")]
+    rows = []
+    for code, lab in names:
+        sub = de[de.sector.astype(str).str[:1].isin(list("BCDE"))] if code == "B-E" else de[de.sector == code]
+        if not len(sub):
+            continue
+        s = 100 * (sub.base - sub.production).groupby(sub.time_step).sum() / sub.base.groupby(sub.time_step).sum()
+        mo, _ = monthly_from_weekly(s, FIRST[2026], months)
+        rows.append(f"{lab} & " + " & ".join(f"{mo[m]:.1f}" for m in months) + f" & {sum(mo.values()):.1f} \\\\")
+    (out / "si_prospective_sectors.tex").write_text(r"""\begin{table}[tbp]
+\centering\small
+\caption{\textbf{Sectoral signatures of the 2026 forecast.} Monthly shortfall of production (\%, production-weighted within the sector; negative values are production above the no-event baseline) of the German sectors on the river and of the transport operators, reference draw, river information of 30 September, issued 7 October; the last column is the plain sum of the months (percent-months). Pre-specified for the prospective test of the main text: the production index gives the industrial rows by month, the turnover index of transport and storage the operators' rows.}
+\label{tab:prospective_sectors}
+\begin{tabular}{lrrrrrrr}
+\toprule
+ & Jul & Aug & Sep & Oct & Nov & Dec & Jul--Dec \\
+\midrule
+""" + "\n".join(rows) + r"""
+\bottomrule
+\end{tabular}
+\end{table}
 """, encoding="utf-8")
 
 
@@ -549,7 +591,7 @@ def revision_table(out: Path):
 def main(overleaf: Path):
     out = overleaf / "tables"; out.mkdir(exist_ok=True)
     for fn in (rates_table, stocks_table, criticality_table, thresholds_table, loading_table, forecast_table,
-               runs_table, representations_table, channels_table, gate_table, prospective_table, revision_table):
+               runs_table, representations_table, channels_table, gate_table, prospective_table, prospective_sectors_table, revision_table):
         try:
             fn(out)
         except FileNotFoundError as e:      # a table whose runs are not extracted yet keeps its previous version

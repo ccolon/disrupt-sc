@@ -225,6 +225,7 @@ def main(tag: str, overleaf: Path, date_list: str):
                          ("RevDeepLocal", "2026_rev_deeplocal"), ("RevFleetWide", "2026_rev_fleetwide"), ("RevDfuel", "2026_rev_dfuel0"), ("RevServ", "2026_rev_serv45"),
                          ("RevQLow", "2026_rev_q25"), ("RevQHigh", "2026_rev_q75")):
             put(mac, r2(r.loc[run, "DEU_%quarter"]), f"{run}: {rel(run)} % against the base"); put(mac + "Rel", rel(run).replace("-", "$-$"))
+            put(mac + "Abs", rel(run).lstrip("-"), "the same change without its sign")
         for mac, run in (("RevRailFiftyyy", "2018_rev_rail50"), ("RevRailHundredFortyyy", "2018_rev_rail140")):
             put(mac, r2(r.loc[run, "DEU_%quarter"]), f"{run}: {rel(run, B18)} % against the 2018 base"); put(mac + "Rel", rel(run, B18).replace("-", "$-$"))
         for mac, run in (("RevRailFiftyInt", "2018_rev_rail50"), ("RevRailHundredFortyInt", "2018_rev_rail140")):
@@ -239,6 +240,40 @@ def main(tag: str, overleaf: Path, date_list: str):
                           ("PriceIntP", "2.0", "2018 industrial shortfall, stocks x2, earlier rule"), ("PriceIntRawP", "5.0", "stocks x1, earlier rule"), ("LevFleetP", "95", "fleet lever in the price representation"),
                           ("NFirms", "12{,}719", ""), ("NLinks", "1.38", "million commercial links"), ("NRoutable", "786{,}608", ""), ("NEdges", "10{,}139", ""), ("NNodes", "6{,}767", ""), ("NRegions", "28", ""), ("NSectors", "50", "")):
         put(mac, val, com)
+    # ---- the review of 8 October 2026 (review_checks_20261008.py): forecast vintage, lever ordering, index bridge, anatomy
+    sep = AD / "compare_runs_batch_jobs_20260930_main.csv"
+    if sep.exists():
+        ts = table(sep)
+        if "2026_s30_base" in ts.index:
+            put("ForecastSepQ", r2(ts.loc["2026_s30_base", "DEU_%quarter"]), "the forecast as first issued on 30 Sep 2026, on the loading table of September (2026_s30_base)")
+    av = pd.DataFrame({k: [100 * (1 - p.loc[f"2026_{tag}_seed{s}_{k}", "DEU_cum_mUSD"] / p.loc[f"2026_{tag}_seed{s}_base", "DEU_cum_mUSD"]) for s in range(1, 11)] for k in LEVERS})
+    single = av[["stock7", "deep20", "fleet", "stock7t"]]
+    put("StocksBeatFairwayDraws", WORDS[int((av.stock7 > av.deep20).sum())], "of the ten further draws in which stocks +7 days avoids more than the fairway")
+    put("FleetLastDraws", WORDS[int((single.idxmin(axis=1) == "fleet").sum())], "draws in which the fleet avoids the least of the four single levers")
+    put("FleetBeatsTargetedDraws", WORDS[int((av.fleet > av.stock7t).sum())], "draws in which the fleet avoids more than the targeted stocks")
+    put("TargetedBehindBothDraws", WORDS[int(((av.stock7t < av.stock7) & (av.stock7t < av.deep20)).sum())], "draws in which the targeted week is behind both stocks and fairway")
+    put("PeakBase", r2(b["DEU_peak_%week"]), "peak week of the reference run, % of a week"); put("PeakFleet", r2(m.loc[f"2026_{tag}_fleet", "DEU_peak_%week"]), "peak week with the low-water fleet")
+    from review_checks_20261008 import industrial_series, monthly as monthly_days, FIRST as FIRST_DAY, MONTHS18, MONTHS26
+    for yr, run, months, suf in ((2018, B18, MONTHS18, "yy"), (2026, B, MONTHS26, "")):
+        pw, _, sw = industrial_series(RUNS / run)
+        mp_, ms_ = monthly_days(pw, FIRST_DAY[yr], months), monthly_days(sw, FIRST_DAY[yr], months)
+        put(f"IndProdInt{suf}", r1(sum(mp_.values())), f"{yr} industrial integral, production-weighted (percent-months)")
+        put(f"IndVAInt{suf}", r1(sum(ms_.values())), f"{yr} industrial integral, sector shortfall rates weighted by sector value added (the production-index convention)")
+        put(f"IndVAMaxDiff{suf}", r1(max(abs(mp_[k] - ms_[k]) for k in months)), "largest monthly difference between the two aggregations (points)")
+    grp_of = lambda s: "A" if s[0] == "A" else ("I" if s[0] in "BCDE" else ("F" if s[0] == "F" else "S"))
+    put("RatioBase", r1(tot / ind.loss.sum()), "German loss over its industrial part, reference run")
+    for mac, run in (("Serv", "2026_rev_serv45"), ("Dfuel", "2026_rev_dfuel0"), ("RailFifty", "2026_rev_rail50"), ("RailHundredForty", "2026_rev_rail140")):
+        if (RUNS / run / "firm_data.csv").exists():
+            fx = firm_losses(RUNS / run); dx = fx[(fx.region == "DEU") & (fx.time_step >= 1)]; tx = dx.loss.sum()
+            gx = dx.groupby(dx.sector.map(grp_of)).loss.sum() / tx * 100
+            put(f"ShareServices{mac}", pct(gx.get("S", 0)), f"{run}: G-T share of the German gross loss"); put(f"ShareIndustry{mac}", pct(gx.get("I", 0)), "B-E")
+            put(f"ShareConstruction{mac}", pct(gx.get("F", 0)), "F"); put(f"ShareUtilities{mac}", pct(100 * dx[dx.sector.isin(["D", "E"])].loss.sum() / tx), "D+E")
+            put(f"Ratio{mac}", r1(100 / max(gx.get("I", 0), 1e-9)), "German loss over its industrial part")
+    for mac, run in (("Fifty", "2026_rev_rail50"), ("HundredForty", "2026_rev_rail140")):
+        rs = RUNS / run / "routing_summary.csv"
+        if rs.exists():
+            g = pd.read_csv(rs).groupby("cargo_type").relief_usd.sum()
+            put(f"ReliefLiquidShare{mac}", pct(100 * g.get("liquid_bulk", 0) / g.sum()), f"{run}: % of the relief value that is liquid bulk")
     lines = [f"% Key numbers of the paper, generated by studies/rhine2026/make_numbers.py from the batch of {date_list} (run names {tag}): the river as a",
              "% quantity constraint with the voyage surcharge, stocks at their evidence values, crude and gas by pipeline, construction a",
              "% non-storable input, the loading table rebuilt on its ledger (6 Oct 2026); the 2026 profile of 30 Sep (observations to 29 Sep,",
