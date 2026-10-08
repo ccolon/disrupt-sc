@@ -111,7 +111,16 @@ logistics:
     # layer moved dispersed industry toward rail-served counties (dry-bulk
     # rail 29.0 vs 22.9 target; rail 14.1 bn tkm vs 12.65). Domestic tariff
     # up one notch; rail_1520 (UA/MD corridors) deliberately untouched.
-    railways: {attribute: class, rail_1520: 0.025, default: 0.048}
+    # v22 (8 Oct 2026, WB reviewer): CFM (Moldova) tariffs are far above
+    # UZ. The 1520 class is split (MD edges restamped rail_1520_md).
+    # SENSITIVITY LADDER (8 Oct 2026): 0.025 -> Ungheni 0.72 (over band),
+    # CFR corridor 0.57 alive; 0.040 -> Ungheni 0.52 (best fit), CFR 0.00;
+    # 0.055 and 0.08 (reviewer's figure) -> ALL Moldovan rail 0.00, against
+    # the WB counts' 10.5k/18.3k wagons - the observed 2024 flows bound the
+    # effective tariff below ~0.05 (and ~0.03 on the Basarabeasca corridor).
+    # SET 0.040: matches Ungheni; the corridor's death reproduces its real
+    # 2025 collapse (68 -> 10 kt/mo). A 2024-target choice would argue ~0.030.
+    railways: {attribute: class, rail_1520: 0.025, rail_1520_md: 0.040, default: 0.048}
     # v10: per-sector import links enlarged the dry-bulk base and IWW drifted
     # to 48% of dry-bulk tkm (target 41.7); bulk barge rate up one notch.
     # KNIFE EDGE (v10): raising the dry-bulk barge rate to 0.0058+ flips the
