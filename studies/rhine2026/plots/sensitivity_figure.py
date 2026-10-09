@@ -64,7 +64,7 @@ def main(out: Path):
         draws = ([p.loc[f"2026_s07_seed{s}_base", q] for s in range(1, 11)] if year == "2026"
                  else [m.loc[f"2018_s07_seed{s}", q] for s in range(1, 11)])
         groups = [("supply-chain\ndraws (11)", draws + [base], BLUE),
-                  ("loading table\n(shortfall ×1.15, ×0.85)", [m.loc[f"{year}_s07_tablelow", q], m.loc[f"{year}_s07_tablehigh", q]], GREEN),
+                  ("loading table\n(shortfall\n×1.15, ×0.85)", [m.loc[f"{year}_s07_tablelow", q], m.loc[f"{year}_s07_tablehigh", q]], GREEN),
                   ("two suppliers\nper input", [m.loc[f"{year}_s07_sup2", q]], PINK),
                   ("no input\npooling", [m.loc[f"{year}_s07_nopool", q]], ORANGE)]
         if year == "2026":
