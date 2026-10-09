@@ -1,0 +1,26 @@
+# Rhine 2026 cluster batch (9 Oct 2026): the two experiments the review of 8 October asked for and the user approved
+# (review_20261008_response.md, "needing the authors' decision"), on the loading table rebuilt on 6 Oct and the shared
+# caches of 2026_s07_base (list jobs_20261007_main.txt). Launch with --independent (every flag below is one the
+# fingerprints ignore: bulk relief, stock targets, gauge offset, draught table, restoration time, profile).
+#
+# Block 1, review OR2: the four single levers crossed with the finite-rail case (50 kt a week, DB Cargo's 400 wagons at
+#   short notice). The base of this block is 2026_rev_rail50 (list 3 of 7 Oct, 1.233 % of a quarter). Reader:
+#   read_batch_20261009_cross.py (loss avoided by each lever against its own base, under no rail and under 50 kt).
+# Block 2, review OR3: the wave-isolation gap experiment at the 15-day refill time (the paper's is 30 days). The
+#   sequence without a gap at 15 days is 2026_rev_rest15 (1.100 % of a quarter); A alone, B alone and the gaps of 2 and
+#   4 weeks are run here so that the interaction (sequence minus the sum of the waves alone) and its decay with the gap
+#   can be compared with the 30-day values (A 0.536 + B 0.847 = 1.383; sequence 1.545; gap 2: 1.463; gap 4: 1.415).
+#
+# Launch (after git pull to the commit of this list, with 2026_s07_base's caches in place):
+#     bash studies/rhine2026/cluster/launch_rhine_batch.sh --jobs studies/rhine2026/cluster/jobs_20261009_cross.txt --independent
+# Collect (no firm tables needed: the readers use the compare tables and their weekly blocks):
+#     bash studies/rhine2026/cluster/pack_results.sh --jobs studies/rhine2026/cluster/jobs_20261009_cross.txt
+#
+2026_rev_rail50_stock7   | --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --bulk-relief-tons 50000 --inventory-add-days 7
+2026_rev_rail50_deep20   | --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --bulk-relief-tons 50000 --gauge-offset 20
+2026_rev_rail50_fleet    | --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --bulk-relief-tons 50000 --draught-table studies/rhine2026/scenarios/draught_table_lowwater.csv
+2026_rev_rail50_stock7t  | --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --bulk-relief-tons 50000 --inventory-add-days 7:H49,H50,H51,H52,H53,D,C20,C23,C24A
+wave09_A_rest15          | --profile 2026_waveA --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --restoration-days 15
+wave09_B_rest15          | --profile 2026_waveB --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --restoration-days 15
+wave09_AB_gap2_rest15    | --profile 2026_waveAB_gap2 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --restoration-days 15
+wave09_AB_gap4_rest15    | --profile 2026_waveAB_gap4 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --restoration-days 15
