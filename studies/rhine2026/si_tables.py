@@ -32,6 +32,7 @@ HERE = ROOT / "studies/rhine2026"
 AD = HERE / "additional_data"
 EVIDENCE = HERE / "evidence"
 CONFIG = ROOT / "config" / "user_defined_EU.yaml"
+BS = chr(92)   # one backslash, for the generated LaTeX of cross_table
 OVERLEAF = Path("C:/Users/Celian/OneDrive/DisruptSC/Paper_Rhine2026/git-overleaf/6aaa98617957ab816097822f")
 
 sys.path.insert(0, str(HERE))
@@ -345,13 +346,13 @@ week of & vintage 10 Sep & status & vintage 30 Sep & status \\
 def runs_table(out: Path):
     m = table(AD / "compare_runs_batch_jobs_20261007_main.csv")
     p = table(AD / "compare_runs_batch_jobs_20261007_paired.csv")
-    extra = [table(AD / f"compare_runs_batch_jobs_20261007_{k}.csv") for k in ("rev", "ladder") if (AD / f"compare_runs_batch_jobs_20261007_{k}.csv").exists()]
+    extra = [table(AD / f) for f in ("compare_runs_batch_jobs_20261007_rev.csv", "compare_runs_batch_jobs_20261007_ladder.csv", "compare_runs_batch_jobs_20261009_cross.csv") if (AD / f).exists()]
     t = pd.concat([m, p] + extra)
     cols = ["DEU_%quarter", "DEU_peak_%week", "DEU_peak_week", "EU_cum_mUSD", "cons_loss_cum_mUSD"]
     rows = "\n".join(f"{tex(r)} & {v['DEU_%quarter']:.2f} & {v['DEU_peak_%week']:.2f} & {int(v['DEU_peak_week'])} & {v['EU_cum_mUSD'] / 1e3:.1f} & {v['cons_loss_cum_mUSD'] / 1e3:.1f} \\\\"
                      for r, v in t[cols].iterrows())
     (out / "si_runs.tex").write_text(r"""\begin{longtable}{lrrrrr}
-\caption{\textbf{Every run of the batch of 7 October 2026.} German value-added loss as a share of a quarter, its peak (share of a week's value added, run week), the EU loss and the household consumption loss (billion USD). The four job lists of 7 October 2026 (\texttt{cluster/jobs\_20261007\_*.txt}), all on the loading table rebuilt on 6 October: the paper set (36 runs), the paired levers (60), the sensitivities of the revision (16) and the stock ladder (3). Names: \texttt{2026\_s07\_*} and \texttt{2018\_s07\_*} the two events on the reference draw and their variants (\texttt{s07} for the batch of 7 October; the batch of 30 September on the earlier table carried \texttt{s30}); \texttt{seedN} the further draws; \texttt{wave07\_*} the wave-isolation profiles; \texttt{seedN\_<lever>} a lever paired with the base of the same draw; \texttt{rev\_*} the sensitivities of the revision; \texttt{s07\_invNNN} the stock ladder.}
+\caption{\textbf{Every run of the batches of 7 and 9 October 2026.} German value-added loss as a share of a quarter, its peak (share of a week's value added, run week), the EU loss and the household consumption loss (billion USD). The four job lists of 7 October 2026 (\texttt{cluster/jobs\_20261007\_*.txt}), all on the loading table rebuilt on 6 October: the paper set (36 runs), the paired levers (60), the sensitivities of the revision (16) and the stock ladder (3). Names: \texttt{2026\_s07\_*} and \texttt{2018\_s07\_*} the two events on the reference draw and their variants (\texttt{s07} for the batch of 7 October; the batch of 30 September on the earlier table carried \texttt{s30}); \texttt{seedN} the further draws; \texttt{wave07\_*} the wave-isolation profiles; \texttt{seedN\_<lever>} a lever paired with the base of the same draw; \texttt{rev\_*} the sensitivities of the revision; \texttt{s07\_invNNN} the stock ladder; \texttt{rev\_rail50\_<lever>} a lever under the 50 kt rail ceiling and \texttt{wave09\_*\_rest15} the wave-isolation profiles at a 15-day refill time (the batch of 9 October, \texttt{jobs\_20261009\_cross.txt}).}
 \label{tab:runs} \\
 \toprule
 run & DEU (\% of a quarter) & peak (\% of a week) & peak week & EU (bn) & consumption (bn) \\
@@ -543,6 +544,45 @@ def prospective_sectors_table(out: Path):
 """, encoding="utf-8")
 
 
+def cross_table(out: Path):
+    """The batch of 9 October 2026 (review of 8 Oct, OR2 and OR3): the four single levers under the 50 kt rail ceiling
+    against their no-rail values, and the wave-isolation gap experiment at a 15-day refill time against 30 days."""
+    m = table(AD / "compare_runs_batch_jobs_20261007_main.csv"); r = table(AD / "compare_runs_batch_jobs_20261007_rev.csv")
+    c = table(AD / "compare_runs_batch_jobs_20261009_cross.csv")
+    q = "DEU_%quarter"
+    b0, b50 = m.loc["2026_s07_base", "DEU_cum_mUSD"], r.loc["2026_rev_rail50", "DEU_cum_mUSD"]
+    rows = [f"reference run (no substitution; 50 kt a week) & {m.loc['2026_s07_base', q]:.2f} & & {r.loc['2026_rev_rail50', q]:.2f} & " + BS * 2]
+    for k, lab in (("stock7", "stocks +7 days"), ("deep20", "fairway +20" + BS + ",cm"), ("stock7t", "targeted stocks +7 days"), ("fleet", "low-water fleet")):
+        a0 = 100 * (1 - m.loc[f"2026_s07_{k}", "DEU_cum_mUSD"] / b0); a50 = 100 * (1 - c.loc[f"2026_rev_rail50_{k}", "DEU_cum_mUSD"] / b50)
+        rows.append(f"{lab} & {m.loc[f'2026_s07_{k}', q]:.2f} & {a0:.0f} & {c.loc[f'2026_rev_rail50_{k}', q]:.2f} & {a50:.0f} " + BS * 2)
+    a30, b30 = m.loc["wave07_A", q], m.loc["wave07_B", q]; a15, b15 = c.loc["wave09_A_rest15", q], c.loc["wave09_B_rest15", q]
+    seq30 = {0: m.loc["2026_s07_base", q], 2: m.loc["wave07_AB_gap2", q], 4: m.loc["wave07_AB_gap4", q]}
+    seq15 = {0: r.loc["2026_rev_rest15", q], 2: c.loc["wave09_AB_gap2_rest15", q], 4: c.loc["wave09_AB_gap4_rest15", q]}
+    wrows = [f"first wave alone (A) & {a30:.2f} & & {a15:.2f} & " + BS * 2, f"second wave alone (B) & {b30:.2f} & & {b15:.2f} & " + BS * 2,
+             f"A + B & {a30 + b30:.2f} & & {a15 + b15:.2f} & " + BS * 2]
+    for g in (0, 2, 4):
+        wrows.append(f"A then B, {g} weeks of normal water between & {seq30[g]:.2f} & {100 * (seq30[g] / (a30 + b30) - 1):+.0f} & {seq15[g]:.2f} & {100 * (seq15[g] / (a15 + b15) - 1):+.0f} " + BS * 2)
+    (out / "si_cross.tex").write_text(r"""\begin{table}[tbp]
+\centering\small
+\caption{\textbf{The levers under finite rail, and the memory of the season at a 15-day refill time.} Batch of 9 October 2026 (\texttt{jobs\_20261009\_cross.txt}). Upper block: German loss (\% of a quarter) with each single lever, and the share of its base's loss it avoids (\%), under the paper's rule (no substitution for bulk) and under the 50 kt a week rail ceiling. Lower block: the two waves of 2026 alone, their sum and their sequence with 0, 2 and 4 weeks of normal water between them, at the 30-day refill time of the paper and at 15 days; the change is the sequence against the sum (\%).}
+\label{tab:cross}
+\begin{tabular}{lrrrr}
+\toprule
+ & \multicolumn{2}{c}{no substitution} & \multicolumn{2}{c}{rail 50 kt a week} \\
+ & loss & avoided (\%) & loss & avoided (\%) \\
+\midrule
+""" + "\n".join(rows) + r"""
+\midrule
+ & \multicolumn{2}{c}{refill time 30 days} & \multicolumn{2}{c}{refill time 15 days} \\
+ & loss & change (\%) & loss & change (\%) \\
+\midrule
+""" + "\n".join(wrows) + r"""
+\bottomrule
+\end{tabular}
+\end{table}
+""", encoding="utf-8")
+
+
 def revision_table(out: Path):
     """The sensitivities of the revision (jobs_20261007_rev.txt) against the reference runs (review of 5 Oct 2026)."""
     m = table(AD / "compare_runs_batch_jobs_20261007_main.csv"); r = table(AD / "compare_runs_batch_jobs_20261007_rev.csv")
@@ -591,7 +631,7 @@ def revision_table(out: Path):
 def main(overleaf: Path):
     out = overleaf / "tables"; out.mkdir(exist_ok=True)
     for fn in (rates_table, stocks_table, criticality_table, thresholds_table, loading_table, forecast_table,
-               runs_table, representations_table, channels_table, gate_table, prospective_table, prospective_sectors_table, revision_table):
+               runs_table, representations_table, channels_table, gate_table, prospective_table, prospective_sectors_table, revision_table, cross_table):
         try:
             fn(out)
         except FileNotFoundError as e:      # a table whose runs are not extracted yet keeps its previous version

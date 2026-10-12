@@ -99,15 +99,27 @@ def main(out: Path):
     ax.text(8.0, s + 0.02, f"A alone + B alone: {s:.2f}", color=MUTED, fontsize=7.5, ha="right", va="bottom")
     ax.plot(gaps, L, color=INK, linewidth=1.8, marker="o", markersize=5)
     for g, v in zip(gaps, L):
-        ax.annotate(f"{v:.2f}", (g, v), textcoords="offset points", xytext=(6, 5) if g != 4 else (6, -13), fontsize=7.5, color=INK)
+        ax.annotate(f"{v:.2f}", (g, v), textcoords="offset points", xytext=(6, 5), fontsize=7.5, color=INK)
+    cx = AD / "compare_runs_batch_jobs_20261009_cross.csv"; rv = AD / "compare_runs_batch_jobs_20261007_rev.csv"
+    if cx.exists() and rv.exists():                            # the batch of 9 Oct: the same experiment at a 15-day refill time
+        c, r = table(cx), table(rv)
+        s15 = c.loc["wave09_A_rest15", "DEU_%quarter"] + c.loc["wave09_B_rest15", "DEU_%quarter"]
+        L15 = [r.loc["2026_rev_rest15", "DEU_%quarter"], c.loc["wave09_AB_gap2_rest15", "DEU_%quarter"], c.loc["wave09_AB_gap4_rest15", "DEU_%quarter"]]
+        TEAL = "#1f9e9e"
+        ax.axhline(s15, color=TEAL, linewidth=1.1, linestyle="--", alpha=0.8)
+        ax.text(8.0, s15 + 0.012, f"A alone + B alone, refill time 15 days: {s15:.2f}", color=TEAL, fontsize=7.5, ha="right", va="bottom")
+        ax.plot([0, 2, 4], L15, color=TEAL, linewidth=1.6, marker="o", markersize=4.5)
+        for g, v in zip([0, 2, 4], L15):
+            ax.annotate(f"{v:.2f}", (g, v), textcoords="offset points", xytext=(6, -12), fontsize=7.5, color=TEAL)
+        ax.text(4.35, L15[-1] + 0.02, "refill time 15 days", color=TEAL, fontsize=7.5, ha="left", va="bottom")
     f = t.loc["wave07_flat", "DEU_%quarter"]
     ax.axhline(f, color=GREEN, linewidth=1.0, linestyle=":")
     ax.text(8.0, f + 0.012, f"flat profile, same cumulated capacity shortfall: {f:.2f}", color=GREEN, fontsize=7.5, ha="right", va="bottom")
     ax.set_xticks(gaps)
     ax.set_xlabel("weeks of normal water between the two troughs", color=MUTED, fontsize=8)
     ax.set_ylabel("German loss, % of a quarter", color=MUTED, fontsize=8)
-    ax.set_ylim(1.08, 1.85)
-    ax.set_title("b  The interaction fades within a month", loc="left", fontsize=9.5, color=INK)
+    ax.set_ylim(0.88, 1.85)
+    ax.set_title("b  The interaction fades within a month, and is the refill time", loc="left", fontsize=9.5, color=INK)
 
     fig.tight_layout(w_pad=2.0)
     out.mkdir(parents=True, exist_ok=True)

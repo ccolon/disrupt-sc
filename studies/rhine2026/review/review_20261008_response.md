@@ -63,3 +63,12 @@ the sector shares of the sensitivity runs, the gate ledger by horizon, the forec
 ## What the review got right about the numbers (no action)
 
 The eleven-draw mean and standard deviation (1.30 ± 0.37), the 2018 dynamic benchmark (0.99 / 1.00 / 1.22 / 1.55 / 0.56 = 5.32), the monthly integrals of the representation table, the 115 run rows, the gate identities and the 37 cited keys were all reproduced by the review from the submitted artefacts; we reproduced its pairwise lever rankings and gate totals from the run tables (`review_checks_20261008.txt`).
+
+## Addendum, 12 October 2026: the two experiments the authors approved (batch of 9 October, `cluster/jobs_20261009_cross.txt`)
+
+| Point | Result | Disposition |
+|---|---|---|
+| OR2 | The four single levers under the 50 kt rail ceiling (base `2026_rev_rail50`, 1.23 % of a quarter): stocks avoid 48 % (45 without rail), fairway 42 (38), targeted stocks 28 (22), fleet 20 (17), in the same order. The relief serves the bulk the levers do not reach; the two are nearly additive. | Results (levers), Discussion (ordering), Methods (counterfactuals), SI S4 + Table S-cross, run table. Done. |
+| OR3 | The gap experiment at a 15-day refill time: A 0.44 + B 0.66 = 1.10 apart, 1.10 in sequence (+0 % against +12 % at 30 days); with 2 and 4 weeks of normal water the sequence costs 10 and 13 % less than the sum (at 30 days +6 and +2 %), because the buyers hit by the first wave have refilled and the plants working off their backlog produce above baseline when the second arrives. The memory the gap experiment measures is the refill time of the stock rule. | Introduction, Discussion (calendar paragraph), Fig. 3b (teal series), Methods, SI S4 + Table S-cross. Done. |
+
+Reader: `read_batch_20261009_cross.py` (writes `additional_data/batch_20261009_cross_summary.txt`); macros `\Cross*`, `\Wave*Rest` in numbers.tex (270 macros). Title changed on 9 October to "Logistics under drought: how the Rhine low water of 2026 propagates through Europe's supply chains" (NS5); the rules of the revision promoted into Fig. 8 (G4). Code release and reviewer archive remain open.

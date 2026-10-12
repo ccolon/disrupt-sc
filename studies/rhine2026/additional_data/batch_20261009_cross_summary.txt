@@ -1,0 +1,15 @@
+Batch of 9 October 2026: levers x finite rail (OR2) and the gap experiment at 15 days (OR3)
+
+== 1. Loss avoided by each lever against its own base (% of the base's cumulated German loss) ==
+   bases: no rail 14,762 mUSD (1.545 % of a quarter), rail 50 kt 11,776 (1.233)
+   stocks +7 days     no rail  45.4 %   rail 50 kt  47.5 %   (loss under rail 50 kt 0.647 % of a quarter)
+   fairway +20 cm     no rail  38.1 %   rail 50 kt  42.3 %   (loss under rail 50 kt 0.711 % of a quarter)
+   low-water fleet    no rail  16.6 %   rail 50 kt  20.0 %   (loss under rail 50 kt 0.986 % of a quarter)
+   targeted stocks    no rail  22.1 %   rail 50 kt  27.8 %   (loss under rail 50 kt 0.890 % of a quarter)
+   ordering without rail: stocks +7 days > fairway +20 cm > targeted stocks > low-water fleet
+   ordering under 50 kt:  stocks +7 days > fairway +20 cm > targeted stocks > low-water fleet   (the same)
+
+== 2. The interaction of the two waves and its decay with the gap, at 30 and 15 days of refill time (% of a quarter) ==
+   30 days: A 0.536 + B 0.847 = 1.383; sequence gap 0: 1.545 (+12 %), gap 1: 1.501 (+9 %), gap 2: 1.463 (+6 %), gap 4: 1.415 (+2 %), gap 8: 1.344 (-3 %)
+   15 days: A 0.443 + B 0.657 = 1.100; sequence gap 0: 1.103 (+0 %), gap 2: 0.993 (-10 %), gap 4: 0.952 (-13 %)
+   interaction (sequence minus the sum), 30 vs 15 days: gap 0: +0.162 vs +0.003, gap 2: +0.080 vs -0.107, gap 4: +0.032 vs -0.148
