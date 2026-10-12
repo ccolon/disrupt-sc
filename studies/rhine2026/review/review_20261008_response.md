@@ -98,3 +98,28 @@ Reader: `read_batch_20261009_cross.py` (writes `additional_data/batch_20261009_c
 ## Numbers pending the recompute
 
 The batch tables are recomputed on the cluster (the runs without local firm tables cannot be reaggregated here); until then `numbers.tex` carries the values as issued. The local recompute of the reference runs reproduces the review's figures exactly.
+
+
+## Numbers after the recompute (cluster recompare of 12 October; Overleaf 2041cd0)
+
+| Quantity | As issued (scope-wide ratios) | Corrected (country-sector ratios) |
+|---|---:|---:|
+| 2026 forecast, German loss, % of a quarter (reference draw) | 1.54 | 1.64 |
+| eleven draws, mean +/- s.d. | 1.30 +/- 0.37 | 1.35 +/- 0.38 (range 0.68 to 1.78) |
+| industry part, % of a quarter; share of the loss | 0.54; 35 % | 0.61; 37 % |
+| services (G to T) share; construction; utilities (D+E) | 47; 14; 14 % | 44; 16; 17 % |
+| EU loss, bn USD | 16.9 | 17.9 |
+| 2018 reference; eleven draws | 0.94; 0.80 +/- 0.23 | 0.98; 0.82 +/- 0.24 |
+| 2018 industrial integral, percent-months (production-weighted B-E as issued; index measure, German VA weights B-D, corrected); record 5.3, band 3.6 to 7.1 | 4.6 | 3.9 |
+| draws inside the record's 16-84 % band; inside the 95 % band | 6 of 11; 9 | 4 of 11; 7 |
+| loading table, shortfall x1.15 / x0.85, 2018 integral | 6.1 / 3.2 | 5.2 / 2.7 |
+| stock ladder x1.25 / 1.5 / 2 (2018, % of a quarter) | 0.69 / 0.53 / 0.34 | 0.72 / 0.55 / 0.35 |
+| levers: stocks / fairway / fleet / targeted / package, % avoided | 45 / 38 / 17 / 22 / 80 | 46 / 39 / 17 / 22 / 80 |
+| crossed with rail 50 kt | 48 / 42 / 20 / 28 | 48 / 43 / 20 / 28; overlap with the rail benefit 12 / 8 / 2 / 0 % |
+| waves: A + B apart; in sequence; interaction | 1.38; 1.54; +12 % | 1.45; 1.64; +13 % (gap 4: +3 %; at 15 days: +2 %, -9 %, -13 %) |
+| flat profile | 1.16 | 1.22 |
+| rail 50 kt / 140 kt (2026) | 1.23 / 0.75 | 1.30 / 0.78 |
+| 2026 industrial integral on the index measure (record on the same days 6.3) | 5.6 (production-weighted) | 4.5 |
+| signed value-added change, Q3 / Q4 2026, % of the quarter (gross 0.80 / 0.88) | - | +0.62 / -0.40 |
+
+The qualitative results are unchanged: the ordering of the levers (stocks ahead of the fairway in 7 of 10 draws, the fleet last in 9 of 10), the sign and decay of the wave interaction, the priced river's late onset, the sector groups' order. What changed in the argument: the 2018 comparison is weaker on the index measure (3.9 against 5.3, four of eleven draws in the band), the claim that the table as built fits best is withdrawn, and the abstract says "lies within the band of the econometric record" instead of "reproduces".
