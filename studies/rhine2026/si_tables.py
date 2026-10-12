@@ -118,7 +118,7 @@ def rates_table(out: Path):
     ]
     (out / "si_rates.tex").write_text(r"""\begin{table}[tbp]
 \centering\footnotesize
-\caption{\textbf{Transport cost parameters and the rate evidence.} The values used by every run of this paper (the configuration of the batches of 30 September and 7 October 2026, identical but for the loading table) and the evidence behind them. Operator costs are the Panteia cost figures for the Netherlands Institute for Transport Policy Analysis (KiM, 2023; price level 2021), fleet averages that include empty legs and waiting; the rates are spot quotes and published tariffs as cited in the evidence dossier of the code repository; USD and EUR are treated as equal. No public source prints a full normal-water rate table by vessel class (the CCNR publishes indices), so the waterway values rest on operator costs and the quoted lanes; the rail and road values are calibrated on the modal split (Fig.~S2). ARA: Amsterdam--Rotterdam--Antwerp.}
+\caption{\textbf{Transport cost parameters and the rate evidence.} The values used by every run of this paper (the configuration of the batches of 30 September and 7 October 2026, identical but for the loading curve) and the evidence behind them. Operator costs are the Panteia cost figures for the Netherlands Institute for Transport Policy Analysis (KiM, 2023; price level 2021), fleet averages that include empty legs and waiting; the rates are spot quotes and published tariffs as cited in the evidence dossier of the code repository; USD and EUR are treated as equal. No public source prints a full normal-water rate table by vessel class (the CCNR publishes indices), so the waterway values rest on operator costs and the quoted lanes; the rail and road values are calibrated on the modal split (Fig.~S2). ARA: Amsterdam--Rotterdam--Antwerp.}
 \label{tab:rates}
 \begin{tabular}{lp{34mm}p{82mm}}
 \toprule
@@ -276,7 +276,7 @@ def thresholds_table(out: Path):
     ]
     (out / "si_thresholds.tex").write_text(r"""\begin{table}[tbp]
 \centering\small
-\caption{\textbf{The modal-switch rule: classification of the Kaub-crossing bulk pairs and threshold sensitivity.} Offline classification of the 2,831 Kaub-crossing bulk origin--destination pairs (5,707 links) on the network of the first closure week of a ten-week run on the 2026 profile (14--15 September 2026; the priced-river representation with the Kaub reach closed to bulk, and the same search that a cut share runs under the quantity constraint): under the kilometre rule 1,553 pairs give up (833 million USD of the week's orders), 1,224 deliver on their own modes (385 million) and 54 on the free path (24 million); the run reproduced the classification link by link. The table gives the share of the week's Kaub bulk orders that gives up under each setting of the rule. The access allowance decides the outcome: for nine tenths of the pairs that give up the alternative is barge to Koblenz, 88\,km of truck around the reach and barge again at a median surcharge of 49\,\% on the freight, rejected because 88\,km exceeds the allowance; the pairs whose normal route already has 100\,km or more of road (35\,\%) lengthen that road leg instead, which is what the adopted rule forbids.}
+\caption{\textbf{The modal-switch rule: classification of the Kaub-crossing bulk pairs and threshold sensitivity.} Offline classification of the 2,831 Kaub-crossing bulk origin--destination pairs (5,707 links) on the network of the first closure week of a ten-week run on the 2026 profile (14--15 September 2026; the priced-river representation with the Kaub reach closed to bulk, and the same search that a cut share runs under the capacity limit): under the kilometre rule 1,553 pairs give up (833 million USD of the week's orders), 1,224 deliver on their own modes (385 million) and 54 on the free path (24 million); the run reproduced the classification link by link. The table gives the share of the week's Kaub bulk orders that gives up under each setting of the rule. The access allowance decides the outcome: for nine tenths of the pairs that give up the alternative is barge to Koblenz, 88\,km of truck around the reach and barge again at a median surcharge of 49\,\% on the freight, rejected because 88\,km exceeds the allowance; the pairs whose normal route already has 100\,km or more of road (35\,\%) lengthen that road leg instead, which is what the adopted rule forbids.}
 \label{tab:thresholds}
 \begin{tabular}{p{118mm}r}
 \toprule
@@ -291,7 +291,7 @@ setting of the rule & gives up (\% of the week's Kaub bulk orders) \\
 
 # ------------------------------------------------------------------------------------------------ S3: loading, forecast
 def loading_table(out: Path):
-    """The loading table as a source ledger (6 Oct 2026, review NS1): for each anchor its nature, source and date,
+    """The loading curve as a source ledger (6 Oct 2026, review NS1): for each anchor its nature, source and date,
     what the source measures (reach, cargo, period, denominator) and the transformation to the fleet value."""
     d = pd.read_csv(HERE / "scenarios" / "draught_table.csv")
     led = pd.read_csv(HERE / "scenarios" / "draught_table_ledger.csv").set_index("kaub_cm")
@@ -302,7 +302,7 @@ def loading_table(out: Path):
                      for cm in d.kaub_cm)
     (out / "si_loading_table.tex").write_text(r"""\begingroup\footnotesize
 \begin{longtable}{rrrp{15mm}p{38mm}p{34mm}p{40mm}}
-\caption{\textbf{The loading table as a source ledger.} Share of the normal tonnage that the Kaub reach can pass at a weekly mean gauge (fleet, the column the model uses) and the load factor of a single large vessel (for comparison), with, for each anchor, its nature (measured, a convention, interpolated or assumed), its source and date, what the source measures (reach, cargo class, period, denominator) and the transformation to the fleet value. Linear between anchors; below 5\,cm the fleet value is held at 0.08. The anchors mix single-vessel payloads, an association's weekly count, a national monthly response and operators' thresholds; they do not measure one quantity, and the table is the authors' reading of them. The table was rebuilt on this ledger on 6 October 2026 (the low end lifted to the weekly count and the single-vessel loads times the fleet's redeployment; unchanged from 55\,cm up); the band of $\pm$15\,\% on the shortfall and the sensitivity on the floor below 5\,cm (Section~S4) bound the result on either side.}
+\caption{\textbf{The loading curve as a source ledger.} Share of the normal tonnage that the Kaub reach can pass at a weekly mean gauge (fleet, the column the model uses) and the loading share of a single large vessel (for comparison), with, for each anchor, its nature (measured, a convention, interpolated or assumed), its source and date, what the source measures (reach, cargo class, period, denominator) and the transformation to the fleet value. Linear between anchors; below 5\,cm the fleet value is held at 0.08. The anchors mix single-vessel payloads, an association's weekly count, a national monthly response and operators' thresholds; they do not measure one quantity, and the table is the authors' reading of them. The table was rebuilt on this ledger on 6 October 2026 (the low end lifted to the weekly count and the single-vessel loads times the fleet's redeployment; unchanged from 55\,cm up); the band of $\pm$15\,\% on the shortfall and the sensitivity on the floor below 5\,cm (Section~S4) bound the result on either side.}
 \label{tab:loading} \\
 \toprule
 cm & fleet & vessel & nature & source & measures & transformation \\
@@ -352,7 +352,7 @@ def runs_table(out: Path):
     rows = "\n".join(f"{tex(r)} & {v['DEU_%quarter']:.2f} & {v['DEU_peak_%week']:.2f} & {int(v['DEU_peak_week'])} & {v['EU_cum_mUSD'] / 1e3:.1f} & {v['cons_loss_cum_mUSD'] / 1e3:.1f} \\\\"
                      for r, v in t[cols].iterrows())
     (out / "si_runs.tex").write_text(r"""\begin{longtable}{lrrrrr}
-\caption{\textbf{Every run of the batches of 7 and 9 October 2026.} German value-added loss as a share of a quarter, its peak (share of a week's value added, run week), the EU loss and the household consumption loss (billion USD). The four job lists of 7 October 2026 (\texttt{cluster/jobs\_20261007\_*.txt}), all on the loading table rebuilt on 6 October: the paper set (36 runs), the paired levers (60), the sensitivities of the revision (16) and the stock ladder (3). Names: \texttt{2026\_s07\_*} and \texttt{2018\_s07\_*} the two events on the reference draw and their variants (\texttt{s07} for the batch of 7 October; the batch of 30 September on the earlier table carried \texttt{s30}); \texttt{seedN} the further draws; \texttt{wave07\_*} the wave-isolation profiles; \texttt{seedN\_<lever>} a lever paired with the base of the same draw; \texttt{rev\_*} the sensitivities of the revision; \texttt{s07\_invNNN} the stock ladder; \texttt{rev\_rail50\_<lever>} a lever under the 50 kt rail ceiling and \texttt{wave09\_*\_rest15} the wave-isolation profiles at a 15-day refill time (the batch of 9 October, \texttt{jobs\_20261009\_cross.txt}).}
+\caption{\textbf{Every run of the batches of 7 and 9 October 2026.} German value-added loss as a share of a quarter, its peak (share of a week's value added, run week), the EU loss and the household consumption loss (billion USD). The four job lists of 7 October 2026 (\texttt{cluster/jobs\_20261007\_*.txt}), all on the loading curve rebuilt on 6 October: the paper set (36 runs), the paired levers (60), the sensitivities of the revision (16) and the stock ladder (3). Names: \texttt{2026\_s07\_*} and \texttt{2018\_s07\_*} the two events on the reference network and their variants (\texttt{s07} for the batch of 7 October; the batch of 30 September on the earlier table carried \texttt{s30}); \texttt{seedN} the further networks; \texttt{wave07\_*} the wave-isolation profiles; \texttt{seedN\_<lever>} a lever paired with the base of the same draw; \texttt{rev\_*} the sensitivities of the revision; \texttt{s07\_invNNN} the stock ladder; \texttt{rev\_rail50\_<lever>} a lever under the 50 kt rail ceiling and \texttt{wave09\_*\_rest15} the wave-isolation profiles at a 15-day refill time (the batch of 9 October, \texttt{jobs\_20261009\_cross.txt}).}
 \label{tab:runs} \\
 \toprule
 run & DEU (\% of a quarter) & peak (\% of a week) & peak week & EU (bn) & consumption (bn) \\
@@ -375,8 +375,8 @@ def representations_table(out: Path):
             parts = line.split()
             if parts and parts[0].startswith("2018_") and len(parts) >= 8:
                 lines[parts[0]] = parts[1:6] + [parts[6]]
-    order = [("2018_gs_inv100", "quantity constraint, stocks $\\times$1"), ("2018_gs_inv125", "quantity constraint, $\\times$1.25"),
-             ("2018_gs_inv150", "quantity constraint, $\\times$1.5"), ("2018_gs", "quantity constraint, $\\times$2"),
+    order = [("2018_gs_inv100", "capacity limit, stocks $\\times$1"), ("2018_gs_inv125", "capacity limit, $\\times$1.25"),
+             ("2018_gs_inv150", "capacity limit, $\\times$1.5"), ("2018_gs", "capacity limit, $\\times$2"),
              ("2018_baseline", "priced river with closures, $\\times$1"), ("2018_inv150", "priced river with closures, $\\times$1.5"),
              ("2018_pipe", "priced river with closures, $\\times$2")]
     from benchmark_ademmer import record, EVENT_MONTHS
@@ -394,7 +394,7 @@ def representations_table(out: Path):
             rows.append(f"{lab} & " + " & ".join(v[:5]) + f" & {v[5]} \\\\")
     (out / "si_representations.tex").write_text(r"""\begin{table}[tbp]
 \centering\small
-\caption{\textbf{Two representations of the river on the 2018 record.} Monthly shortfall of German industrial production (\%; the production-index measure, each sector's shortfall rate weighted by its German value added, sections B--D), August to December 2018, and its integral (percent-months, the plain sum of the months). The record is the dynamic counterfactual of the published specification (ref.~\citep{ademmer2023}; Table~2, column 1, of the working paper) on the low-water days of the daily gauge record, with the 16--84\,\% band of a Monte Carlo over its coefficients and, for comparison, the contemporaneous-only specification (column 3). The model rows are the quantity constraint with the surcharge at four stock levels and the priced river with closures at three; runs of 22--28 September 2026 on the reference draw, the industrial path unchanged by the later treatment of construction as a non-storable input. Each month of a model row is the mean of its days, every day carrying the value of the model week it belongs to.}
+\caption{\textbf{Two representations of the river on the 2018 record.} Monthly shortfall of German industrial production (\%; the production-index measure, each sector's shortfall rate weighted by its German value added, sections B--D), August to December 2018, and its integral (percent-months, the plain sum of the months). The record is the dynamic counterfactual of the published specification (ref.~\citep{ademmer2023}; Table~2, column 1, of the working paper) on the low-water days of the daily gauge record, with the 16--84\,\% band of a Monte Carlo over its coefficients and, for comparison, the contemporaneous-only specification (column 3). The model rows are the capacity limit with the surcharge at four stock levels and the priced river with closures at three; runs of 22--28 September 2026 on the reference network, the industrial path unchanged by the later treatment of construction as a non-storable input. Each month of a model row is the mean of its days, every day carrying the value of the model week it belongs to.}
 \label{tab:representations}
 \begin{tabular}{lrrrrrr}
 \toprule
@@ -436,7 +436,7 @@ def channels_table(out: Path):
 
 
 def gate_table(out: Path):
-    """The gate at Kaub week by week in the reference run: load factor, tonnage cut, re-sent and withheld (the run's
+    """The gate at Kaub week by week in the reference run: loading share, tonnage cut, re-sent and withheld (the run's
     log; review OR1, the offered/accepted/withheld report)."""
     prof = pd.read_csv(HERE / "scenarios" / "2026.csv")
     curve = pd.read_csv(HERE / "scenarios" / "draught_table.csv")
@@ -461,14 +461,14 @@ def gate_table(out: Path):
         rows.append(f"{t} & {r.week_start} & {tex(r.status)} & {float(r.kaub_cm):.1f} & {lf(float(r.kaub_cm)):.2f} & {cut / 1e3:.0f} & {resent / 1e3:.0f} & {blocked / 1e3:.0f} \\\\")
     (out / "si_gate.tex").write_text(r"""\begingroup\footnotesize
 \begin{longtable}{rllrrrrr}
-\caption{\textbf{The gate week by week, 2026 reference run.} For each profile week: the status of the gauge, its weekly mean (cm), the load factor of the loading table, and the tonnage (kt) that the gates of the Rhine chain cut, re-sent on another route and withheld (returned to the supplier's stock), from the run's log. The cut tonnage is the offered load above capacity; the withheld tonnage is what found no acceptable route. The baseline flow at Kaub is 1,036 kt a week. """ + horizon + r"""}
+\caption{\textbf{The gate week by week, 2026 reference run.} For each profile week: the status of the gauge, its weekly mean (cm), the loading share of the loading curve, and the tonnage (kt) that the gates of the Rhine chain cut, re-sent on another route and withheld (returned to the supplier's stock), from the run's log. The cut tonnage is the offered load above capacity; the withheld tonnage is what found no acceptable route. The baseline flow at Kaub is 1,036 kt a week. """ + horizon + r"""}
 \label{tab:gate} \\
 \toprule
-week & start & status & Kaub & load factor & cut & re-sent & withheld \\
+week & start & status & Kaub & loading share & cut & re-sent & withheld \\
 \midrule
 \endfirsthead
 \toprule
-week & start & status & Kaub & load factor & cut & re-sent & withheld \\
+week & start & status & Kaub & loading share & cut & re-sent & withheld \\
 \midrule
 \endhead
 """ + "\n".join(rows) + r"""
@@ -479,7 +479,7 @@ week & start & status & Kaub & load factor & cut & re-sent & withheld \\
 
 
 def prospective_table(out: Path):
-    """The prospective test (review NS4, E3): the model's monthly industrial shortfall of 2026 on the reference draw
+    """The prospective test (review NS4, E3): the model's monthly industrial shortfall of 2026 on the reference network
     against the path the published specification implies for the same low-water days."""
     from matched_estimand_2018 import model_path
     from benchmark_ademmer import record, EVENT_MONTHS
@@ -487,13 +487,13 @@ def prospective_table(out: Path):
     d = model_path(RUNS / "2026_s07_base", 2026)
     t, s = record(2026, 1)
     ev = t[t.month.isin(EVENT_MONTHS[2026])]
-    rows = ["model, reference draw, index measure (river information of 30 September, issued 7 October) & " + " & ".join(f"{d[f'ind_{m}']:.1f}" for m in labs) + f" & {d['ind_integrated_pct_months']:.1f} \\\\",
-            "model, reference draw, production-weighted B--E (the measure of the earlier version) & " + " & ".join(f"{d[f'indprod_{m}']:.1f}" for m in labs) + f" & {d['indprod_integrated_pct_months']:.1f} \\\\"]
+    rows = ["model, reference network, index measure (river information of 30 September, issued 7 October) & " + " & ".join(f"{d[f'ind_{m}']:.1f}" for m in labs) + f" & {d['ind_integrated_pct_months']:.1f} \\\\",
+            "model, reference network, production-weighted B--E (the measure of the earlier version) & " + " & ".join(f"{d[f'indprod_{m}']:.1f}" for m in labs) + f" & {d['indprod_integrated_pct_months']:.1f} \\\\"]
     band = AD / "prospective_band_2026.csv"      # written by read_batch_20261006.py once the seed bases are repacked with firm data
     if band.exists():
         bd = pd.read_csv(band)
-        rows.append("model, range of the eleven draws & " + " & ".join(f"{a:.1f}--{b:.1f}" for a, b in zip(bd["min"], bd["max"])) + " & \\\\")
-    for run, lab in (("2026_s07_tablelow", "model, loading table with the shortfall $\\times$1.15"), ("2026_s07_tablehigh", "model, loading table with the shortfall $\\times$0.85")):
+        rows.append("model, range of the eleven networks & " + " & ".join(f"{a:.1f}--{b:.1f}" for a, b in zip(bd["min"], bd["max"])) + " & \\\\")
+    for run, lab in (("2026_s07_tablelow", "model, loading curve with the shortfall $\\times$1.15"), ("2026_s07_tablehigh", "model, loading curve with the shortfall $\\times$0.85")):
         if (RUNS / run / "firm_data.csv").exists():
             dd = model_path(RUNS / run, 2026)
             rows.append(f"{lab} & " + " & ".join(f"{dd[f'ind_{m}']:.1f}" for m in labs) + f" & {dd['ind_integrated_pct_months']:.1f} \\\\")
@@ -512,7 +512,7 @@ def prospective_table(out: Path):
 
 def prospective_sectors_table(out: Path):
     """Sectoral signatures of the 2026 forecast (review 8 Oct, G2/E3): monthly production shortfall of the German sectors on
-    the river and of the transport operators, reference draw, production-weighted within the sector."""
+    the river and of the transport operators, reference network, production-weighted within the sector."""
     from matched_estimand_2018 import monthly_from_weekly, FIRST
     run = RUNS / "2026_s07_base"
     fd = pd.read_csv(run / "firm_data.csv", usecols=["time_step", "firm", "region", "sector", "production"])
@@ -536,7 +536,7 @@ def prospective_sectors_table(out: Path):
         rows.append(f"{lab} & " + " & ".join(f"{mo[m]:.1f}" for m in months) + f" & {sum(mo.values()):.1f} \\\\")
     (out / "si_prospective_sectors.tex").write_text(r"""\begin{table}[tbp]
 \centering\small
-\caption{\textbf{Sectoral signatures of the 2026 forecast.} Monthly shortfall of production (\%, production-weighted within the sector; negative values are production above the no-event baseline) of the German sectors on the river and of the transport operators, reference draw, river information of 30 September, issued 7 October; the last column is the plain sum of the months (percent-months). Pre-specified for the prospective test of the main text: the production index gives the industrial rows by month, the turnover index of transport and storage the operators' rows.}
+\caption{\textbf{Sectoral signatures of the 2026 forecast.} Monthly shortfall of production (\%, production-weighted within the sector; negative values are production above the no-event baseline) of the German sectors on the river and of the transport operators, reference network, river information of 30 September, issued 7 October; the last column is the plain sum of the months (percent-months). Pre-specified for the prospective test of the main text: the production index gives the industrial rows by month, the turnover index of transport and storage the operators' rows.}
 \label{tab:prospective_sectors}
 \begin{tabular}{lrrrrrrr}
 \toprule
@@ -680,7 +680,7 @@ def revision_table(out: Path):
             f"reference run 2018 & {b18['DEU_%quarter']:.2f} & & {b18['DEU_peak_%week']:.2f} & {int(b18.DEU_peak_week)} & {b18.EU_cum_mUSD / 1e3:.1f} \\\\", r"\midrule"]
     (out / "si_revision.tex").write_text(r"""\begin{table}[tbp]
 \centering\small
-\caption{\textbf{The sensitivities of the revision.} German value-added loss as a share of a quarter, its change against the reference run of the same event, the peak week (share of a week's value added, run week) and the loss of the 28 economies (billion USD), for the sensitivities run after the review of 5 October 2026 on the rebuilt loading table (the review's points in brackets; \texttt{jobs\_20261007\_rev.txt}). The rail ceilings are 50 kt a week (the 400 wagons that the national rail freight operator could add at short notice in August 2026, at two rotations a week) and 140 kt (the rail response of past low waters, +0.07\,\% of rail tonnage per low-water day over a full low-water month).}
+\caption{\textbf{The sensitivities of the revision.} German value-added loss as a share of a quarter, its change against the reference run of the same event, the peak week (share of a week's value added, run week) and the loss of the 28 economies (billion USD), for the sensitivities run after the review of 5 October 2026 on the rebuilt loading curve (the review's points in brackets; \texttt{jobs\_20261007\_rev.txt}). The rail ceilings are 50 kt a week (the 400 wagons that the national rail freight operator could add at short notice in August 2026, at two rotations a week) and 140 kt (the rail response of past low waters, +0.07\,\% of rail tonnage per low-water day over a full low-water month).}
 \label{tab:revision}
 \begin{tabular}{lrrrrr}
 \toprule
