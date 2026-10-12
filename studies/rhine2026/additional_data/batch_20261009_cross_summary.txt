@@ -1,15 +1,15 @@
 Batch of 9 October 2026: levers x finite rail (OR2) and the gap experiment at 15 days (OR3)
 
 == 1. Loss avoided by each lever against its own base (% of the base's cumulated German loss) ==
-   bases: no rail 14,762 mUSD (1.545 % of a quarter), rail 50 kt 11,776 (1.233)
-   stocks +7 days     no rail  45.4 %   rail 50 kt  47.5 %   (loss under rail 50 kt 0.647 % of a quarter)
-   fairway +20 cm     no rail  38.1 %   rail 50 kt  42.3 %   (loss under rail 50 kt 0.711 % of a quarter)
-   low-water fleet    no rail  16.6 %   rail 50 kt  20.0 %   (loss under rail 50 kt 0.986 % of a quarter)
-   targeted stocks    no rail  22.1 %   rail 50 kt  27.8 %   (loss under rail 50 kt 0.890 % of a quarter)
+   bases: no rail 15,651 mUSD (1.638 % of a quarter), rail 50 kt 12,428 (1.301)
+   stocks +7 days     no rail  46.0 %   rail 50 kt  48.0 %   (loss under rail 50 kt 0.676 % of a quarter)
+   fairway +20 cm     no rail  38.6 %   rail 50 kt  43.0 %   (loss under rail 50 kt 0.742 % of a quarter)
+   low-water fleet    no rail  16.8 %   rail 50 kt  20.3 %   (loss under rail 50 kt 1.037 % of a quarter)
+   targeted stocks    no rail  22.4 %   rail 50 kt  28.3 %   (loss under rail 50 kt 0.933 % of a quarter)
    ordering without rail: stocks +7 days > fairway +20 cm > targeted stocks > low-water fleet
    ordering under 50 kt:  stocks +7 days > fairway +20 cm > targeted stocks > low-water fleet   (the same)
 
 == 2. The interaction of the two waves and its decay with the gap, at 30 and 15 days of refill time (% of a quarter) ==
-   30 days: A 0.536 + B 0.847 = 1.383; sequence gap 0: 1.545 (+12 %), gap 1: 1.501 (+9 %), gap 2: 1.463 (+6 %), gap 4: 1.415 (+2 %), gap 8: 1.344 (-3 %)
-   15 days: A 0.443 + B 0.657 = 1.100; sequence gap 0: 1.103 (+0 %), gap 2: 0.993 (-10 %), gap 4: 0.952 (-13 %)
-   interaction (sequence minus the sum), 30 vs 15 days: gap 0: +0.162 vs +0.003, gap 2: +0.080 vs -0.107, gap 4: +0.032 vs -0.148
+   30 days: A 0.556 + B 0.890 = 1.446; sequence gap 0: 1.638 (+13 %), gap 1: 1.587 (+10 %), gap 2: 1.545 (+7 %), gap 4: 1.492 (+3 %), gap 8: 1.413 (-2 %)
+   15 days: A 0.460 + B 0.687 = 1.147; sequence gap 0: 1.165 (+2 %), gap 2: 1.043 (-9 %), gap 4: 0.998 (-13 %)
+   interaction (sequence minus the sum), 30 vs 15 days: gap 0: +0.192 vs +0.018, gap 2: +0.099 vs -0.104, gap 4: +0.046 vs -0.149

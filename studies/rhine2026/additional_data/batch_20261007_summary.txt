@@ -63,32 +63,32 @@ A alone 0.536, B alone 0.847, sum 1.383 % of a quarter
   2018_s07_nopool      DEU 2.430 % of a quarter, peak 3.77 % wk 22
 
 == 2018 industrial path (matched estimand; record = the published dynamic specification, Aug-Dec 0.99, 1.00, 1.22, 1.55, 0.56 = 5.32 percent-months, 16-84 % band 3.59-7.11) ==
-  2018_s07_base      0.62 0.73 1.44 1.81 0.00  integral 4.61  peak Nov
-  2018_s07_tablelow  0.83 0.98 1.84 2.39 0.07  integral 6.11  peak Nov
-  2018_s07_tablehigh 0.42 0.54 1.07 1.33 -0.12  integral 3.23  peak Nov
-  2018_s07_sup2      0.13 0.04 0.46 0.48 -0.12  integral 0.99  peak Nov
-  2018_s07_seed1     0.31 0.31 0.75 0.99 0.05  integral 2.40  peak Nov
-  2018_s07_seed2     0.49 0.53 1.20 1.85 0.25  integral 4.32  peak Nov
-  2018_s07_seed3     0.09 -0.01 0.10 0.22 -0.21  integral 0.18  peak Nov
-  2018_s07_seed4     0.23 0.20 0.68 1.18 -0.04  integral 2.25  peak Nov
-  2018_s07_seed5     0.73 0.75 1.54 2.03 0.06  integral 5.12  peak Nov
-  2018_s07_seed6     0.62 0.69 1.42 1.70 -0.03  integral 4.40  peak Nov
-  2018_s07_seed7     0.39 0.41 0.98 1.52 0.23  integral 3.54  peak Nov
-  2018_s07_seed8     0.57 0.53 1.23 1.58 0.11  integral 4.02  peak Nov
-  2018_s07_seed9     0.19 0.05 0.17 0.23 -0.39  integral 0.25  peak Nov
-  2018_s07_seed10    0.40 0.48 1.41 2.52 0.17  integral 4.98  peak Nov
-  11 draws: integral 3.28 +/- 1.78 (range 0.18-5.12); peak month Nov x11; Aug 0.42, Sep 0.42 (record 0.99, 1.00)
+  2018_s07_base      0.51 0.64 1.24 1.56 -0.09  integral 3.86  peak Nov
+  2018_s07_tablelow  0.69 0.86 1.60 2.07 -0.04  integral 5.17  peak Nov
+  2018_s07_tablehigh 0.34 0.46 0.92 1.13 -0.19  integral 2.66  peak Nov
+  2018_s07_sup2      0.11 0.03 0.37 0.38 -0.12  integral 0.77  peak Nov
+  2018_s07_seed1     0.24 0.24 0.62 0.82 -0.01  integral 1.92  peak Nov
+  2018_s07_seed2     0.40 0.45 1.03 1.59 0.15  integral 3.62  peak Nov
+  2018_s07_seed3     0.06 -0.01 0.09 0.23 -0.18  integral 0.19  peak Nov
+  2018_s07_seed4     0.17 0.15 0.54 0.99 -0.10  integral 1.75  peak Nov
+  2018_s07_seed5     0.64 0.65 1.33 1.72 -0.07  integral 4.26  peak Nov
+  2018_s07_seed6     0.50 0.56 1.18 1.41 -0.17  integral 3.49  peak Nov
+  2018_s07_seed7     0.29 0.32 0.78 1.23 0.13  integral 2.74  peak Nov
+  2018_s07_seed8     0.50 0.46 1.09 1.37 0.01  integral 3.44  peak Nov
+  2018_s07_seed9     0.18 0.06 0.17 0.24 -0.37  integral 0.28  peak Nov
+  2018_s07_seed10    0.31 0.38 1.12 2.07 -0.00  integral 3.88  peak Nov
+  11 draws: integral 2.68 +/- 1.44 (range 0.19-4.26); peak month Nov x11; Aug 0.35, Sep 0.35 (record 0.99, 1.00)
 
 == 2026 base: German loss by sector and wave ==
-  shares %: H52 16.4, F 14.5, H49 14.3, D 13.7, C20 10.3, I 7.5, H50 7.0, C19 5.0, C23 3.3, A01 2.9
-  industry (B-E) 35 %; total 14,762 mUSD = 1.545 % of a quarter; industry 0.539 %
+  shares %: D 16.7, F 15.7, H49 13.7, H52 12.9, C20 10.0, H50 8.1, I 6.7, C19 4.5, C23 3.4, A01 3.1
+  industry (B-E) 37 %; total 15,651 mUSD = 1.638 % of a quarter; industry 0.610 %
   weeks 1-6: 0.117 % of a quarter
-  weeks 7-11 (August trough): 0.410 % of a quarter
-  weeks 12-19 (autumn trough): 0.923 % of a quarter
-  weeks 20-27: 0.094 % of a quarter
+  weeks 7-11 (August trough): 0.429 % of a quarter
+  weeks 12-19 (autumn trough): 0.990 % of a quarter
+  weeks 20-27: 0.101 % of a quarter
   tail 28+: 0.000 % of a quarter
-  weekly DEU mUSD wk 1-30: [0, 100, 75, 146, 286, 512, 668, 815, 889, 920, 624, 258, 519, 830, 1137, 1684, 1926, 1608, 860, 272, 306, 198, 93, 25, 6, 1, 1, 1, 1, 1]
-  countries mUSD: DEU 14,762, FRA 1,282, ESP 194, AUT 169, NLD 159, CZE 65, DNK 44; non-DE share of EU 13 %
+  weekly DEU mUSD wk 1-30: [0, 95, 71, 150, 293, 513, 693, 856, 934, 964, 653, 277, 549, 869, 1209, 1802, 2071, 1738, 944, 292, 325, 211, 102, 28, 6, 2, 1, 1, 1, 1]
+  countries mUSD: DEU 15,651, FRA 1,341, AUT 214, ESP 208, NLD 144, CZE 58, DNK 31; non-DE share of EU 12 %
   net 13,512 (92 % of gross), perishable 61 %, delay 351 mUSD, consumption loss 20,398
 
 == link-level run 2026_s07_full: delivered prices of the routed deliveries (value-weighted) ==

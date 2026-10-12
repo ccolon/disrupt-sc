@@ -3,73 +3,73 @@ Checks for the review of 8 October 2026 (review_checks_20261008.py)
 == 1. Levers on the ten further draws: loss avoided (% of the draw's base) ==
       stock7  deep20  fleet  stock7t  package
 seed                                         
-1       29.4    35.3   17.3     21.9     72.9
-2       42.1    40.7   18.3     22.4     81.3
-3       36.6    42.7   21.7     24.2     80.6
-4       42.7    41.6   19.4     22.2     84.3
-5       36.3    35.1   16.3     20.5     75.0
-6       39.5    36.9   16.5     20.8     78.4
-7       50.1    35.6   14.4     31.9     83.4
-8       39.7    31.3   13.5     31.0     75.0
-9       29.9    40.2   21.1     18.5     75.8
-10      51.7    33.6   13.1     29.3     82.8
-reference draw: stocks +1 week 45.4, fairway +20 cm 38.1, low-water fleet 16.6, targeted stocks 22.1, the three together 80.1
-stocks > fairway in 7 of 10 draws (reference: 45.4 vs 38.1)
+1       30.5    36.1   17.7     22.2     74.2
+2       42.6    41.1   18.5     22.8     81.7
+3       38.2    44.5   22.7     24.5     82.5
+4       43.3    42.9   20.1     22.5     85.0
+5       36.8    35.7   16.7     20.7     75.8
+6       39.8    37.2   16.6     21.1     78.7
+7       50.3    36.1   14.6     32.1     83.8
+8       39.5    31.9   13.8     30.7     75.3
+9       30.6    40.8   21.4     18.7     76.7
+10      52.3    34.3   13.4     29.6     83.2
+reference draw: stocks +1 week 46.0, fairway +20 cm 38.6, low-water fleet 16.8, targeted stocks 22.4, the three together 80.5
+stocks > fairway in 7 of 10 draws (reference: 46.0 vs 38.6)
 fleet last of the four single levers in 9 of 10 draws; fleet < targeted stocks in 9 of 10
 targeted stocks < general stocks in 10 of 10; targeted < fairway in 10 of 10
 package > every single lever in 10 of 10
 stocks or fairway first in 10 of 10 (first lever by draw: ['deep20', 'stock7', 'deep20', 'stock7', 'stock7', 'stock7', 'stock7', 'stock7', 'deep20', 'stock7'])
 == 2. Peak week: fleet against the base ==
-reference draw: base 2.62, fleet 2.45
-fleet peak above the base's in 6 of 10 draws; by draw: 1: 1.65->1.71, 2: 2.52->2.37, 3: 1.28->1.31, 4: 2.56->2.33, 5: 2.44->2.49, 6: 2.28->2.27, 7: 1.98->2.20, 8: 1.63->1.76, 9: 1.10->1.11, 10: 2.50->2.31
+reference draw: base 2.82, fleet 2.62
+fleet peak above the base's in 6 of 10 draws; by draw: 1: 1.72->1.78, 2: 2.70->2.50, 3: 1.37->1.40, 4: 2.70->2.42, 5: 2.58->2.63, 6: 2.38->2.38, 7: 2.10->2.32, 8: 1.74->1.87, 9: 1.17->1.19, 10: 2.64->2.41
 
 == 3. The industrial series under three aggregations (E1): production-weighted (the paper), firm shortfall weighted by the sector's value-added ratio, and sector shortfall rates weighted by sector value added (the production-index convention) ==
-  2018_s07_base production-weighted      08:  0.62  09:  0.73  10:  1.44  11:  1.81  12:  0.00   integral 4.61  peak week 16 (2.24 %)
-  2018_s07_base firm x va ratio          08:  0.48  09:  0.58  10:  1.15  11:  1.46  12: -0.07   integral 3.59  peak week 16 (1.83 %)
-  2018_s07_base sector rate x sector va  08:  0.64  09:  0.77  10:  1.48  11:  1.86  12: -0.17   integral 4.58  peak week 16 (2.36 %)
-  2026_s07_base production-weighted      07:  0.53  08:  2.47  09:  1.71  10:  2.74  11: -0.29  12: -1.55   integral 5.62  peak week 16 (3.70 %)
-  2026_s07_base firm x va ratio          07:  0.40  08:  2.04  09:  1.36  10:  2.22  11: -0.46  12: -1.46   integral 4.10  peak week 16 (3.06 %)
-  2026_s07_base sector rate x sector va  07:  0.55  08:  2.66  09:  1.72  10:  2.85  11: -0.63  12: -1.90   integral 5.25  peak week 16 (3.91 %)
-German industrial sectors: weight in the production-weighted and in the value-added-weighted series (%)
+  2018_s07_base production-weighted B-E  08:  0.62  09:  0.73  10:  1.44  11:  1.81  12:  0.00   integral 4.61  peak week 16 (2.24 %)
+  2018_s07_base German VA weights B-E    08:  0.49  09:  0.60  10:  1.17  11:  1.47  12: -0.13   integral 3.60  peak week 16 (1.86 %)
+  2018_s07_base German VA weights B-D    08:  0.51  09:  0.64  10:  1.24  11:  1.56  12: -0.09   integral 3.86  peak week 16 (1.97 %)
+  2026_s07_base production-weighted B-E  07:  0.53  08:  2.47  09:  1.71  10:  2.74  11: -0.29  12: -1.55   integral 5.62  peak week 16 (3.70 %)
+  2026_s07_base German VA weights B-E    07:  0.41  08:  2.11  09:  1.35  10:  2.22  11: -0.55  12: -1.54   integral 4.01  peak week 16 (3.08 %)
+  2026_s07_base German VA weights B-D    07:  0.43  08:  2.21  09:  1.44  10:  2.38  11: -0.49  12: -1.52   integral 4.46  peak week 16 (3.27 %)
+German industrial sectors: weight in the production-weighted and in the German-value-added-weighted series (%)
           production_share_%  va_share_%  ratio
 sector                                         
-C29                    18.49        8.45   0.46
-C28                    11.14        8.46   0.76
-C10T12                  8.93        8.70   0.97
-D                       7.70       10.40   1.35
-C20                     6.87        6.24   0.91
-C25                     6.00        7.00   1.17
-C27                     4.87        3.71   0.76
-C31T33                  4.41        6.66   1.51
-C26                     3.95        4.89   1.24
-C19                     3.93        2.54   0.65
-C22                     3.58        3.46   0.97
-E                       3.40        4.33   1.27
-C24A                    3.07        2.02   0.66
-C17_18                  2.41        2.72   1.13
-C21                     2.34        8.41   3.59
-C24B                    2.19        0.97   0.44
-C23                     2.15        2.75   1.28
-C302T309                1.68        1.76   1.05
-C16                     1.28        1.86   1.45
-C13T15                  0.86        2.38   2.78
-B08                     0.32        0.63   1.96
-C301                    0.28        0.36   1.26
-B09                     0.06        0.16   2.71
-B06                     0.04        0.84  23.64
-B05                     0.04        0.30   8.19
+C29                    18.49       18.63   1.01
+C28                    11.14       12.75   1.14
+C10T12                  8.93        6.01   0.67
+D                       7.70        8.23   1.07
+C20                     6.87        5.75   0.84
+C25                     6.00        6.72   1.12
+C27                     4.87        5.40   1.11
+C31T33                  4.41        5.72   1.30
+C26                     3.95        5.65   1.43
+C19                     3.93        1.68   0.43
+C22                     3.58        3.71   1.04
+E                       3.40        4.51   1.33
+C24A                    3.07        1.75   0.57
+C17_18                  2.41        2.09   0.87
+C21                     2.34        3.29   1.40
+C24B                    2.19        1.00   0.45
+C23                     2.15        2.36   1.09
+C302T309                1.68        1.79   1.06
+C16                     1.28        1.21   0.94
+C13T15                  0.86        0.90   1.05
+B08                     0.32        0.43   1.34
+C301                    0.28        0.18   0.62
+B09                     0.06        0.10   1.80
+B06                     0.04        0.04   1.17
+B05                     0.04        0.10   2.64
 
 == 4. Sector groups of the coping-duration and fuel-criticality runs (E3): German gross loss by group, % of the run's loss ==
-  2026_s07_base      total    14762 mUSD: A  3.3  B-E 34.9 (D+E 13.7)  F 14.5  G-T 47.4   total/industry 2.87
-      largest sectors: H52 16.4, F 14.5, H49 14.3, D 13.7, C20 10.3, I 7.5
-  2026_rev_serv45    total    20016 mUSD: A  2.9  B-E 32.2 (D+E 11.0)  F 13.1  G-T 51.8   total/industry 3.11
-      largest sectors: F 13.1, H52 12.8, H49 11.9, D 10.3, G 8.8, C20 7.6
-  2026_rev_dfuel0    total    12746 mUSD: A  3.7  B-E 25.4 (D+E  1.0)  F 16.4  G-T 54.4   total/industry 3.93
-      largest sectors: H52 18.9, F 16.4, H49 16.3, C20 11.9, I 8.5, H50 8.1
-  2026_rev_rail50    total    11776 mUSD: A  3.2  B-E 35.7 (D+E 14.4)  F 11.0  G-T 50.2   total/industry 2.80
-      largest sectors: H52 18.3, H49 15.0, D 14.4, C20 11.2, F 11.0, H50 7.7
-  2026_rev_rail140   total     7168 mUSD: A  3.3  B-E 37.6 (D+E 16.6)  F  0.8  G-T 58.2   total/industry 2.66
-      largest sectors: H52 23.2, H49 17.2, D 16.6, C20 12.2, H50 9.1, I 6.0
+  2026_s07_base      total    15651 mUSD: A  3.5  B-E 37.2 (D+E 16.8)  F 15.7  G-T 43.6   total/industry 2.69
+      largest sectors: D 16.7, F 15.7, H49 13.7, H52 12.9, C20 10.0, H50 8.1
+  2026_rev_serv45    total    21070 mUSD: A  3.1  B-E 34.3 (D+E 13.5)  F 14.3  G-T 48.2   total/industry 2.91
+      largest sectors: F 14.3, D 12.7, H49 11.6, H52 10.1, G 8.5, C20 7.4
+  2026_rev_dfuel0    total    13063 mUSD: A  4.1  B-E 25.7 (D+E  1.3)  F 18.4  G-T 51.8   total/industry 3.89
+      largest sectors: F 18.4, H49 16.3, H52 15.4, C20 11.9, H50 9.5, I 7.9
+  2026_rev_rail50    total    12428 mUSD: A  3.4  B-E 38.3 (D+E 17.7)  F 11.9  G-T 46.3   total/industry 2.61
+      largest sectors: D 17.7, H52 14.5, H49 14.5, F 11.9, C20 10.9, H50 8.8
+  2026_rev_rail140   total     7469 mUSD: A  3.6  B-E 41.2 (D+E 20.6)  F  0.9  G-T 54.2   total/industry 2.43
+      largest sectors: D 20.6, H52 18.6, H49 16.8, C20 12.1, H50 10.6, I 5.4
 
 == 5. The gate ledger by horizon (OR4): cut / re-sent / withheld (kt) ==
   profile weeks 1-23     weeks 23: cut    13404  re-sent    1830  withheld    11574  re-sent share 13.7 %
@@ -79,6 +79,6 @@ B05                     0.04        0.30   8.19
   profile weeks: min 11 %, max 24 %; trough weeks (LF < 0.3): 7: 12, 8: 12, 9: 12, 14: 11, 15: 12, 16: 12
 
 == 6. The forecast by vintage (G1) ==
-  2026_s30_base    30 Sep profile, loading table v1, batch of 30 Sep: DEU 1.74 % of a quarter, peak 2.84 % in week 17, EU 18.9 bn
-  2026_s07_base    30 Sep profile, rebuilt loading table, batch of 7 Oct: DEU 1.54 % of a quarter, peak 2.62 % in week 17, EU 16.9 bn
+  2026_s30_base    30 Sep profile, loading table v1, batch of 30 Sep: DEU 1.85 % of a quarter, peak 3.06 % in week 17, EU 20.0 bn
+  2026_s07_base    30 Sep profile, rebuilt loading table, batch of 7 Oct: DEU 1.64 % of a quarter, peak 2.82 % in week 17, EU 17.9 bn
   compare_runs_batch_20260929_gs1paper.csv: rows ['2026_gs1_base', '2026_gs1_nopool', '2018_gs1_nopool', '2026_gs1_seed1', '2026_gs1_seed2', '2026_gs1_seed3', '2026_gs1_seed4', '2026_gs1_seed5', '2026_gs1_seed6', '2026_gs1_seed7', '2026_gs1_seed8', '2026_gs1_seed9']
