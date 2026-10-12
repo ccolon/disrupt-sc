@@ -12,6 +12,7 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from print_style import finish  # noqa: E402  text at print size (13 Oct 2026)
 import numpy as np
 import pandas as pd
 
@@ -51,7 +52,7 @@ def main(run: Path, out: Path):
         else:
             net[sec] = gross[sec]
     top = gross.head(10)
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4.0), gridspec_kw={"width_ratios": [1.5, 1]})
+    fig, axes = plt.subplots(1, 2, figsize=(7.0, 3.4), gridspec_kw={"width_ratios": [1.5, 1]})
     fig.patch.set_facecolor("white")
     for ax in axes:
         for s in ("top", "right"):
@@ -64,15 +65,15 @@ def main(run: Path, out: Path):
     GROUP = {"A": "agriculture", "F": "construction"}
     def group(s: str) -> str:
         c = s[:1]
-        return GROUP.get(c, "industry B–E" if c in "BCDE" else "services G–T")
+        return GROUP.get(c, "industry" if c in "BCDE" else "services")
     ax.barh(ys, top.values / 1e3, color=[ORANGE if s[:1] in DEFERRABLE else BLUE for s in top.index], height=0.6, label=None)
     ax.scatter([net[s] / 1e3 for s in top.index], ys, color=INK, s=16, zorder=3, label="net of the backlog worked off")
     for y, (s, v) in zip(ys, top.items()):
         ax.text(v / 1e3 + 0.05, y, f"{100 * v / gross.sum():.0f} %", va="center", fontsize=7.5, color=INK)
-    ax.set_yticks(ys); ax.set_yticklabels([f"{NAMES.get(s, s)}  ({group(s)})" for s in top.index], fontsize=8)
-    ax.set_xlabel("German value-added loss, billion USD (bars: gross; orange: can catch up by the accounting convention, blue: cannot)", color=MUTED, fontsize=7.5)
-    ax.legend(frameon=False, fontsize=7.5, loc="lower right")
-    ax.set_title("b  By sector, cumulated over the event (NACE group in brackets)", loc="left", fontsize=9.5, color=INK)
+    ax.set_yticks(ys); ax.set_yticklabels([f"{NAMES.get(s, s)} ({group(s)})" for s in top.index], fontsize=7.5)
+    ax.set_xlabel("German loss, billion USD (bars: gross; orange: can catch up, blue: cannot)", color=MUTED, fontsize=7.5)
+    ax.legend(frameon=False, fontsize=7, loc="lower right")
+    ax.set_title("b  German loss by sector, whole event", loc="left", fontsize=9.5, color=INK)
     ax = axes[1]
     cty = fd.groupby("region").gross.sum().sort_values(ascending=False).head(8)
     ys = np.arange(len(cty))[::-1]
@@ -81,8 +82,9 @@ def main(run: Path, out: Path):
         ax.text(v / 1e3 * 1.25, y, f"{v / 1e3:.2f}" if v < 100 else f"{v / 1e3:.1f}", va="center", fontsize=7.5, color=INK)
     ax.set_yticks(ys); ax.set_yticklabels(list(cty.index), fontsize=8)
     ax.set_xscale("log"); ax.set_xlim(0.02, cty.max() / 1e3 * 3)
-    ax.set_xlabel("value-added loss, billion USD (points, log scale)", color=MUTED, fontsize=8)
+    ax.set_xlabel("billion USD (log scale)", color=MUTED, fontsize=7.5)
     ax.set_title("c  By country", loc="left", fontsize=9.5, color=INK)
+    finish(fig)
     fig.tight_layout(w_pad=2.0)
     out.mkdir(parents=True, exist_ok=True)
     for ext in ("png", "pdf"):

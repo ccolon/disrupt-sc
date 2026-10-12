@@ -24,6 +24,7 @@ import geopandas as gpd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from print_style import finish  # noqa: E402  text at print size (13 Oct 2026)
 from matplotlib.colors import ListedColormap
 import numpy as np
 import pandas as pd
@@ -156,6 +157,7 @@ def fig_shock(profile: str, closure_threshold: float, out: Path, closure_floors:
         ax.set_ylim(-0.7, len(cts) - 0.3)
         style(ax, "Closed for the cargo class (gauge at or below its sailing floor)", "")
     ax.set_xlabel("week", fontsize=8, color=INK2)
+    finish(fig)
     fig.tight_layout()
     for ext in ("png", "pdf"):
         fig.savefig(out / f"F4_shock_{profile}.{ext}", dpi=300, facecolor=SURFACE)
@@ -200,6 +202,7 @@ def fig_loss_map(run: Path, out: Path):
     ax.set_xlim(2.4e6, 6.3e6); ax.set_ylim(1.3e6, 5.4e6); ax.set_axis_off()
     ax.set_title(f"Production loss by NUTS2 region in the worst week (t = {peak}); Rhine chain in orange",
                  loc="left", fontsize=10, color=INK)
+    finish(fig)
     fig.tight_layout()
     for ext in ("png", "pdf"):
         fig.savefig(out / f"F5_loss_map.{ext}", dpi=300, facecolor=SURFACE)
@@ -224,6 +227,7 @@ def fig_loss_by_country(run: Path, out: Path, profile: str = "2026"):
     first_week = pd.Timestamp(pd.read_csv(HERE / "scenarios" / f"{profile}.csv")["week_start"].iloc[0])
     ax.set_xlabel(f"week of the run (1 = {first_week.day} {first_week.strftime('%B %Y')})", fontsize=8, color=INK2)
     ax.legend(frameon=False, fontsize=8, labelcolor=INK2, ncol=3, loc="upper left")
+    finish(fig)
     fig.tight_layout()
     for ext in ("png", "pdf"):
         fig.savefig(out / f"F6_loss_by_country.{ext}", dpi=300, facecolor=SURFACE)

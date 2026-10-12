@@ -17,6 +17,7 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from print_style import finish  # noqa: E402  text at print size (13 Oct 2026)
 import numpy as np
 import pandas as pd
 
@@ -24,9 +25,9 @@ HERE = Path(__file__).resolve().parents[1]
 AD = HERE / "additional_data"
 INK, MUTED, GRID = "#1f2328", "#6e7781", "#e6e8eb"
 BLUE, ORANGE, GREEN, PINK, TEAL = "#2f6fdb", "#e0842a", "#3a9a5b", "#d1519a", "#2aa7a0"
-LEVERS = [("package", "Package: fairway + fleet + stocks"), ("stock7", "+7 days of input stocks, all buyers"),
-          ("deep20", "Fairway +20 cm (Abladeoptimierung Mittelrhein)"), ("stock7t", "+7 days of stocks, barge-dependent buyers"),
-          ("fleet", "Low-water fleet (loading table of low-water vessels)")]
+LEVERS = [("package", "all three together"), ("stock7", "stocks +7 days, all buyers"),
+          ("deep20", "fairway +20 cm"), ("stock7t", "stocks +7 days, barge-dependent buyers"),
+          ("fleet", "low-water fleet")]
 COLORS = {"package": ORANGE, "stock7": TEAL, "deep20": GREEN, "stock7t": PINK, "fleet": BLUE}
 
 
@@ -57,11 +58,11 @@ def main(out: Path):
     m = table(AD / "compare_runs_batch_jobs_20261007_main.csv")
     p = table(AD / "compare_runs_batch_jobs_20261007_paired.csv")
     w = weekly_block(AD / "compare_runs_batch_jobs_20261007_main.txt")
-    fig = plt.figure(figsize=(11, 7.4))
+    fig = plt.figure(figsize=(7.0, 5.0))
     gs = fig.add_gridspec(2, 2, height_ratios=[1, 0.95], width_ratios=[1, 1])
     fig.patch.set_facecolor("white")
     rng = np.random.default_rng(1)
-    for col, (region, key) in enumerate((("Germany", "DEU_cum_mUSD"), ("28 economies (EU-27 and Switzerland)", "EU_cum_mUSD"))):
+    for col, (region, key) in enumerate((("Germany", "DEU_cum_mUSD"), ("28 economies", "EU_cum_mUSD"))):
         ax = fig.add_subplot(gs[0, col]); style(ax); ax.grid(axis="x", color=GRID, linewidth=0.6)
         base = m.loc["2026_s07_base", key]
         ys = np.arange(len(LEVERS))[::-1]
@@ -70,10 +71,10 @@ def main(out: Path):
             ax.barh(y, ref, color=COLORS[lv], alpha=0.85, height=0.55)
             paired = [100 * (1 - p.loc[f"2026_s07_seed{s}_{lv}", key] / p.loc[f"2026_s07_seed{s}_base", key]) for s in range(1, 11)]
             ax.scatter(paired, y + rng.uniform(-0.16, 0.16, 10), color=INK, s=13, zorder=3, alpha=0.75)
-            ax.text(max(ref, max(paired)) + 1.5, y, f"{ref:.0f} % (draws {min(paired):.0f}–{max(paired):.0f})", va="center", fontsize=7.5, color=INK)
+            ax.text(max(ref, max(paired)) + 1.5, y, f"{ref:.0f} % ({min(paired):.0f}–{max(paired):.0f})", va="center", fontsize=7.5, color=INK)
         ax.set_yticks(ys); ax.set_yticklabels([lab for _, lab in LEVERS] if col == 0 else [""] * len(LEVERS), fontsize=8)
-        ax.set_xlim(0, 105); ax.set_xlabel(f"{region}: value-added loss avoided, % of the base", color=MUTED, fontsize=8)
-        ax.set_title(("a  " if col == 0 else "b  ") + f"{region}: reference draw (bars) and ten paired draws (dots)", loc="left", fontsize=8.8, color=INK)
+        ax.set_xlim(0, 105); ax.set_xlabel("loss avoided (% of the base)", color=MUTED, fontsize=8)
+        ax.set_title("a  Germany" if col == 0 else "b  28 economies (EU-27 and Switzerland)", loc="left", fontsize=9, color=INK)
     ax = fig.add_subplot(gs[1, :]); style(ax); ax.grid(axis="y", color=GRID, linewidth=0.6)
     q = m.loc["2026_s07_base", "DEU_cum_mUSD"] / m.loc["2026_s07_base", "DEU_%quarter"] / 13.0
     first = pd.Timestamp("2026-06-22")
@@ -83,9 +84,10 @@ def main(out: Path):
         ax.plot(dates, w[f"2026_s07_{lv}"].reindex(weeks).fillna(0) / q, color=COLORS[lv], linewidth=1.5, label=lab)
     import matplotlib.dates as mdates
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%d %b"))
-    ax.set_ylabel("German value-added loss, % of a week", color=MUTED, fontsize=8)
-    ax.legend(frameon=False, fontsize=7.5, loc="upper left", ncol=2)
-    ax.set_title("c  Weekly German loss under each lever, reference draw", loc="left", fontsize=8.8, color=INK)
+    ax.set_ylabel("German loss (% of a week)", color=MUTED, fontsize=8)
+    ax.legend(frameon=False, fontsize=7, loc="upper left", ncol=2)
+    ax.set_title("c  Weekly German loss under each lever (reference network)", loc="left", fontsize=8.8, color=INK)
+    finish(fig)
     fig.tight_layout(h_pad=1.5)
     out.mkdir(parents=True, exist_ok=True)
     for ext in ("png", "pdf"):

@@ -18,6 +18,7 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from print_style import finish  # noqa: E402  text at print size (13 Oct 2026)
 import pandas as pd
 
 HERE = Path(__file__).resolve().parents[1]
@@ -68,27 +69,27 @@ def main(out: Path):
     season = base.reindex(weeks).fillna(0.0)
     dates = [FIRST + pd.Timedelta(weeks=i - 1) for i in weeks]
 
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4.2), gridspec_kw={"width_ratios": [1.45, 1]})
+    fig, axes = plt.subplots(1, 2, figsize=(7.0, 3.1), gridspec_kw={"width_ratios": [1.45, 1]})
     fig.patch.set_facecolor("white")
 
     ax = axes[0]; style(ax)
     total = (a + b_shift) / wk
     # signed interaction (6 Oct 2026, review G3): orange where the sequence costs more than the sum, blue where less
     ax.fill_between(dates, total, season / wk, where=(season / wk) >= total, color=ORANGE, alpha=0.22, linewidth=0,
-                    label="interaction: the sequence costs more than the sum")
+                    label="sequence costs more than the sum")
     ax.fill_between(dates, total, season / wk, where=(season / wk) < total, color=BLUE, alpha=0.22, linewidth=0,
-                    label="the sequence costs less than the sum")
-    ax.plot(dates, season / wk, color=INK, linewidth=2.2, label="the 2026 season (A then B)")
+                    label="sequence costs less")
+    ax.plot(dates, season / wk, color=INK, linewidth=2.2, label="2026 season (A then B)")
     ax.plot(dates, total, color=MUTED, linewidth=1.3, linestyle="--", label="A alone + B alone")
-    ax.plot(dates, a / wk, color=BLUE, linewidth=1.5, label="first wave alone (22 June – 30 August)")
-    ax.plot(dates, b_shift / wk, color=GREEN, linewidth=1.5, label="second wave alone (from 31 August)")
+    ax.plot(dates, a / wk, color=BLUE, linewidth=1.5, label="first wave alone (A, to 30 Aug)")
+    ax.plot(dates, b_shift / wk, color=GREEN, linewidth=1.5, label="second wave alone (B, from 31 Aug)")
     ax.axvline(FIRST + pd.Timedelta(weeks=SPLIT), color=MUTED, linewidth=0.8, linestyle=":")
-    ax.set_ylabel("German value-added loss, % of a week", color=MUTED, fontsize=8)
+    ax.set_ylabel("German loss (% of a week)", color=MUTED, fontsize=8)
     ax.set_ylim(0, 3.2)
     import matplotlib.dates as mdates
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%d %b"))
     ax.set_xlim(FIRST - pd.Timedelta(weeks=1), FIRST + pd.Timedelta(weeks=28))
-    ax.legend(frameon=False, fontsize=7.5, loc="upper left")
+    ax.legend(frameon=False, fontsize=7, loc="upper left")
     ax.set_title("a  Two troughs, alone and in sequence", loc="left", fontsize=9.5, color=INK)
 
     ax = axes[1]; style(ax)
@@ -96,7 +97,7 @@ def main(out: Path):
     L = [b0["DEU_%quarter"]] + [t.loc[f"wave07_AB_gap{g}", "DEU_%quarter"] for g in gaps[1:]]      # the run table's column, as Table S-runs prints it
     s = t.loc["wave07_A", "DEU_%quarter"] + t.loc["wave07_B", "DEU_%quarter"]
     ax.axhline(s, color=MUTED, linewidth=1.3, linestyle="--")
-    ax.text(8.0, s + 0.02, f"A alone + B alone: {s:.2f}", color=MUTED, fontsize=7.5, ha="right", va="bottom")
+    ax.text(0.1, s + 0.012, f"A + B alone: {s:.2f}", color=MUTED, fontsize=7.5, ha="left", va="bottom")
     ax.plot(gaps, L, color=INK, linewidth=1.8, marker="o", markersize=5)
     for g, v in zip(gaps, L):
         ax.annotate(f"{v:.2f}", (g, v), textcoords="offset points", xytext=(6, 5), fontsize=7.5, color=INK)
@@ -107,20 +108,21 @@ def main(out: Path):
         L15 = [r.loc["2026_rev_rest15", "DEU_%quarter"], c.loc["wave09_AB_gap2_rest15", "DEU_%quarter"], c.loc["wave09_AB_gap4_rest15", "DEU_%quarter"]]
         TEAL = "#1f9e9e"
         ax.axhline(s15, color=TEAL, linewidth=1.1, linestyle="--", alpha=0.8)
-        ax.text(8.0, s15 + 0.012, f"A alone + B alone, refill time 15 days: {s15:.2f}", color=TEAL, fontsize=7.5, ha="right", va="bottom")
+        ax.text(8.0, s15 + 0.012, f"A + B alone, 15-day refill: {s15:.2f}", color=TEAL, fontsize=7.5, ha="right", va="bottom")
         ax.plot([0, 2, 4], L15, color=TEAL, linewidth=1.6, marker="o", markersize=4.5)
         for g, v in zip([0, 2, 4], L15):
-            ax.annotate(f"{v:.2f}", (g, v), textcoords="offset points", xytext=(6, -12), fontsize=7.5, color=TEAL)
-        ax.text(4.35, L15[-1] + 0.02, "refill time 15 days", color=TEAL, fontsize=7.5, ha="left", va="bottom")
+            ax.annotate(f"{v:.2f}", (g, v), textcoords="offset points", xytext=(6, -14), fontsize=7, color=TEAL)
+        ax.text(4.35, L15[-1] + 0.02, "15-day refill time", color=TEAL, fontsize=7.5, ha="left", va="bottom")
     f = t.loc["wave07_flat", "DEU_%quarter"]
     ax.axhline(f, color=GREEN, linewidth=1.0, linestyle=":")
-    ax.text(8.0, f + 0.012, f"flat profile, same cumulated capacity shortfall: {f:.2f}", color=GREEN, fontsize=7.5, ha="right", va="bottom")
+    ax.text(8.0, f + 0.012, f"flat profile, same capacity shortfall: {f:.2f}", color=GREEN, fontsize=7.5, ha="right", va="bottom")
     ax.set_xticks(gaps)
     ax.set_xlabel("weeks of normal water between the two troughs", color=MUTED, fontsize=8)
-    ax.set_ylabel("German loss, % of a quarter", color=MUTED, fontsize=8)
+    ax.set_ylabel("German loss (% of a quarter)", color=MUTED, fontsize=8)
     ax.set_ylim(0.88, 1.85)
-    ax.set_title("b  The interaction fades within a month and depends on the refill time", loc="left", fontsize=9.5, color=INK)
+    ax.set_title("b  The interaction, by gap and refill time", loc="left", fontsize=9.5, color=INK)
 
+    finish(fig)
     fig.tight_layout(w_pad=2.0)
     out.mkdir(parents=True, exist_ok=True)
     for ext in ("png", "pdf"):

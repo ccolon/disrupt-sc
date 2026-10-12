@@ -22,6 +22,7 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from print_style import finish  # noqa: E402  text at print size (13 Oct 2026)
 import numpy as np
 import pandas as pd
 
@@ -55,7 +56,7 @@ def main(out: Path):
     rv = AD / "compare_runs_batch_jobs_20261007_rev.csv"
     r = table(rv) if rv.exists() else pd.DataFrame()
     q = "DEU_%quarter"
-    fig, axes = plt.subplots(1, 2, figsize=(13, 4.8), gridspec_kw={"width_ratios": [1.75, 1]})
+    fig, axes = plt.subplots(1, 2, figsize=(7.0, 3.4), gridspec_kw={"width_ratios": [1.75, 1]})
     fig.patch.set_facecolor("white")
     rng = np.random.default_rng(2)
     for ax, year in zip(axes, ("2026", "2018")):
@@ -63,17 +64,17 @@ def main(out: Path):
         base = m.loc[f"{year}_s07_base", q]
         draws = ([p.loc[f"2026_s07_seed{s}_base", q] for s in range(1, 11)] if year == "2026"
                  else [m.loc[f"2018_s07_seed{s}", q] for s in range(1, 11)])
-        groups = [("supply-chain\ndraws (11)", draws + [base], BLUE),
-                  ("loading table\n(shortfall\n×1.15, ×0.85)", [m.loc[f"{year}_s07_tablelow", q], m.loc[f"{year}_s07_tablehigh", q]], GREEN),
-                  ("two suppliers\nper input", [m.loc[f"{year}_s07_sup2", q]], PINK),
+        groups = [("network\ndraws (11)", draws + [base], BLUE),
+                  ("loading curve\n(±15 %)", [m.loc[f"{year}_s07_tablelow", q], m.loc[f"{year}_s07_tablehigh", q]], GREEN),
+                  ("two\nsuppliers", [m.loc[f"{year}_s07_sup2", q]], PINK),
                   ("no input\npooling", [m.loc[f"{year}_s07_nopool", q]], ORANGE)]
         if year == "2026":
-            groups.append(("one channel:\nconstraint only,\nsurcharge only", [m.loc["2026_s07_gateonly", q], m.loc["2026_s07_surchargeonly", q]], MUTED))
+            groups.append(("one channel\nonly", [m.loc["2026_s07_gateonly", q], m.loc["2026_s07_surchargeonly", q]], MUTED))
         if len(r) and f"{year}_rev_rail50" in r.index:
-            groups.append(("substitution\nby rail\n(50, 140 kt a week)", [r.loc[f"{year}_rev_rail50", q], r.loc[f"{year}_rev_rail140", q]], PURPLE))
+            groups.append(("rail\n50, 140 kt", [r.loc[f"{year}_rev_rail50", q], r.loc[f"{year}_rev_rail140", q]], PURPLE))
         if year == "2026" and len(r) and "2026_rev_rest15" in r.index:
-            groups.append(("refill time of\na stock gap\n(15, 60 days)", [r.loc["2026_rev_rest15", q], r.loc["2026_rev_rest60", q]], TEAL))
-            groups.append(("service propagation:\ncoping 45 days,\nfuel oil non-critical", [r.loc["2026_rev_serv45", q], r.loc["2026_rev_dfuel0", q]], GOLD))
+            groups.append(("refill time\n15, 60 d", [r.loc["2026_rev_rest15", q], r.loc["2026_rev_rest60", q]], TEAL))
+            groups.append(("service\nrules", [r.loc["2026_rev_serv45", q], r.loc["2026_rev_dfuel0", q]], GOLD))
         ax.axhline(base, color=INK, linewidth=1.2, linestyle="--")
         ax.text(-0.45, base + 0.04, f"reference {base:.2f}", color=INK, fontsize=7.5, ha="left", va="bottom")
         top = max(max(v) for lab, v, _ in groups if not lab.startswith("no input")) * 1.22
@@ -89,11 +90,12 @@ def main(out: Path):
                     ax.annotate(f"{v:.2f}", (x, v), textcoords="offset points", xytext=(8, -3), fontsize=7.5, color=INK)
             else:
                 ax.text(x + 0.2, float(np.mean(vals)), f"{np.mean(vals):.2f} ± {np.std(vals, ddof=1):.2f}", fontsize=7.5, color=INK, va="center")
-        ax.set_xticks(range(len(groups))); ax.set_xticklabels([g[0] for g in groups], fontsize=7.2)
+        ax.set_xticks(range(len(groups))); ax.set_xticklabels([g[0] for g in groups], fontsize=7)
         ax.set_xlim(-0.5, len(groups) - 0.4)
         ax.set_ylim(0, top)
-        ax.set_ylabel("German value-added loss, % of a quarter", color=MUTED, fontsize=8)
-        ax.set_title(("a  " if year == "2026" else "b  ") + f"{year}: sampling, structural and specification uncertainties, and the rules", loc="left", fontsize=9, color=INK)
+        ax.set_ylabel("German loss (% of a quarter)", color=MUTED, fontsize=8)
+        ax.set_title(("a  " if year == "2026" else "b  ") + (f"{year}: sources of uncertainty" if year == "2026" else f"{year}"), loc="left", fontsize=9, color=INK)
+    finish(fig)
     fig.tight_layout(w_pad=2.0)
     out.mkdir(parents=True, exist_ok=True)
     for ext in ("png", "pdf"):

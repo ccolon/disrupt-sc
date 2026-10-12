@@ -16,6 +16,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
+from print_style import finish  # noqa: E402  text at print size (13 Oct 2026)
 import pandas as pd
 
 HERE = Path(__file__).resolve().parents[1]
@@ -51,7 +52,7 @@ def main(out: Path):
     dates = [first + pd.Timedelta(weeks=i - 1) for i in weeks]
     ref = wm["2026_s07_base"].reindex(weeks).fillna(0) / q_week
     band = pd.DataFrame({s: wp[f"2026_s07_seed{s}_base"].reindex(weeks).fillna(0) / q_week for s in range(1, 11)})
-    fig, ax = plt.subplots(figsize=(11, 3.6))
+    fig, ax = plt.subplots(figsize=(7.0, 2.7))
     fig.patch.set_facecolor("white")
     for s in ("top", "right"):
         ax.spines[s].set_visible(False)
@@ -63,9 +64,9 @@ def main(out: Path):
             col, lab = SHADE[st]
             ax.axvspan(w - pd.Timedelta(days=3.5), w + pd.Timedelta(days=3.5), color=col, alpha=0.35, linewidth=0, label=lab if lab not in seen else None)
             seen.add(lab)
-    ax.fill_between(dates, band.min(axis=1), band.max(axis=1), color=BLUE, alpha=0.15, linewidth=0, label="ten further draws (range)")
+    ax.fill_between(dates, band.min(axis=1), band.max(axis=1), color=BLUE, alpha=0.15, linewidth=0, label="ten further networks (range)")
     ax.fill_between(dates, band.quantile(0.25, axis=1), band.quantile(0.75, axis=1), color=BLUE, alpha=0.3, linewidth=0, label="interquartile range")
-    ax.plot(dates, ref, color=INK, linewidth=2.2, label="reference draw")
+    ax.plot(dates, ref, color=INK, linewidth=2.2, label="reference network")
     ax.axvline(first + pd.Timedelta(weeks=10), color=MUTED, linewidth=0.8, linestyle=":")
     # the last fully observed week of the profile (6 Oct 2026, review G3)
     obs = prof[prof.status.astype(str) == "observed"]
@@ -76,12 +77,13 @@ def main(out: Path):
     pk1, pk2 = ref.loc[1:10].idxmax(), ref.loc[11:].idxmax()
     ax.text(dates[pk1], ref[pk1] + 0.12, "August trough", color=MUTED, fontsize=8, ha="center")
     ax.text(dates[pk2], ref[pk2] + 0.12, "autumn trough", color=MUTED, fontsize=8, ha="center")
-    ax.set_ylabel("German value-added loss, % of a week", color=MUTED, fontsize=8)
+    ax.set_ylabel("German loss (% of a week)", color=MUTED, fontsize=8)
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%d %b"))
     ax.set_xlim(first - pd.Timedelta(weeks=1), first + pd.Timedelta(weeks=27))
     ax.set_ylim(0, max(ref.max(), band.max().max()) * 1.12)
-    ax.legend(frameon=False, fontsize=7.5, loc="upper left", ncol=2)
-    ax.set_title("d  Weekly German value-added loss, reference draw and eleven draws", loc="left", fontsize=9.5, color=INK)
+    ax.legend(frameon=False, fontsize=7, loc="upper left", ncol=2)
+    ax.set_title("d  Weekly German loss: reference network and ten further networks", loc="left", fontsize=9.5, color=INK)
+    finish(fig)
     fig.tight_layout()
     out.mkdir(parents=True, exist_ok=True)
     for ext in ("png", "pdf"):

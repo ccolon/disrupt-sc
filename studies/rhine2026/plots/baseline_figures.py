@@ -25,6 +25,7 @@ import geopandas as gpd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from print_style import finish  # noqa: E402  text at print size (13 Oct 2026)
 import numpy as np
 import pandas as pd
 
@@ -106,6 +107,7 @@ def fig_modal_split(edges: gpd.GeoDataFrame, out: Path):
              "road traffic by construction (firms at NUTS2/3 points); judge rail and waterways by tonne-km as well.",
              fontsize=7, color=INK3)
     fig.suptitle("Inland freight by mode, % of tonne-km", x=0.01, ha="left", fontsize=11, color=INK)
+    finish(fig)
     fig.tight_layout(rect=(0, 0.11, 1, 0.95))
     for ext in ("png", "pdf"):
         fig.savefig(out / f"F2_modal_split.{ext}", dpi=300, facecolor=SURFACE)
@@ -153,6 +155,7 @@ def fig_rhine_profile(edges: gpd.GeoDataFrame, out: Path):
     ax.legend(frameon=False, fontsize=8, labelcolor=INK2, loc="upper left")
     fig.text(0.01, 0.005, "Kaub (km 546) shaded: the scenario edge. CCNR 2023: Emmerich 118 Mt, Iffezheim 16 Mt; other points interpolated from port volumes.",
              fontsize=7, color=INK3)
+    finish(fig)
     fig.tight_layout(rect=(0, 0.04, 1, 1))
     for ext in ("png", "pdf"):
         fig.savefig(out / f"F3_rhine_profile.{ext}", dpi=300, facecolor=SURFACE)
@@ -214,6 +217,7 @@ def fig_network_map(edges: gpd.GeoDataFrame, firms: gpd.GeoDataFrame, out: Path)
     handles.append(Line2D([0], [0], marker="o", color="none", markerfacecolor=INK, alpha=0.4, markersize=7, label="Firm points (area = baseline output)"))
     ax.legend(handles=handles, loc="lower left", frameon=False, fontsize=8, labelcolor=INK2)
     ax.set_title("EU scope: TEN-T multimodal network and firm geography (Rhine chain highlighted)", loc="left", fontsize=10, color=INK)
+    finish(fig)
     fig.tight_layout()
     for ext in ("png", "pdf"):
         fig.savefig(out / f"F1_network_firms.{ext}", dpi=300, facecolor=SURFACE)
