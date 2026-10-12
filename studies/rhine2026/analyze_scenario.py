@@ -29,6 +29,10 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from va_shares import add_va_share  # noqa: E402  country-sector value-added ratios (12 Oct 2026, review E1)
+
 ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
 KAUB_EDGE = "rhine_mainz_koblenz"
@@ -195,9 +199,7 @@ def main():
         _price_section(run)
 
     # --- 5. production / value-added loss by country ---
-    va = pd.read_csv(run / "mrio_by_sector.csv").set_index("sector")
-    va_share = (va["mrio_va"] / va["mrio_output"]).to_dict()
-    fd["va_share"] = fd["sector"].map(va_share).fillna(0.3)
+    add_va_share(fd, run)                     # the firm's own country-sector ratio (12 Oct 2026)
     fd["loss"] = (fd["base"] - fd["production"]).clip(lower=0)
     fd["va_loss"] = fd["loss"] * fd["va_share"]
     by = fd.groupby(["time_step", "region"])["va_loss"].sum().unstack("region")

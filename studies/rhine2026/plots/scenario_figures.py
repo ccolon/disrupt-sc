@@ -28,6 +28,10 @@ from matplotlib.colors import ListedColormap
 import numpy as np
 import pandas as pd
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from va_shares import add_va_share  # noqa: E402  country-sector value-added ratios (12 Oct 2026, review E1)
+
 ROOT = Path(__file__).resolve().parents[3]
 HERE = Path(__file__).resolve().parents[1]
 DATA = ROOT.parent / "disrupt-sc-data" / "EU"
@@ -163,8 +167,7 @@ def _loss_by_firm(run: Path) -> pd.DataFrame:
     base = fd[fd["time_step"] == 0].set_index("firm")["production"]
     fd["base"] = fd["firm"].map(base)
     fd["loss"] = (fd["base"] - fd["production"]).clip(lower=0)
-    va = pd.read_csv(run / "mrio_by_sector.csv").set_index("sector")
-    fd["va_share"] = fd["sector"].map((va["mrio_va"] / va["mrio_output"]).to_dict()).fillna(0.3)
+    add_va_share(fd, run)                     # the firm's own country-sector ratio (12 Oct 2026)
     fd["va_loss"] = fd["loss"] * fd["va_share"]
     return fd
 

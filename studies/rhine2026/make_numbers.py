@@ -274,15 +274,44 @@ def main(tag: str, overleaf: Path, date_list: str):
         if rs.exists():
             g = pd.read_csv(rs).groupby("cargo_type").relief_usd.sum()
             put(f"ReliefLiquidShare{mac}", pct(100 * g.get("liquid_bulk", 0) / g.sum()), f"{run}: % of the relief value that is liquid bulk")
+    # ---- signed calendar-quarter measures (review of 12 Oct, E4): shortfall minus the catch-up above baseline, by quarter
+    from matched_estimand_2018 import _series, FIRST as FIRST_DAY2
+    fdq = pd.read_csv(RUNS / B / "firm_data.csv", usecols=["time_step", "firm", "region", "sector", "production"])
+    b0q = fdq[fdq.time_step == 0].set_index("firm")["production"]
+    fdq = fdq[(fdq.region == "DEU") & (fdq.time_step >= 1)].copy(); fdq["base"] = fdq.firm.map(b0q)
+    from va_shares import add_va_share as _avs
+    _avs(fdq, RUNS / B)
+    wk_signed = ((fdq.base - fdq.production) * fdq.va_share).groupby(fdq.time_step).sum()
+    wk_gross = ((fdq.base - fdq.production).clip(lower=0) * fdq.va_share).groupby(fdq.time_step).sum()
+    wk_base = (fdq.base * fdq.va_share).groupby(fdq.time_step).sum()
+    def by_quarter(w):
+        days = {}
+        for t, v in w.items():
+            w0 = FIRST_DAY2[2026] + pd.Timedelta(days=7 * (int(t) - 1))
+            for k in range(7):
+                days[w0 + pd.Timedelta(days=k)] = float(v)
+        d = pd.Series(days); qtr = d.index.to_period("Q").astype(str)
+        return {q: float(d[qtr == q].mean()) for q in ("2026Q3", "2026Q4")}
+    sq, gq = by_quarter(100 * wk_signed / wk_base), by_quarter(100 * wk_gross / wk_base)
+    put("SignedQthree", r2(sq["2026Q3"]).replace("-", "$-$"), "signed German value-added change, Q3 2026, % of the quarter's baseline (shortfall minus catch-up)")
+    put("SignedQfour", r2(sq["2026Q4"]).replace("-", "$-$"), "Q4 2026"); put("GrossQthree", r2(gq["2026Q3"]), "gross (clipped) loss, Q3 2026"); put("GrossQfour", r2(gq["2026Q4"]), "Q4 2026")
+    s_idx = _series(RUNS / B)[0]
+    iq = by_quarter(s_idx)
+    put("IndSignedQthree", r2(iq["2026Q3"]).replace("-", "$-$"), "industry, index measure, signed, Q3 2026"); put("IndSignedQfour", r2(iq["2026Q4"]).replace("-", "$-$"), "Q4 2026")
     # ---- the batch of 9 October 2026 (jobs_20261009_cross.txt): the levers under the 50 kt rail ceiling, the waves at 15 days
     cx = AD / "compare_runs_batch_jobs_20261009_cross.csv"
     if cx.exists() and len(r):
         c = table(cx)
         b50 = r.loc["2026_rev_rail50", "DEU_cum_mUSD"]
+        b0c = m.loc[B, "DEU_cum_mUSD"]; rail_alone = b0c - b50
+        put("RailAloneBn", r1(rail_alone / 1e3), "bn USD avoided by the 50 kt rail relief alone")
         for mac, k in (("CrossStockRail", "stock7"), ("CrossDeepRail", "deep20"), ("CrossFleetRail", "fleet"), ("CrossStockTRail", "stock7t")):
             run = f"2026_rev_rail50_{k}"
             if run in c.index:
                 put(mac, pct(100 * (1 - c.loc[run, "DEU_cum_mUSD"] / b50)), f"{run}: % of the rail-50 base's loss avoided")
+                alone = b0c - m.loc[f"2026_{tag}_{k}", "DEU_cum_mUSD"]; both = b0c - c.loc[run, "DEU_cum_mUSD"]
+                put(mac.replace("Rail", "AloneBn"), r1(alone / 1e3), f"bn USD avoided by the lever alone"); put(mac.replace("Rail", "OnRailBn"), r1((both - rail_alone) / 1e3), "bn USD avoided by the lever on top of the rail relief")
+                put(mac.replace("Rail", "Overlap"), pct(100 * (1 - both / (alone + rail_alone))), "% by which the two together avoid less than the sum of their separate benefits")
         if all(k in c.index for k in ("wave09_A_rest15", "wave09_B_rest15", "wave09_AB_gap2_rest15", "wave09_AB_gap4_rest15")):
             a15, b15 = c.loc["wave09_A_rest15", "DEU_%quarter"], c.loc["wave09_B_rest15", "DEU_%quarter"]
             s15 = r.loc["2026_rev_rest15", "DEU_%quarter"]

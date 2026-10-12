@@ -576,6 +576,7 @@ def export_mrio_summary(mrio, selected, export_folder: Path):
     """Export MRIO reference summaries for reporting comparison.
 
     Writes three CSVs:
+      - mrio_by_region_sector.csv — output, input, VA, final_demand, export per region-sector (12 Oct 2026)
       - mrio_by_sector.csv    — output, input, VA, final_demand, export per sector
       - mrio_by_region.csv    — output, input, VA per region
       - mrio_by_country.csv   — imports (country as exporter) and
@@ -614,6 +615,10 @@ def export_mrio_summary(mrio, selected, export_folder: Path):
         "mrio_final_demand": fd.reindex(selected, fill_value=0).values,
         "mrio_export": exports.reindex(selected, fill_value=0).values,
     })
+
+    # --- By region-sector (12 Oct 2026): the value-added/output ratio of each country-sector, the coefficient of the
+    # loss accounting (a firm's shortfall x the ratio of its OWN country-sector; the by-sector file below sums over regions)
+    rs_df.to_csv(export_folder / "mrio_by_region_sector.csv", index=False)
 
     # --- By sector ---
     by_sector = rs_df.groupby("sector")[

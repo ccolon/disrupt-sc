@@ -6,20 +6,18 @@ Record (Ademmer et al., dynamic counterfactual of the published specification, c
   column 3       : Aug 0.84, Sep 0.12, Oct 0.86, Nov 0.57, Dec -0.11  integrated 2.28
   column 4       : Aug 1.19, Sep 1.19, Oct 1.35, Nov 1.86, Dec 0.53  integrated 6.12
 
-Model, Germany, monthly shortfall of INDUSTRIAL production (NACE B-E, production-weighted, % of the month's baseline; days of the month covered by the run in days_*):
+Model, Germany, monthly shortfall of INDUSTRIAL production on the production-index measure (NACE B-D, sector rates weighted by the German sector value added; % of the month's baseline; days of the month covered by the run in days_*):
                ind_Aug  ind_Sep  ind_Oct  ind_Nov  ind_Dec  ind_integrated_pct_months peak_month_ind  ind_share_of_total_va_loss_pct
 run                                                                                                                                 
-2018_baseline      0.0      0.0     0.46     2.83     1.44                       4.73            Nov                            23.0
-2018_inv150        0.0      0.0     0.19     1.67     1.09                       2.95            Nov                            37.0
-2018_inv200        0.0      0.0     0.13     1.08     0.54                       1.75            Nov                            33.0
-2018_pipe          0.0      0.0     0.13     1.08     0.54                       1.75            Nov                            34.0
+2018_baseline      0.0      0.0     0.37     2.50     1.23                       4.11            Nov                            25.0
+2018_inv150        0.0      0.0     0.14     1.37     0.97                       2.48            Nov                            41.0
+2018_pipe          0.0      0.0     0.07     0.87     0.45                       1.39            Nov                            38.0
 
 Model, Germany, monthly shortfall of TOTAL value added (all sectors, %):
                va_Aug  va_Sep  va_Oct  va_Nov  va_Dec
 run                                                  
-2018_baseline     0.0     0.0    0.24    1.28    1.95
-2018_inv150       0.0     0.0    0.10    0.73    0.34
-2018_inv200       0.0     0.0    0.05    0.41    0.27
+2018_baseline     0.0     0.0    0.24    1.29    2.00
+2018_inv150       0.0     0.0    0.10    0.73    0.35
 2018_pipe         0.0     0.0    0.05    0.41    0.26
 
 Days of each month covered by the run:
@@ -27,5 +25,4 @@ Days of each month covered by the run:
 run                                                            
 2018_baseline        31        30        31        30        31
 2018_inv150          31        30        31        30        31
-2018_inv200          31        30        31        30        31
 2018_pipe            31        30        31        30        31

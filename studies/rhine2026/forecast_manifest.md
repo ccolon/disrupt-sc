@@ -76,3 +76,24 @@ python studies/rhine2026/si_tables.py                                           
 
 The exact command lines are in the job lists; the caches are rebuilt from the fingerprints on another machine
 (reproducible to the last digit on the same machine; provenance of every input across machines).
+
+## 7. Accounting revision of 12 October 2026 (no new simulation)
+
+The review of 12 October 2026 found that the loss accounting mapped the scope-wide value-added/output ratio of each
+sector (`mrio_by_sector.csv`, summed over the 28 economies) onto every firm, where the estimand is the ratio of the
+firm's own country-sector (its `target_margin`). The record comparison likewise weighted the German sectoral shortfall
+rates by scope-wide sector value added, where the production index uses the German weights. Both were corrected in
+`va_shares.py` and `matched_estimand_2018.py` (commit of 12 October); every batch table was recomputed from the stored
+run outputs with `cluster/recompare_20261012.sh`. The simulated dynamics are unchanged.
+
+| Quantity | As issued (scope-wide ratios) | Corrected (country-sector ratios) |
+|---|---:|---:|
+| First issue, 30 September 2026 (`2026_s30_base`), German loss, % of a quarter | 1.74 | 1.85 |
+| Reissue, 7 October 2026 (`2026_s07_base`) | 1.54 | 1.64 |
+| 2018 reference (`2018_s07_base`) | 0.94 | 0.98 |
+| 2018 industrial integral, percent-months (production-weighted B-E as issued; index measure, German weights B-D, corrected) | 4.6 | 3.9 |
+
+The forecasts as issued stay archived in the Overleaf history (commits `10d629e` of 30 September and `cc34ca7` of
+7 October) and in the batch tables of 30 September and 7 October kept under `additional_data/` with their original
+names; the corrected tables replace them in place after the recompute (the `.txt` header of each carries the date of
+the recompute). The evaluation of the prospective test (section 5) uses the corrected measure.

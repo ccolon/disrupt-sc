@@ -21,6 +21,7 @@ INDUSTRY = ("B", "C", "D", "E")
 MONTHS = ["Aug", "Sep", "Oct", "Nov", "Dec"]
 import sys
 sys.path.insert(0, str(ROOT / "studies/rhine2026"))
+from va_shares import add_va_share  # noqa: E402  country-sector value-added ratios (12 Oct 2026, review E1)
 from matched_estimand_2018 import model_path      # noqa: E402  one integration rule for every industrial path (6 Oct 2026)
 from benchmark_ademmer import record, EVENT_MONTHS  # noqa: E402  the published dynamic specification with its band
 _rec_t, REC_S = record(2018, 1)
@@ -40,8 +41,7 @@ def firm_losses(run: Path):
     fd = pd.read_csv(run / "firm_data.csv", usecols=["time_step", "firm", "region", "sector", "production"])
     b0 = fd[fd.time_step == 0].set_index("firm").production
     fd["base"] = fd.firm.map(b0)
-    va = pd.read_csv(run / "mrio_by_sector.csv").set_index("sector")
-    fd["vs"] = fd.sector.map((va.mrio_va / va.mrio_output).to_dict()).fillna(0.3)
+    add_va_share(fd, run, "vs")              # the firm's own country-sector ratio (12 Oct 2026)
     fd["loss"] = (fd.base - fd.production).clip(lower=0) * fd.vs
     return fd
 

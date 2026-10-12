@@ -32,6 +32,10 @@ from pathlib import Path
 
 import pandas as pd
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from va_shares import add_va_share  # noqa: E402  country-sector value-added ratios (12 Oct 2026, review E1)
+
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 RUNS = Path("C:/dsc_runs/rhine2026")
@@ -43,18 +47,40 @@ INDUSTRY = ("B", "C", "D", "E")                                                 
 MONTHS = ["Aug", "Sep", "Oct", "Nov", "Dec"]                                    # the five event months of 2018
 
 
+INDEX_SECTIONS = ("B", "C", "D")      # the production index of industry: NACE B to D (and E36, not separable here)
+
+
 def weekly_shortfall(run: Path, region: str = "DEU") -> tuple[pd.Series, pd.Series]:
-    """(industrial shortfall, total value-added shortfall) by model week, % of the baseline, for *region*."""
+    """(industrial shortfall on the production-index measure, total value-added shortfall) by model week, % of the
+    baseline, for *region*. The index measure (12 Oct 2026, review E2): each sector's shortfall rate (production-weighted
+    within the sector) weighted by the sector's value added IN THAT COUNTRY, sections B to D, as the Destatis production
+    index aggregates its sectoral indices. The earlier production-weighted B-E series is weekly_shortfall_prod()."""
+    s_idx, _, s_va = _series(run, region)
+    return s_idx, s_va
+
+
+def weekly_shortfall_prod(run: Path, region: str = "DEU") -> pd.Series:
+    """The production-weighted B-E industrial shortfall by week (the measure of the paper until 12 Oct 2026)."""
+    return _series(run, region)[1]
+
+
+def _series(run: Path, region: str = "DEU") -> tuple[pd.Series, pd.Series, pd.Series]:
     fd = pd.read_csv(run / "firm_data.csv", usecols=["time_step", "firm", "region", "sector", "production"])
     b0 = fd[fd.time_step == 0].set_index("firm")["production"]
     fd = fd[(fd.region == region) & (fd.time_step >= 1)].copy()
     fd["base"] = fd.firm.map(b0)
-    va = pd.read_csv(run / "mrio_by_sector.csv").set_index("sector")
-    fd["va_share"] = fd.sector.map((va.mrio_va / va.mrio_output).to_dict()).fillna(0.3)
+    add_va_share(fd, run)
+    fd["short"] = fd.base - fd.production
+    s_va = 100 * (fd.short * fd.va_share).groupby(fd.time_step).sum() / (fd.base * fd.va_share).groupby(fd.time_step).sum()
     ind = fd[fd.sector.astype(str).str[:1].isin(INDUSTRY)]
-    s_ind = 100 * (ind.base - ind.production).groupby(ind.time_step).sum() / ind.base.groupby(ind.time_step).sum()
-    s_va = 100 * ((fd.base - fd.production) * fd.va_share).groupby(fd.time_step).sum() / (fd.base * fd.va_share).groupby(fd.time_step).sum()
-    return s_ind, s_va
+    s_prod = 100 * ind.short.groupby(ind.time_step).sum() / ind.base.groupby(ind.time_step).sum()
+    idx = fd[fd.sector.astype(str).str[:1].isin(INDEX_SECTIONS)]
+    sec = idx.groupby(["time_step", "sector"]).agg(short=("short", "sum"), base=("base", "sum")).reset_index()
+    sec["rate"] = sec.short / sec.base
+    w = (idx[idx.time_step == idx.time_step.min()].assign(va=lambda d: d.base * d.va_share).groupby("sector").va.sum())   # the sector's value added in *region*
+    sec["w"] = sec.sector.map(w)
+    s_idx = 100 * (sec.rate * sec.w).groupby(sec.time_step).sum() / sec.w.groupby(sec.time_step).sum()
+    return s_idx, s_prod, s_va
 
 
 def monthly_from_weekly(s: pd.Series, first: pd.Timestamp, months: list[str]) -> tuple[dict, dict]:
@@ -75,23 +101,25 @@ def monthly_from_weekly(s: pd.Series, first: pd.Timestamp, months: list[str]) ->
 def model_path(run: Path, year: int = 2018) -> dict:
     """Monthly industrial and total shortfalls (%), the integral over the event months (percent-months), the peak
     month and the industrial share of the value-added loss. Keys as in the printed tables (ind_Aug, ...)."""
-    s_ind, s_va = weekly_shortfall(run)
+    s_ind, s_prod, s_va = _series(run)
     months = EVENT_MONTHS[year]
     ind, cov = monthly_from_weekly(s_ind, FIRST[year], months)
+    prod, _ = monthly_from_weekly(s_prod, FIRST[year], months)
     va, _ = monthly_from_weekly(s_va, FIRST[year], months)
     out = {}
     for m in months:
         lab = pd.Timestamp(m + "-01").strftime("%b")
-        out[f"ind_{lab}"] = round(ind[m], 2)
+        out[f"ind_{lab}"] = round(ind[m], 2)            # the production-index measure (German value-added weights, B-D)
+        out[f"indprod_{lab}"] = round(prod[m], 2)       # production-weighted B-E (the measure until 12 Oct 2026)
         out[f"va_{lab}"] = round(va[m], 2)
         out[f"days_{lab}"] = cov[m]
     out["ind_integrated_pct_months"] = round(sum(ind[m] for m in months), 2)
+    out["indprod_integrated_pct_months"] = round(sum(prod[m] for m in months), 2)
     out["peak_month_ind"] = pd.Timestamp(max(months, key=lambda m: ind[m]) + "-01").strftime("%b")
     fd = pd.read_csv(run / "firm_data.csv", usecols=["time_step", "firm", "region", "sector", "production"])
     b0 = fd[fd.time_step == 0].set_index("firm")["production"]
     fd = fd[(fd.region == "DEU") & (fd.time_step >= 1)].copy(); fd["base"] = fd.firm.map(b0)
-    vat = pd.read_csv(run / "mrio_by_sector.csv").set_index("sector")
-    fd["va_share"] = fd.sector.map((vat.mrio_va / vat.mrio_output).to_dict()).fillna(0.3)
+    add_va_share(fd, run)
     loss = ((fd.base - fd.production) * fd.va_share).clip(lower=0)
     is_ind = fd.sector.astype(str).str[:1].isin(INDUSTRY)
     out["ind_share_of_total_va_loss_pct"] = round(100 * loss[is_ind].sum() / loss.sum(), 0) if loss.sum() > 0 else float("nan")
@@ -124,7 +152,7 @@ def main(runs: list[str], out: Path | None, year: int):
     t = pd.DataFrame(rows).set_index("run")
     pd.set_option("display.width", 250)
     labs = [pd.Timestamp(m + "-01").strftime("%b") for m in EVENT_MONTHS[year]]
-    lines.append(f"Model, Germany, monthly shortfall of INDUSTRIAL production (NACE B-E, production-weighted, % of the month's baseline; days of the month covered by the run in days_*):")
+    lines.append(f"Model, Germany, monthly shortfall of INDUSTRIAL production on the production-index measure (NACE B-D, sector rates weighted by the German sector value added; % of the month's baseline; days of the month covered by the run in days_*):")
     lines.append(t[[f"ind_{m}" for m in labs] + ["ind_integrated_pct_months", "peak_month_ind", "ind_share_of_total_va_loss_pct"]].to_string())
     lines.append("")
     lines.append("Model, Germany, monthly shortfall of TOTAL value added (all sectors, %):")

@@ -1,0 +1,97 @@
+Record (Ademmer et al., dynamic counterfactual of the published specification, column 1; shortfall of German industrial production, %):
+  central        : Aug 0.99, Sep 1.00, Oct 1.22, Nov 1.55, Dec 0.56  integrated 5.32 %-months; peak 11 1.55 (published: 1.5)
+  16-84 % band   : Aug 0.64-1.33, Sep 0.57-1.44, Oct 0.84-1.62, Nov 1.04-2.09, Dec 0.19-0.95  integral 3.59-7.11
+  2.5-97.5 % band: integral 2.00-8.97
+  column 2       : Aug 1.10, Sep 0.89, Oct 1.22, Nov 1.51, Dec 0.35  integrated 5.08
+  column 3       : Aug 0.84, Sep 0.12, Oct 0.86, Nov 0.57, Dec -0.11  integrated 2.28
+  column 4       : Aug 1.19, Sep 1.19, Oct 1.35, Nov 1.86, Dec 0.53  integrated 6.12
+
+Model, Germany, monthly shortfall of INDUSTRIAL production on the production-index measure (NACE B-D, sector rates weighted by the German sector value added; % of the month's baseline; days of the month covered by the run in days_*):
+                    ind_Aug  ind_Sep  ind_Oct  ind_Nov  ind_Dec  ind_integrated_pct_months peak_month_ind  ind_share_of_total_va_loss_pct
+run                                                                                                                                      
+2018_s07_base          0.51     0.64     1.24     1.56    -0.09                       3.86            Nov                            40.0
+2018_s07_tablelow      0.69     0.86     1.60     2.07    -0.04                       5.17            Nov                            37.0
+2018_s07_tablehigh     0.34     0.46     0.92     1.13    -0.19                       2.66            Nov                            42.0
+2018_s07_sup2          0.11     0.03     0.37     0.38    -0.12                       0.77            Nov                            30.0
+2018_s07_inv125        0.28     0.33     1.01     1.37    -0.16                       2.83            Nov                            41.0
+2018_s07_inv150        0.17     0.22     0.70     1.16    -0.14                       2.10            Nov                            41.0
+2018_s07_inv200        0.06     0.12     0.45     0.66    -0.13                       1.16            Nov                            38.0
+2018_rev_rail50        0.28     0.33     0.95     1.35    -0.10                       2.82            Nov                            41.0
+2018_rev_rail140       0.07     0.03     0.35     0.93    -0.07                       1.32            Nov                            37.0
+2018_s07_seed1         0.24     0.24     0.62     0.82    -0.01                       1.92            Nov                            29.0
+2018_s07_seed2         0.40     0.45     1.03     1.59     0.15                       3.62            Nov                            39.0
+2018_s07_seed3         0.06    -0.01     0.09     0.23    -0.18                       0.19            Nov                            16.0
+2018_s07_seed4         0.17     0.15     0.54     0.99    -0.10                       1.75            Nov                            26.0
+2018_s07_seed5         0.64     0.65     1.33     1.72    -0.07                       4.26            Nov                            39.0
+2018_s07_seed6         0.50     0.56     1.18     1.41    -0.17                       3.49            Nov                            38.0
+2018_s07_seed7         0.29     0.32     0.78     1.23     0.13                       2.74            Nov                            33.0
+2018_s07_seed8         0.50     0.46     1.09     1.37     0.01                       3.44            Nov                            40.0
+2018_s07_seed9         0.18     0.06     0.17     0.24    -0.37                       0.28            Nov                            23.0
+2018_s07_seed10        0.31     0.38     1.12     2.07    -0.00                       3.88            Nov                            36.0
+2018_baseline          0.00     0.00     0.37     2.50     1.23                       4.11            Nov                            25.0
+2018_inv150            0.00     0.00     0.14     1.37     0.97                       2.48            Nov                            41.0
+2018_inv200            0.00     0.00     0.07     0.87     0.45                       1.39            Nov                            38.0
+2018_gs                0.06     0.12     0.49     0.76    -0.08                       1.35            Nov                            38.0
+2018_gs_inv125         0.28     0.33     1.06     1.49    -0.03                       3.13            Nov                            41.0
+2018_gs_inv150         0.17     0.22     0.75     1.29    -0.06                       2.37            Nov                            41.0
+2018_gs1c              0.51     0.64     1.30     1.73     0.03                       4.20            Nov                            39.0
+
+Model, Germany, monthly shortfall of TOTAL value added (all sectors, %):
+                    va_Aug  va_Sep  va_Oct  va_Nov  va_Dec
+run                                                       
+2018_s07_base         0.34    0.28    0.41    0.55   -0.32
+2018_s07_tablelow     0.43    0.36    0.57    1.03   -0.28
+2018_s07_tablehigh    0.24    0.23    0.31    0.35   -0.42
+2018_s07_sup2         0.14    0.06    0.23    0.24   -0.20
+2018_s07_inv125       0.18    0.19    0.41    0.48   -0.42
+2018_s07_inv150       0.12    0.08    0.33    0.44   -0.39
+2018_s07_inv200       0.06    0.07    0.16    0.31   -0.26
+2018_rev_rail50       0.21    0.18    0.36    0.50   -0.38
+2018_rev_rail140      0.09    0.01    0.19    0.44   -0.24
+2018_s07_seed1        0.28    0.12    0.24    0.53   -0.31
+2018_s07_seed2        0.30    0.22    0.38    0.67   -0.25
+2018_s07_seed3        0.18    0.01    0.04    0.21   -0.32
+2018_s07_seed4        0.25    0.18    0.35    0.55   -0.42
+2018_s07_seed5        0.44    0.28    0.44    0.68   -0.55
+2018_s07_seed6        0.35    0.27    0.42    0.59   -0.51
+2018_s07_seed7        0.26    0.18    0.35    0.68   -0.26
+2018_s07_seed8        0.34    0.20    0.37    0.59   -0.28
+2018_s07_seed9        0.19    0.04    0.08    0.23   -0.33
+2018_s07_seed10       0.30    0.27    0.54    0.96   -0.43
+2018_baseline         0.00    0.00    0.24    1.29    2.00
+2018_inv150           0.00    0.00    0.10    0.73    0.35
+2018_inv200           0.00    0.00    0.05    0.41    0.27
+2018_gs               0.06    0.07    0.18    0.37   -0.25
+2018_gs_inv125        0.18    0.19    0.43    0.56   -0.35
+2018_gs_inv150        0.12    0.08    0.35    0.50   -0.35
+2018_gs1c             0.34    0.28    0.44    0.66   -0.19
+
+Days of each month covered by the run:
+                    days_Aug  days_Sep  days_Oct  days_Nov  days_Dec
+run                                                                 
+2018_s07_base             31        30        31        30        31
+2018_s07_tablelow         31        30        31        30        31
+2018_s07_tablehigh        31        30        31        30        31
+2018_s07_sup2             31        30        31        30        31
+2018_s07_inv125           31        30        31        30        31
+2018_s07_inv150           31        30        31        30        31
+2018_s07_inv200           31        30        31        30        31
+2018_rev_rail50           31        30        31        30        31
+2018_rev_rail140          31        30        31        30        31
+2018_s07_seed1            31        30        31        30        31
+2018_s07_seed2            31        30        31        30        31
+2018_s07_seed3            31        30        31        30        31
+2018_s07_seed4            31        30        31        30        31
+2018_s07_seed5            31        30        31        30        31
+2018_s07_seed6            31        30        31        30        31
+2018_s07_seed7            31        30        31        30        31
+2018_s07_seed8            31        30        31        30        31
+2018_s07_seed9            31        30        31        30        31
+2018_s07_seed10           31        30        31        30        31
+2018_baseline             31        30        31        30        31
+2018_inv150               31        30        31        30        31
+2018_inv200               31        30        31        30        31
+2018_gs                   31        30        31        30        31
+2018_gs_inv125            31        30        31        30        31
+2018_gs_inv150            31        30        31        30        31
+2018_gs1c                 31        30        31        30        31

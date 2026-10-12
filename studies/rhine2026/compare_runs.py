@@ -2,7 +2,8 @@
 
 Same definitions as analyze_scenario.py section 5: a firm's loss in a week is its
 production shortfall against its own t=0 production (clipped at zero), weighted by
-the sector's value-added share (mrio_by_sector.csv); weekly value added of a
+the value-added/output ratio of the firm's own country-sector (va_shares.py; until 12 Oct 2026 the
+scope-wide sector ratio of mrio_by_sector.csv, which understated Germany by about 6 %); weekly value added of a
 country is mrio_va / 52; "% of a quarter" divides by 13 weeks. Works on partial
 runs (firm_data.csv is written every week).
 
@@ -29,6 +30,10 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from va_shares import add_va_share  # noqa: E402  country-sector value-added ratios (12 Oct 2026, review E1)
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFERRABLE_PREFIXES = ("A", "B", "C", "F")     # goods and construction: backlog is worked off
@@ -75,9 +80,7 @@ def run_summary(run: Path, countries=("DEU", "NLD", "AUT", "FRA", "CHE", "BEL"),
     fd = pd.read_csv(run / "firm_data.csv", usecols=["time_step", "firm", "region", "sector", "production"])
     b0 = fd[fd["time_step"] == 0].set_index("firm")["production"]
     fd["base"] = fd["firm"].map(b0)
-    va = pd.read_csv(run / "mrio_by_sector.csv").set_index("sector")
-    va_share = (va["mrio_va"] / va["mrio_output"]).to_dict()
-    fd["va_share"] = fd["sector"].map(va_share).fillna(0.3)
+    add_va_share(fd, run)                     # the firm's own country-sector ratio (12 Oct 2026; was the scope-wide sector ratio)
     fd["va_loss"] = (fd["base"] - fd["production"]).clip(lower=0) * fd["va_share"]
     acc = loss_accounting(fd, rate_per_year)
     by = fd.groupby(["time_step", "region"])["va_loss"].sum().unstack("region").fillna(0.0)

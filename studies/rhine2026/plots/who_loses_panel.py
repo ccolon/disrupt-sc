@@ -15,6 +15,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from va_shares import add_va_share  # noqa: E402  country-sector value-added ratios (12 Oct 2026, review E1)
+
 HERE = Path(__file__).resolve().parents[1]
 INK, MUTED, GRID = "#1f2328", "#6e7781", "#e6e8eb"
 BLUE, ORANGE, GREEN = "#2f6fdb", "#e0842a", "#3a9a5b"
@@ -28,8 +32,7 @@ def main(run: Path, out: Path):
     fd = pd.read_csv(run / "firm_data.csv", usecols=["time_step", "firm", "region", "sector", "production"])
     b0 = fd[fd.time_step == 0].set_index("firm").production
     fd["base"] = fd.firm.map(b0)
-    va = pd.read_csv(run / "mrio_by_sector.csv").set_index("sector")
-    fd["vs"] = fd.sector.map((va.mrio_va / va.mrio_output).to_dict()).fillna(0.3)
+    add_va_share(fd, run, "vs")              # the firm's own country-sector ratio (12 Oct 2026)
     fd["short"] = (fd.base - fd.production) * fd.vs                      # signed
     fd["gross"] = fd["short"].clip(lower=0)
     de = fd[fd.region == "DEU"]

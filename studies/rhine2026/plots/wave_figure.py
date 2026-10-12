@@ -119,7 +119,7 @@ def main(out: Path):
     ax.set_xlabel("weeks of normal water between the two troughs", color=MUTED, fontsize=8)
     ax.set_ylabel("German loss, % of a quarter", color=MUTED, fontsize=8)
     ax.set_ylim(0.88, 1.85)
-    ax.set_title("b  The interaction fades within a month, and is the refill time", loc="left", fontsize=9.5, color=INK)
+    ax.set_title("b  The interaction fades within a month and depends on the refill time", loc="left", fontsize=9.5, color=INK)
 
     fig.tight_layout(w_pad=2.0)
     out.mkdir(parents=True, exist_ok=True)

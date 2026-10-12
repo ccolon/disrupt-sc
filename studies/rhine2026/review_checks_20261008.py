@@ -18,6 +18,10 @@ from pathlib import Path
 
 import pandas as pd
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from va_shares import add_va_share  # noqa: E402  country-sector value-added ratios (12 Oct 2026, review E1)
+
 HERE = Path(__file__).resolve().parent
 AD = HERE / "additional_data"
 RUNS = Path("C:/dsc_runs/rhine2026")
@@ -77,36 +81,38 @@ def monthly(s: pd.Series, first: pd.Timestamp, months: list[str]) -> dict:
     return {mo: float(d[per == mo].mean()) if (per == mo).any() else float("nan") for mo in months}
 
 
-def industrial_series(run: Path) -> tuple[pd.Series, pd.Series, pd.Series]:
-    """Industrial shortfall by week: production-weighted (the paper), value-added-weighted, and the industrial
-    part of total value added (the va series restricted to B-E)."""
+def industrial_series(run: Path, sections=("B", "C", "D", "E")) -> tuple[pd.Series, pd.Series, pd.Series]:
+    """Industrial shortfall by week: production-weighted over *sections* (the paper's measure until 12 Oct 2026); the
+    sector shortfall rates weighted by the GERMAN sector value added over *sections* (the production-index convention);
+    and the same over B-D only (the index's coverage). 12 Oct 2026: German weights (review E2), not the scope-wide ones."""
     fd = pd.read_csv(run / "firm_data.csv", usecols=["time_step", "firm", "region", "sector", "production"])
     b0 = fd[fd.time_step == 0].set_index("firm")["production"]
     fd = fd[(fd.region == "DEU") & (fd.time_step >= 1)].copy()
     fd["base"] = fd.firm.map(b0)
-    va = pd.read_csv(run / "mrio_by_sector.csv").set_index("sector")
-    fd["va_share"] = fd.sector.map((va.mrio_va / va.mrio_output).to_dict()).fillna(0.3)
-    ind = fd[fd.sector.astype(str).str[:1].isin(INDUSTRY)].copy()
-    ind["short"] = ind.base - ind.production
+    add_va_share(fd, run)
+    fd["short"] = fd.base - fd.production
+    def idx(sel):
+        d = fd[fd.sector.astype(str).str[:1].isin(sel)]
+        sec = d.groupby(["time_step", "sector"]).agg(short=("short", "sum"), base=("base", "sum")).reset_index()
+        sec["rate"] = sec.short / sec.base
+        w = d[d.time_step == d.time_step.min()].assign(va=lambda x: x.base * x.va_share).groupby("sector").va.sum()
+        sec["w"] = sec.sector.map(w)
+        return 100 * (sec.rate * sec.w).groupby(sec.time_step).sum() / sec.w.groupby(sec.time_step).sum()
+    ind = fd[fd.sector.astype(str).str[:1].isin(sections)]
     prod_w = 100 * ind.short.groupby(ind.time_step).sum() / ind.base.groupby(ind.time_step).sum()
-    va_w = 100 * (ind.short * ind.va_share).groupby(ind.time_step).sum() / (ind.base * ind.va_share).groupby(ind.time_step).sum()
-    # sector-level: the shortfall rate of each sector weighted by its value added (the index convention)
-    sec = ind.groupby(["time_step", "sector"]).agg(short=("short", "sum"), base=("base", "sum")).reset_index()
-    sec["rate"] = sec.short / sec.base
-    sec["w"] = sec.sector.map(va.mrio_va.to_dict())
-    sec_w = 100 * (sec.rate * sec.w).groupby(sec.time_step).sum() / sec.w.groupby(sec.time_step).sum()
-    return prod_w, va_w, sec_w
+    return prod_w, idx(sections), idx(("B", "C", "D"))
 
 
 def weights_table(run: Path, L: list[str]) -> None:
     fd = pd.read_csv(run / "firm_data.csv", usecols=["time_step", "firm", "region", "sector", "production"])
     fd = fd[(fd.region == "DEU") & (fd.time_step == 0)]
-    va = pd.read_csv(run / "mrio_by_sector.csv").set_index("sector")
+    add_va_share(fd, run)
     ind = fd[fd.sector.astype(str).str[:1].isin(INDUSTRY)]
     g = ind.groupby("sector").production.sum()
-    w = pd.DataFrame({"production_share_%": 100 * g / g.sum(), "va_share_%": 100 * va.mrio_va.reindex(g.index) / va.mrio_va.reindex(g.index).sum()})
+    gv = ind.assign(va=lambda d: d.production * d.va_share).groupby("sector").va.sum()
+    w = pd.DataFrame({"production_share_%": 100 * g / g.sum(), "va_share_%": 100 * gv / gv.sum()})
     w["ratio"] = w["va_share_%"] / w["production_share_%"]
-    L.append("German industrial sectors: weight in the production-weighted and in the value-added-weighted series (%)")
+    L.append("German industrial sectors: weight in the production-weighted and in the German-value-added-weighted series (%)")
     L.append(w.round(2).sort_values("production_share_%", ascending=False).to_string())
 
 
@@ -115,7 +121,7 @@ def index_bridge(L: list[str]) -> None:
              "the sector's value-added ratio, and sector shortfall rates weighted by sector value added (the production-index convention) ==")
     for run, year, months in (("2018_s07_base", 2018, MONTHS18), ("2026_s07_base", 2026, MONTHS26)):
         p, v, s = industrial_series(RUNS / run)
-        for lab, ser in (("production-weighted", p), ("firm x va ratio", v), ("sector rate x sector va", s)):
+        for lab, ser in (("production-weighted B-E", p), ("German VA weights B-E", v), ("German VA weights B-D", s)):
             mo = monthly(ser, FIRST[year], months)
             L.append(f"  {run} {lab:24s} " + "  ".join(f"{m[-2:]}: {mo[m]:5.2f}" for m in months) + f"   integral {sum(mo.values()):.2f}  peak week {ser.idxmax()} ({ser.max():.2f} %)")
     weights_table(RUNS / "2026_s07_base", L)
@@ -134,8 +140,8 @@ def sector_groups(L: list[str]) -> None:
         b0 = fd[fd.time_step == 0].set_index("firm")["production"]
         de = fd[(fd.region == "DEU") & (fd.time_step >= 1)].copy()
         de["loss"] = (de.firm.map(b0) - de.production).clip(lower=0)
-        va = pd.read_csv(RUNS / run / "mrio_by_sector.csv").set_index("sector")
-        de["va"] = de.loss * de.sector.map((va.mrio_va / va.mrio_output).to_dict()).fillna(0.3)
+        add_va_share(de, RUNS / run)
+        de["va"] = de.loss * de.va_share
         g = de.groupby(de.sector.map(group_of)).va.sum()
         de_sub = de[de.sector.astype(str).str[:1].isin(("D", "E"))].va.sum()
         tot = g.sum()

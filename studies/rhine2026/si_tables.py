@@ -394,7 +394,7 @@ def representations_table(out: Path):
             rows.append(f"{lab} & " + " & ".join(v[:5]) + f" & {v[5]} \\\\")
     (out / "si_representations.tex").write_text(r"""\begin{table}[tbp]
 \centering\small
-\caption{\textbf{Two representations of the river on the 2018 record.} Monthly shortfall of German industrial production (\%), August to December 2018, and its integral (percent-months, the plain sum of the months). The record is the dynamic counterfactual of the published specification (ref.~\citep{ademmer2023}; Table~2, column 1, of the working paper) on the low-water days of the daily gauge record, with the 16--84\,\% band of a Monte Carlo over its coefficients and, for comparison, the contemporaneous-only specification (column 3). The model rows are the quantity constraint with the surcharge at four stock levels and the priced river with closures at three; runs of 22--28 September 2026 on the reference draw, the industrial path unchanged by the later treatment of construction as a non-storable input. Each month of a model row is the mean of its days, every day carrying the value of the model week it belongs to.}
+\caption{\textbf{Two representations of the river on the 2018 record.} Monthly shortfall of German industrial production (\%; the production-index measure, each sector's shortfall rate weighted by its German value added, sections B--D), August to December 2018, and its integral (percent-months, the plain sum of the months). The record is the dynamic counterfactual of the published specification (ref.~\citep{ademmer2023}; Table~2, column 1, of the working paper) on the low-water days of the daily gauge record, with the 16--84\,\% band of a Monte Carlo over its coefficients and, for comparison, the contemporaneous-only specification (column 3). The model rows are the quantity constraint with the surcharge at four stock levels and the priced river with closures at three; runs of 22--28 September 2026 on the reference draw, the industrial path unchanged by the later treatment of construction as a non-storable input. Each month of a model row is the mean of its days, every day carrying the value of the model week it belongs to.}
 \label{tab:representations}
 \begin{tabular}{lrrrrrr}
 \toprule
@@ -487,7 +487,8 @@ def prospective_table(out: Path):
     d = model_path(RUNS / "2026_s07_base", 2026)
     t, s = record(2026, 1)
     ev = t[t.month.isin(EVENT_MONTHS[2026])]
-    rows = ["model, reference draw (river information of 30 September, issued 7 October) & " + " & ".join(f"{d[f'ind_{m}']:.1f}" for m in labs) + f" & {d['ind_integrated_pct_months']:.1f} \\\\"]
+    rows = ["model, reference draw, index measure (river information of 30 September, issued 7 October) & " + " & ".join(f"{d[f'ind_{m}']:.1f}" for m in labs) + f" & {d['ind_integrated_pct_months']:.1f} \\\\",
+            "model, reference draw, production-weighted B--E (the measure of the earlier version) & " + " & ".join(f"{d[f'indprod_{m}']:.1f}" for m in labs) + f" & {d['indprod_integrated_pct_months']:.1f} \\\\"]
     band = AD / "prospective_band_2026.csv"      # written by read_batch_20261006.py once the seed bases are repacked with firm data
     if band.exists():
         bd = pd.read_csv(band)
@@ -520,13 +521,17 @@ def prospective_sectors_table(out: Path):
     months = ["2026-07", "2026-08", "2026-09", "2026-10", "2026-11", "2026-12"]
     names = [("C19", "refined petroleum (C19)"), ("C20", "chemicals (C20)"), ("C23", "non-metallic minerals, cement (C23)"), ("C24A", "iron and steel (C24A)"),
              ("D", "electricity and gas (D)"), ("F", "construction (F)"), ("H49", "land transport (H49)"), ("H50", "water transport (H50)"),
-             ("H52", "warehousing and logistics (H52)"), ("B-E", "industry, all (B--E)")]
+             ("H52", "warehousing and logistics (H52)"), ("IDX", "industry, index measure (B--D, value-added weights)")]
     rows = []
     for code, lab in names:
-        sub = de[de.sector.astype(str).str[:1].isin(list("BCDE"))] if code == "B-E" else de[de.sector == code]
-        if not len(sub):
-            continue
-        s = 100 * (sub.base - sub.production).groupby(sub.time_step).sum() / sub.base.groupby(sub.time_step).sum()
+        if code == "IDX":
+            from matched_estimand_2018 import _series
+            s = _series(run)[0]
+        else:
+            sub = de[de.sector == code]
+            if not len(sub):
+                continue
+            s = 100 * (sub.base - sub.production).groupby(sub.time_step).sum() / sub.base.groupby(sub.time_step).sum()
         mo, _ = monthly_from_weekly(s, FIRST[2026], months)
         rows.append(f"{lab} & " + " & ".join(f"{mo[m]:.1f}" for m in months) + f" & {sum(mo.values()):.1f} \\\\")
     (out / "si_prospective_sectors.tex").write_text(r"""\begin{table}[tbp]
@@ -583,6 +588,66 @@ def cross_table(out: Path):
 """, encoding="utf-8")
 
 
+def rail_weeks_table(out: Path):
+    """The bounded substitution by rail week by week (review of 12 Oct, OR3): the cut bulk that found an eligible rail route
+    (offered) and the tonnage placed under each ceiling, from the logs of the four rail runs."""
+    def weeks(run: str) -> dict:
+        p = RUNS / f"{run}.log"
+        if not p.exists():
+            return {}
+        out = {}
+        for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
+            m = re.search(r"Capacity gate t=(\d+):.*relief ([\d,]+) t of ([\d,]+) t offered", line)
+            if m:
+                out[int(m.group(1))] = (float(m.group(2).replace(",", "")) / 1e3, float(m.group(3).replace(",", "")) / 1e3)
+        return out
+    runs = {k: weeks(k) for k in ("2026_rev_rail50", "2026_rev_rail140", "2018_rev_rail50", "2018_rev_rail140")}
+    if not all(runs.values()):
+        raise FileNotFoundError("rail run logs")
+    ceilings = {"2026_rev_rail50": 50, "2026_rev_rail140": 140, "2018_rev_rail50": 50, "2018_rev_rail140": 140}
+    prof = {"2026": 23, "2018": 22}
+    counts = {}
+    for k, w in runs.items():
+        yr = k[:4]
+        binds_prof = sum(1 for t, (pl, of) in w.items() if t <= prof[yr] and of > 0 and pl >= ceilings[k] - 0.5)
+        offer_prof = sum(1 for t, (pl, of) in w.items() if t <= prof[yr] and of > 0)
+        binds_rec = sum(1 for t, (pl, of) in w.items() if t > prof[yr] and of > 0 and pl >= ceilings[k] - 0.5)
+        offer_rec = sum(1 for t, (pl, of) in w.items() if t > prof[yr] and of > 0)
+        counts[k] = (binds_prof, offer_prof, binds_rec, offer_rec)
+    tmax = max(max(w) for w in runs.values())
+    rows = []
+    for t in range(1, tmax + 1):
+        vals = []
+        for k in ("2026_rev_rail50", "2026_rev_rail140", "2018_rev_rail50", "2018_rev_rail140"):
+            pl, of = runs[k].get(t, (0.0, 0.0))
+            vals.append(f"{of:.0f} & {pl:.0f}" if of > 0 else "--- & ---")
+        if all(v.startswith("---") for v in vals):
+            continue
+        rows.append(f"{t} & " + " & ".join(vals) + " " + BS * 2)
+    cap = (f"The 50 kt ceiling binds (the placed tonnage reaches the ceiling) in {counts['2026_rev_rail50'][0]} of the {prof['2026']} profile weeks of 2026 "
+           f"and {counts['2018_rev_rail50'][0]} of the {prof['2018']} of 2018, and in {counts['2026_rev_rail50'][2]} and {counts['2018_rev_rail50'][2]} of the recovery weeks in which bulk is still cut; "
+           f"the 140 kt ceiling in {counts['2026_rev_rail140'][0]} and {counts['2018_rev_rail140'][0]} profile weeks and {counts['2026_rev_rail140'][2]} and {counts['2018_rev_rail140'][2]} recovery weeks.")
+    (out / "si_rail_weeks.tex").write_text(r"""\begingroup\footnotesize
+\begin{longtable}{rrrrrrrrr}
+\caption{\textbf{The bounded substitution by rail, week by week.} For each run week of the four rail runs (Supplementary Table~\ref{tab:revision}): the cut bulk that found an eligible rail route (offered, kt) and the tonnage placed under the ceiling (placed, kt), from the runs' logs; a dash is a week without a cut. The offered tonnage differs between the two ceilings of an event because the runs differ. """ + cap + r"""}
+\label{tab:railweeks} \\
+\toprule
+ & \multicolumn{2}{c}{2026, 50 kt} & \multicolumn{2}{c}{2026, 140 kt} & \multicolumn{2}{c}{2018, 50 kt} & \multicolumn{2}{c}{2018, 140 kt} \\
+week & offered & placed & offered & placed & offered & placed & offered & placed \\
+\midrule
+\endfirsthead
+\toprule
+week & offered & placed & offered & placed & offered & placed & offered & placed \\
+\midrule
+\endhead
+""" + "\n".join(rows) + r"""
+\bottomrule
+\end{longtable}
+\endgroup
+""", encoding="utf-8")
+    print("  rail weeks:", counts)
+
+
 def revision_table(out: Path):
     """The sensitivities of the revision (jobs_20261007_rev.txt) against the reference runs (review of 5 Oct 2026)."""
     m = table(AD / "compare_runs_batch_jobs_20261007_main.csv"); r = table(AD / "compare_runs_batch_jobs_20261007_rev.csv")
@@ -631,7 +696,7 @@ def revision_table(out: Path):
 def main(overleaf: Path):
     out = overleaf / "tables"; out.mkdir(exist_ok=True)
     for fn in (rates_table, stocks_table, criticality_table, thresholds_table, loading_table, forecast_table,
-               runs_table, representations_table, channels_table, gate_table, prospective_table, prospective_sectors_table, revision_table, cross_table):
+               runs_table, representations_table, channels_table, gate_table, prospective_table, prospective_sectors_table, revision_table, cross_table, rail_weeks_table):
         try:
             fn(out)
         except FileNotFoundError as e:      # a table whose runs are not extracted yet keeps its previous version
