@@ -235,7 +235,34 @@ def _git_sha() -> str | None:
         return out.decode().strip()
     except (FileNotFoundError, subprocess.CalledProcessError,
             subprocess.TimeoutExpired):
-        return None
+        return _git_sha_from_files()
+
+
+def _git_sha_from_files() -> str | None:
+    """HEAD read from the .git folder itself (the cluster jobs have no git binary on their PATH, which left
+    git_sha null in every run fingerprint to 12 Oct 2026)."""
+    here = Path(__file__).resolve()
+    for parent in [here] + list(here.parents):
+        git_dir = parent / ".git"
+        if git_dir.is_dir():
+            try:
+                head = (git_dir / "HEAD").read_text().strip()
+                if not head.startswith("ref:"):
+                    return head
+                ref = head.split(":", 1)[1].strip()
+                ref_file = git_dir / ref
+                if ref_file.exists():
+                    return ref_file.read_text().strip()
+                packed = git_dir / "packed-refs"
+                if packed.exists():
+                    for line in packed.read_text().splitlines():
+                        parts = line.split()
+                        if len(parts) == 2 and parts[1] == ref:
+                            return parts[0]
+            except OSError:
+                return None
+            return None
+    return None
 
 
 def _path_str(value) -> str | None:
