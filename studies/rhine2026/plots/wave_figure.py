@@ -81,8 +81,8 @@ def main(out: Path):
                     label="sequence costs less")
     ax.plot(dates, season / wk, color=INK, linewidth=2.2, label="2026 season (A then B)")
     ax.plot(dates, total, color=MUTED, linewidth=1.3, linestyle="--", label="A alone + B alone")
-    ax.plot(dates, a / wk, color=BLUE, linewidth=1.5, label="first wave alone (A, to 30 Aug)")
-    ax.plot(dates, b_shift / wk, color=GREEN, linewidth=1.5, label="second wave alone (B, from 31 Aug)")
+    ax.plot(dates, a / wk, color=BLUE, linewidth=1.5, label="first episode alone (A, to 30 Aug)")
+    ax.plot(dates, b_shift / wk, color=GREEN, linewidth=1.5, label="second episode alone (B, from 31 Aug)")
     ax.axvline(FIRST + pd.Timedelta(weeks=SPLIT), color=MUTED, linewidth=0.8, linestyle=":")
     ax.set_ylabel("German loss (% of a week)", color=MUTED, fontsize=8)
     ax.set_ylim(0, 3.2)
@@ -90,7 +90,7 @@ def main(out: Path):
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%d %b"))
     ax.set_xlim(FIRST - pd.Timedelta(weeks=1), FIRST + pd.Timedelta(weeks=28))
     ax.legend(frameon=False, fontsize=7, loc="upper left")
-    ax.set_title("a  Two troughs, alone and in sequence", loc="left", fontsize=9.5, color=INK)
+    ax.set_title("a  Two episodes, alone and in sequence", loc="left", fontsize=9.5, color=INK)
 
     ax = axes[1]; style(ax)
     gaps = [0, 1, 2, 4, 8]
@@ -117,7 +117,7 @@ def main(out: Path):
     ax.axhline(f, color=GREEN, linewidth=1.0, linestyle=":")
     ax.text(8.0, f + 0.012, f"flat profile, same capacity shortfall: {f:.2f}", color=GREEN, fontsize=7.5, ha="right", va="bottom")
     ax.set_xticks(gaps)
-    ax.set_xlabel("weeks of normal water between the two troughs", color=MUTED, fontsize=8)
+    ax.set_xlabel("weeks of normal water between the two episodes", color=MUTED, fontsize=8)
     ax.set_ylabel("German loss (% of a quarter)", color=MUTED, fontsize=8)
     ax.set_ylim(0.88, 1.85)
     ax.set_title("b  The interaction, by gap and refill time", loc="left", fontsize=9.5, color=INK)

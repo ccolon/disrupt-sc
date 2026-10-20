@@ -102,10 +102,10 @@ def main(runs: Path, out: Path):
     x = np.arange(len(MONTHS))
     band = np.array([[s[mo] for mo in MONTHS] for s in seeds])
     ax.fill_between(x, band.min(axis=0), band.max(axis=0), color=BLUE, alpha=0.13, linewidth=0, label="ten further networks (range)")
-    ax.fill_between(x, REC16, REC84, color=GREEN, alpha=0.2, linewidth=0, label="econometric record, 16–84 % band")
+    ax.fill_between(x, REC16, REC84, color=GREEN, alpha=0.2, linewidth=0, label="statistical benchmark, ±1 s.d. band")
     ax.plot(x, REC, color=GREEN, linewidth=1.5, marker="s", markersize=4)
     ax.plot(x, [ref[mo] for mo in MONTHS], color=INK, linewidth=2.2, marker="o", markersize=5, label="model, reference network")
-    ax.plot(x, PRICED_X1, color=ORANGE, linewidth=1.3, linestyle="--", marker="o", markersize=3.5, label="priced river with closures")
+    ax.plot(x, PRICED_X1, color=ORANGE, linewidth=1.3, linestyle="--", marker="o", markersize=3.5, label="alternative river (surcharge, closures)")
     ax.set_xticks(x); ax.set_xticklabels(list(MONTHS), fontsize=8)
     ax.set_ylabel("German industrial production, shortfall (%)", color=MUTED, fontsize=8)
     ax.set_ylim(0, 3.0)
@@ -116,11 +116,11 @@ def main(runs: Path, out: Path):
     ax = axes[0, 1]; style(ax)
     ax.axhspan(rec_s["p16"], rec_s["p84"], color=GREEN, alpha=0.2, linewidth=0)
     ax.axhline(rec_s["integral"], color=GREEN, linewidth=1.2)
-    ax.text(0.82, rec_s["p84"] + 0.15, f"record {rec_s['integral']:.1f} (16–84 % band {rec_s['p16']:.1f}–{rec_s['p84']:.1f})",
+    ax.text(0.82, rec_s["p84"] + 0.15, f"benchmark {rec_s['integral']:.1f} (±1 s.d. band {rec_s['p16']:.1f}–{rec_s['p84']:.1f})",
             color=GREEN, fontsize=7.5, ha="left", va="bottom")
     gate = {1.0: ref["integral"], **INT_GATE}
-    ax.plot(list(gate), list(gate.values()), color=INK, linewidth=1.8, marker="o", markersize=5, label="model, by stock multiplier")
-    ax.plot(list(INT_PRICED), list(INT_PRICED.values()), color=ORANGE, linewidth=1.3, linestyle="--", marker="o", markersize=4, label="priced river with closures")
+    ax.plot(list(gate), list(gate.values()), color=INK, linewidth=1.8, marker="o", markersize=5, label="model")
+    ax.plot(list(INT_PRICED), list(INT_PRICED.values()), color=ORANGE, linewidth=1.3, linestyle="--", marker="o", markersize=4, label="alternative river")
     for mm, v in gate.items():
         ax.annotate(f"{v:.1f}", (mm, v), textcoords="offset points", xytext=(5, 5) if mm in (1.0, 2.0) else (4, -11), fontsize=7.5, color=INK)
     ints = [s["integral"] for s in seeds]
@@ -132,11 +132,11 @@ def main(runs: Path, out: Path):
     ax.text(1.03, sup2["integral"], f"two suppliers: {sup2['integral']:.1f}", fontsize=7, color=INK, va="center")
     ax.set_xticks([1.0, 1.25, 1.5, 2.0]); ax.set_xticklabels(["×1\n(statistics)", "×1.25", "×1.5", "×2"], fontsize=8)
     ax.set_xlim(0.8, 2.1)
-    ax.set_xlabel("stock multiplier (×1 = balance-sheet statistics)", color=MUTED, fontsize=8)
+    ax.set_xlabel("inventory multiplier (×1 = balance-sheet statistics)", color=MUTED, fontsize=8)
     ax.set_ylabel("industrial shortfall, Aug–Dec 2018 (percent-months)", color=MUTED, fontsize=8)
     ax.set_ylim(0, 8.2)
-    ax.legend(frameon=True, framealpha=0.9, edgecolor="none", fontsize=7.5, loc="center right")
-    ax.set_title("b  Size of the loss: stocks, loading curve, suppliers", loc="left", fontsize=9.5, color=INK)
+    ax.legend(frameon=True, framealpha=0.9, edgecolor="none", fontsize=7, loc="upper right", bbox_to_anchor=(1.0, 0.62))
+    ax.set_title("b  Size of the loss: inventories, loading curve, suppliers", loc="left", fontsize=9.5, color=INK)
 
     # (c) weekly 2018 loss with the band
     ax = axes[1, 0]; style(ax)
@@ -155,7 +155,7 @@ def main(runs: Path, out: Path):
     ax.text(pd.Timestamp("2018-10-20"), top * 0.97, "force majeure, 22 Oct", color=ORANGE, fontsize=7, ha="right", va="top", rotation=90)
     ax.text(pd.Timestamp("2018-10-13"), top * 0.97, "fuel-reserve release, 24–26 Oct", color=ORANGE, fontsize=7, ha="right", va="top", rotation=90)
     ax.axvspan(pd.Timestamp("2018-11-01"), pd.Timestamp("2018-11-30"), color=ORANGE, alpha=0.08, linewidth=0)
-    ax.text(pd.Timestamp("2018-12-02"), top * 0.97, "production trough:\nNovember", color=ORANGE, fontsize=7.5, ha="left", va="top")
+    ax.text(pd.Timestamp("2018-12-02"), top * 0.97, "deepest month of\nproduction: November", color=ORANGE, fontsize=7.5, ha="left", va="top")
     ax.set_ylabel("German loss, all sectors (% of a week)", color=MUTED, fontsize=8)
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%d %b"))
     ax.set_xlim(pd.Timestamp("2018-07-16"), pd.Timestamp("2019-01-07"))

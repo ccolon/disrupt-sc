@@ -352,7 +352,7 @@ def runs_table(out: Path):
     rows = "\n".join(f"{tex(r)} & {v['DEU_%quarter']:.2f} & {v['DEU_peak_%week']:.2f} & {int(v['DEU_peak_week'])} & {v['EU_cum_mUSD'] / 1e3:.1f} & {v['cons_loss_cum_mUSD'] / 1e3:.1f} \\\\"
                      for r, v in t[cols].iterrows())
     (out / "si_runs.tex").write_text(r"""\begin{longtable}{lrrrrr}
-\caption{\textbf{Every run of the batches of 7 and 9 October 2026.} German value-added loss as a share of a quarter, its peak (share of a week's value added, run week), the EU loss and the household consumption loss (billion USD). The four job lists of 7 October 2026 (\texttt{cluster/jobs\_20261007\_*.txt}), all on the loading curve rebuilt on 6 October: the paper set (36 runs), the paired levers (60), the sensitivities of the revision (16) and the stock ladder (3). Names: \texttt{2026\_s07\_*} and \texttt{2018\_s07\_*} the two events on the reference network and their variants (\texttt{s07} for the batch of 7 October; the batch of 30 September on the earlier table carried \texttt{s30}); \texttt{seedN} the further networks; \texttt{wave07\_*} the wave-isolation profiles; \texttt{seedN\_<lever>} a lever paired with the base of the same draw; \texttt{rev\_*} the sensitivities of the revision; \texttt{s07\_invNNN} the stock ladder; \texttt{rev\_rail50\_<lever>} a lever under the 50 kt rail ceiling and \texttt{wave09\_*\_rest15} the wave-isolation profiles at a 15-day refill time (the batch of 9 October, \texttt{jobs\_20261009\_cross.txt}).}
+\caption{\textbf{Every run of the batches of 7 and 9 October 2026.} German value-added loss as a share of a quarter, its peak (share of a week's value added, run week), the EU loss and the household consumption loss (billion USD). The four job lists of 7 October 2026 (\texttt{cluster/jobs\_20261007\_*.txt}), all on the loading curve rebuilt on 6 October: the paper set (36 runs), the paired levers (60), the sensitivities of the revision (16) and the inventory ladder (3). Names: \texttt{2026\_s07\_*} and \texttt{2018\_s07\_*} the two events on the reference network and their variants (\texttt{s07} for the batch of 7 October; the batch of 30 September on the earlier table carried \texttt{s30}); \texttt{seedN} the further networks; \texttt{wave07\_*} the wave-isolation profiles; \texttt{seedN\_<lever>} a lever paired with the base of the same draw; \texttt{rev\_*} the sensitivities of the revision; \texttt{s07\_invNNN} the inventory ladder; \texttt{rev\_rail50\_<lever>} a lever under the 50 kt rail ceiling and \texttt{wave09\_*\_rest15} the wave-isolation profiles at a 15-day refill time (the batch of 9 October, \texttt{jobs\_20261009\_cross.txt}).}
 \label{tab:runs} \\
 \toprule
 run & DEU (\% of a quarter) & peak (\% of a week) & peak week & EU (bn) & consumption (bn) \\
@@ -382,11 +382,11 @@ def representations_table(out: Path):
     from benchmark_ademmer import record, EVENT_MONTHS
     t, s = record(2018, 1)
     ev = t[t.month.isin(EVENT_MONTHS[2018])]
-    rows = ["record, published specification (central) & " + " & ".join(f"{v:.2f}" for v in ev.central) + f" & {s['integral']:.2f} \\\\",
-            "record, 16--84\\,\\% band & " + " & ".join(f"{a:.2f}--{b:.2f}" for a, b in zip(ev.p16, ev.p84)) + f" & {s['p16']:.2f}--{s['p84']:.2f} \\\\"]
+    rows = ["benchmark, published specification (central) & " + " & ".join(f"{v:.2f}" for v in ev.central) + f" & {s['integral']:.2f} \\\\",
+            "benchmark, one-standard-deviation band (16--84\\,\\%) & " + " & ".join(f"{a:.2f}--{b:.2f}" for a, b in zip(ev.p16, ev.p84)) + f" & {s['p16']:.2f}--{s['p84']:.2f} \\\\"]
     t3, s3 = record(2018, 3, draws=1)
     ev3 = t3[t3.month.isin(EVENT_MONTHS[2018])]
-    rows.append("record, contemporaneous term only & " + " & ".join(f"{v:.2f}" for v in ev3.central) + f" & {s3['integral']:.2f} \\\\")
+    rows.append("benchmark, contemporaneous term only & " + " & ".join(f"{v:.2f}" for v in ev3.central) + f" & {s3['integral']:.2f} \\\\")
     rows.append(r"\midrule")
     for key, lab in order:
         if key in lines:
@@ -394,7 +394,7 @@ def representations_table(out: Path):
             rows.append(f"{lab} & " + " & ".join(v[:5]) + f" & {v[5]} \\\\")
     (out / "si_representations.tex").write_text(r"""\begin{table}[tbp]
 \centering\small
-\caption{\textbf{Two representations of the river on the 2018 record.} Monthly shortfall of German industrial production (\%; the production-index measure, each sector's shortfall rate weighted by its German value added, sections B--D), August to December 2018, and its integral (percent-months, the plain sum of the months). The record is the dynamic counterfactual of the published specification (ref.~\citep{ademmer2023}; Table~2, column 1, of the working paper) on the low-water days of the daily gauge record, with the 16--84\,\% band of a Monte Carlo over its coefficients and, for comparison, the contemporaneous-only specification (column 3). The model rows are the capacity limit with the surcharge at four stock levels and the priced river with closures at three; runs of 22--28 September 2026 on the reference network, the industrial path unchanged by the later treatment of construction as a non-storable input. Each month of a model row is the mean of its days, every day carrying the value of the model week it belongs to.}
+\caption{\textbf{Two representations of the river on the 2018 benchmark.} Monthly shortfall of German industrial production (\%; the production-index measure, each sector's shortfall rate weighted by its German value added, sections B--D), August to December 2018, and its integral (percent-months, the plain sum of the months). The benchmark is the production path implied by the published regression (ref.~\citep{ademmer2023}; Table~2, column 1, of the working paper) on the low-water days of the daily gauge record, with the 16--84\,\% band of a Monte Carlo over its coefficients and, for comparison, the contemporaneous-only specification (column 3). The model rows are the capacity limit with the surcharge at four inventory levels and the priced river with closures at three; runs of 22--28 September 2026 on the reference network, the industrial path unchanged by the later treatment of construction as a non-storable input. Each month of a model row is the mean of its days, every day carrying the value of the model week it belongs to.}
 \label{tab:representations}
 \begin{tabular}{lrrrrrr}
 \toprule
@@ -461,7 +461,7 @@ def gate_table(out: Path):
         rows.append(f"{t} & {r.week_start} & {tex(r.status)} & {float(r.kaub_cm):.1f} & {lf(float(r.kaub_cm)):.2f} & {cut / 1e3:.0f} & {resent / 1e3:.0f} & {blocked / 1e3:.0f} \\\\")
     (out / "si_gate.tex").write_text(r"""\begingroup\footnotesize
 \begin{longtable}{rllrrrrr}
-\caption{\textbf{The gate week by week, 2026 reference run.} For each profile week: the status of the gauge, its weekly mean (cm), the loading share of the loading curve, and the tonnage (kt) that the gates of the Rhine chain cut, re-sent on another route and withheld (returned to the supplier's stock), from the run's log. The cut tonnage is the offered load above capacity; the withheld tonnage is what found no acceptable route. The baseline flow at Kaub is 1,036 kt a week. """ + horizon + r"""}
+\caption{\textbf{The gate week by week, 2026 reference run.} For each profile week: the status of the gauge, its weekly mean (cm), the loading share of the loading curve, and the tonnage (kt) that the gates of the Rhine chain cut, re-sent on another route and withheld (returned to the supplier's inventory), from the run's log. The cut tonnage is the offered load above capacity; the withheld tonnage is what found no acceptable route. The baseline flow at Kaub is 1,036 kt a week. """ + horizon + r"""}
 \label{tab:gate} \\
 \toprule
 week & start & status & Kaub & loading share & cut & re-sent & withheld \\
@@ -651,6 +651,9 @@ week & offered & placed & offered & placed & offered & placed & offered & placed
 def revision_table(out: Path):
     """The sensitivities of the revision (jobs_20261007_rev.txt) against the reference runs (review of 5 Oct 2026)."""
     m = table(AD / "compare_runs_batch_jobs_20261007_main.csv"); r = table(AD / "compare_runs_batch_jobs_20261007_rev.csv")
+    nr = AD / "compare_runs_batch_jobs_20261020_norail.csv"
+    if nr.exists():
+        r = pd.concat([r, table(nr)])
     rows = []
     for run, lab, base in (
         ("2026_rev_rail50", "bounded substitution by rail, 50 kt a week (review OR2)", "2026_s07_base"),
@@ -669,6 +672,8 @@ def revision_table(out: Path):
         ("2026_rev_serv45", "45-day coping duration for the non-storable inputs (E4)", "2026_s07_base"),
         ("2026_rev_q25", "outlook's 25th percentile path (NS4)", "2026_s07_base"),
         ("2026_rev_q75", "outlook's 75th percentile path", "2026_s07_base"),
+        ("2026_rev_norail", "no rail alternative for any bulk shipment (line-haul threshold 500\\,km; 20 Oct)", "2026_s07_base"),
+        ("2018_rev_norail", "2018: no rail alternative for any bulk shipment", "2018_s07_base"),
     ):
         if run not in r.index:
             continue

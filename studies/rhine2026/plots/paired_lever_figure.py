@@ -25,8 +25,8 @@ HERE = Path(__file__).resolve().parents[1]
 AD = HERE / "additional_data"
 INK, MUTED, GRID = "#1f2328", "#6e7781", "#e6e8eb"
 BLUE, ORANGE, GREEN, PINK, TEAL = "#2f6fdb", "#e0842a", "#3a9a5b", "#d1519a", "#2aa7a0"
-LEVERS = [("package", "all three together"), ("stock7", "stocks +7 days, all buyers"),
-          ("deep20", "fairway +20 cm"), ("stock7t", "stocks +7 days, barge-dependent buyers"),
+LEVERS = [("package", "all three together"), ("stock7", "inventories +7 days, all buyers"),
+          ("deep20", "fairway +20 cm"), ("stock7t", "inventories +7 days, barge-dependent buyers"),
           ("fleet", "low-water fleet")]
 COLORS = {"package": ORANGE, "stock7": TEAL, "deep20": GREEN, "stock7t": PINK, "fleet": BLUE}
 

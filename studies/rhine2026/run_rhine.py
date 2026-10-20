@@ -407,13 +407,18 @@ def main():
                     help="bounded substitution (6 Oct 2026, review OR2): tonnes per week of cut bulk that may complete a "
                          "modal switch to rail after the gate, allocated pro rata (0 or absent = the paper's rule). Anchors: "
                          "about 50 kt = DB Cargo's 400 wagons at short notice (two rotations a week, 60 t net), about 140 kt = "
-                         "the +0.07 % of rail tonnage per low-water day of Ademmer et al. (Appendix B) in a full low-water month")
+                         "the +0.07 %% of rail tonnage per low-water day of Ademmer et al. (Appendix B) in a full low-water month")
     ap.add_argument("--bulk-relief-penalty", type=float, default=0.15,
                     help="switching penalty of the relief switch, fraction of the normal freight bill (the container value)")
     ap.add_argument("--gauge-offset-scope", default="all", choices=["all", "kaub"],
                     help="where --gauge-offset acts: 'all' = every reach's surcharge and the Kaub capacity see the shifted gauge "
                          "(the paper's fairway lever); 'kaub' = the Kaub reach's capacity and surcharge only, the other reaches "
                          "at the observed gauge (the local-reach case, review NS3)")
+    ap.add_argument("--line-haul-km", type=float, default=None,
+                    help="switching rule: a mode counts as a main leg of the normal route when it carries at least this many km "
+                         "(config 100); 500 makes every rail bypass of Kaub a switch of mode, prohibitive for bulk (no-rail runs, 20 Oct 2026)")
+    ap.add_argument("--access-km", type=float, default=None,
+                    help="switching rule: the extra km allowed on a mode that only served access in the normal route (config 50)")
     ap.add_argument("--restoration-days", type=float, default=None,
                     help="inventory_restoration_time in days (the refill of a stock gap; config 30): sensitivity (review OR4)")
     ap.add_argument("--no-early-stop", action="store_true",
@@ -571,6 +576,13 @@ def main():
     if args.restoration_days is not None:
         config["inventory_restoration_time"] = float(args.restoration_days)
         print(f"inventory restoration time {args.restoration_days:g} days (config {load_config(args.scope).get('inventory_restoration_time', 30)})")
+    if args.line_haul_km is not None or args.access_km is not None:
+        sc = config.setdefault("logistics", {}).setdefault("switching_costs", {})
+        if args.line_haul_km is not None:
+            sc["line_haul_km"] = float(args.line_haul_km)
+        if args.access_km is not None:
+            sc["access_km"] = float(args.access_km)
+        print(f"switching rule: line_haul_km {sc.get('line_haul_km')}, access_km {sc.get('access_km')} (switching_costs is outside the cache fingerprint)")
     if args.bulk_relief_tons is not None and args.bulk_relief_tons > 0:
         config.setdefault("logistics", {})["bulk_relief"] = {
             "weekly_tons": float(args.bulk_relief_tons), "cargo_types": ["dry_bulk", "liquid_bulk"],

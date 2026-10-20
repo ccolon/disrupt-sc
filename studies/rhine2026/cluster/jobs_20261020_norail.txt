@@ -1,0 +1,16 @@
+# Rhine 2026 cluster batch (20 Oct 2026): no rail alternative for bulk at all (the realism question of the user's review,
+# 20 Oct). In the paper's rule a bulk shipment whose normal route already carries a main leg by rail (>= 100 km) may go
+# around Kaub by rail at no penalty (the only bypass of the Kaub stretch in the network: 89 km of rail between Koblenz and
+# Mainz); 15 % of the Kaub-crossing bulk orders have such a route, and the surcharge moves them off the river before the
+# cut (21.8 bn USD of bulk over the 2026 run), which is why the surcharge LOWERS the loss (1.64 against 1.82 % with the
+# capacity limit alone). We have no data on the share of the Kaub traffic that travels combined rail-barge, so this pair
+# of runs bounds the effect: the line-haul threshold raised to 500 km makes every rail bypass a switch of mode, which is
+# prohibitive for bulk, so no bulk reroutes (97 % of the cut bulk gives up in the offline classification, Table S-thresholds).
+# line_haul_km lives under switching_costs, which the cache fingerprint ignores: launch with --independent on the shared
+# caches of 2026_s07_base (the code needs the --line-haul-km flag of run_rhine.py, commit of 20 Oct).
+#
+#     bash studies/rhine2026/cluster/launch_rhine_batch.sh --jobs studies/rhine2026/cluster/jobs_20261020_norail.txt --independent
+#     bash studies/rhine2026/cluster/pack_results.sh --jobs studies/rhine2026/cluster/jobs_20261020_norail.txt
+#
+2026_rev_norail          | --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --line-haul-km 500
+2018_rev_norail          | --profile 2018 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --line-haul-km 500
