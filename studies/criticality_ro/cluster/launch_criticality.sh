@@ -19,7 +19,13 @@
 # Tier 2: 15 chunk jobs over the top 150 (duration 4, t_final 6), generated
 #   by the Tier-1 gather job.
 #
-# Usage:  bash launch_criticality.sh [--dry-run] [--tier2] [--only NN,NN] [--no-gather]
+# Usage:  bash launch_criticality.sh [--dry-run] [--tier2] [--only NN,NN] [--no-gather] [--fresh]
+#
+# --fresh removes the existing per-chunk output dirs for the tier BEFORE
+# submitting. Use it after a BASELINE CHANGE (new reference run / config):
+# the resume guard refuses (correctly) to append new-fingerprint results to
+# stale chunk CSVs ("Cannot resume criticality results ... fingerprint
+# differs"). NEVER pass it while chunk jobs of that tier are running.
 #
 set -e
 
@@ -42,17 +48,23 @@ EXPORTS="export DISRUPT_SC_DATA_PATH=${DATA_PATH} && export PYTHONPATH=${SCRIPT_
 CHUNK_DIR="${SCRIPT_DIR}/studies/criticality_ro/chunks"
 GATHER_SH="${SCRIPT_DIR}/studies/criticality_ro/cluster/gather_and_merge.sh"
 
-DRY_RUN=false; TIER2=false; ONLY=""; GATHER=true
+DRY_RUN=false; TIER2=false; ONLY=""; GATHER=true; FRESH=false
 while [[ $# -gt 0 ]]; do
     case $1 in
         --dry-run)   DRY_RUN=true; shift ;;
         --tier2)     TIER2=true; shift ;;
         --only)      ONLY=$2; shift 2 ;;
         --no-gather) GATHER=false; shift ;;
+        --fresh)     FRESH=true; shift ;;
         *) shift ;;
     esac
 done
 $DRY_RUN || mkdir -p "$SLURM_LOG_DIR"
+if $FRESH && ! $DRY_RUN; then
+    PREFIX=$($TIER2 && echo t2 || echo t1)
+    rm -rf "${SCRIPT_DIR}/output/Romania/criticality/${PREFIX}_chunk_"*
+    echo "--fresh: removed stale ${PREFIX}_chunk_* output dirs"
+fi
 
 submit() {   # job time mem dep payload -> job id
     local job=$1 timelimit=$2 mem=$3 dep=$4 payload=$5
