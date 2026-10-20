@@ -139,3 +139,19 @@ Corridor firms (new macros, base run 2026_s07_base): in week 7 (3-9 August, the 
 Code: run_rhine.py takes --line-haul-km and --access-km; make_numbers writes SurchargeBillBn (1.1), SurchargeBillDEUBn (1.0), the Corridor* macros, Abs variants of the 2018 rail macros and the RevNoRail* macros when compare_runs_batch_jobs_20261020_norail.csv exists; si_tables says benchmark and inventory and lists the no-rail rows when their table exists; figures F9 (benchmark, inventory multiplier, legend of panel b moved off the data), F10 (episodes), F4c and F7 (inventories) regenerated. Lint clean (macros, labels, citations, braces). Word counts: abstract 192, introduction 1090, Results 4071, Discussion 1778.
 
 Pending: the no-rail runs; then the compare table fills RevNoRail* and the revision table, and the placeholder todo in the capacity section and the limitation sentence of the Discussion are replaced by the result.
+
+
+## 21 October: the no-rail runs (jobs_20261020_norail.txt)
+
+Both runs used the 500 km main-leg threshold (parameters.yaml: switching_costs.line_haul_km 500.0; the fingerprint records it), so no bulk shipment has a rail alternative around Kaub. Table: additional_data/compare_runs_batch_jobs_20261020_norail.csv (cluster compare_runs, country-sector value-added ratios).
+
+| Run | German loss, % of a quarter | against the base | peak, % of a week (week) | EU loss, bn USD | bulk rerouted over the run, bn USD | bulk blocked, bn USD |
+|---|---:|---:|---:|---:|---:|---:|
+| 2026 base | 1.64 | - | 2.82 (17) | 17.9 | 21.8 | 16.8 |
+| 2026 no rail | 2.02 | +23 % | 3.01 (17) | 21.7 | 18.0 | 19.4 |
+| 2018 base | 0.98 | - | 1.16 (21) | 11.0 | 19.3 | 11.1 |
+| 2018 no rail | 1.29 | +32 % | 1.54 (21) | 14.2 | 17.2 | 13.2 |
+
+Reading: the rail bypass that the rule grants to bulk with a rail main leg is worth about a quarter of the 2026 loss and a third of the 2018 loss; the peak weeks do not move. The rerouted bulk that remains in the no-rail runs (18 bn USD) is same-mode rerouting on the surcharged Lower Rhine and elsewhere, not a Kaub bypass; the Kaub bypass is the difference between the two runs (about 4 bn USD of bulk over the 2026 season, a tenth of what the river turns away).
+
+Where it goes: the capacity section of Results (replaces the placeholder todo), the uncertainty paragraph and the caption of the uncertainty figure (the rail group now shows none / 50 / 140 kt), the limitations paragraph of the Discussion, SI S8 (the exception in the rule stated, the pair of runs reported), Table S-revision (two rows, generated). The user asked on the evening of 20 Oct not to update the Overleaf copy, so the text changes are held in review/pending_patch_norail_20261021.py; numbers.tex and the tables were generated into a staging folder only, F8 regenerated in the study folder only. Macros ready: RevNoRail 2.02, RevNoRailAbs 23, RevNoRailyy 1.29, RevNoRailyyAbs 32.

@@ -55,8 +55,11 @@ def main(out: Path):
     p = table(AD / "compare_runs_batch_jobs_20261007_paired.csv")
     rv = AD / "compare_runs_batch_jobs_20261007_rev.csv"
     r = table(rv) if rv.exists() else pd.DataFrame()
+    nr = AD / "compare_runs_batch_jobs_20261020_norail.csv"  # no rail alternative for any bulk (20 Oct 2026)
+    if nr.exists():
+        r = pd.concat([r, table(nr)])
     q = "DEU_%quarter"
-    fig, axes = plt.subplots(1, 2, figsize=(7.0, 3.4), gridspec_kw={"width_ratios": [1.75, 1]})
+    fig, axes = plt.subplots(1, 2, figsize=(7.0, 3.4), gridspec_kw={"width_ratios": [1.6, 1.0]})
     fig.patch.set_facecolor("white")
     rng = np.random.default_rng(2)
     for ax, year in zip(axes, ("2026", "2018")):
@@ -64,16 +67,20 @@ def main(out: Path):
         base = m.loc[f"{year}_s07_base", q]
         draws = ([p.loc[f"2026_s07_seed{s}_base", q] for s in range(1, 11)] if year == "2026"
                  else [m.loc[f"2018_s07_seed{s}", q] for s in range(1, 11)])
-        groups = [("network\ndraws (11)", draws + [base], BLUE),
-                  ("loading curve\n(±15 %)", [m.loc[f"{year}_s07_tablelow", q], m.loc[f"{year}_s07_tablehigh", q]], GREEN),
+        groups = [("network\ndraws\n(11)", draws + [base], BLUE),
+                  ("loading\ncurve\n(±15 %)", [m.loc[f"{year}_s07_tablelow", q], m.loc[f"{year}_s07_tablehigh", q]], GREEN),
                   ("two\nsuppliers", [m.loc[f"{year}_s07_sup2", q]], PINK),
                   ("no input\npooling", [m.loc[f"{year}_s07_nopool", q]], ORANGE)]
         if year == "2026":
-            groups.append(("one channel\nonly", [m.loc["2026_s07_gateonly", q], m.loc["2026_s07_surchargeonly", q]], MUTED))
+            groups.append(("one\nchannel\nonly", [m.loc["2026_s07_gateonly", q], m.loc["2026_s07_surchargeonly", q]], MUTED))
         if len(r) and f"{year}_rev_rail50" in r.index:
-            groups.append(("rail\n50, 140 kt", [r.loc[f"{year}_rev_rail50", q], r.loc[f"{year}_rev_rail140", q]], PURPLE))
+            rail = [r.loc[f"{year}_rev_rail50", q], r.loc[f"{year}_rev_rail140", q]]
+            if f"{year}_rev_norail" in r.index:
+                groups.append(("rail\nnone, 50,\n140 kt", [r.loc[f"{year}_rev_norail", q]] + rail, PURPLE))
+            else:
+                groups.append(("rail\n50, 140 kt", rail, PURPLE))
         if year == "2026" and len(r) and "2026_rev_rest15" in r.index:
-            groups.append(("refill time\n15, 60 d", [r.loc["2026_rev_rest15", q], r.loc["2026_rev_rest60", q]], TEAL))
+            groups.append(("refill\ntime\n15, 60 d", [r.loc["2026_rev_rest15", q], r.loc["2026_rev_rest60", q]], TEAL))
             groups.append(("service\nrules", [r.loc["2026_rev_serv45", q], r.loc["2026_rev_dfuel0", q]], GOLD))
         ax.axhline(base, color=INK, linewidth=1.2, linestyle="--")
         ax.text(-0.45, base + 0.04, f"reference {base:.2f}", color=INK, fontsize=7.5, ha="left", va="bottom")
@@ -83,14 +90,15 @@ def main(out: Path):
                 ax.scatter([x], [top * 0.97], color=col, marker="^", s=40, zorder=3)
                 ax.annotate(f"{max(vals):.2f} (off scale)", (x, top * 0.97), textcoords="offset points", xytext=(8, -3), fontsize=7.5, color=INK)
                 continue
-            jitter = rng.uniform(-0.12, 0.12, len(vals)) if len(vals) > 2 else np.zeros(len(vals))
+            network = lab.startswith("network")
+            jitter = rng.uniform(-0.12, 0.12, len(vals)) if network else np.zeros(len(vals))
             ax.scatter(x + jitter, vals, color=col, s=26, alpha=0.8, zorder=3)
-            if len(vals) <= 2:
+            if not network:
                 for v in vals:
                     ax.annotate(f"{v:.2f}", (x, v), textcoords="offset points", xytext=(8, -3), fontsize=7.5, color=INK)
             else:
                 ax.text(x + 0.2, float(np.mean(vals)), f"{np.mean(vals):.2f} ± {np.std(vals, ddof=1):.2f}", fontsize=7.5, color=INK, va="center")
-        ax.set_xticks(range(len(groups))); ax.set_xticklabels([g[0] for g in groups], fontsize=7)
+        ax.set_xticks(range(len(groups))); ax.set_xticklabels([g[0] for g in groups], fontsize=6.5, linespacing=1.05)
         ax.set_xlim(-0.5, len(groups) - 0.4)
         ax.set_ylim(0, top)
         ax.set_ylabel("German loss (% of a quarter)", color=MUTED, fontsize=8)
