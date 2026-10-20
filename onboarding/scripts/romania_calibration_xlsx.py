@@ -59,16 +59,32 @@ MODAL_ROWS = [
     ("Liquid bulk - road, % tkm", "21.6", "", None),
     ("Liquid bulk - rail, % tkm", "68.5", "", None),
     ("Liquid bulk - IWW, % tkm", "10.0", "", None),
-    ("All inland - road, % tkm", "72.6", "MODEL BASIS: domestic territorial. Share target caveat: Eurostat road tkm = registered hauliers anywhere", None),
-    ("All inland - rail, % tkm", "14.1", "", None),
-    ("All inland - IWW, % tkm", "13.3", "", None),
-    ("All inland EXCL. transit - road, % tkm", "(72.6)", "model own-trade split, transit removed; NB Eurostat territorial figures DO include real transit", None),
-    ("All inland EXCL. transit - rail, % tkm", "(14.1)", "", None),
-    ("All inland EXCL. transit - IWW, % tkm", "(13.3)", "", None),
+    ("All inland - road, % tkm", "53.7", "tran_hv_frmod 2023 TERRITORIAL (basis fix, p30 reviewer exchange; old mixed-basis target was 72.6/14.1/13.3). MODEL BASIS: domestic territorial", None),
+    ("All inland - rail, % tkm", "24.0", "tran_hv_frmod 2023 (2022: 25.4)", None),
+    ("All inland - IWW, % tkm", "22.3", "tran_hv_frmod 2023 (2022: 20.5)", None),
+    ("All inland EXCL. transit - road, % tkm", "(53.7)", "model own-trade split, transit removed; NB Eurostat territorial figures DO include real transit", None),
+    ("All inland EXCL. transit - rail, % tkm", "(24.0)", "", None),
+    ("All inland EXCL. transit - IWW, % tkm", "(22.3)", "", None),
     ("Rail, bn tkm/yr", "12.65", "Eurostat 2023 level (territorial, incl. real transit)", None),
     ("IWW, bn tkm/yr", "11.96", "Eurostat 2023 level; model includes UA transit riding the Danube", None),
-    ("Road, bn tkm/yr", "(65.2)", "NOT comparable: registered-haulier basis", None),
+    ("Road, bn tkm/yr", "~28.5", "implied territorial: (rail+IWW tkm) x tran_hv_frmod shares = 28.5; the 65.2 nationality figure (registered hauliers anywhere) is NOT comparable; national-only road = 22.3", None),
     ("of which transit, bn tkm/yr (all modes)", "-", "model exogenous UA/MD transit riding the network (tons_cat_transit; runs before 18 Sep lack the column)", None),
+    # per-cargo TERRITORIAL block (20 Oct 2026): tran_hv_frmod has NO goods
+    # dimension, but rail_go_grpgood + iww_go_atygo (both on-territory) give
+    # exact per-cargo rail/IWW levels and the clean 2-mode share; road per
+    # cargo is a band [road_go_na_tgtt national-only -> + on-territory intl]
+    ("Dry bulk - rail, bn tkm/yr (territorial)", "4.7", "rail_go_grpgood 2023, NST GT01-03", None),
+    ("Dry bulk - IWW, bn tkm/yr (territorial)", "8.6", "iww_go_atygo 2023 tra_cov=TOTAL", None),
+    ("Dry bulk - road, bn tkm/yr (territorial)", "5.8-6.0", "band: national-only -> +intl on-territory share", None),
+    ("Dry bulk - rail share of rail+IWW, %", "35.4", "both modes territorial - clean per-cargo share", None),
+    ("Container - rail, bn tkm/yr (territorial)", "4.1", "NST all other groups", None),
+    ("Container - IWW, bn tkm/yr (territorial)", "2.8", "", None),
+    ("Container - road, bn tkm/yr (territorial)", "15.4-21.3", "wide band: RO hauliers' intl work is container-heavy", None),
+    ("Container - rail share of rail+IWW, %", "59.9", "", None),
+    ("Liquid bulk - rail, bn tkm/yr (territorial)", "3.8", "NST GT07", None),
+    ("Liquid bulk - IWW, bn tkm/yr (territorial)", "0.6", "", None),
+    ("Liquid bulk - road, bn tkm/yr (territorial)", "1.1-1.2", "", None),
+    ("Liquid bulk - rail share of rail+IWW, %", "87.3", "", None),
 ]
 
 # (row label, WB data, note, verdict seed, extractor key)
@@ -161,6 +177,19 @@ def compute(run_id: str) -> dict:
     out["Rail, bn tkm/yr"] = round(tkm_all.get("railways", 0.0) * 52 / 1e9, 1)
     out["IWW, bn tkm/yr"] = round(tkm_all.get("waterways", 0.0) * 52 / 1e9, 1)
     out["Road, bn tkm/yr"] = round(tkm_all.get("roads", 0.0) * 52 / 1e9, 1)
+    # per-cargo TERRITORIAL block: domestic inland edges, cargo-type columns
+    for label, ct in (("Dry bulk", "tons_dry_bulk"), ("Container", "tons_container"),
+                      ("Liquid bulk", "tons_liquid_bulk")):
+        dt = inland.groupby("type").apply(
+            lambda g, c=ct: (g[c].fillna(0) * g["km"]).sum(), include_groups=False)
+        rl = dt.get("railways", 0.0) * 52 / 1e9
+        iw = dt.get("waterways", 0.0) * 52 / 1e9
+        rd = dt.get("roads", 0.0) * 52 / 1e9
+        out[f"{label} - rail, bn tkm/yr (territorial)"] = round(rl, 2)
+        out[f"{label} - IWW, bn tkm/yr (territorial)"] = round(iw, 2)
+        out[f"{label} - road, bn tkm/yr (territorial)"] = round(rd, 2)
+        out[f"{label} - rail share of rail+IWW, %"] = (
+            round(100 * rl / (rl + iw), 1) if rl + iw > 0 else 0.0)
 
     # BCP: gazetteer over stitch/bridge edges, plus name-marked crossings
     st = e[(e["class"].astype(str) == "stitch")
@@ -264,8 +293,16 @@ def main() -> int:
         for r in range(ws.max_row, 1, -1):
             if ws.cell(r, 1).value in (None, ""):
                 ws.delete_rows(r)
-        present = {ws.cell(r, 1).value for r in range(2, ws.max_row + 1)}
+        present = {ws.cell(r, 1).value: r for r in range(2, ws.max_row + 1)}
         has_verdict = sheet == "BCP"
+        if not has_verdict:
+            # Target and notes columns are script-owned on the metric sheets:
+            # refresh them so target revisions (e.g. the tran_hv_frmod basis
+            # fix) propagate to an existing workbook
+            for row in sheet_rows[sheet]:
+                if row[0] in present:
+                    ws.cell(present[row[0]], 2, row[1])
+                    ws.cell(present[row[0]], 3, row[2])
         for row in sheet_rows[sheet]:
             if row[0] not in present:
                 line = [row[0], row[1], row[2]] + ([row[3]] if has_verdict else [])
