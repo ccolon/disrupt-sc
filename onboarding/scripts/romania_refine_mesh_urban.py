@@ -10,6 +10,12 @@ Rebuilds (deterministically) the two v7 spatial inputs:
                                     regional_stats / households_fallback) in
                                     the 18 fine counties re-disaggregated on
                                     the urban mesh, 0.1%-of-sector cutoff
+  v23 (20 Oct 2026): the 14 registry goods sectors are instead placed on
+      UAT points in ALL 42 counties, within-county shares = 2024 registry
+      turnover (sources/registry_uat_2024.csv, decisions D7-D11 in
+      romania_registry_2024_join.py); county totals preserved from
+      firms_firmlevel.geojson (v19 2023-sales weights). Counties absent
+      from the UAT file keep their county point (fallback).
 
 Inputs (all in Spatial/sources or Spatial/):
   ROU_adm1.geojson, ROU_adm2.geojson          geoBoundaries gbOpen
@@ -43,6 +49,8 @@ NUTS3_COUNTY = {
 }
 FINE = set(NUTS3_COUNTY.values())
 CUTOFF = 0.001  # refined firm rows below this share of their sector are dropped
+REGISTRY14 = {"B09", "C10T12", "C13T15", "C16", "C17_18", "C21", "C22",
+              "C25", "C26", "C27", "C28", "C302T309", "C31T33", "E"}
 
 
 def norm(s: str) -> str:
@@ -133,9 +141,27 @@ def main() -> None:
     adm1 = gpd.read_file(SRC + "/ROU_adm1.geojson")
     fj = gpd.sjoin(firms, adm1[["shapeName", "geometry"]].rename(columns={"shapeName": "county"}),
                    how="left", predicate="within").drop(columns="index_right")
-    target = fj["source"].isin(["regional_stats", "households_fallback"]) & fj["county"].isin(FINE)
-    keep_f = fj[~target].drop(columns="county")
+
+    # v23: registry goods sectors -> UAT points, within-sector geography fully
+    # from the 2024 registry (incl. the D12 plant overrides); only the
+    # NATIONAL sector total is preserved from the v19 layer (MRIO anchor)
+    uat = pd.read_csv(SRC + "/registry_uat_2024.csv")
+    t_reg = (fj["source"].isin(["regional_stats", "households_fallback"])
+             & fj["sector"].isin(REGISTRY14))
+    target = (fj["source"].isin(["regional_stats", "households_fallback"])
+              & fj["county"].isin(FINE) & ~fj["sector"].isin(REGISTRY14))
+    keep_f = fj[~target & ~t_reg].drop(columns="county")
     rows = []
+    from shapely.geometry import Point
+    for sector, grp in fj[t_reg].groupby("sector"):
+        tot = grp["importance"].sum()
+        u = uat[uat.sector == sector]
+        shares = u["value"] / u["value"].sum()
+        for (_, r), sh in zip(u.iterrows(), shares):
+            rows.append({"region": "ROU", "sector": sector, "importance": tot * sh,
+                         "name": f"{sector}_{r.uat_name}",
+                         "source": "registry_uat", "geometry": Point(r.lon, r.lat)})
+    n_reg = len(rows)
     for (county, sector), grp in fj[target].groupby(["county", "sector"]):
         tot = grp["importance"].sum()
         ub = fine[fine.subregion_adm1 == county]
@@ -144,6 +170,8 @@ def main() -> None:
             rows.append({"region": "ROU", "sector": sector, "importance": tot * sh,
                          "name": f"{sector}_{u.subregion_lau}",
                          "source": "regional_stats_fine", "geometry": u.geometry})
+    print(f"registry_uat rows: {n_reg} (pre-cutoff), population-mesh rows: "
+          f"{len(rows) - n_reg} (pre-cutoff)")
     ref = gpd.GeoDataFrame(rows, crs=firms.crs)
     sec_tot = pd.concat([keep_f, ref]).groupby("sector")["importance"].sum()
     ref = ref[ref.apply(lambda r: r["importance"] >= CUTOFF * sec_tot[r["sector"]], axis=1)]
