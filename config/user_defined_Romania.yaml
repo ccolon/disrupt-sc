@@ -103,8 +103,24 @@ logistics:
     # is the motorway/main-road baseline; lower classes carry PENALTIES
     # (surface, village transits, enforcement). Preserves the rail-vs-road
     # calibration by construction.
-    roads: {attribute: class, motorway: 0.055, trunk: 0.055, primary: 0.058,
-            secondary: 0.066, foreign_skeleton: 0.055, default: 0.055}
+    # v24 FINAL (20 Oct 2026, run 20261020_111601, seed 42): joint refit on
+    # the v23 UAT geography. LADDER: v23 (p.058/s.066/rail.048) Spearman .568,
+    # 39/67 in [0.5,2], |log2| .79, rail 12.0 bn tkm; R1 (p.056/s.062/r.047)
+    # .586/40/.74, rail 12.3; R2=FINAL (p.055/s.060/r.046) .569/42/.73, rail
+    # 12.6 ON TARGET, DN3 0.13->0.68, A2 2.23->1.97, A1 1.37, BCPs stable.
+    # Residuals beyond class costs (speed/VOT within-class): DN73 2.37,
+    # DN1A 0.00, DN7 1.72 - need terrain speeds/congestion, documented p34.
+    # Original rationale:
+    # v24 (20 Oct 2026): CESTRIN-sheet retune on the v23 UAT geography. The
+    # road-level census (p32) shows the model OVER-concentrating on the fast
+    # motorway/trunk corridors (A2 2.23, DN13 2.00, DN73 2.33) while their
+    # SHORTER primary parallels starve (DN3 0.12, DN1A 0.00) - real truck
+    # generalized costs are flatter across classes than ladder v3. Primary/
+    # secondary penalties narrowed; motorway=trunk baseline kept (v12 user
+    # decision). Biled artifact verified GONE on v23 (DJ693 0.5 kt/wk vs A1
+    # Arad leg 81) - the old motivation for big penalties has lapsed.
+    roads: {attribute: class, motorway: 0.055, trunk: 0.055, primary: 0.055,
+            secondary: 0.060, foreign_skeleton: 0.055, default: 0.055}
     # v9: 1520 mm UA/MD rail (class rail_1520) at UZ-tariff level ~half the
     # CFR-calibrated rate - the real reason rail dominates UA export logistics.
     # v19.1 refit on the registry geography (24 Sep 2026): the new firm
@@ -120,7 +136,10 @@ logistics:
     # effective tariff below ~0.05 (and ~0.03 on the Basarabeasca corridor).
     # SET 0.040: matches Ungheni; the corridor's death reproduces its real
     # 2025 collapse (68 -> 10 kt/mo). A 2024-target choice would argue ~0.030.
-    railways: {attribute: class, rail_1520: 0.025, rail_1520_md: 0.040, default: 0.048}
+    # v24: half-revert of the v19.1 notch on the v23 geography - territorial
+    # rail reads 12.0 vs 12.65 bn tkm (-5%); one notch back recovers the level
+    # (v19.1 sensitivity ~0.7 bn tkm per 0.001). 1520 classes untouched.
+    railways: {attribute: class, rail_1520: 0.025, rail_1520_md: 0.040, default: 0.046}
     # v10: per-sector import links enlarged the dry-bulk base and IWW drifted
     # to 48% of dry-bulk tkm (target 41.7); bulk barge rate up one notch.
     # KNIFE EDGE (v10): raising the dry-bulk barge rate to 0.0058+ flips the
