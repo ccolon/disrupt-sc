@@ -164,3 +164,9 @@ runs/
 studies/earthquake/paper/_out/
 studies/earthquake/**/_*.out
 studies/earthquake/**/_*.log
+
+# Romania criticality sweep: results travel by zip download, not git
+# (user preference 21 Oct 2026); t2 chunks are derived on the cluster
+studies/criticality_ro/results/
+studies/criticality_ro/chunks/t2_chunk_*.yaml
+studies/criticality_ro/criticality_t*_results.zip
