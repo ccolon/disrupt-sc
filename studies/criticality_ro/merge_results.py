@@ -55,10 +55,13 @@ def main() -> int:
     for c in ("household_loss", "country_loss"):
         m[c] = pd.to_numeric(m[c], errors="coerce").fillna(0.0)
         # The raw columns carry a large constant offset (the no-disruption
-        # reference: in the smoke test a 9.5 t/wk edge read 37,926.585
-        # household / 17,174.787 country). The per-edge criticality signal
-        # is the DELTA; the minimum across all edges estimates the reference.
-        m[c] = m[c] - m[c].min()
+        # reference). v24 t1 lesson: estimate it with the MEDIAN, not the
+        # minimum - the bulk of edges (negligible-flow closures) sits exactly
+        # at the reference (1,419/1,721 within 0.1), while a single
+        # Braess-type edge read ~13.5 mUSD BELOW it and, as the minimum,
+        # inflated every edge by that amount. Median = reference; small
+        # negatives (noise + the Braess edge) clip to 0.
+        m[c] = (m[c] - m[c].median()).clip(lower=0.0)
     m["total_loss"] = m["household_loss"] + m["country_loss"]
     m["loss_per_kt"] = m["total_loss"] / (m["flow_total_tons"] / 1000).clip(lower=1e-9)
     m["loss_per_km"] = m["total_loss"] / m["km"].clip(lower=1e-3)
