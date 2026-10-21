@@ -25,9 +25,11 @@ echo "gathered ${n} ${PREFIX} chunk CSVs into studies/criticality_ro/results/${P
 
 python "${HERE}/merge_results.py" --prefix "${PREFIX}"
 
-cd "${REPO}"
-git add studies/criticality_ro/results studies/criticality_ro/chunks
-git commit -m "Romania criticality ${PREFIX}: ${n} chunk results gathered + merged (cluster)
-
-Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>" || echo "nothing new to commit"
-echo "results committed on the cluster - push to bring them back to the laptop"
+# Package for download instead of committing (user preference, 21 Oct 2026:
+# results stay OUT of git - and git is not on PATH in batch jobs anyway).
+# Download the zip via the cluster file manager (as for rhine-2026) and
+# extract it at studies/criticality_ro/ on the laptop.
+( cd "${HERE}" && python -m zipfile -c "criticality_${PREFIX}_results.zip" \
+      "results/${PREFIX}_chunks" "results/${PREFIX}_merged" chunks )
+echo "packaged ${HERE}/criticality_${PREFIX}_results.zip - download it via the"
+echo "cluster file manager and extract at studies/criticality_ro/ locally"

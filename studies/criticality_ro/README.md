@@ -32,20 +32,20 @@ PYTHONHASHSEED=0 — deterministic build), then **40 chunk jobs** (afterok,
 **gather job** that collects the chunk CSVs into
 `studies/criticality_ro/results/t1_chunks/`, merges them
 (`results/t1_merged/criticality_ranked.csv` + `criticality_map.geojson`),
-generates `chunks/t2_chunk_*.yaml` (top 150, duration 4) and **commits**.
+generates `chunks/t2_chunk_*.yaml` (top 150, duration 4) and **packages
+everything as `criticality_t1_results.zip`** (results stay out of git;
+git is not on batch-job PATHs anyway).
 
-Then, still on the cluster:
+Collect: download the zip via the cluster file manager (as for
+rhine-2026) and extract it at `studies/criticality_ro/` on the laptop —
+`results/t1_merged/criticality_map.geojson` is the QGIS layer (columns:
+household/country/total loss in mUSD per closure event, loss_per_kt,
+loss_per_km). Then, still on the cluster:
 
 ```bash
-git push                                             # bring tier-1 back
 bash studies/criticality_ro/cluster/launch_criticality.sh --tier2
-# ... 15 jobs + gather (commits results/t2_merged/) ...
-git push
+# ... 15 jobs + gather (packages criticality_t2_results.zip) ...
 ```
-
-On the laptop: `git pull` → `results/t1_merged/criticality_map.geojson`
-is the QGIS layer (columns: household/country/total loss in mUSD per
-closure event, loss_per_kt, loss_per_km).
 
 ## Notes
 
