@@ -199,8 +199,8 @@ def fig_loss_map(run: Path, out: Path):
     edges = gpd.read_file(run / "transport_edges.geojson")
     rh = edges[edges["name"].astype(str).str.startswith("rhine")].to_crs(3035)
     rh.plot(ax=ax, color=SERIES[1], linewidth=1.5, zorder=3)
-    ax.set_xlim(2.4e6, 6.3e6); ax.set_ylim(1.3e6, 5.4e6); ax.set_axis_off()
-    ax.set_title(f"Production loss by NUTS2 region in the worst week (t = {peak}); Rhine chain in orange",
+    ax.set_xlim(3.15e6, 4.75e6); ax.set_ylim(1.95e6, 3.75e6); ax.set_axis_off()   # box crop: France, Germany, Denmark (22 Oct 2026)
+    ax.set_title("(a) Production loss in the peak week, by NUTS2 region (the Rhine in orange)",
                  loc="left", fontsize=10, color=INK)
     finish(fig)
     fig.tight_layout()

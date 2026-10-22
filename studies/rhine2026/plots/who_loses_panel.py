@@ -52,38 +52,37 @@ def main(run: Path, out: Path):
         else:
             net[sec] = gross[sec]
     top = gross.head(10)
-    fig, axes = plt.subplots(1, 2, figsize=(7.0, 3.4), gridspec_kw={"width_ratios": [1.5, 1]})
+    fig, axes = plt.subplots(1, 2, figsize=(7.0, 3.4), gridspec_kw={"width_ratios": [1, 1]})
     fig.patch.set_facecolor("white")
     for ax in axes:
         for s in ("top", "right"):
             ax.spines[s].set_visible(False)
         ax.spines["left"].set_color(MUTED); ax.spines["bottom"].set_color(MUTED)
         ax.tick_params(colors=MUTED, labelsize=8); ax.grid(axis="x", color=GRID, linewidth=0.6); ax.set_axisbelow(True)
-    ax = axes[0]
+    ax = axes[1]
     ys = np.arange(len(top))[::-1]
     # two classifications kept apart (6 Oct 2026, review G3): the NACE group in the label, the catch-up convention in the colour
     GROUP = {"A": "agriculture", "F": "construction"}
     def group(s: str) -> str:
         c = s[:1]
         return GROUP.get(c, "industry" if c in "BCDE" else "services")
-    ax.barh(ys, top.values / 1e3, color=[ORANGE if s[:1] in DEFERRABLE else BLUE for s in top.index], height=0.6, label=None)
-    ax.scatter([net[s] / 1e3 for s in top.index], ys, color=INK, s=16, zorder=3, label="net of the backlog worked off")
-    for y, (s, v) in zip(ys, top.items()):
-        ax.text(v / 1e3 + 0.05, y, f"{100 * v / gross.sum():.0f} %", va="center", fontsize=7.5, color=INK)
-    ax.set_yticks(ys); ax.set_yticklabels([f"{NAMES.get(s, s)} ({group(s)})" for s in top.index], fontsize=7.5)
-    ax.set_xlabel("German loss, billion USD (bars: gross; orange: can catch up, blue: cannot)", color=MUTED, fontsize=7.5)
-    ax.legend(frameon=False, fontsize=7, loc="lower right")
-    ax.set_title("b  German loss by sector, whole event", loc="left", fontsize=9.5, color=INK)
-    ax = axes[1]
+    from matplotlib.patches import Patch
+    from matplotlib.lines import Line2D
+    ax.barh(ys, top.values / 1e3, color=[ORANGE if s[:1] in DEFERRABLE else BLUE for s in top.index], height=0.6)
+    ax.scatter([net[s] / 1e3 for s in top.index], ys, color=INK, s=16, zorder=3)
+    ax.set_yticks(ys); ax.set_yticklabels([NAMES.get(s, s) for s in top.index], fontsize=7.5)
+    ax.set_xlabel("German loss, billion USD", color=MUTED, fontsize=8)
+    ax.legend([Patch(color=ORANGE), Patch(color=BLUE), Line2D([], [], marker="o", color=INK, linestyle="none", markersize=4)],
+              ["gross, can catch up", "gross, cannot catch up", "net of the backlog worked off"], frameon=False, fontsize=7, loc="lower right")
+    ax.set_title("(c) German loss by sector", loc="left", fontsize=9.5, color=INK)
+    ax = axes[0]
     cty = fd.groupby("region").gross.sum().sort_values(ascending=False).head(8)
     ys = np.arange(len(cty))[::-1]
     ax.scatter(cty.values / 1e3, ys, color=GREEN, s=36, zorder=3)
-    for y, v in zip(ys, cty.values):
-        ax.text(v / 1e3 * 1.25, y, f"{v / 1e3:.2f}" if v < 100 else f"{v / 1e3:.1f}", va="center", fontsize=7.5, color=INK)
     ax.set_yticks(ys); ax.set_yticklabels(list(cty.index), fontsize=8)
     ax.set_xscale("log"); ax.set_xlim(0.02, cty.max() / 1e3 * 3)
-    ax.set_xlabel("billion USD (log scale)", color=MUTED, fontsize=7.5)
-    ax.set_title("c  By country", loc="left", fontsize=9.5, color=INK)
+    ax.set_xlabel("value-added loss, billion USD (log scale)", color=MUTED, fontsize=8)
+    ax.set_title("(b) Loss by country", loc="left", fontsize=9.5, color=INK)
     finish(fig)
     fig.tight_layout(w_pad=2.0)
     out.mkdir(parents=True, exist_ok=True)

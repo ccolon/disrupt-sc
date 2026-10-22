@@ -33,6 +33,7 @@ import pandas as pd
 HERE = Path(__file__).resolve().parents[1]
 AD = HERE / "additional_data"
 INK, MUTED, GRID = "#1f2328", "#6e7781", "#e6e8eb"
+GREY = "#9aa0a6"
 BLUE, ORANGE, GREEN = "#2f6fdb", "#e0842a", "#3a9a5b"
 MONTHS = ["Aug", "Sep", "Oct", "Nov", "Dec"]
 import sys
@@ -100,17 +101,20 @@ def main(runs: Path, out: Path):
     # (a) monthly industrial shortfall
     ax = axes[0, 0]; style(ax)
     x = np.arange(len(MONTHS))
-    band = np.array([[s[mo] for mo in MONTHS] for s in seeds])
-    ax.fill_between(x, band.min(axis=0), band.max(axis=0), color=BLUE, alpha=0.13, linewidth=0, label="ten further networks (range)")
-    ax.fill_between(x, REC16, REC84, color=GREEN, alpha=0.2, linewidth=0, label="statistical benchmark, ±1 s.d. band")
-    ax.plot(x, REC, color=GREEN, linewidth=1.5, marker="s", markersize=4)
-    ax.plot(x, [ref[mo] for mo in MONTHS], color=INK, linewidth=2.2, marker="o", markersize=5, label="model, reference network")
-    ax.plot(x, PRICED_X1, color=ORANGE, linewidth=1.3, linestyle="--", marker="o", markersize=3.5, label="alternative river (surcharge, closures)")
+    from matplotlib.legend_handler import HandlerTuple
+    band = np.array([[s[mo] for mo in MONTHS] for s in seeds] + [[ref[mo] for mo in MONTHS]])   # the eleven networks
+    h_rng = ax.fill_between(x, band.min(axis=0), band.max(axis=0), color=GREY, alpha=0.35, linewidth=0)
+    h_iqr = ax.fill_between(x, np.quantile(band, 0.25, axis=0), np.quantile(band, 0.75, axis=0), color=GREY, alpha=0.6, linewidth=0)
+    h_bench = ax.fill_between(x, REC16, REC84, color=GREEN, alpha=0.2, linewidth=0)
+    hb, = ax.plot(x, REC, color=GREEN, linewidth=1.5, marker="s", markersize=4)
+    hm, = ax.plot(x, band.mean(axis=0), color=INK, linewidth=2.2, marker="o", markersize=5)
+    ha, = ax.plot(x, PRICED_X1, color=ORANGE, linewidth=1.3, linestyle="--", marker="o", markersize=3.5)
     ax.set_xticks(x); ax.set_xticklabels(list(MONTHS), fontsize=8)
-    ax.set_ylabel("German industrial production, shortfall (%)", color=MUTED, fontsize=8)
+    ax.set_ylabel("shortfall of industrial production (%)", color=MUTED, fontsize=8)
     ax.set_ylim(0, 3.0)
-    ax.legend(frameon=False, fontsize=7.5, loc="upper left")
-    ax.set_title("a  Industrial production through the 2018 low water", loc="left", fontsize=9.5, color=INK)
+    ax.legend([(h_rng, h_iqr, hm), (h_bench, hb), ha], ["model (mean, interquartile range, range of 11 networks)", "statistical benchmark (±1 s.d. band)", "alternative river (surcharge, closures)"],
+              handler_map={tuple: HandlerTuple(ndivide=1)}, frameon=False, fontsize=7, loc="upper left")
+    ax.set_title("(a) German industrial production, 2018", loc="left", fontsize=9.5, color=INK)
 
     # (b) cumulated shortfall: stocks, loading table, suppliers
     ax = axes[0, 1]; style(ax)
@@ -124,7 +128,8 @@ def main(runs: Path, out: Path):
     for mm, v in gate.items():
         ax.annotate(f"{v:.1f}", (mm, v), textcoords="offset points", xytext=(5, 5) if mm in (1.0, 2.0) else (4, -11), fontsize=7.5, color=INK)
     ints = [s["integral"] for s in seeds]
-    ax.scatter([0.93] * len(ints), ints, color=BLUE, s=14, alpha=0.7, zorder=3, label="ten further networks, ×1")
+    ints = ints + [ref["integral"]]
+    ax.scatter(0.93 + np.random.default_rng(5).uniform(-0.035, 0.035, len(ints)), ints, color=BLUE, s=14, alpha=0.7, zorder=3, label="eleven networks, ×1")
     ax.plot([1.0, 1.0], [high["integral"], low["integral"]], color=GREEN, linewidth=2.5, alpha=0.8, solid_capstyle="round", zorder=2)
     ax.text(1.03, low["integral"], f"loading curve, shortfall ×1.15: {low['integral']:.1f}", fontsize=7, color=GREEN, va="center")
     ax.text(1.03, high["integral"] - 0.42, f"shortfall ×0.85: {high['integral']:.1f}", fontsize=7, color=GREEN, va="top")
@@ -132,11 +137,11 @@ def main(runs: Path, out: Path):
     ax.text(1.03, sup2["integral"], f"two suppliers: {sup2['integral']:.1f}", fontsize=7, color=INK, va="center")
     ax.set_xticks([1.0, 1.25, 1.5, 2.0]); ax.set_xticklabels(["×1\n(statistics)", "×1.25", "×1.5", "×2"], fontsize=8)
     ax.set_xlim(0.8, 2.1)
-    ax.set_xlabel("inventory multiplier (×1 = balance-sheet statistics)", color=MUTED, fontsize=8)
+    ax.set_xlabel("inventory multiplier", color=MUTED, fontsize=8)
     ax.set_ylabel("industrial shortfall, Aug–Dec 2018 (percent-months)", color=MUTED, fontsize=8)
     ax.set_ylim(0, 8.2)
     ax.legend(frameon=True, framealpha=0.9, edgecolor="none", fontsize=7, loc="upper right", bbox_to_anchor=(1.0, 0.62))
-    ax.set_title("b  Size of the loss: inventories, loading curve, suppliers", loc="left", fontsize=9.5, color=INK)
+    ax.set_title("(b) Cumulated shortfall: inventories, loading curve, suppliers", loc="left", fontsize=9.5, color=INK)
 
     # (c) weekly 2018 loss with the band
     ax = axes[1, 0]; style(ax)
@@ -144,23 +149,20 @@ def main(runs: Path, out: Path):
     cols = [f"2018_s07_seed{s}" for s in range(1, 11)]
     first = pd.Timestamp(pd.read_csv(HERE / "scenarios" / "2018.csv")["week_start"].iloc[0])
     dates = [first + pd.Timedelta(weeks=int(t) - 1) for t in ens.index]
-    band = ens[cols] * 13 / Q_DEU
-    ax.fill_between(dates, band.min(axis=1), band.max(axis=1), color=BLUE, alpha=0.15, linewidth=0, label="ten further networks (range)")
-    ax.fill_between(dates, band.quantile(0.25, axis=1), band.quantile(0.75, axis=1), color=BLUE, alpha=0.3, linewidth=0, label="interquartile range")
-    ax.plot(dates, ens["2018_s07_base"] * 13 / Q_DEU, color=INK, linewidth=2, label="reference network")
-    top = float(max(band.max().max(), (ens["2018_s07_base"] * 13 / Q_DEU).max())) * 1.15
+    band = ens[cols + ["2018_s07_base"]] * 13 / Q_DEU                      # the eleven networks
+    c_rng = ax.fill_between(dates, band.min(axis=1), band.max(axis=1), color=GREY, alpha=0.35, linewidth=0)
+    c_iqr = ax.fill_between(dates, band.quantile(0.25, axis=1), band.quantile(0.75, axis=1), color=GREY, alpha=0.6, linewidth=0)
+    cm, = ax.plot(dates, band.mean(axis=1), color=INK, linewidth=2)
+    top = float(band.max().max()) * 1.25
     ax.set_ylim(0, top)
-    for d in ("2018-10-22", "2018-10-25"):
-        ax.axvline(pd.Timestamp(d), color=ORANGE, linewidth=1, linestyle="--")
-    ax.text(pd.Timestamp("2018-10-20"), top * 0.97, "force majeure, 22 Oct", color=ORANGE, fontsize=7, ha="right", va="top", rotation=90)
-    ax.text(pd.Timestamp("2018-10-13"), top * 0.97, "fuel-reserve release, 24–26 Oct", color=ORANGE, fontsize=7, ha="right", va="top", rotation=90)
+    ax.axvspan(pd.Timestamp("2018-10-22"), pd.Timestamp("2018-10-26"), color=ORANGE, alpha=0.25, linewidth=0)
+    ax.text(pd.Timestamp("2018-10-24"), top * 0.98, "22–26 Oct: force majeure,\nfuel-reserve release", color=ORANGE, fontsize=7, ha="center", va="top")
     ax.axvspan(pd.Timestamp("2018-11-01"), pd.Timestamp("2018-11-30"), color=ORANGE, alpha=0.08, linewidth=0)
-    ax.text(pd.Timestamp("2018-12-02"), top * 0.97, "deepest month of\nproduction: November", color=ORANGE, fontsize=7.5, ha="left", va="top")
-    ax.set_ylabel("German loss, all sectors (% of a week)", color=MUTED, fontsize=8)
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%d %b"))
+    ax.text(pd.Timestamp("2018-11-15"), top * 0.80, "November: deepest month\nof industrial production", color=ORANGE, fontsize=7, ha="center", va="top")
+    ax.set_ylabel("weekly national value-added loss (% of a week)", color=MUTED, fontsize=8)
+    ax.xaxis.set_major_locator(mdates.MonthLocator()); ax.xaxis.set_major_formatter(mdates.DateFormatter("%b"))
     ax.set_xlim(pd.Timestamp("2018-07-16"), pd.Timestamp("2019-01-07"))
-    ax.legend(frameon=False, fontsize=7.5, loc="upper left")
-    ax.set_title("c  Weekly loss in 2018 and the observed events", loc="left", fontsize=9.5, color=INK)
+    ax.set_title("(c) Weekly loss in 2018", loc="left", fontsize=9.5, color=INK)
 
     # (d) the two ensembles
     ax = axes[1, 1]; style(ax)
@@ -177,7 +179,7 @@ def main(runs: Path, out: Path):
     ax.set_xlim(-0.5, 1.7)
     ax.set_ylabel("German loss (% of a quarter)", color=MUTED, fontsize=8)
     ax.set_ylim(0, 2.2)
-    ax.set_title("d  Network-to-network spread", loc="left", fontsize=9.5, color=INK)
+    ax.set_title("(d) Network-to-network spread", loc="left", fontsize=9.5, color=INK)
 
     finish(fig)
     fig.tight_layout(h_pad=2.0, w_pad=2.0)

@@ -28,11 +28,9 @@ def patch(path: Path, pairs):
 
 patch(O / "main.tex", [
     # Results, the capacity section: the placeholder todo
-    ("Combined rail--barge transport of bulk exists at the Rhine ports, but we have no data on its share of the Kaub traffic, so this is an assumption of the routing; a pair of runs in which no bulk may use rail at all bounds its effect \\todo{no-rail runs pending: jobs\\_20261020\\_norail.txt}.",
-     "Combined rail--barge transport of bulk exists at the Rhine ports, but we have no data on its share of the Kaub traffic, so this is an assumption of the routing, and a pair of runs in which no bulk may use rail at all bounds its weight: without it the 2026 loss is \\finalbatch{\\RevNoRail}\\,\\% of a quarter, \\finalbatch{\\RevNoRailAbs}\\,\\% more, and the 2018 loss \\RevNoRailyy\\,\\%, \\RevNoRailyyAbs\\,\\% more (Supplementary Table~\\ref{tab:revision})."),
-    # Results, the uncertainty paragraph
-    ("and the rules on substitution by rail, on the refill time of inventories and on the service inputs by as much (Fig.~\\ref{fig:sensitivity}; Supplementary Sections~S4 and S7).",
-     "and the rules on substitution by rail (none for any bulk shipment, or a weekly ceiling for all of them), on the refill time of inventories and on the service inputs by as much (Fig.~\\ref{fig:sensitivity}; Supplementary Sections~S4, S7 and S8)."),
+    ("Combined rail--barge transport of bulk cargo exists at the Rhine ports, but we have no data on its share of the Kaub traffic, so this is an assumption of the routing; a pair of runs in which no bulk may use rail at all bounds its effect \\todo{no-rail runs pending: jobs\\_20261020\\_norail.txt}.",
+     "Combined rail--barge transport of bulk cargo exists at the Rhine ports, but we have no data on its share of the Kaub traffic, so this is an assumption of the routing, and a pair of runs in which no bulk may use rail at all bounds its weight: without it the 2026 loss is \\finalbatch{\\RevNoRail}\\,\\% of a quarter, \\finalbatch{\\RevNoRailAbs}\\,\\% more, and the 2018 loss \\RevNoRailyy\\,\\%, \\RevNoRailyyAbs\\,\\% more (Supplementary Table~\\ref{tab:revision})."),
+    # (the uncertainty paragraph was rewritten by the author on 21 Oct; the rail rule is added there in the comments pass)
     # the caption of the uncertainty figure
     ("substitution by rail at 50 and 140 kt a week, the refill time",
      "substitution by rail (none for any bulk shipment; a ceiling of 50 and 140 kt a week for all of them), the refill time"),

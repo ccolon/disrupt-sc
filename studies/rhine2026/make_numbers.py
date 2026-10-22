@@ -77,6 +77,10 @@ def main(tag: str, overleaf: Path, date_list: str):
     put("AutumnWaveQ", r2(w.loc[12:19].sum() / q26), "autumn trough (weeks 12-19, 7 September - 1 November)")
     e26 = [p.loc[f"2026_{tag}_seed{s}_base", "DEU_%quarter"] for s in range(1, 11)] + [b["DEU_%quarter"]]
     put("EnsMean", r2(np.mean(e26)), "ensemble of 11 supply-chain draws, mean"); put("EnsSd", r2(np.std(e26, ddof=1))); put("EnsMin", r2(min(e26))); put("EnsMax", r2(max(e26)))
+    put("EnsMeanBn", r1(np.mean(e26) * q26 / 1e3), "bn USD, the ensemble mean of the German loss (22 Oct 2026: the headline is the mean over the eleven networks)")
+    eu26 = [p.loc[f"2026_{tag}_seed{s}_base", "EU_cum_mUSD"] for s in range(1, 11)] + [b.EU_cum_mUSD]
+    put("EUlossEnsBn", r1(np.mean(eu26) / 1e3), "bn USD, the 28 economies, mean over the eleven networks")
+    put("DEUnetBn", r1(b.DEU_net_mUSD / 1e3), "bn USD, German net loss (backlog left at the end of the run + the perishable sectors), reference network")
     put("CorridorFirmsBelow", r1(b["firms<99%_peak_%"]), "% of firms below 99 % of baseline output at the peak")
     rec = de[de.sector.str[:1].isin(list("ABCF"))].loss.sum()
     put("PerishableShare", pct(100 * (1 - rec / tot)), "% of the German gross loss in the sectors that cannot catch up (D, E, G-T)")
@@ -169,6 +173,7 @@ def main(tag: str, overleaf: Path, date_list: str):
         name = {"stock7": "Stock", "deep20": "Deep", "fleet": "Fleet", "stock7t": "StockT", "package": "Package"}[lev]
         put(f"Lev{name}", pct(ref), f"{lev}: German gross loss avoided, % of the base, reference draw")
         put(f"Lev{name}Range", f"{pct(min(pairs))}--{pct(max(pairs))}", "range over ten paired draws")
+        put(f"Lev{name}Avg", pct(float(np.mean(pairs + [ref]))), "mean over the eleven networks (reference + ten paired draws)")
         put(f"LevEU{name}", pct(100 * (1 - m.loc[f"2026_{tag}_{lev}", "EU_cum_mUSD"] / b.EU_cum_mUSD)))
     up = sum(p.loc[f"2026_{tag}_seed{s}_fleet", "DEU_peak_%week"] > p.loc[f"2026_{tag}_seed{s}_base", "DEU_peak_%week"] for s in range(1, 11))
     put("FleetPeak", r1(m.loc[f"2026_{tag}_fleet", "DEU_peak_%week"]), f"peak week under the fleet lever, % of a week (base {b['DEU_peak_%week']:.2f}); the peak rises in {up} of 10 further draws")

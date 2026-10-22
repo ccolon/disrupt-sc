@@ -46,7 +46,7 @@ def style(ax):
         ax.spines[s].set_visible(False)
     ax.spines["left"].set_color(MUTED); ax.spines["bottom"].set_color(MUTED)
     ax.tick_params(colors=MUTED, labelsize=8)
-    ax.grid(axis="y", color=GRID, linewidth=0.6)
+    ax.grid(axis="x", color=GRID, linewidth=0.6)
     ax.set_axisbelow(True)
 
 
@@ -59,7 +59,7 @@ def main(out: Path):
     if nr.exists():
         r = pd.concat([r, table(nr)])
     q = "DEU_%quarter"
-    fig, axes = plt.subplots(1, 2, figsize=(7.0, 3.4), gridspec_kw={"width_ratios": [1.6, 1.0]})
+    fig, axes = plt.subplots(1, 2, figsize=(7.0, 3.6), gridspec_kw={"width_ratios": [1.0, 1.0]})
     fig.patch.set_facecolor("white")
     rng = np.random.default_rng(2)
     for ax, year in zip(axes, ("2026", "2018")):
@@ -82,27 +82,25 @@ def main(out: Path):
         if year == "2026" and len(r) and "2026_rev_rest15" in r.index:
             groups.append(("refill\ntime\n15, 60 d", [r.loc["2026_rev_rest15", q], r.loc["2026_rev_rest60", q]], TEAL))
             groups.append(("service\nrules", [r.loc["2026_rev_serv45", q], r.loc["2026_rev_dfuel0", q]], GOLD))
-        ax.axhline(base, color=INK, linewidth=1.2, linestyle="--")
-        ax.text(-0.45, base + 0.04, f"reference {base:.2f}", color=INK, fontsize=7.5, ha="left", va="bottom")
+        ax.axvline(base, color=INK, linewidth=1.2, linestyle="--")
+        ax.text(base + 0.02, -0.5, f"reference {base:.2f}", color=INK, fontsize=7.5, ha="left", va="top")
         top = max(max(v) for lab, v, _ in groups if not lab.startswith("no input")) * 1.22
-        for x, (lab, vals, col) in enumerate(groups):
+        for y, (lab, vals, col) in enumerate(groups):
             if lab.startswith("no input") and max(vals) > top:
-                ax.scatter([x], [top * 0.97], color=col, marker="^", s=40, zorder=3)
-                ax.annotate(f"{max(vals):.2f} (off scale)", (x, top * 0.97), textcoords="offset points", xytext=(8, -3), fontsize=7.5, color=INK)
+                ax.scatter([top * 0.97], [y], color=col, marker=">", s=40, zorder=3)
+                ax.annotate(f"{max(vals):.2f}, off scale", (top * 0.97, y), textcoords="offset points", xytext=(-4, 7), fontsize=7, color=INK, ha="right")
                 continue
             network = lab.startswith("network")
             jitter = rng.uniform(-0.12, 0.12, len(vals)) if network else np.zeros(len(vals))
-            ax.scatter(x + jitter, vals, color=col, s=26, alpha=0.8, zorder=3)
-            if not network:
-                for v in vals:
-                    ax.annotate(f"{v:.2f}", (x, v), textcoords="offset points", xytext=(8, -3), fontsize=7.5, color=INK)
-            else:
-                ax.text(x + 0.2, float(np.mean(vals)), f"{np.mean(vals):.2f} ± {np.std(vals, ddof=1):.2f}", fontsize=7.5, color=INK, va="center")
-        ax.set_xticks(range(len(groups))); ax.set_xticklabels([g[0] for g in groups], fontsize=6.5, linespacing=1.05)
-        ax.set_xlim(-0.5, len(groups) - 0.4)
-        ax.set_ylim(0, top)
-        ax.set_ylabel("German loss (% of a quarter)", color=MUTED, fontsize=8)
-        ax.set_title(("a  " if year == "2026" else "b  ") + (f"{year}: sources of uncertainty" if year == "2026" else f"{year}"), loc="left", fontsize=9, color=INK)
+            ax.scatter(vals, y + jitter, color=col, s=26, alpha=0.8, zorder=3)
+            if network:
+                ax.text(max(vals) + 0.06, y, f"{np.mean(vals):.2f} ± {np.std(vals, ddof=1):.2f}", fontsize=7, color=INK, ha="left", va="center")
+        ax.set_yticks(range(len(groups))); ax.set_yticklabels([g[0].replace("\n", " ") for g in groups], fontsize=7.5)
+        ax.set_ylim(-0.6, len(groups) - 0.3)
+        ax.set_xlim(0, top)
+        ax.invert_yaxis()
+        ax.set_xlabel("German loss (% of a quarter)", color=MUTED, fontsize=8)
+        ax.set_title(("(a) " if year == "2026" else "(b) ") + (f"{year}: sources of uncertainty" if year == "2026" else f"{year}"), loc="left", fontsize=9, color=INK)
     finish(fig)
     fig.tight_layout(w_pad=2.0)
     out.mkdir(parents=True, exist_ok=True)
