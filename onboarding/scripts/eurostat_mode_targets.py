@@ -26,7 +26,7 @@ Caveats (print in any report):
     same target structure (mode shares by commodity + mean hauls).
 
 Usage:
-    python eurostat_mode_targets.py --geo RO [--year 2023] [--out targets.csv]
+    python eurostat_mode_targets.py --geo RO [--year 2023] [--out <data-root>/<Scope>/validation/mode_split_targets_RO_2023.csv]  (the scope validation folder is where these tables live)
                                     [--compare <edges_with_flows.geojson>]
 """
 
