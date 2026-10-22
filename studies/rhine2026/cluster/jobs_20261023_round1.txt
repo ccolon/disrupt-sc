@@ -1,0 +1,30 @@
+# Rhine 2026 cluster batch (23 Oct 2026): RECALIBRATION ROUND 1, eight candidate parameter sets for the baseline flows.
+# Each run is two weeks of the smoke profile on PRIVATE caches (--cache-isolation: the overrides change the routes, so the
+# shared caches of the paper must not be touched; about an hour of build per run, in parallel) with the full export, whose
+# transport_edges_with_flows_0.geojson is scored locally with onboarding/scripts/flow_score.py against the Eurostat ports, the
+# country and NST modal splits, the CCNR Rhine profile and the Destatis basins (EU/validation/). The knobs are the ones that
+# need no new network attribute: rail rate by country (attribute-keyed), waterway rates, the Rhine container costs, the sea
+# tariff and value of time, the port handling fees. Round 2 (with the waterway and port tags carried into the build) follows.
+# Reference point: 2026_s07_flows (jobs_20261023_flows.txt), the paper's model. Dict overrides come from the YAML files of
+# studies/rhine2026/calibration/round1/ (--config-set PATH=@file; the launcher's quoting allows no quotes in a job line).
+#
+#     bash studies/rhine2026/cluster/launch_rhine_batch.sh --jobs studies/rhine2026/cluster/jobs_20261023_round1.txt --independent
+#     bash studies/rhine2026/cluster/pack_results.sh --jobs studies/rhine2026/cluster/jobs_20261023_round1.txt
+#   then, per run:  python onboarding/scripts/flow_score.py EU --run C:/dsc_runs/rhine2026/<name>
+#
+# c01 rail 40 % dearer where the model over-uses it (FR, IT, AT, ES, HU, SI, SK, BG, PL, CZ), one European rate elsewhere
+r1_c01_rail_country      | --profile smoke2w --recovery-weeks 0 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --full-export --cache-isolation --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round1/rail_country.yaml
+# c02 waterways dearer (bulk 0.010 -> 0.013, liquid 0.038 -> 0.045): the canal and Elbe over-use; watch the Rhine profile
+r1_c02_water_up          | --profile smoke2w --recovery-weeks 0 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --full-export --cache-isolation --config-set logistics.basic_cost.waterways=@studies/rhine2026/calibration/round1/water_up.yaml
+# c03 the Rhine containers on the river (the container pair's costs): container rate 0.015, value of time 0.15 on waterways
+r1_c03_container         | --profile smoke2w --recovery-weeks 0 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --full-export --cache-isolation --container-water-cost 0.015 --container-water-vot 0.15
+# c04 short sea dearer (sea tariff 0.0015 -> 0.0025, container value of time at sea 0.15 -> 0.30): intra-EU flows back on land
+r1_c04_sea_up            | --profile smoke2w --recovery-weeks 0 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --full-export --cache-isolation --config-set logistics.basic_cost.maritime=0.0025 --config-set logistics.cost_of_time.container=@studies/rhine2026/calibration/round1/cot_container_sea.yaml
+# c05 port calls dearer (sea-port lift 7 -> 12 USD/t, dwell 24 -> 36 h): the same aim through the terminals
+r1_c05_port_fees         | --profile smoke2w --recovery-weeks 0 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --full-export --cache-isolation --config-set logistics.loading_fees.roads-maritime=12 --config-set logistics.loading_fees.railways-maritime=12 --config-set logistics.dwell_times.roads-maritime=36 --config-set logistics.dwell_times.railways-maritime=36
+# c06 c01 + c02 + c03 together
+r1_c06_combo             | --profile smoke2w --recovery-weeks 0 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --full-export --cache-isolation --container-water-vot 0.15 --config-set logistics.basic_cost.waterways=@studies/rhine2026/calibration/round1/water_up_container.yaml --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round1/rail_country.yaml
+# c07 c06 + c04
+r1_c07_combo_sea         | --profile smoke2w --recovery-weeks 0 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --full-export --cache-isolation --config-set logistics.basic_cost.waterways=@studies/rhine2026/calibration/round1/water_up_container.yaml --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round1/rail_country.yaml --config-set logistics.basic_cost.maritime=0.0025 --config-set logistics.cost_of_time.container=@studies/rhine2026/calibration/round1/cot_container_sea_river.yaml
+# c08 dry bulk by rail cheaper (0.032 -> 0.026): the ore and coal trains that the NL and DE mining splits want
+r1_c08_rail_bulk         | --profile smoke2w --recovery-weeks 0 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --full-export --cache-isolation --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round1/rail_bulk.yaml

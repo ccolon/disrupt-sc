@@ -1,0 +1,11 @@
+# Rhine 2026 cluster batch (23 Oct 2026): the baseline flows of the paper's model, for the flow validation and the
+# recalibration scoring. One short run on the SHARED caches of 2026_s07_base (the paper's network and routes), two weeks of
+# the smoke profile with the full export, whose transport_edges_with_flows_0.geojson is the t = 0 flow assignment that
+# onboarding/scripts/flow_score.py scores (ports, country and NST modal splits, Rhine profile, basins, short sea) and that
+# the SI port table uses. Nothing is calibrated here; it is the reference point of the recalibration rounds.
+#
+#     bash studies/rhine2026/cluster/launch_rhine_batch.sh --jobs studies/rhine2026/cluster/jobs_20261023_flows.txt --independent
+#     bash studies/rhine2026/cluster/pack_results.sh --jobs studies/rhine2026/cluster/jobs_20261023_flows.txt
+#   then score locally:  python onboarding/scripts/flow_score.py EU --run C:/dsc_runs/rhine2026/2026_s07_flows --verbose
+#
+2026_s07_flows           | --profile smoke2w --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 0 --full-export

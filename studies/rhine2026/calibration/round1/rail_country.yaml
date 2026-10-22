@@ -1,0 +1,16 @@
+# logistics.basic_cost.railways, round 1 candidate c01 (23 Oct 2026): rail 40 % dearer in the countries where the baseline
+# over-uses it (Supplementary S2: FR 31 % of inland tkm by rail against 9, IT 29 against 12, AT 58 against 29, ES 19 against 4,
+# HU 52 against 25, SI 52 against 30, SK 46 against 30, BG 67 against 19, PL 42 against 24, CZ 37 against 22); one European
+# rate elsewhere. Keyed on the edge's country_code (the first code of a border edge counts).
+attribute: country_code
+default: {default: 0.032, liquid_bulk: 0.085}
+FR: {default: 0.045, liquid_bulk: 0.12}
+IT: {default: 0.045, liquid_bulk: 0.12}
+AT: {default: 0.045, liquid_bulk: 0.12}
+ES: {default: 0.045, liquid_bulk: 0.12}
+HU: {default: 0.045, liquid_bulk: 0.12}
+SI: {default: 0.045, liquid_bulk: 0.12}
+SK: {default: 0.045, liquid_bulk: 0.12}
+BG: {default: 0.045, liquid_bulk: 0.12}
+PL: {default: 0.045, liquid_bulk: 0.12}
+CZ: {default: 0.045, liquid_bulk: 0.12}

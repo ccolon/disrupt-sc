@@ -1,0 +1,5 @@
+# logistics.basic_cost.railways, round 1 candidate c08 (23 Oct 2026): dry bulk by rail cheaper (0.032 -> 0.026 USD/tkm):
+# the ore and coal trains that the NL and DE mining splits show (NL mining by rail 12 % against 1 % in the model).
+default: 0.032
+dry_bulk: 0.026
+liquid_bulk: 0.085

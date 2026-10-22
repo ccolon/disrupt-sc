@@ -1,0 +1,6 @@
+# logistics.basic_cost.waterways, round 1 candidates c06/c07 (23 Oct 2026): water_up.yaml with the container rate lowered to
+# 0.015 USD/tkm (the Rhine containers on the river; pair with --container-water-vot 0.15).
+default: 0.013
+dry_bulk: 0.013
+liquid_bulk: 0.045
+container: 0.015

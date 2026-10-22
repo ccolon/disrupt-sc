@@ -1,0 +1,6 @@
+# logistics.cost_of_time.container, round 1 candidate c04 (23 Oct 2026): the container value of time at sea doubled (0.15 ->
+# 0.30 USD per ton-hour) so that intra-EU container flows that take short-sea routes in the baseline (Bilbao, Gothenburg) return
+# to land; inland and waterway values unchanged.
+default: 1.0
+maritime: 0.30
+waterways: 0.35

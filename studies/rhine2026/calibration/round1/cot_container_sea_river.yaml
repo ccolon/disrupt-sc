@@ -1,0 +1,5 @@
+# logistics.cost_of_time.container, round 1 candidate c07 (23 Oct 2026): cot_container_sea.yaml with the waterway value of
+# time at 0.15 as well (the Rhine containers on the river; pairs with water_up_container.yaml).
+default: 1.0
+maritime: 0.30
+waterways: 0.15

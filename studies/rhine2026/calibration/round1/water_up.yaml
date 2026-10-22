@@ -1,0 +1,7 @@
+# logistics.basic_cost.waterways, round 1 candidate c02 (23 Oct 2026): waterways 30 % dearer for bulk (0.010 -> 0.013) and
+# 18 % for liquid bulk (0.038 -> 0.045), containers unchanged: the model carries 19 % of German tonne-km by water against 7 %
+# observed and uses the Elbe and the canals at the Rhine's rate. The Rhine profile must stay within the CCNR counts.
+default: 0.013
+dry_bulk: 0.013
+liquid_bulk: 0.045
+container: 0.022

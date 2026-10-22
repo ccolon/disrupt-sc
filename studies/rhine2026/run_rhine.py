@@ -419,6 +419,10 @@ def main():
                          "(config 100); 500 makes every rail bypass of Kaub a switch of mode, prohibitive for bulk (no-rail runs, 20 Oct 2026)")
     ap.add_argument("--access-km", type=float, default=None,
                     help="switching rule: the extra km allowed on a mode that only served access in the normal route (config 50)")
+    ap.add_argument("--config-set", action="append", default=[], metavar="PATH=VALUE",
+                    help="override a config key (dotted path; VALUE = JSON, else YAML, or @<yaml file>; repeatable): the recalibration rounds of 23 Oct 2026, "
+                         "e.g. --config-set logistics.basic_cost.waterways.container=0.015; a dict value replaces the node; "
+                         "network/route keys need --cache-isolation")
     ap.add_argument("--container-water-cost", type=float, default=None,
                     help="container rate on waterways, USD per ton-km (config 0.022); the container sensitivity of 22 Oct 2026 puts the "
                          "Rhine containers on the river; changes the routes, so run with --cache-isolation")
@@ -470,6 +474,28 @@ def main():
         raise SystemExit("partial capacity reductions need --constraint-mode gradual|binary; "
                          "with capacity routing off use --closure-threshold (default 0.75)")
     config = load_config(args.scope)
+    for item in args.config_set:
+        import json as _json
+        import yaml as _yaml
+        path, _, raw = item.partition("=")
+        if not path or not _:
+            raise SystemExit(f"--config-set expects PATH=VALUE, got {item!r}")
+        if raw.startswith("@"):
+            with open(raw[1:], encoding="utf-8") as fh:
+                val = _yaml.safe_load(fh)
+        else:
+            try:
+                val = _json.loads(raw)
+            except ValueError:
+                val = _yaml.safe_load(raw)
+        node = config
+        keys = path.split(".")
+        for k in keys[:-1]:
+            if not isinstance(node.get(k), dict):
+                node[k] = {}
+            node = node[k]
+        node[keys[-1]] = val
+        print(f"config override: {path} = {val!r}" + ("" if args.cache_isolation else "  (no --cache-isolation: fine only for run-time keys)"))
     floors = parse_closure_floors(args.closure_floors) if closure is not None else None
     cargo_types = cargo_types_from_config(config)
     gauges = profile["kaub_cm"].astype(float).tolist() if "kaub_cm" in profile.columns else None
