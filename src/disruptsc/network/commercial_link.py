@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
+
+_REGION_PREFIX = re.compile(r"^[A-Z]{3}_")
 
 import numpy as np
 
@@ -122,8 +125,18 @@ class CommercialLink:
         self.pipelined_delivery = 0.0
 
     def determine_cargo_type(self, sector_to_cargo_type: dict):
-        self.cargo_type = sector_to_cargo_type.get(
-            self.product_type, sector_to_cargo_type.get("default", "container")
+        # Sector-level keys take precedence over sector-type keys, so a
+        # config can route e.g. C24A (metals) to a 'wagonload' class while
+        # the rest of 'manufacturing' stays 'container'. self.product is a
+        # sector id, sometimes region-prefixed ("ROU_C24A" / "ROU_C17_18"),
+        # so the bare id is tried after stripping one leading XXX_ prefix.
+        product = str(self.product)
+        bare = product[4:] if _REGION_PREFIX.match(product) else product
+        self.cargo_type = (
+            sector_to_cargo_type.get(product)
+            or sector_to_cargo_type.get(bare)
+            or sector_to_cargo_type.get(self.product_type)
+            or sector_to_cargo_type.get("default", "container")
         )
 
     def store_route_information(self, route: Route, main_or_alternative: str, cost_per_ton: float):
