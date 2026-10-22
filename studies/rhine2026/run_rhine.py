@@ -419,6 +419,11 @@ def main():
                          "(config 100); 500 makes every rail bypass of Kaub a switch of mode, prohibitive for bulk (no-rail runs, 20 Oct 2026)")
     ap.add_argument("--access-km", type=float, default=None,
                     help="switching rule: the extra km allowed on a mode that only served access in the normal route (config 50)")
+    ap.add_argument("--container-water-cost", type=float, default=None,
+                    help="container rate on waterways, USD per ton-km (config 0.022); the container sensitivity of 22 Oct 2026 puts the "
+                         "Rhine containers on the river; changes the routes, so run with --cache-isolation")
+    ap.add_argument("--container-water-vot", type=float, default=None,
+                    help="container value of time on waterways, USD per ton-hour (config 0.35); same caveat")
     ap.add_argument("--restoration-days", type=float, default=None,
                     help="inventory_restoration_time in days (the refill of a stock gap; config 30): sensitivity (review OR4)")
     ap.add_argument("--no-early-stop", action="store_true",
@@ -576,6 +581,21 @@ def main():
     if args.restoration_days is not None:
         config["inventory_restoration_time"] = float(args.restoration_days)
         print(f"inventory restoration time {args.restoration_days:g} days (config {load_config(args.scope).get('inventory_restoration_time', 30)})")
+    if args.container_water_cost is not None or args.container_water_vot is not None:
+        lg = config.setdefault("logistics", {})
+        if args.container_water_cost is not None:
+            bc = lg.setdefault("basic_cost", {}); ww = bc.get("waterways", 0.010)
+            if not isinstance(ww, dict):
+                ww = {"default": float(ww)}
+            ww["container"] = float(args.container_water_cost); bc["waterways"] = ww
+        if args.container_water_vot is not None:
+            cot = lg.setdefault("cost_of_time", {}); cc = cot.get("container", 1.0)
+            if not isinstance(cc, dict):
+                cc = {"default": float(cc)}
+            cc["waterways"] = float(args.container_water_vot); cot["container"] = cc
+        print(f"container sensitivity: waterway rate {lg['basic_cost']['waterways'].get('container')} USD/tkm, "
+              f"waterway value of time {lg['cost_of_time']['container'].get('waterways')} USD/t.h (routes rebuild: "
+              f"{'private caches' if args.cache_isolation else 'WARNING: no --cache-isolation, the shared caches would be rebuilt'})")
     if args.line_haul_km is not None or args.access_km is not None:
         sc = config.setdefault("logistics", {}).setdefault("switching_costs", {})
         if args.line_haul_km is not None:

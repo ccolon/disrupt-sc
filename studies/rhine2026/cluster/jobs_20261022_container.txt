@@ -1,0 +1,15 @@
+# Rhine 2026 cluster batch (22 Oct 2026): the container sensitivity pair (decision D1b of the author's review).
+# The paper's baseline puts the Rhine's containers on rail (container VOT and terminal time make the Rotterdam-Ruhr barge
+# dearer than the train), whereas about 2.3 M TEU / 29 Mt a year sail the Rhine and roughly 10 Mt pass Kaub (CCNR). These
+# two runs lower the container rate on waterways (0.022 -> 0.015 USD/tkm) and the container value of time on waterways
+# (0.35 -> 0.15 USD/t.h, the maritime value) so that the Rhine containers sail; everything else as the paper's base runs.
+# The costs enter the route fingerprint, so the runs carry --cache-isolation (private caches, ~45 min of rebuild each)
+# and must NOT be launched into the shared caches. The 2026 run carries --full-export for transport_edges_with_flows_0.geojson:
+# check the container tonnage through Kaub at t = 0 (target ~10 Mt/yr; studies/rhine2026/flow_checks.py --run <folder>)
+# before reading the loss. Compare the losses with 2026_s07_base / 2018_s07_base (each run has its own baseline inside).
+#
+#     bash studies/rhine2026/cluster/launch_rhine_batch.sh --jobs studies/rhine2026/cluster/jobs_20261022_container.txt --independent
+#     bash studies/rhine2026/cluster/pack_results.sh --jobs studies/rhine2026/cluster/jobs_20261022_container.txt
+#
+2026_cont_full           | --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --container-water-cost 0.015 --container-water-vot 0.15 --cache-isolation --full-export
+2018_cont                | --profile 2018 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --container-water-cost 0.015 --container-water-vot 0.15 --cache-isolation
