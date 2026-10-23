@@ -5,7 +5,7 @@ carries baseline flow (1,808 of 2,345 edges — zero-flow closures provably
 cause zero loss), then a 4-week re-run of the top 150. Loss metric:
 household + country loss relative to the no-disruption reference (the raw
 columns carry a constant offset that `merge_results.py` subtracts).
-Reference baseline: run `20261020_111601` (v24, manifest p34), slimmed into
+Reference baseline: run `20261023_150036` (v25, manifest p37), slimmed into
 `reference_edges.geojson` so every step works from the git checkout alone.
 
 Everything travels by git — no ssh/rsync (same flow as the Rhine study).
