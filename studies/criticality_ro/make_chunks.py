@@ -29,7 +29,7 @@ import geopandas as gpd
 
 REPO = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
-REF_DEFAULT = "20261023_150036"   # v25 baseline (manifest p37)
+REF_DEFAULT = "20261023_174435"   # v25.2 named-plant baseline (manifest p38)
 MIN_FLOW_T = 1.0
 
 

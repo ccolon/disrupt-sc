@@ -165,7 +165,7 @@ logistics:
     # v24: half-revert of the v19.1 notch on the v23 geography - territorial
     # rail reads 12.0 vs 12.65 bn tkm (-5%); one notch back recovers the level
     # (v19.1 sensitivity ~0.7 bn tkm per 0.001). 1520 classes untouched.
-    railways: {attribute: class, rail_1520: 0.025, rail_1520_md: 0.040, default: 0.046}  # v25 FINAL on the terrain-speed field: the fast flat grain-belt roads (ms64-68) bleed dry bulk off rail, so the pre-speeds ladder moved down a notch (0.047 on new speeds -> rail 11.6; 0.046 restores ~12.5)
+    railways: {attribute: class, rail_1520: 0.025, rail_1520_md: 0.040, default: 0.047}  # v25.2: the named-plant layer snaps big shippers onto rail-served nodes (rail 0.046 -> 14.6 bn tkm vs 12.65 measured); one notch up re-anchors. Ladder on this geometry: 0.046 -> 14.6, 0.047 -> see run
     # v10: per-sector import links enlarged the dry-bulk base and IWW drifted
     # to 48% of dry-bulk tkm (target 41.7); bulk barge rate up one notch.
     # KNIFE EDGE (v10): raising the dry-bulk barge rate to 0.0058+ flips the
