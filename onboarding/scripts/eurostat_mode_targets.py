@@ -45,6 +45,11 @@ NST_TO_CARGO = {
     "GT02": "dry_bulk",     # coal & lignite
     "GT03": "dry_bulk",     # ores & quarrying
     "GT07": "liquid_bulk",  # coke & refined petroleum (rail/pipe in reality)
+    # v25 wagonload class: semi-finished goods on conventional wagons/barges
+    "GT06": "wagonload",    # wood & paper
+    "GT08": "wagonload",    # chemicals (fertilizer barges)
+    "GT09": "wagonload",    # cement & other non-metallic minerals
+    "GT10": "wagonload",    # basic metals
     # everything else -> container
 }
 

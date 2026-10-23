@@ -56,6 +56,9 @@ MODAL_ROWS = [
     ("Container - road, % tkm", "89.2", "", None),
     ("Container - rail, % tkm", "6.5", "", None),
     ("Container - IWW, % tkm", "4.3", "", None),
+    ("Wagonload - road, % tkm", "-", "v25 class (C16/C17_18/C20/C23/C24A/C24B); whole-network model tracking, no clean nationality-basis target", None),
+    ("Wagonload - rail, % tkm", "-", "", None),
+    ("Wagonload - IWW, % tkm", "-", "", None),
     ("Liquid bulk - road, % tkm", "21.6", "", None),
     ("Liquid bulk - rail, % tkm", "68.5", "", None),
     ("Liquid bulk - IWW, % tkm", "10.0", "", None),
@@ -77,8 +80,10 @@ MODAL_ROWS = [
     ("Dry bulk - IWW, bn tkm/yr (territorial)", "8.6", "iww_go_atygo 2023 tra_cov=TOTAL", None),
     ("Dry bulk - road, bn tkm/yr (territorial)", "5.8-6.0", "band: national-only -> +intl on-territory share", None),
     ("Dry bulk - rail share of rail+IWW, %", "35.4", "both modes territorial - clean per-cargo share", None),
-    ("Container - rail, bn tkm/yr (territorial)", "4.1", "NST all other groups", None),
-    ("Container - IWW, bn tkm/yr (territorial)", "2.8", "", None),
+    ("Wagonload - rail, bn tkm/yr (territorial)", "2.4", "v25 class: GT06 wood/paper 0.46 + GT08 chemicals 0.32 + GT09 minerals 0.78 + GT10 metals 0.82", None),
+    ("Wagonload - IWW, bn tkm/yr (territorial)", "2.0", "GT08 1.25 + GT10 0.63 + GT09 0.08", None),
+    ("Container - rail, bn tkm/yr (territorial)", "1.7", "residual NST groups incl. GT19 unidentifiable 0.72, GT14 waste 0.35", None),
+    ("Container - IWW, bn tkm/yr (territorial)", "0.8", "", None),
     ("Container - road, bn tkm/yr (territorial)", "15.4-21.3", "wide band: RO hauliers' intl work is container-heavy", None),
     ("Container - rail share of rail+IWW, %", "59.9", "", None),
     ("Liquid bulk - rail, bn tkm/yr (territorial)", "3.8", "NST GT07", None),
@@ -154,7 +159,9 @@ def compute(run_id: str) -> dict:
     # the All-inland rows and tkm levels below are DOMESTIC territorial.
     whole = e[e["type"].isin(["roads", "railways", "waterways"])]
     for label, ct in (("Dry bulk", "tons_dry_bulk"), ("Container", "tons_container"),
-                      ("Liquid bulk", "tons_liquid_bulk")):
+                      ("Liquid bulk", "tons_liquid_bulk"), ("Wagonload", "tons_wagonload")):
+        if ct not in whole.columns:
+            continue
         tkm = whole.groupby("type").apply(
             lambda g, c=ct: (g[c].fillna(0) * g["km"]).sum(), include_groups=False)
         tot = tkm.sum() or 1.0
@@ -179,7 +186,9 @@ def compute(run_id: str) -> dict:
     out["Road, bn tkm/yr"] = round(tkm_all.get("roads", 0.0) * 52 / 1e9, 1)
     # per-cargo TERRITORIAL block: domestic inland edges, cargo-type columns
     for label, ct in (("Dry bulk", "tons_dry_bulk"), ("Container", "tons_container"),
-                      ("Liquid bulk", "tons_liquid_bulk")):
+                      ("Liquid bulk", "tons_liquid_bulk"), ("Wagonload", "tons_wagonload")):
+        if ct not in inland.columns:
+            continue
         dt = inland.groupby("type").apply(
             lambda g, c=ct: (g[c].fillna(0) * g["km"]).sum(), include_groups=False)
         rl = dt.get("railways", 0.0) * 52 / 1e9
