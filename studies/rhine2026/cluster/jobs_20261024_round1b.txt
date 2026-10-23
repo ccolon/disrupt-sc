@@ -1,0 +1,21 @@
+# Rhine 2026 cluster batch (24 Oct 2026): RECALIBRATION ROUND 1, second issue. The first issue (jobs_20261023_round1.txt)
+# ran the candidates with the capacity gate of the paper (--constraint-mode on, rhine_capacities_anchored.csv), whose
+# capacities are anchored on the PAPER's baseline flows: every candidate that puts more traffic on a Rhine stretch saturated
+# the "reach is full" rule in normal weeks and lost output from week 1 (c01, c03, c06, c07), which is an artefact, not a
+# result. Candidate flow runs carry NO capacity gate: only the t = 0 assignment (transport_edges_with_flows_0.geojson,
+# now in the pack) is scored, with onboarding/scripts/flow_score.py. A loss run on a recalibrated baseline needs its own
+# capacities first (anchor_rhine_capacities.py <flows run> --headroom 0.02 --out <file>), then --capacities <file>.
+# Same eight candidates as the first issue, same private caches (--cache-isolation), two weeks of the smoke profile.
+#
+#     bash studies/rhine2026/cluster/launch_rhine_batch.sh --jobs studies/rhine2026/cluster/jobs_20261024_round1b.txt --independent
+#     bash studies/rhine2026/cluster/pack_results.sh --jobs studies/rhine2026/cluster/jobs_20261024_round1b.txt
+#   then, per run:  python onboarding/scripts/flow_score.py EU --run C:/dsc_runs/rhine2026/<name>
+#
+r1b_c01_rail_country     | --profile smoke2w --recovery-weeks 0 --inventory-scale 1.0 --full-export --cache-isolation --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round1/rail_country.yaml
+r1b_c02_water_up         | --profile smoke2w --recovery-weeks 0 --inventory-scale 1.0 --full-export --cache-isolation --config-set logistics.basic_cost.waterways=@studies/rhine2026/calibration/round1/water_up.yaml
+r1b_c03_container        | --profile smoke2w --recovery-weeks 0 --inventory-scale 1.0 --full-export --cache-isolation --container-water-cost 0.015 --container-water-vot 0.15
+r1b_c04_sea_up           | --profile smoke2w --recovery-weeks 0 --inventory-scale 1.0 --full-export --cache-isolation --config-set logistics.basic_cost.maritime=0.0025 --config-set logistics.cost_of_time.container=@studies/rhine2026/calibration/round1/cot_container_sea.yaml
+r1b_c05_port_fees        | --profile smoke2w --recovery-weeks 0 --inventory-scale 1.0 --full-export --cache-isolation --config-set logistics.loading_fees.roads-maritime=12 --config-set logistics.loading_fees.railways-maritime=12 --config-set logistics.dwell_times.roads-maritime=36 --config-set logistics.dwell_times.railways-maritime=36
+r1b_c06_combo            | --profile smoke2w --recovery-weeks 0 --inventory-scale 1.0 --full-export --cache-isolation --container-water-vot 0.15 --config-set logistics.basic_cost.waterways=@studies/rhine2026/calibration/round1/water_up_container.yaml --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round1/rail_country.yaml
+r1b_c07_combo_sea        | --profile smoke2w --recovery-weeks 0 --inventory-scale 1.0 --full-export --cache-isolation --config-set logistics.basic_cost.waterways=@studies/rhine2026/calibration/round1/water_up_container.yaml --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round1/rail_country.yaml --config-set logistics.basic_cost.maritime=0.0025 --config-set logistics.cost_of_time.container=@studies/rhine2026/calibration/round1/cot_container_sea_river.yaml
+r1b_c08_rail_bulk        | --profile smoke2w --recovery-weeks 0 --inventory-scale 1.0 --full-export --cache-isolation --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round1/rail_bulk.yaml

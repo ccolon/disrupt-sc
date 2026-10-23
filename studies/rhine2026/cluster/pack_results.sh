@@ -31,7 +31,7 @@ stamp=$(date +%Y%m%d_%H%M)
 list=$(mktemp)
 for d in $RUNS; do
     [[ -d "$d" ]] || continue
-    for f in analysis.txt country_data.csv household_data.csv routing_summary.csv parameters.yaml run_fingerprint.json figures.log mrio_by_sector.csv mrio_by_region.csv mrio_by_country.csv validation_outputs.csv validation_outputs.txt kaub_links_check.csv kaub_links_check.txt link_flows_disrupted.csv.gz price_by_cargo.csv inventory_trace.csv extract_link_flows.txt; do
+    for f in transport_edges_with_flows_0.geojson transport_nodes.geojson analysis.txt country_data.csv household_data.csv routing_summary.csv parameters.yaml run_fingerprint.json figures.log mrio_by_sector.csv mrio_by_region.csv mrio_by_country.csv validation_outputs.csv validation_outputs.txt kaub_links_check.csv kaub_links_check.txt link_flows_disrupted.csv.gz price_by_cargo.csv inventory_trace.csv extract_link_flows.txt; do
         [[ -f "$d/$f" ]] && echo "$d/$f" >> "$list"
     done
     [[ -d "$d/figures" ]] && find "$d/figures" -type f >> "$list"
