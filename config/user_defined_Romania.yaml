@@ -40,6 +40,22 @@ simulation_type: initial_state
 export_files: True
 
 logistics:
+  # v25a (23 Oct 2026): 'wagonload' cargo class - semi-finished goods that in
+  # reality ride conventional rail wagons and barges from private sidings
+  # (the ValidationNote3 container/general-cargo deficit: model rail 1.5 vs
+  # 4.1 bn tkm, barge 0.06 vs 2.8). Data basis, Eurostat 2023 on-territory
+  # tkm by NST group: rail GT10 metals 0.82, GT09 minerals/cement 0.78,
+  # GT06 wood/paper 0.46, GT08 chemicals 0.32 bn; barge GT08 chemicals/
+  # fertilizer 1.25, GT10 0.63. Sector-level keys merge over the type-level
+  # mapping in default.yaml (disrupt-sc 10d1045). The liquid-bulk refinery-
+  # siding precedent (v6.1) is the proof of mechanism.
+  sector_to_cargo_type:
+    C16: wagonload
+    C17_18: wagonload
+    C20: wagonload
+    C23: wagonload
+    C24A: wagonload
+    C24B: wagonload
   # Mode-choice calibration, FINAL (v5, 2026-08-27, run 20260827_235725) against
   # Eurostat NST targets in ../disrupt-sc-data/Romania/mode_split_targets_RO_2023.csv.
   # Fit (road/rail/IWW % of tkm, model vs target):
@@ -58,7 +74,17 @@ logistics:
     # chosen so the trunk-network weighted mean stays ~50 (the flat value all
     # previous calibrations used); 'default' catches TEN-T foreign classes
     # and stitches.
-    roads: {attribute: class, motorway: 62, trunk: 52, primary: 46, secondary: 35, default: 50}
+    # v25b (23 Oct 2026): terrain-resolved speeds from OSM maxspeed (85% of
+    # domestic road-km), banded to 4 km/h classes stamped on the gpkg
+    # (romania_speed_classes.py; truck/limit RATIO 0.716 solved so the v24
+    # tkm-weighted mean 51.89 km/h is preserved - mode choice unmoved in
+    # aggregate). Separates same-class corridors the flat ladder could not:
+    # DN1 72 vs DN73 54 km/h OSM, both 'trunk' (manifest p34 residual).
+    # cls_* = fallback for edges without maxspeed + the foreign skeleton.
+    roads: {attribute: speed_class, ms24: 24, ms28: 28, ms32: 32, ms36: 36,
+            ms40: 40, ms44: 44, ms48: 48, ms52: 52, ms56: 56, ms60: 60,
+            ms64: 64, ms68: 68, cls_motorway: 62, cls_trunk: 52,
+            cls_primary: 46, cls_secondary: 35, default: 50}
     railways: 25      # RFC Orient/East-Med commercial speed
     waterways: 10     # Danube barge
     maritime: 35
@@ -139,7 +165,7 @@ logistics:
     # v24: half-revert of the v19.1 notch on the v23 geography - territorial
     # rail reads 12.0 vs 12.65 bn tkm (-5%); one notch back recovers the level
     # (v19.1 sensitivity ~0.7 bn tkm per 0.001). 1520 classes untouched.
-    railways: {attribute: class, rail_1520: 0.025, rail_1520_md: 0.040, default: 0.046}
+    railways: {attribute: class, rail_1520: 0.025, rail_1520_md: 0.040, default: 0.046}  # v25 FINAL on the terrain-speed field: the fast flat grain-belt roads (ms64-68) bleed dry bulk off rail, so the pre-speeds ladder moved down a notch (0.047 on new speeds -> rail 11.6; 0.046 restores ~12.5)
     # v10: per-sector import links enlarged the dry-bulk base and IWW drifted
     # to 48% of dry-bulk tkm (target 41.7); bulk barge rate up one notch.
     # KNIFE EDGE (v10): raising the dry-bulk barge rate to 0.0058+ flips the
@@ -154,6 +180,7 @@ logistics:
     container: 1.6
     dry_bulk: 0.08
     liquid_bulk: 0.08
+    wagonload: 0.15    # v25a: semi-finished goods - low time sensitivity, above bulk
     default: 2.0
   # v6.1 FINAL (2026-09-02, run 20260902_191203, seed 42): per-cargo transfer
   # costs (disrupt-sc >= fa4a39f) resolve v6's structural residual (a).
@@ -202,22 +229,31 @@ logistics:
     "BCP: Giurgiulesti-Reni (roads)": 4    # v18: MD->Constanta flows took the
     # double-border shortcut via Reni (1.69 vs ~0.1 obs); second set of
     # customs formalities is not free in reality
-    "BCP: Giurgiulesti-Galati (roads)": 2  # v18.1: winner-take-all put all
-    # southbound MD flow on Galati (3.35 vs 1.3); three-country-corner queue
+    "BCP: Giurgiulesti-Galati (roads)": 0  # v25c: fee retired - it was the
+    # v18.1 guard for the SINGLE-POINT Moldova era (all southbound flooded
+    # Galati); with the MDAS bloc at Cahul the pair must split on geography,
+    # and the +2 asymmetry vs Oancea 0 was winner-take-all in reverse
+    # (Oancea 3.03 / Galati 0.00 vs loaded obs ~0.90/0.95)
     "UAMD:Izmail-Danube link": 6   # Sulina canal dues + war-risk premium
     "UAMD:Reni-Danube link": 5     # idem
   dwell_times:  # hours, one key per multimodes string from multimodal_config.yml
-    roads-railways: {default: 6, liquid_bulk: 0.5, dry_bulk: 2}  # v8: silo/mine sidings - bulk originates on rail
+    # v25a: wagonload gets industrial-siding rail access (2 h, like bulk
+    # silo/mine sidings) and ordinary river-terminal barge access (16 h -
+    # fertilizer/metals river terminals exist, unlike fuel)
+    roads-railways: {default: 6, liquid_bulk: 0.5, dry_bulk: 2, wagonload: 2}  # v8: silo/mine sidings - bulk originates on rail
     roads-waterways: {default: 16, liquid_bulk: 72}
     roads-maritime: 24
     railways-waterways: {default: 16, liquid_bulk: 72}
     railways-maritime: 24
     waterways-maritime: 8
   loading_fees:  # USD/ton
-    roads-railways: {default: 3.5, liquid_bulk: 0}
-    roads-waterways: {default: 3.5, liquid_bulk: 28}
+    roads-railways: {default: 3.5, liquid_bulk: 0, wagonload: 1.5}  # v25a: wagonload siding handling between bulk 3.5 and liquid 0
+    # v25a.2: general-cargo river handling is crane lifts (~10 USD/t), not the
+    # bulk grab/conveyor rate - brakes the wagonload barge overshoot (2.8 vs
+    # ~2.0 bn tkm) so the measured IWW total stays anchored
+    roads-waterways: {default: 3.5, liquid_bulk: 28, wagonload: 12}  # v25b: 10 -> 12 (IWW total; ladder: 3.5 gave 2.80 bn tkm wagonload barge, 10 gave 1.70)
     roads-maritime: 7
-    railways-waterways: {default: 3.5, liquid_bulk: 28}
+    railways-waterways: {default: 3.5, liquid_bulk: 28, wagonload: 12}
     railways-maritime: 7
     waterways-maritime: 2
 # v8 (2026-09-07, run 20260907_215549, seed 42): firm supplier-selection
