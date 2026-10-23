@@ -1,7 +1,7 @@
 # Romania per-edge criticality sweep (manifest p29)
 
 One-week closure of every domestic road / railway / waterway edge that
-carries baseline flow (1,793 of 2,345 edges — zero-flow closures provably
+carries baseline flow (1,808 of 2,345 edges — zero-flow closures provably
 cause zero loss), then a 4-week re-run of the top 150. Loss metric:
 household + country loss relative to the no-disruption reference (the raw
 columns carry a constant offset that `merge_results.py` subtracts).
@@ -28,7 +28,7 @@ bash studies/criticality_ro/cluster/launch_criticality.sh
 
 This submits: one **setup job** that builds the stage caches (seed 42,
 PYTHONHASHSEED=0 — deterministic build), then **40 chunk jobs** (afterok,
-44–45 edges each, ≈7.5 h at the smoke-measured ~10 min/edge), then one
+45–46 edges each, ≈7.5 h at the smoke-measured ~10 min/edge), then one
 **gather job** that collects the chunk CSVs into
 `studies/criticality_ro/results/t1_chunks/`, merges them
 (`results/t1_merged/criticality_ranked.csv` + `criticality_map.geojson`),
