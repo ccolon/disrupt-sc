@@ -229,7 +229,7 @@ logistics:
     "BCP: Giurgiulesti-Reni (roads)": 4    # v18: MD->Constanta flows took the
     # double-border shortcut via Reni (1.69 vs ~0.1 obs); second set of
     # customs formalities is not free in reality
-    "BCP: Giurgiulesti-Galati (roads)": 0  # v25c: fee retired - it was the
+    "BCP: Giurgiulesti-Galati (roads)": 0  # v25.1 LADDER CLOSED: 0 -> Galati 2.01/Oancea 1.04 (vs loaded obs ~0.95/0.90); 0.5 AND 1 -> 0.10/2.93 - the Galati-favoring OD block flips as one below 0.5, no fee yields an intermediate split. Fee stays 0; the 2:1 internal ratio is a deterministic-routing residual (same family as Nadlac). Originally the
     # v18.1 guard for the SINGLE-POINT Moldova era (all southbound flooded
     # Galati); with the MDAS bloc at Cahul the pair must split on geography,
     # and the +2 asymmetry vs Oancea 0 was winner-take-all in reverse
