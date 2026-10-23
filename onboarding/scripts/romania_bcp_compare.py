@@ -17,24 +17,40 @@ import geopandas as gpd
 
 REPO = Path(r"C:\Users\Celian\OneDrive\DisruptSC\disrupt-sc")
 
-# observed anchors, Mt/yr (2024; UA sheets = UA-exit direction only, so both-
-# direction model values should sit somewhat ABOVE the UA anchors; MD road
-# counts are trucks both directions incl. empties, converted at 10-15 t)
+# observed anchors (2024). UA sheets = UA-exit direction only (tonnage data),
+# so both-direction model values should sit somewhat ABOVE the UA anchors.
+# MD road rows are TRUCK COUNTS both directions: gross tons = trucks x 12.5 t;
+# the model carries CARGO tons only, so the comparable target is the LOADED
+# equivalent, gross x (1 - empty). 'empty' defaults to a flat 0.25 - replace
+# per crossing when the WB provides BCP-specific loaded/empty splits
+# (ValidationNote3 limitation; the mechanism is per-row ready).
+TPT = 12.5          # tons per loaded truck
+EMPTY_DEFAULT = 0.25
 OBSERVED = {
+    # name: (mode, Mt/yr tonnage anchor OR {'trucks_pm': n, 'empty': x}, note)
     "Porubne-Siret":        ("road",  1.4, "UA-exits only (260 veh/day)"),
-    "Stanca-Costesti":      ("road",  0.35, "both dir, 2.4k trucks/month"),
-    "Radauti-Prut":         ("road",  0.03, "both dir, 170 trucks/month"),
+    "Stanca-Costesti":      ("road",  {"trucks_pm": 2400}, "both dir, 2.4k trucks/month"),
+    "Radauti-Prut":         ("road",  {"trucks_pm": 170}, "both dir, 170 trucks/month"),
     "Vadul-Siret/Vicsani":  ("rail",  2.0, "UA-exits only (165 kt/month)"),
     "Dyakove-Halmeu":       ("road",  0.45, "UA-exits only (83 veh/day)"),
     "Dyakove/Halmeu rail":  ("rail",  0.44, "UA-exits only (37 kt/month)"),
     "Orlivka-Isaccea ferry": ("road", 0.53, "UA-exits only (97 veh/day)"),
-    "Leuseni-Albita":       ("road",  4.0, "both dir, 27k trucks/month at ~12.5 t"),
-    "Sculeni":              ("road",  1.3, "both dir, 8.6k trucks/month"),
-    "Giurgiulesti-Galati":  ("road",  1.3, "both dir, 8.4k trucks/month"),
-    "Cahul-Oancea":         ("road",  1.2, "both dir, 8.0k trucks/month"),
+    "Leuseni-Albita":       ("road",  {"trucks_pm": 27000}, "both dir, 27k trucks/month"),
+    "Sculeni":              ("road",  {"trucks_pm": 8600}, "both dir, 8.6k trucks/month"),
+    "Giurgiulesti-Galati":  ("road",  {"trucks_pm": 8400}, "both dir, 8.4k trucks/month"),
+    "Cahul-Oancea":         ("road",  {"trucks_pm": 8000}, "both dir, 8.0k trucks/month"),
     "Ungheni rail":         ("rail",  0.4, "both dir, 10.5k wagons/yr"),
     "Giurgiulesti rail":    ("rail",  0.7, "both dir, 18.3k wagons/yr"),
 }
+
+
+def observed_values(spec):
+    """(gross Mt/yr, loaded Mt/yr) from a tonnage anchor or a truck-count spec."""
+    if isinstance(spec, dict):
+        gross = spec["trucks_pm"] * 12 * TPT / 1e6
+        loaded = gross * (1 - spec.get("empty", EMPTY_DEFAULT))
+        return gross, loaded
+    return spec, None
 
 NAME_MAP = {  # edge-name token -> observed row (v15 'BCP:' naming)
     "BCP: Siret-Porubne (roads)": "Porubne-Siret",
@@ -75,17 +91,18 @@ def main() -> int:
                 model.setdefault("(unmapped) " + name, r["mtyr"])
 
     print(f"run: {run.name}\n")
-    print(f"{'crossing':26s} {'mode':5s} {'model Mt/yr':>11s} {'observed':>9s}  note")
-    for key, (mode, obs, note) in OBSERVED.items():
+    print(f"{'crossing':26s} {'mode':5s} {'model Mt/yr':>11s} {'obs loaded':>10s} {'obs gross':>9s}  note")
+    for key, (mode, spec, note) in OBSERVED.items():
         m = model.pop(key, 0.0)
-        flag = ""
-        if "UA-exits" in note:
-            flag = "  (model = both directions)"
-        print(f"{key:26s} {mode:5s} {m:11.2f} {obs:9.2f}  {note}{flag}")
+        gross, loaded = observed_values(spec)
+        flag = "  (model = both directions)" if "UA-exits" in note else ""
+        ls = f"{loaded:10.2f}" if loaded is not None else f"{'-':>10s}"
+        print(f"{key:26s} {mode:5s} {m:11.2f} {ls} {gross:9.2f}  {note}{flag}")
+    print("\n(loaded = gross x (1 - empty), flat 25% empty unless a per-BCP "
+          "split is set; the model carries cargo tons, so LOADED is the "
+          "comparable target for the truck-count rows)")
     for key, m in sorted(model.items()):
-        print(f"{key:26s} {'':5s} {m:11.2f} {'-':>9s}")
-    ua = sum(v for k, v in
-             [(k, model.get(k, 0)) for k in []] ) # placeholder
+        print(f"{key:26s} {'':5s} {m:11.2f} {'-':>10s} {'-':>9s}")
     return 0
 
 

@@ -109,11 +109,12 @@ def sector_of(nace: int) -> str | None:
 
 
 def norm(s: str) -> str:
-    s = str(s)
-    for pre in ("Municipiul ", "Orasul ", "Oras ", "MUNICIPIUL ", "ORASUL ", "ORAS "):
+    # fold diacritics BEFORE stripping prefixes: 'ORAŞ UNGHENI' must become
+    # 'UNGHENI', not keep its prefix because 'ORAŞ ' != 'ORAS ' (v25 fix)
+    s = unicodedata.normalize("NFKD", str(s)).encode("ascii", "ignore").decode().upper()
+    for pre in ("MUNICIPIUL ", "ORASUL ", "ORAS "):
         if s.startswith(pre):
             s = s[len(pre):]
-    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode().upper()
     return " ".join(s.replace("-", " ").split())
 
 
