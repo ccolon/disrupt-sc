@@ -494,6 +494,13 @@ def main():
             if not isinstance(node.get(k), dict):
                 node[k] = {}
             node = node[k]
+        if keys[0] == "filepaths" and isinstance(val, str):
+            from disruptsc import paths as _paths
+            from disruptsc.config import resolve_repo_prefix as _rrp
+            resolved = _rrp(val)
+            val = Path(resolved) if resolved is not val else (Path(val) if Path(val).is_absolute() else _paths.get_data_path(args.scope) / val)
+            if not val.exists():
+                raise SystemExit(f"--config-set {path}: {val} does not exist (pull the data repo on this machine?)")
         node[keys[-1]] = val
         print(f"config override: {path} = {val!r}" + ("" if args.cache_isolation else "  (no --cache-isolation: fine only for run-time keys)"))
     floors = parse_closure_floors(args.closure_floors) if closure is not None else None
