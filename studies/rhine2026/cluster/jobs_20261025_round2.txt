@@ -5,8 +5,8 @@
 # within the counts -> rates by waterway are needed (the `waterway` tag); (3) the Rotterdam/Amsterdam and Genoa/Venice splits
 # turn on cost margins of cents per ton -> per-port fees (the `port_name` tag; logistics.loading_fees.by_port, code of 25 Oct);
 # (4) rail +40 % abroad overshot (FR rail 1 % of tkm against 9) -> +20 %; (5) port fees on all ports collapse the short sea.
-# PREREQUISITE ON THE CLUSTER: copy disrupt-sc-data/EU/Transport/tagged/{transport.gpkg,multimodal.gpkg} to the same path
-# under the cluster's data root (the network stage reads them through filepaths.transport / filepaths.multimodal), and pull
+# PREREQUISITE ON THE CLUSTER: pull disrupt-sc-data (the tagged copies EU/Transport/tagged/{transport.gpkg,multimodal.gpkg} are tracked since 1a9037a)
+# (the network stage reads them through filepaths.transport / filepaths.multimodal), and pull
 # the code (the by_port fee rule). Every run: private caches, two weeks of the smoke profile, no capacity gate, full export;
 # score with onboarding/scripts/flow_score.py (the tags are carried into the export, so no on-the-fly tagging).
 #
