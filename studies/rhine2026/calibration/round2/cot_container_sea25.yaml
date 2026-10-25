@@ -1,0 +1,6 @@
+# logistics.cost_of_time.container, round 2 (25 Oct 2026): the container value of time at sea at 0.25 USD per ton-hour
+# (0.15 in the paper; round 1b's 0.30 with a 0.0025 sea tariff moved Rotterdam from 58 to 77 Mt and the Waal at Tiel from
+# 12 to 32, but took Antwerp from 157 to 130); inland and waterway values unchanged.
+default: 1.0
+maritime: 0.25
+waterways: 0.35

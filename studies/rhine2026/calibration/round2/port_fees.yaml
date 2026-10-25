@@ -1,0 +1,13 @@
+# logistics.loading_fees, round 2 (25 Oct 2026): the mode-pair fees of the paper plus a per-port extra (USD per ton, added on
+# the sea-port connectors whose port_name tag matches; tagged network required). Amsterdam and Venice draw traffic in the model
+# that Rotterdam and Genoa carry in reality, on cost margins of a few cents per ton (round 1b: a 0.001 USD/tkm sea tariff
+# change moved 20 Mt between Rotterdam and Amsterdam), so a small extra on the two over-used ports pins the split.
+roads-railways: {default: 3, container: 2, dry_bulk: 3, liquid_bulk: 1}
+roads-waterways: {default: 6, container: 4, dry_bulk: 5, liquid_bulk: 3.5}
+roads-maritime: 7
+railways-waterways: {default: 6, container: 4, dry_bulk: 5, liquid_bulk: 3.5}
+railways-maritime: 7
+waterways-maritime: 2
+by_port:
+  Amsterdam: 1.5
+  Venezia: 2.0

@@ -176,3 +176,24 @@ Word counts after the pass: abstract 199, introduction 1,080, Results 4,200, Dis
 
 ### The container sensitivity pair (jobs_20261022_container.txt)
 run_rhine.py takes --container-water-cost (0.022 -> 0.015 USD/tkm) and --container-water-vot (0.35 -> 0.15 USD/t.h); the runs carry --cache-isolation (the costs enter the route fingerprint) and the 2026 run --full-export for the flows file; check the Kaub container tonnage at t = 0 (target ~10 Mt/yr) before reading the loss.
+
+
+## 25 October: recalibration round 1b read, round 2 designed
+
+Round 1b (eight candidates, untagged network, private caches, no capacity gate; scored with flow_score.py against the Eurostat ports, the country and NST modal splits, the CCNR Rhine profile and the Destatis basins; mean |log10(model/target)| per block, 0.3 = a factor 2; the September full run re-scored with the same targets as the reference, 0.334 overall, but it predates the pipeline rule):
+
+| candidate | ports | country split | NST | Rhine | basins | overall |
+|---|---:|---:|---:|---:|---:|---:|
+| reference (Sept) | 0.39 | 0.33 | 0.24 | 0.20 | 0.57 | 0.33 |
+| c01 rail +40 % abroad | 0.47 | 0.33 | 0.24 | 0.24 | 0.55 | 0.36 |
+| c02 waterways dearer | 0.48 | 0.32 | 0.21 | 0.38 | 0.52 | 0.37 |
+| c03 containers 0.015 / VOT 0.15 | 0.48 | 0.34 | 0.38 | 0.44 | 0.73 | 0.44 |
+| c04 sea 0.0025 / container sea VOT 0.30 | 0.47 | 0.34 | 0.23 | 0.24 | 0.51 | 0.36 |
+| c05 port fees 12 USD/t, 36 h | 0.82 | 0.31 | 0.23 | 0.28 | 0.55 | 0.47 |
+| c06 c01+c02+c03 | 0.48 | 0.37 | 0.39 | 0.44 | 0.73 | 0.45 |
+| c07 c06 + c04 | 0.46 | 0.35 | 0.37 | 0.38 | 0.74 | 0.43 |
+| c08 dry-bulk rail 0.026 | 0.49 | 0.32 | 0.23 | 0.37 | 0.51 | 0.38 |
+
+Findings: (1) the container knob is a cliff: at rate 0.015 and waterway value of time 0.15, 110 Mt/yr of containers cross Kaub (target ~10) and every waterway floods (Main 56 Mt against 12, Neckar 40 against 4, Mittellandkanal 84 against 12, Elbe 72 against 5, Danube 28 against 2.6; German waterway tkm 167 bn against 41.5); a ladder of intermediate values is needed. (2) At the Rhine's rate the canals, the Elbe and the Danube carry 3-10 times their Destatis tonnage in every candidate (Mittellandkanal 37-53 Mt against 12, Dortmund-Ems 29-42 against 15, Elbe 43-57 against 5, Weser 11 against 3), the Wesel-Datteln canal too little (1-3 against 16), while the Rhine itself is within the counts: rates by waterway are needed, hence the tagged network. (3) The Rotterdam/Amsterdam and Genoa/Venice splits turn on cents per ton: a 0.001 USD/tkm sea tariff change (c04) moves Rotterdam from 58 to 77 Mt and the Waal at Tiel from 12 to 32, and c07 takes Rotterdam to 186 with the Lek at 139; per-port fees are the robust instrument (code added: logistics.loading_fees.by_port / dwell_times.by_port on the port_name tag). (4) Rail +40 % abroad overshoots (FR 1 % of inland tkm by rail against 9, IT 4 against 12, AT 18 against 29): +20 % in round 2. (5) Fees on all sea ports collapse the intra-EU short sea (Gdansk 10 Mt, Genoa 8, Valencia 20): not the way. (6) Cheaper dry-bulk trains pull too much off the Rhine (Kaub dry bulk 12 against 20-25) and lift German rail to 29 % against 21. The candidates' Rhine bulk (c04/c05: Kaub 51-52 Mt, dry 20, liquid 31; Emmerich 81-83) reproduces the paper's model (Kaub 53.8); the paper's own flows file (2026_s07_flows) is still to be re-packed from the cluster.
+
+Round 2 (jobs_20261025_round2.txt, eleven runs on the tagged network): d00 the tagged network with the paper's costs (a check of the tagging); d01 waterway rates by waterway (Rhine and the large Dutch and Belgian waterways 0.010 bulk / 0.038 liquid / 0.022 container; locked tributaries and the Danube 0.013; canals 0.020; Elbe and Oder 0.030; unkeyed small canals 0.015); d02-d04 the container ladder on d01 (waterway value of time 0.28 and 0.25; rate 0.018 at 0.35); d05 d01 + rail +20 % abroad; d06 d01 + sea tariff 0.0020 and container sea value of time 0.25; d07 d01 + per-port fees (Amsterdam +1.5, Venice +2.0 USD/t); d08 everything but the containers; d09/d10 d08 + the container ladder. Prerequisite: the tagged network files copied to the cluster's data root (EU/Transport/tagged/) and the code pulled (by_port rule, tests green: full suite passed).

@@ -765,12 +765,30 @@ def _per_cargo(value, cargo_type: str) -> float:
     return float(value)
 
 
+def _add_port_extra(base, extra):
+    """Add a port-specific extra (scalar) to a mode-pair value (scalar or per-cargo dict)."""
+    if extra is None:
+        return base
+    extra = float(extra)
+    if isinstance(base, dict):
+        return {k: float(v) + extra for k, v in base.items()}
+    return float(base) + extra
+
+
 def _get_dwell_time_and_fee(edge_attr: dict, dwell_times: dict, loading_fees: dict):
     """Returns the configured values for this edge's multimodes key - each may
-    be a scalar or a per-cargo dict; resolved per cargo in _calculate_cost_per_ton."""
+    be a scalar or a per-cargo dict; resolved per cargo in _calculate_cost_per_ton.
+    ``dwell_times["by_port"]`` / ``loading_fees["by_port"]`` (optional dicts keyed by the
+    connector's ``port_name`` attribute, 25 Oct 2026) are added on top for that port's
+    connectors: the instrument that pins the Rotterdam/Amsterdam or Genoa/Venice split."""
     if edge_attr["type"] == "multimodal":
         key = edge_attr.get("multimodes", "")
-        return dwell_times.get(key, 0.0), loading_fees.get(key, 0.0)
+        dwell, fee = dwell_times.get(key, 0.0), loading_fees.get(key, 0.0)
+        port = edge_attr.get("port_name")
+        if port:
+            dwell = _add_port_extra(dwell, (dwell_times.get("by_port") or {}).get(port))
+            fee = _add_port_extra(fee, (loading_fees.get("by_port") or {}).get(port))
+        return dwell, fee
     return 0.0, 0.0
 
 

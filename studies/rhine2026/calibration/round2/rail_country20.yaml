@@ -1,0 +1,14 @@
+# logistics.basic_cost.railways, round 2 (25 Oct 2026): rail 20 % dearer where the model over-uses it (round 1b's +40 %
+# overshot: FR fell to 1 % of inland tkm by rail against 9 observed, IT to 4 against 12, AT to 18 against 29).
+attribute: country_code
+default: {default: 0.032, liquid_bulk: 0.085}
+FR: {default: 0.038, liquid_bulk: 0.10}
+IT: {default: 0.038, liquid_bulk: 0.10}
+AT: {default: 0.038, liquid_bulk: 0.10}
+ES: {default: 0.038, liquid_bulk: 0.10}
+HU: {default: 0.038, liquid_bulk: 0.10}
+SI: {default: 0.038, liquid_bulk: 0.10}
+SK: {default: 0.038, liquid_bulk: 0.10}
+BG: {default: 0.038, liquid_bulk: 0.10}
+PL: {default: 0.038, liquid_bulk: 0.10}
+CZ: {default: 0.038, liquid_bulk: 0.10}
