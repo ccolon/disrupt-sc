@@ -1,0 +1,21 @@
+# Rhine 2026 cluster batch (27 Oct 2026, evening): RECALIBRATION ROUND 4, four fine-tuning runs on the tagged network.
+# Round 3 read: every run beats the paper's model (overall 0.307-0.316 against 0.359); the rail shares sit on their targets in
+# all of them; the container value of time on waterways at 0.32 puts 11.5 Mt/yr of containers through Kaub (observed ~10;
+# 0.30 gives 30); the +1.0 USD/t fee brings the Waal at Tiel to 97 Mt (125) and Rotterdam to 154 but drops Amsterdam to 27
+# (81), while +0.5 leaves Amsterdam at 83 but Tiel at 49; Venice ignores +0.5/+1.0 (81-92 against 22) and died at +2.0.
+# Base of this round = e05 (rates v2 + rail +20 % abroad + container VOT 0.32), with the middle fee rungs (Amsterdam +0.75,
+# Venice +1.5) and two waterway corrections: the Ruhr canals at the Rhine rate (the corridor stays at 10 Mt against 27) and
+# the Dutch waterways off the Rhine chain at 0.012 (Dutch waterway share 55 % against 41).
+# Same private caches, smoke profile, no gate, full export; score with onboarding/scripts/flow_score.py.
+#
+#     bash studies/rhine2026/cluster/launch_rhine_batch.sh --jobs studies/rhine2026/cluster/jobs_20261027_round4.txt --independent
+#     bash studies/rhine2026/cluster/pack_results.sh --jobs studies/rhine2026/cluster/jobs_20261027_round4.txt
+#
+# f01 e05 with the middle fee rungs
+r4_f01_fees075           | --profile smoke2w --recovery-weeks 0 --inventory-scale 1.0 --full-export --cache-isolation --config-set filepaths.transport=Transport/tagged/transport.gpkg --config-set filepaths.multimodal=Transport/tagged/multimodal.gpkg --config-set logistics.basic_cost.waterways=@studies/rhine2026/calibration/round3/water_by_waterway_v2.yaml --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round2/rail_country20.yaml --config-set logistics.loading_fees=@studies/rhine2026/calibration/round4/port_fees_075_150.yaml --container-water-vot 0.32
+# f02 f01 + the Ruhr canals at 0.010
+r4_f02_ruhr              | --profile smoke2w --recovery-weeks 0 --inventory-scale 1.0 --full-export --cache-isolation --config-set filepaths.transport=Transport/tagged/transport.gpkg --config-set filepaths.multimodal=Transport/tagged/multimodal.gpkg --config-set logistics.basic_cost.waterways=@studies/rhine2026/calibration/round4/water_by_waterway_v3a.yaml --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round2/rail_country20.yaml --config-set logistics.loading_fees=@studies/rhine2026/calibration/round4/port_fees_075_150.yaml --container-water-vot 0.32
+# f03 f01 + the Dutch waterways off the Rhine chain at 0.012
+r4_f03_nl                | --profile smoke2w --recovery-weeks 0 --inventory-scale 1.0 --full-export --cache-isolation --config-set filepaths.transport=Transport/tagged/transport.gpkg --config-set filepaths.multimodal=Transport/tagged/multimodal.gpkg --config-set logistics.basic_cost.waterways=@studies/rhine2026/calibration/round4/water_by_waterway_v3b.yaml --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round2/rail_country20.yaml --config-set logistics.loading_fees=@studies/rhine2026/calibration/round4/port_fees_075_150.yaml --container-water-vot 0.32
+# f04 f01 + both
+r4_f04_ruhr_nl           | --profile smoke2w --recovery-weeks 0 --inventory-scale 1.0 --full-export --cache-isolation --config-set filepaths.transport=Transport/tagged/transport.gpkg --config-set filepaths.multimodal=Transport/tagged/multimodal.gpkg --config-set logistics.basic_cost.waterways=@studies/rhine2026/calibration/round4/water_by_waterway_v3c.yaml --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round2/rail_country20.yaml --config-set logistics.loading_fees=@studies/rhine2026/calibration/round4/port_fees_075_150.yaml --container-water-vot 0.32

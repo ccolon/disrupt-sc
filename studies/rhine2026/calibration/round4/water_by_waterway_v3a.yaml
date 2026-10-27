@@ -1,0 +1,36 @@
+# logistics.basic_cost.waterways, round 4 v3a (27 Oct 2026): round 3's v2 with the Ruhr canals at 0.010; see derive_v3.py.
+attribute: waterway
+default: {default: 0.015, dry_bulk: 0.015, liquid_bulk: 0.057, container: 0.033}
+Rhine: {default: 0.01, dry_bulk: 0.01, liquid_bulk: 0.038, container: 0.022}
+Lek: {default: 0.012, dry_bulk: 0.012, liquid_bulk: 0.045, container: 0.026}
+IJssel: {default: 0.01, dry_bulk: 0.01, liquid_bulk: 0.038, container: 0.022}
+IJsselmeer: {default: 0.01, dry_bulk: 0.01, liquid_bulk: 0.038, container: 0.022}
+Amsterdam-Rhine canal: {default: 0.01, dry_bulk: 0.01, liquid_bulk: 0.038, container: 0.022}
+Noordzeekanaal: {default: 0.01, dry_bulk: 0.01, liquid_bulk: 0.038, container: 0.022}
+Scheldt-Rhine link: {default: 0.01, dry_bulk: 0.01, liquid_bulk: 0.038, container: 0.022}
+Scheldt: {default: 0.01, dry_bulk: 0.01, liquid_bulk: 0.038, container: 0.022}
+Ghent-Terneuzen canal: {default: 0.01, dry_bulk: 0.01, liquid_bulk: 0.038, container: 0.022}
+Albert canal: {default: 0.012, dry_bulk: 0.012, liquid_bulk: 0.045, container: 0.026}
+Meuse: {default: 0.012, dry_bulk: 0.012, liquid_bulk: 0.045, container: 0.026}
+Main: {default: 0.013, dry_bulk: 0.013, liquid_bulk: 0.05, container: 0.029}
+Moselle: {default: 0.013, dry_bulk: 0.013, liquid_bulk: 0.05, container: 0.029}
+Neckar: {default: 0.013, dry_bulk: 0.013, liquid_bulk: 0.05, container: 0.029}
+Saar: {default: 0.013, dry_bulk: 0.013, liquid_bulk: 0.05, container: 0.029}
+Danube: {default: 0.013, dry_bulk: 0.013, liquid_bulk: 0.05, container: 0.029}
+Seine: {default: 0.013, dry_bulk: 0.013, liquid_bulk: 0.05, container: 0.029}
+Rhone: {default: 0.013, dry_bulk: 0.013, liquid_bulk: 0.05, container: 0.029}
+Saone: {default: 0.013, dry_bulk: 0.013, liquid_bulk: 0.05, container: 0.029}
+Po: {default: 0.015, dry_bulk: 0.015, liquid_bulk: 0.057, container: 0.033}
+Wesel-Datteln-Kanal: {default: 0.01, dry_bulk: 0.01, liquid_bulk: 0.038, container: 0.022}
+Rhein-Herne-Kanal: {default: 0.01, dry_bulk: 0.01, liquid_bulk: 0.038, container: 0.022}
+Dortmund-Ems-Kanal: {default: 0.01, dry_bulk: 0.01, liquid_bulk: 0.038, container: 0.022}
+Mittellandkanal: {default: 0.02, dry_bulk: 0.02, liquid_bulk: 0.076, container: 0.044}
+Elbe-Seitenkanal: {default: 0.02, dry_bulk: 0.02, liquid_bulk: 0.076, container: 0.044}
+Main-Donau-Kanal: {default: 0.02, dry_bulk: 0.02, liquid_bulk: 0.076, container: 0.044}
+Weser: {default: 0.022, dry_bulk: 0.022, liquid_bulk: 0.084, container: 0.048}
+Kuestenkanal-Hunte: {default: 0.02, dry_bulk: 0.02, liquid_bulk: 0.076, container: 0.044}
+Havel-Berlin canals: {default: 0.02, dry_bulk: 0.02, liquid_bulk: 0.076, container: 0.044}
+Oder: {default: 0.03, dry_bulk: 0.03, liquid_bulk: 0.114, container: 0.066}
+Elbe: {default: 0.03, dry_bulk: 0.03, liquid_bulk: 0.114, container: 0.066}
+Vltava: {default: 0.03, dry_bulk: 0.03, liquid_bulk: 0.114, container: 0.066}
+Nord-Ostsee-Kanal: {default: 0.01, dry_bulk: 0.01, liquid_bulk: 0.038, container: 0.022}

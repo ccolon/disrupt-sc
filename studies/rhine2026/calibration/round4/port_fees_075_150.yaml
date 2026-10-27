@@ -1,0 +1,12 @@
+# logistics.loading_fees, round 4 (27 Oct 2026): round 3's fee ladder showed Amsterdam at 83 Mt with +0.5 and 27 with +1.0
+# (target 81) while Rotterdam went 99 -> 154 (target ~250 without transhipment) and the Waal at Tiel 49 -> 97 (125), and Venice
+# untouched by +0.5/+1.0 (81-92 against 22) but emptied by +2.0 in round 2: the middle rungs, Amsterdam +0.75, Venice +1.5.
+roads-railways: {default: 3, container: 2, dry_bulk: 3, liquid_bulk: 1}
+roads-waterways: {default: 6, container: 4, dry_bulk: 5, liquid_bulk: 3.5}
+roads-maritime: 7
+railways-waterways: {default: 6, container: 4, dry_bulk: 5, liquid_bulk: 3.5}
+railways-maritime: 7
+waterways-maritime: 2
+by_port:
+  Amsterdam: 0.75
+  Venezia: 1.5
