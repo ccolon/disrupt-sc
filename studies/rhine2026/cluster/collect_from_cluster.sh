@@ -1,4 +1,9 @@
 #!/bin/bash
+# OBSOLETE (27 Oct 2026). This was the 10 Sep laptop-side rsync pull, never used since the first cluster batch: results
+# are packed ON THE CLUSTER with pack_results.sh --jobs <list> and the archive is downloaded, then extracted into
+# C:\dsc_runs\rhine2026 (see pack_results.sh). It takes no --jobs argument and needs rsync, which the cluster lacks.
+echo "obsolete: use  bash studies/rhine2026/cluster/pack_results.sh --jobs <list>  on the cluster, then download the archive" >&2
+exit 1
 #
 # Bring the batch outputs back to the laptop's run folder (C:\dsc_runs\rhine2026, outside OneDrive):
 # firm/household/country series, analysis.txt, figures, the batch comparison. household_data_by_sector.csv
