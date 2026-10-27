@@ -1,0 +1,11 @@
+# logistics.loading_fees, round 3 (27 Oct 2026): the per-port extras at +1.0 USD/t on Amsterdam and Venice (the second rung
+# of the fee ladder; see port_fees_05.yaml for the reasoning).
+roads-railways: {default: 3, container: 2, dry_bulk: 3, liquid_bulk: 1}
+roads-waterways: {default: 6, container: 4, dry_bulk: 5, liquid_bulk: 3.5}
+roads-maritime: 7
+railways-waterways: {default: 6, container: 4, dry_bulk: 5, liquid_bulk: 3.5}
+railways-maritime: 7
+waterways-maritime: 2
+by_port:
+  Amsterdam: 1.0
+  Venezia: 1.0
