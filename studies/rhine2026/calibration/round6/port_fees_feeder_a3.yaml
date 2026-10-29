@@ -1,0 +1,148 @@
+# logistics.loading_fees, round 6 (29 Oct 2026): the feeder ladder a=3 (fee_container = 3 x log10(100 Mt / T), clipped to [0, 12]; other cargo a third of it; Amsterdam keeps +0.75 where the ladder gives less); derived by derive_feeder_ladder.py from Eurostat 2023 port throughput and the gazetteer.
+roads-railways: {default: 3, container: 2, dry_bulk: 3, liquid_bulk: 1}
+roads-waterways: {default: 6, container: 4, dry_bulk: 5, liquid_bulk: 3.5}
+roads-maritime: 7
+railways-waterways: {default: 6, container: 4, dry_bulk: 5, liquid_bulk: 3.5}
+railways-maritime: 7
+waterways-maritime: 2
+by_port:
+  Agioi Theodoroi: {container: 1.84, default: 0.61}
+  Algeciras: {container: 0.3, default: 0.1}
+  Alicante: {container: 4.65, default: 1.55}
+  Amsterdam: 0.75
+  Ancona: {container: 4.13, default: 1.38}
+  Augusta: {container: 1.74, default: 0.58}
+  Aveiro: {container: 3.71, default: 1.24}
+  Barcelona: {container: 0.87, default: 0.29}
+  Bari: {container: 3.42, default: 1.14}
+  Bayonne: {container: 4.91, default: 1.64}
+  Bilbao: {container: 1.5, default: 0.5}
+  Bordeaux: {container: 3.67, default: 1.22}
+  Bremen: {container: 2.87, default: 0.96}
+  Bremerhaven: {container: 1.22, default: 0.41}
+  Brest: {container: 4.75, default: 1.58}
+  Brindisi: {container: 3.24, default: 1.08}
+  Burgas: {container: 2.31, default: 0.77}
+  Cadiz: {container: 3.69, default: 1.23}
+  Caen: {container: 5.47, default: 1.82}
+  Calais: {container: 2.41, default: 0.8}
+  Cartagena: {container: 1.28, default: 0.43}
+  Castellon: {container: 2.42, default: 0.81}
+  Catania: {container: 3.5, default: 1.17}
+  Chioggia: {container: 6.17, default: 2.06}
+  Civitavecchia: {container: 2.94, default: 0.98}
+  Constanta: {container: 0.52, default: 0.17}
+  Cuxhaven: {container: 4.87, default: 1.62}
+  Delfzijl: {container: 3.1, default: 1.03}
+  Dublin: {container: 1.82, default: 0.61}
+  Dunkerque: {container: 1.35, default: 0.45}
+  Elefsina: {container: 2.59, default: 0.86}
+  Emden: {container: 4.05, default: 1.35}
+  Fos-sur-Mer: {container: 0.52, default: 0.17}
+  Frederikshavn: {container: 4.99, default: 1.66}
+  Galway: {container: 7.84, default: 2.61}
+  Gavle: {container: 4.13, default: 1.38}
+  Gdansk: {container: 0.29, default: 0.1}
+  Gdynia: {container: 1.76, default: 0.59}
+  Genova: {container: 0.99, default: 0.33}
+  Ghent: {container: 1.57, default: 0.52}
+  Gijon: {container: 2.18, default: 0.73}
+  Gioia Tauro: {container: 1.35, default: 0.45}
+  Goteborg: {container: 1.37, default: 0.46}
+  Halmstad: {container: 4.94, default: 1.65}
+  Hamina: {container: 2.55, default: 0.85}
+  Hanko: {container: 4.05, default: 1.35}
+  Helsingborg: {container: 3.3, default: 1.1}
+  Helsinki: {container: 2.57, default: 0.86}
+  Huelva: {container: 1.6, default: 0.53}
+  Inkoo: {container: 4.77, default: 1.59}
+  Joensuu: {container: 7.57, default: 2.52}
+  Karlshamn: {container: 3.96, default: 1.32}
+  Kavala: {container: 5.38, default: 1.79}
+  Kiel: {container: 3.9, default: 1.3}
+  Klaipeda: {container: 1.65, default: 0.55}
+  Koge: {container: 5.11, default: 1.7}
+  Kokkola: {container: 4.28, default: 1.43}
+  Koper: {container: 2.02, default: 0.67}
+  Kotka: {container: 2.55, default: 0.85}
+  La Coruna: {container: 2.57, default: 0.86}
+  La Rochelle: {container: 3.2, default: 1.07}
+  La Spezia: {container: 2.48, default: 0.83}
+  Lappeenranta: {container: 6.0, default: 2.0}
+  Larnaka: {container: 5.54, default: 1.85}
+  Las Palmas: {container: 2.1, default: 0.7}
+  Le Havre: {container: 0.37, default: 0.12}
+  Leixoes: {container: 2.65, default: 0.88}
+  Lemesos: {container: 4.81, default: 1.6}
+  Lisboa: {container: 2.88, default: 0.96}
+  Livorno: {container: 1.58, default: 0.53}
+  Lorient: {container: 4.87, default: 1.62}
+  Lubeck: {container: 2.43, default: 0.81}
+  Lulea: {container: 3.31, default: 1.1}
+  Malaga: {container: 5.03, default: 1.68}
+  Malmo: {container: 3.29, default: 1.1}
+  Marseille: {container: 0.52, default: 0.17}
+  Messina: {container: 2.87, default: 0.96}
+  Milazzo: {container: 2.9, default: 0.97}
+  Monfalcone: {container: 4.25, default: 1.42}
+  Motril: {container: 4.91, default: 1.64}
+  Naantali: {container: 4.24, default: 1.41}
+  Nantes: {container: 1.64, default: 0.55}
+  Napoli: {container: 2.46, default: 0.82}
+  Nice: {container: 8.43, default: 2.81}
+  Norrkoping: {container: 4.57, default: 1.52}
+  Nynashamn: {container: 4.57, default: 1.52}
+  Olbia: {container: 3.54, default: 1.18}
+  Oslo: {container: 3.84, default: 1.28}
+  Oulu: {container: 5.26, default: 1.75}
+  Pasajes: {container: 4.4, default: 1.47}
+  Patra: {container: 4.29, default: 1.43}
+  Piraeus: {container: 1.03, default: 0.34}
+  Pitea: {container: 5.23, default: 1.74}
+  Ploce: {container: 3.96, default: 1.32}
+  Pori: {container: 4.46, default: 1.49}
+  Portimao: {container: 7.57, default: 2.52}
+  Porto Foxi: {container: 1.82, default: 0.61}
+  Porto Nogaro: {container: 6.18, default: 2.06}
+  Porto Torres: {container: 4.65, default: 1.55}
+  Raahe: {container: 3.68, default: 1.23}
+  Rauma: {container: 3.97, default: 1.32}
+  Ravenna: {container: 1.73, default: 0.58}
+  Riga: {container: 2.27, default: 0.76}
+  Rijeka: {container: 4.06, default: 1.35}
+  Rostock: {container: 1.87, default: 0.62}
+  Rouen: {container: 0.37, default: 0.12}
+  Saint-Nazaire: {container: 1.64, default: 0.55}
+  Salerno: {container: 3.58, default: 1.19}
+  Santander: {container: 3.59, default: 1.2}
+  Savona: {container: 2.45, default: 0.82}
+  Sete: {container: 3.99, default: 1.33}
+  Sines: {container: 1.2, default: 0.4}
+  Siracusa: {container: 2.5, default: 0.83}
+  Skoldvik: {container: 1.88, default: 0.63}
+  Sodertalje: {container: 5.97, default: 1.99}
+  Split: {container: 4.78, default: 1.59}
+  Stade: {container: 4.29, default: 1.43}
+  Stockholm: {container: 3.24, default: 1.08}
+  Sundsvall: {container: 5.47, default: 1.82}
+  Swinoujscie: {container: 2.25, default: 0.75}
+  Szczecin: {container: 2.78, default: 0.93}
+  Tallinn: {container: 2.71, default: 0.9}
+  Taranto: {container: 2.46, default: 0.82}
+  Tarragona: {container: 1.48, default: 0.49}
+  Terneuzen: {container: 1.31, default: 0.44}
+  Thessaloniki: {container: 2.48, default: 0.83}
+  Tornio: {container: 4.56, default: 1.52}
+  Trelleborg: {container: 2.73, default: 0.91}
+  Trieste: {container: 0.87, default: 0.29}
+  Umea: {container: 5.07, default: 1.69}
+  Valencia: {container: 0.62, default: 0.21}
+  Varna: {container: 2.66, default: 0.89}
+  Vasteras: {container: 5.28, default: 1.76}
+  Venezia: {container: 1.94, default: 0.65}
+  Vigo: {container: 4.16, default: 1.39}
+  Vlissingen: {container: 1.31, default: 0.44}
+  Volos: {container: 3.93, default: 1.31}
+  Waterford: {container: 5.24, default: 1.75}
+  Wilhelmshaven: {container: 1.58, default: 0.53}
+  Wismar: {container: 4.84, default: 1.61}

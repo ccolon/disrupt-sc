@@ -766,13 +766,18 @@ def _per_cargo(value, cargo_type: str) -> float:
 
 
 def _add_port_extra(base, extra):
-    """Add a port-specific extra (scalar) to a mode-pair value (scalar or per-cargo dict)."""
+    """Add a port-specific extra to a mode-pair value. Either may be a scalar or a per-cargo dict
+    ({cargo_type: v, "default": v}); a dict on either side gives a dict over the union of the keys
+    (a scalar base contributes "default"), each resolved with _per_cargo. A per-cargo extra is what a
+    feeder-port surcharge needs (29 Oct 2026): deep-sea container lines call at a few hubs, so a
+    container landed at a secondary port carries a feeder leg that bulk in a small ship does not."""
     if extra is None:
         return base
-    extra = float(extra)
-    if isinstance(base, dict):
-        return {k: float(v) + extra for k, v in base.items()}
-    return float(base) + extra
+    if isinstance(extra, dict) or isinstance(base, dict):
+        keys = set(base) if isinstance(base, dict) else {"default"}
+        keys |= set(extra) if isinstance(extra, dict) else set()
+        return {k: _per_cargo(base, k) + _per_cargo(extra, k) for k in keys}
+    return float(base) + float(extra)
 
 
 def _get_dwell_time_and_fee(edge_attr: dict, dwell_times: dict, loading_fees: dict):

@@ -32,3 +32,16 @@ def test_no_by_port_key():
 
 def test_non_multimodal_edge():
     assert _get_dwell_time_and_fee({"type": "waterways", "port_name": "Amsterdam"}, DWELL, FEES) == (0.0, 0.0)
+
+
+def test_per_cargo_port_extra():
+    """29 Oct 2026: a by_port extra may itself be per-cargo (the feeder-port surcharge falls mainly on containers)."""
+    fees = {"roads-maritime": 7, "waterways-maritime": {"default": 2, "container": 2, "dry_bulk": 2},
+            "by_port": {"Szczecin": {"container": 5.0, "default": 1.7}}}
+    edge = {"type": "multimodal", "multimodes": "roads-maritime", "port_name": "Szczecin"}
+    assert _get_dwell_time_and_fee(edge, {}, fees)[1] == {"default": 8.7, "container": 12.0}
+    edge = {"type": "multimodal", "multimodes": "waterways-maritime", "port_name": "Szczecin"}
+    assert _get_dwell_time_and_fee(edge, {}, fees)[1] == {"default": 3.7, "container": 7.0, "dry_bulk": 3.7}
+    # scalar extra on a dict base keeps the old behaviour (every class shifted, no key added)
+    edge = {"type": "multimodal", "multimodes": "railways-maritime", "port_name": "Venezia"}
+    assert _get_dwell_time_and_fee(edge, DWELL, FEES)[1] == {"default": 9.0, "container": 7.0}

@@ -1,0 +1,31 @@
+# Rhine 2026 cluster batch (29 Oct 2026, evening): RECALIBRATION ROUND 6, the feeder ladder, five runs on the re-tagged network.
+# Round 5 read (four runs on f01): every run beats e05 (overall 0.297-0.300 against 0.308; ports 0.420-0.435 against 0.469) because
+# the lagoon fee now reaches Chioggia; the Lek at 0.015 (g02) moves the Rotterdam-Rhine stream to the Waal (Dordrecht-Rotterdam
+# 71 -> 99 against 140, Lek 31 -> 2 Mt) at no cost; the Po system at 0.040 (g03) empties the Italian canals (88 -> 0.5 Mt on the
+# Litoranea Veneta) and is kept on realism; the northern fees (g04) move Bremen's 43 Mt to Hamburg (57 -> 82 against 100) and
+# Bremerhaven (14 -> 28 against 39) but the Bremerhaven landings then go up the Weser by barge (21 against 3). The fee elasticity
+# is low: at +1.5 the lagoon ports still land 208 Mt (28 observed), Szczecin 97 (12); the secondary ports 816 against 598, and
+# the overshoot is containers (Venice 96 of 110, Szczecin 71 of 97, Porto Nogaro 52 of 55). Hence the FEEDER LADDER (round6/
+# derive_feeder_ladder.py): fee_container = a x log10(100 Mt / T_Eurostat2023), clipped to [0, 12], other cargo a third, Amsterdam
+# keeps +0.75; a = 3, 5, 7. The gazetteer names the last 19 junctions (Oslo, Malmo, Portimao, Brindisi, Lemesos, Larnaka,
+# Volos, Patra, Kavala, Koge, Frederikshavn, Caen, Nice, Galway, Sundsvall, Sodertalje, Nynashamn, Lappeenranta, Joensuu),
+# the network is re-tagged (136 ports matched; no existing port's connectors moved). by_port extras may now be per-cargo dicts
+# (transport_network._add_port_extra). Base otherwise g04: rates v5, rail +20 % abroad, container VOT 0.32.
+#     h01: ladder a=3            h02: a=5            h03: a=7
+#     h04: a=5 + waterways-maritime 3.5 (sea-barge transfer no cheaper than sea-road)
+#     h05: g04's fees + waterways-maritime 3.5 alone (isolates the transfer fee)
+# Same private caches, smoke profile, no gate, full export; score with onboarding/scripts/flow_score.py.
+#
+#     bash studies/rhine2026/cluster/launch_rhine_batch.sh --jobs studies/rhine2026/cluster/jobs_20261029_round6.txt --independent
+#     bash studies/rhine2026/cluster/pack_results.sh --jobs studies/rhine2026/cluster/jobs_20261029_round6.txt
+#
+# h01 feeder ladder a=3
+r6_h01_feeder3           | --profile smoke2w --recovery-weeks 0 --inventory-scale 1.0 --full-export --cache-isolation --config-set filepaths.transport=Transport/tagged/transport.gpkg --config-set filepaths.multimodal=Transport/tagged/multimodal.gpkg --config-set logistics.basic_cost.waterways=@studies/rhine2026/calibration/round5/water_by_waterway_v5.yaml --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round2/rail_country20.yaml --config-set logistics.loading_fees=@studies/rhine2026/calibration/round6/port_fees_feeder_a3.yaml --container-water-vot 0.32
+# h02 feeder ladder a=5
+r6_h02_feeder5           | --profile smoke2w --recovery-weeks 0 --inventory-scale 1.0 --full-export --cache-isolation --config-set filepaths.transport=Transport/tagged/transport.gpkg --config-set filepaths.multimodal=Transport/tagged/multimodal.gpkg --config-set logistics.basic_cost.waterways=@studies/rhine2026/calibration/round5/water_by_waterway_v5.yaml --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round2/rail_country20.yaml --config-set logistics.loading_fees=@studies/rhine2026/calibration/round6/port_fees_feeder_a5.yaml --container-water-vot 0.32
+# h03 feeder ladder a=7
+r6_h03_feeder7           | --profile smoke2w --recovery-weeks 0 --inventory-scale 1.0 --full-export --cache-isolation --config-set filepaths.transport=Transport/tagged/transport.gpkg --config-set filepaths.multimodal=Transport/tagged/multimodal.gpkg --config-set logistics.basic_cost.waterways=@studies/rhine2026/calibration/round5/water_by_waterway_v5.yaml --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round2/rail_country20.yaml --config-set logistics.loading_fees=@studies/rhine2026/calibration/round6/port_fees_feeder_a7.yaml --container-water-vot 0.32
+# h04 feeder ladder a=5 + sea-barge transfer 3.5
+r6_h04_feeder5_wm35      | --profile smoke2w --recovery-weeks 0 --inventory-scale 1.0 --full-export --cache-isolation --config-set filepaths.transport=Transport/tagged/transport.gpkg --config-set filepaths.multimodal=Transport/tagged/multimodal.gpkg --config-set logistics.basic_cost.waterways=@studies/rhine2026/calibration/round5/water_by_waterway_v5.yaml --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round2/rail_country20.yaml --config-set logistics.loading_fees=@studies/rhine2026/calibration/round6/port_fees_feeder_a5_wm35.yaml --container-water-vot 0.32
+# h05 g04's fees + sea-barge transfer 3.5
+r6_h05_wm35              | --profile smoke2w --recovery-weeks 0 --inventory-scale 1.0 --full-export --cache-isolation --config-set filepaths.transport=Transport/tagged/transport.gpkg --config-set filepaths.multimodal=Transport/tagged/multimodal.gpkg --config-set logistics.basic_cost.waterways=@studies/rhine2026/calibration/round5/water_by_waterway_v5.yaml --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round2/rail_country20.yaml --config-set logistics.loading_fees=@studies/rhine2026/calibration/round6/port_fees_wm35.yaml --container-water-vot 0.32

@@ -1,0 +1,23 @@
+# logistics.loading_fees, round 6 (29 Oct 2026): round 5's g04 fees (Amsterdam +0.75; the four north-Adriatic lagoon ports and
+# Bremen, Szczecin, Emden at +1.5) with the sea-barge transfer (waterways-maritime) at 3.5 USD/t instead of 2. In g04 every port
+# with a waterway connector lands its goods on a barge first (Rotterdam 131 of 131 Mt, Antwerp 155 of 155, Hamburg 78 of 82,
+# Bremerhaven 27.5 of 27.6, Szczecin 85 of 97) because 2 + 4 for a container's sea-barge-road chain beats 7 for sea-road; the hop
+# is intra-port and harmless at most ports, but once the Bremen junction is dear the Bremerhaven landings go 60 km up the Weser
+# and the Hunte by barge to Oldenburg (Weser 21 Mt against 3 observed, Kuestenkanal 19 against 3). At 3.5 the chain is never
+# cheaper than the direct transfer (3.5 + 3.5 for liquid bulk is the tightest), so barges win on line-haul only. This run isolates
+# that change; a5_wm35 combines it with the feeder ladder.
+roads-railways: {default: 3, container: 2, dry_bulk: 3, liquid_bulk: 1}
+roads-waterways: {default: 6, container: 4, dry_bulk: 5, liquid_bulk: 3.5}
+roads-maritime: 7
+railways-waterways: {default: 6, container: 4, dry_bulk: 5, liquid_bulk: 3.5}
+railways-maritime: 7
+waterways-maritime: 3.5
+by_port:
+  Amsterdam: 0.75
+  Venezia: 1.5
+  Chioggia: 1.5
+  Porto Nogaro: 1.5
+  Monfalcone: 1.5
+  Bremen: 1.5
+  Szczecin: 1.5
+  Emden: 1.5
