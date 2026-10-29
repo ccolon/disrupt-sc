@@ -1,0 +1,17 @@
+# logistics.loading_fees, round 5 (29 Oct 2026). Round 4 showed the Venice fee leaking: at +1.5 USD/t the 81 Mt landing at
+# Venice moved 20 km to the lagoon's southern inlet (Chioggia), an unnamed sea-waterway junction that neither the fee nor the
+# port score could see (125 Mt there). The gazetteer now names the secondary ports and junctions, so the per-port fees reach
+# them: the four north-Adriatic lagoon ports carry the same +1.5 (Venice, Chioggia, Porto Nogaro, Monfalcone: 234 Mt landed in
+# the model against 105 observed for Venice + Trieste + Monfalcone + Ravenna), Amsterdam keeps the +0.75 middle rung of round 4.
+roads-railways: {default: 3, container: 2, dry_bulk: 3, liquid_bulk: 1}
+roads-waterways: {default: 6, container: 4, dry_bulk: 5, liquid_bulk: 3.5}
+roads-maritime: 7
+railways-waterways: {default: 6, container: 4, dry_bulk: 5, liquid_bulk: 3.5}
+railways-maritime: 7
+waterways-maritime: 2
+by_port:
+  Amsterdam: 0.75
+  Venezia: 1.5
+  Chioggia: 1.5
+  Porto Nogaro: 1.5
+  Monfalcone: 1.5

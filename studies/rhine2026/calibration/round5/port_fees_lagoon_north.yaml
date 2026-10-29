@@ -1,0 +1,20 @@
+# logistics.loading_fees, round 5 (29 Oct 2026): port_fees_lagoon.yaml plus the same +1.5 USD/t on the three North Sea and Baltic
+# junctions the round-4 read found over-used (model against Eurostat 2023): Bremen 42 against 11 Mt (the source of the Weser and
+# Kuestenkanal overshoot, 9.6 against 3.0), Szczecin 91 against 12 (the Oder lagoon takes Poland's containers while Gdansk reads
+# 25 against 80), Emden 12.5 against 4.5 (feeding the Dortmund-Ems canal). Smaller ships and feeder calls make these ports dearer
+# per ton than the deep-sea gateways; 1.5 USD/t is a fraction of a real feeder leg, chosen because the model's margins are thin.
+roads-railways: {default: 3, container: 2, dry_bulk: 3, liquid_bulk: 1}
+roads-waterways: {default: 6, container: 4, dry_bulk: 5, liquid_bulk: 3.5}
+roads-maritime: 7
+railways-waterways: {default: 6, container: 4, dry_bulk: 5, liquid_bulk: 3.5}
+railways-maritime: 7
+waterways-maritime: 2
+by_port:
+  Amsterdam: 0.75
+  Venezia: 1.5
+  Chioggia: 1.5
+  Porto Nogaro: 1.5
+  Monfalcone: 1.5
+  Bremen: 1.5
+  Szczecin: 1.5
+  Emden: 1.5

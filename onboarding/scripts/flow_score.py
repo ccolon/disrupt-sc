@@ -80,7 +80,7 @@ def log_err(model, target, floor):
 
 
 # ----------------------------------------------------------------------------
-def load_export(folder: Path, ppy: float, gaz_dir: Path) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, list[str]]:
+def load_export(folder: Path, ppy: float, gaz_dir: Path, retag: bool = False) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, list[str]]:
     notes = []
     e = gpd.read_file(folder / "transport_edges_with_flows_0.geojson")
     n = gpd.read_file(folder / "transport_nodes.geojson")
@@ -102,9 +102,10 @@ def load_export(folder: Path, ppy: float, gaz_dir: Path) -> tuple[gpd.GeoDataFra
         e[f"tkm_{c}"] = e[f"tons_{c}"].fillna(0) * ppy * e["km"]
     need = "waterway" not in e.columns or e.loc[e["type"] == "waterways", "waterway"].isna().all() \
         or "eurostat_port" not in e.columns or e["eurostat_port"].notna().sum() == 0
-    if need:
+    if need or retag:
         e = tna.tag_edges_frame(e, gaz_dir)
-        notes.append("export carried no waterway/eurostat_port tags: tagged on the fly from the gazetteers")
+        notes.append("re-tagged from the current gazetteers (--retag)" if retag and not need else
+                     "export carried no waterway/eurostat_port tags: tagged on the fly from the gazetteers")
     return e, n, notes
 
 
@@ -141,11 +142,18 @@ def block_ports(e, vdir, top_n):
                                            n_terminals=("terminal_id", "nunique"), port_name=("port_name", "first"))
     gaz = pd.read_csv(vdir / "ports_gazetteer.csv").drop_duplicates("eurostat_port").set_index("eurostat_port")
     df = tgt.loc[tgt.index.isin(gaz.index)].nlargest(top_n, "eurostat_mt").join(mod, how="left")
+    df["scored"] = df["n_terminals"].notna()
+    # Secondary ports (29 Oct 2026): gazetteer ports outside the top-n whose connectors carry flow are listed
+    # but not scored. The round-4 read found 900 Mt/yr landing at sea-waterway junctions the gazetteer did not
+    # name (Szczecin 91, Porto Nogaro 63, Chioggia 46, Monfalcone 44, Bremen 42 Mt); a port fee on Venice merely
+    # moved its traffic 20 km to Chioggia, out of sight of this block.
+    sec = mod.loc[~mod.index.isin(df.index)].join(tgt, how="left")
+    sec["scored"] = False
+    df = pd.concat([df, sec])
     df["cc"] = df.index.str[:2]
     df["ratio"] = df["model_mt"] / df["eurostat_mt"]
     df["log10_err"] = log_err(df["model_mt"].fillna(0), df["eurostat_mt"], 0.01)
-    df["scored"] = df["n_terminals"].notna()
-    df.loc[~df["scored"], "log10_err"] = np.nan
+    df.loc[df["n_terminals"].isna(), "log10_err"] = np.nan
     cols = ["label", "cc", "eurostat_mt", "model_mt", "ratio", "log10_err", "n_terminals", "scored"]
     return df[cols].round(2), sea["tons_yr"].sum() / 1e6
 
@@ -250,6 +258,9 @@ def main() -> int:
     ap.add_argument("--data-root", default=None)
     ap.add_argument("--repo", default=None)
     ap.add_argument("--verbose", action="store_true", help="print every block table, not just the summary")
+    ap.add_argument("--retag", action="store_true",
+                    help="re-tag waterways and sea-port connectors from the current gazetteers even if the export carries tags "
+                         "(needed to compare exports made before and after a gazetteer change)")
     args = ap.parse_args()
     repo = Path(args.repo) if args.repo else locate.find_repo_root()
     data_root = Path(args.data_root) if args.data_root else locate.data_root()
@@ -262,7 +273,7 @@ def main() -> int:
     pd.set_option("display.width", 220)
     pd.set_option("display.max_rows", 500)
 
-    e, nodes, notes = load_export(run, args.periods_per_year, vdir)
+    e, nodes, notes = load_export(run, args.periods_per_year, vdir, retag=args.retag)
     print(f"run {run}: {len(e)} edges; " + "; ".join(notes))
     blocks = {}
     blocks["country_modal_split"] = block_modal_split(e, vdir)
@@ -297,6 +308,9 @@ def main() -> int:
     score = (summ.loc[ok, "mean_abs_log10"] * summ.loc[ok, "weight"]).sum() / summ.loc[ok, "weight"].sum()
     summ.loc["OVERALL", ["n_items", "mean_abs_log10", "weight"]] = [summ["n_items"].sum(), score, summ.loc[ok, "weight"].sum()]
     summ.loc["short_sea (info)", ["n_items", "mean_abs_log10"]] = [0, np.nan]
+    p = blocks["ports"]
+    sec = p[~p["scored"] & p["n_terminals"].notna()]
+    summ.loc["secondary ports (info)", ["n_items", "mean_abs_log10"]] = [0, np.nan]
     summ["note"] = ["(cc, mode) shares with target >= 0.5 %, model floored at 0.1 %",
                     f"top-{args.top_ports} Eurostat ports with >= 1 connector; model floored at 0.01 Mt",
                     "rhine_* segments vs normal-year Mt (km-weighted mean per segment), floor 0.1 Mt",
@@ -304,7 +318,9 @@ def main() -> int:
                     "(cc, category, mode) shares DE/NL with target >= 0.5 %, model floored at 0.1 %",
                     "weighted mean of mean_abs_log10 over scored blocks (weights renormalised)",
                     f"EU-level model deep-sea share from gateways {model_dss:.1f} % vs Eurostat EU27 "
-                    f"{blocks.get('short_sea', pd.DataFrame()).get('eurostat_dss_pct', pd.Series(dtype=float)).get('EU27_2020', np.nan)} %"]
+                    f"{blocks.get('short_sea', pd.DataFrame()).get('eurostat_dss_pct', pd.Series(dtype=float)).get('EU27_2020', np.nan)} %",
+                    f"{len(sec)} gazetteer ports outside the top-{args.top_ports} with connectors: model {sec['model_mt'].sum():.0f} Mt "
+                    f"vs Eurostat {sec['eurostat_mt'].sum():.0f} Mt (listed in ports.csv, not scored)"]
     summ.to_csv(out / "summary.csv")
     print("\n== SUMMARY (mean |log10(model/target)|; 0 = perfect, 0.3 = factor 2, 1 = factor 10) ==")
     print(summ.round(3).to_string())

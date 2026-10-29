@@ -1,0 +1,27 @@
+# Rhine 2026 cluster batch (29 Oct 2026): RECALIBRATION ROUND 5, four runs on the re-tagged network.
+# Round 4 read: the middle fee rungs are a wash against e05 (Amsterdam 51 against 81, Tiel 80 against 125, Rotterdam 131; the
+# Amsterdam/Rotterdam/Tiel triangle sums to 0.88 against 1.00 at +1.0); the Ruhr canals at the Rhine rate overshoot the
+# Dortmund-Ems canal (32 against 14.7) and leave the Wesel-Datteln canal at 1.7 (its Wesel node is on the Rhine: a demand-side
+# residual, not the network); the Dutch waterways at 0.012 do not move the Dutch waterway share (55 %, a volume problem: the
+# model moves a third of the real Dutch tonnage) but do push the Rotterdam-Rhine stream from the Lek to the Waal. Venice at +1.5
+# did not empty: its 81 Mt moved 20 km to Chioggia, an unnamed sea-waterway junction (125 Mt) that neither the fee nor the port
+# score saw; 900 Mt/yr of the model's maritime landings sat at such junctions (Szczecin 91, Porto Nogaro 63, Monfalcone 44,
+# Bremen 42). The gazetteer now names them (data repo, 29 Oct), the network is re-tagged, flow_score lists them (--retag to
+# compare older exports). Base = round 4's f01 (rates v2, rail +20 % abroad, container VOT 0.32, Amsterdam +0.75, Venice +1.5).
+#     g01: the lagoon fee on all four north-Adriatic lagoon ports (does the Veneto traffic go to Trieste/Ravenna/Genova, or inland?)
+#     g02: g01 + the Lek at the locked rate 0.015 (Waal instead of Lek, Amsterdam kept)
+#     g03: g02 + the Po system at 0.040 (the 35 Mt of containers on Italian canals)
+#     g04: g03 + Bremen, Szczecin, Emden at +1.5
+# Same private caches, smoke profile, no gate, full export; score with onboarding/scripts/flow_score.py.
+#
+#     bash studies/rhine2026/cluster/launch_rhine_batch.sh --jobs studies/rhine2026/cluster/jobs_20261029_round5.txt --independent
+#     bash studies/rhine2026/cluster/pack_results.sh --jobs studies/rhine2026/cluster/jobs_20261029_round5.txt
+#
+# g01 f01 with the fee on the whole lagoon
+r5_g01_lagoon            | --profile smoke2w --recovery-weeks 0 --inventory-scale 1.0 --full-export --cache-isolation --config-set filepaths.transport=Transport/tagged/transport.gpkg --config-set filepaths.multimodal=Transport/tagged/multimodal.gpkg --config-set logistics.basic_cost.waterways=@studies/rhine2026/calibration/round3/water_by_waterway_v2.yaml --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round2/rail_country20.yaml --config-set logistics.loading_fees=@studies/rhine2026/calibration/round5/port_fees_lagoon.yaml --container-water-vot 0.32
+# g02 g01 + the Lek at 0.015
+r5_g02_lek               | --profile smoke2w --recovery-weeks 0 --inventory-scale 1.0 --full-export --cache-isolation --config-set filepaths.transport=Transport/tagged/transport.gpkg --config-set filepaths.multimodal=Transport/tagged/multimodal.gpkg --config-set logistics.basic_cost.waterways=@studies/rhine2026/calibration/round5/water_by_waterway_v4.yaml --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round2/rail_country20.yaml --config-set logistics.loading_fees=@studies/rhine2026/calibration/round5/port_fees_lagoon.yaml --container-water-vot 0.32
+# g03 g02 + the Po system at 0.040
+r5_g03_po                | --profile smoke2w --recovery-weeks 0 --inventory-scale 1.0 --full-export --cache-isolation --config-set filepaths.transport=Transport/tagged/transport.gpkg --config-set filepaths.multimodal=Transport/tagged/multimodal.gpkg --config-set logistics.basic_cost.waterways=@studies/rhine2026/calibration/round5/water_by_waterway_v5.yaml --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round2/rail_country20.yaml --config-set logistics.loading_fees=@studies/rhine2026/calibration/round5/port_fees_lagoon.yaml --container-water-vot 0.32
+# g04 g03 + Bremen, Szczecin, Emden at +1.5
+r5_g04_north             | --profile smoke2w --recovery-weeks 0 --inventory-scale 1.0 --full-export --cache-isolation --config-set filepaths.transport=Transport/tagged/transport.gpkg --config-set filepaths.multimodal=Transport/tagged/multimodal.gpkg --config-set logistics.basic_cost.waterways=@studies/rhine2026/calibration/round5/water_by_waterway_v5.yaml --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round2/rail_country20.yaml --config-set logistics.loading_fees=@studies/rhine2026/calibration/round5/port_fees_lagoon_north.yaml --container-water-vot 0.32
