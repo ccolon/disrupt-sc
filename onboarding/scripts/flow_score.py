@@ -150,6 +150,7 @@ def block_ports(e, vdir, top_n):
     sec = mod.loc[~mod.index.isin(df.index)].join(tgt, how="left")
     sec["scored"] = False
     df = pd.concat([df, sec])
+    df.index.name = "rep_mar"  # the concat drops the index name; downstream readers key on it
     df["cc"] = df.index.str[:2]
     df["ratio"] = df["model_mt"] / df["eurostat_mt"]
     df["log10_err"] = log_err(df["model_mt"].fillna(0), df["eurostat_mt"], 0.01)
