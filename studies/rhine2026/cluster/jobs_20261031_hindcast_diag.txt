@@ -1,0 +1,23 @@
+# Rhine 2026 cluster batch (31 Oct 2026, night): two-way DIAGNOSTIC of the weaker 2018 hindcast on the recalibrated flows.
+# The hindcast of 29 Oct (jobs_20261029_hindcast_r6.txt) halves the paper's 2018 response: German loss 0.47 % of a quarter
+# against 0.94 (eleven draws 0.45 +/- 0.16 against 0.80 +/- 0.23), industrial integral 1.9 percent-months against 3.9 (record
+# 5.3, band 3.6-7.1; 0 of 11 draws in the band). The gate cuts 6.2 Mt over the event weeks against 9.7 and blocks 5.2 against
+# 8.2. Two linked causes. (1) The recalibration put 11.6 Mt/yr of containers on the Middle Rhine (none in the paper's run): the
+# Kaub baseline is 1,210 kt/week against 1,036, and these marginal users leave at the first low-water surcharge (week 1: Rhine
+# corridor waterway tkm -10.4 % against -7.3 %; trough week 19: 70 % of the baseline still arrives at the gate against 96 %).
+# (2) The capacity is anchored on the model's own baseline, containers included, so once they have left the rationing of the
+# remaining bulk is softer: at load factor 0.30 the gate lets 369 kt through against the fleet's 290 kt (the paper's run 316).
+# The two runs separate the causes, same recalibrated flows otherwise (tagged network, rates v5, rail +20 % abroad, ladder a = 3):
+#     capfile: capacities at the CCNR file values (Kaub 137,000 t/day = 959 kt/week, the fleet's normal-water capacity) instead
+#              of the anchored baseline; the gate then also cuts the model's 21 % excess at normal water (the cost of this fix)
+#     vot35:   the container value of time back at the config's 0.35 (the paper's), i.e. the containers off the river, with the
+#              paper's anchored capacities (Kaub 150,500 t/day; the baseline without containers is about 51 Mt/yr, 7 % below:
+#              a slightly soft gate, flagged); routes change, so an isolated cache
+#     both:    vot35 with the file capacities
+# No *_base line: capfile reuses tmp/r6cal (capacities are a run-time key), the two VOT runs rebuild in private caches.
+#     bash studies/rhine2026/cluster/launch_rhine_batch.sh --jobs studies/rhine2026/cluster/jobs_20261031_hindcast_diag.txt
+#     bash studies/rhine2026/cluster/pack_results.sh --jobs studies/rhine2026/cluster/jobs_20261031_hindcast_diag.txt --with-firms 2018_r6_capfile,2018_r6_vot35,2018_r6_vot35_capfile
+#
+2018_r6_capfile        | --profile 2018 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities.csv --inventory-scale 1.0 --recovery-weeks 20 --config-set filepaths.transport=Transport/tagged/transport.gpkg --config-set filepaths.multimodal=Transport/tagged/multimodal.gpkg --config-set logistics.basic_cost.waterways=@studies/rhine2026/calibration/round5/water_by_waterway_v5.yaml --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round2/rail_country20.yaml --config-set logistics.loading_fees=@studies/rhine2026/calibration/round6/port_fees_feeder_a3.yaml --container-water-vot 0.32 --cache-dir r6cal
+2018_r6_vot35          | --profile 2018 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored.csv --inventory-scale 1.0 --recovery-weeks 20 --config-set filepaths.transport=Transport/tagged/transport.gpkg --config-set filepaths.multimodal=Transport/tagged/multimodal.gpkg --config-set logistics.basic_cost.waterways=@studies/rhine2026/calibration/round5/water_by_waterway_v5.yaml --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round2/rail_country20.yaml --config-set logistics.loading_fees=@studies/rhine2026/calibration/round6/port_fees_feeder_a3.yaml --cache-isolation
+2018_r6_vot35_capfile  | --profile 2018 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities.csv --inventory-scale 1.0 --recovery-weeks 20 --config-set filepaths.transport=Transport/tagged/transport.gpkg --config-set filepaths.multimodal=Transport/tagged/multimodal.gpkg --config-set logistics.basic_cost.waterways=@studies/rhine2026/calibration/round5/water_by_waterway_v5.yaml --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round2/rail_country20.yaml --config-set logistics.loading_fees=@studies/rhine2026/calibration/round6/port_fees_feeder_a3.yaml --cache-isolation
