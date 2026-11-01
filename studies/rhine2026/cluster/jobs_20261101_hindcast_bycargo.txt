@@ -1,0 +1,15 @@
+# Rhine 2026 cluster batch (1 Nov 2026): the 2018 hindcast on the recalibrated flows with the Rhine capacities anchored PER
+# CARGO CLASS (anchor_rhine_capacities.py --by-cargo, from the flows export of r6_h01_feeder3, headroom 0.02).
+# The hindcast of 29 Oct halved the paper's 2018 response (jobs_20261031_hindcast_diag.txt gives the two causes: 11.6 Mt/yr of
+# containers on the Middle Rhine that leave at the first surcharge, and a capacity anchored on the total baseline, containers
+# included, that then rations the remaining bulk too softly: at load factor 0.30 the gate lets 369 kt/week through against the
+# paper's 316 and the fleet's 290). The container vessels, the tank barges and the dry-bulk vessels are three fleets: here each
+# class is capped at the load factor times its own baseline (Kaub reach: containers 32,400, dry bulk 62,900, liquid bulk 80,600
+# t/day; the sum 175,900 is the single anchored value of rhine_capacities_anchored_r6.csv), so the room the containers leave is
+# not available to the bulk, and at factor 0.30 the bulk is allowed 301 kt/week (the paper 316). The one run differs from
+# 2018_r6_base (jobs_20261029_hindcast_r6.txt) in the capacities file only; it reuses the named caches tmp/r6cal (capacities are
+# a run-time key), so no *_base line. Compare with the capfile / vot35 / vot35_capfile diagnostics and 2018_r6_base.
+#     bash studies/rhine2026/cluster/launch_rhine_batch.sh --jobs studies/rhine2026/cluster/jobs_20261101_hindcast_bycargo.txt
+#     bash studies/rhine2026/cluster/pack_results.sh --jobs studies/rhine2026/cluster/jobs_20261101_hindcast_bycargo.txt --with-firms 2018_r6_bycargo
+#
+2018_r6_bycargo        | --profile 2018 --constraint-mode on --closure-threshold -1 --capacities studies/rhine2026/scenarios/rhine_capacities_anchored_r6_bycargo.csv --inventory-scale 1.0 --recovery-weeks 20 --config-set filepaths.transport=Transport/tagged/transport.gpkg --config-set filepaths.multimodal=Transport/tagged/multimodal.gpkg --config-set logistics.basic_cost.waterways=@studies/rhine2026/calibration/round5/water_by_waterway_v5.yaml --config-set logistics.basic_cost.railways=@studies/rhine2026/calibration/round2/rail_country20.yaml --config-set logistics.loading_fees=@studies/rhine2026/calibration/round6/port_fees_feeder_a3.yaml --container-water-vot 0.32 --cache-dir r6cal

@@ -573,9 +573,16 @@ def main():
             overrides.update({str(r["name"]): float(r["capacity_tpd"]) for _, r in ec.iterrows()})
             print(f"edge capacities: {len(ec)} rail/road/waterway edges from {args.edge_capacities}")
         caps = pd.read_csv(args.capacities)                               # Rhine cross-sections last (win)
-        overrides.update({r["name"]: float(r["tons_per_day"]) for _, r in caps.iterrows()})
+        # 1 Nov 2026: a file with tons_per_day_<class> columns (anchor_rhine_capacities.py --by-cargo) sets one capacity
+        # per cargo class on each section (a dict in transport_capacity_overrides; a blank cell leaves that class
+        # without a capacity there), instead of one for all cargo together from tons_per_day.
+        per_class = [c for c in caps.columns if c.startswith("tons_per_day_")]
+        for _, r in caps.iterrows():
+            d = {c[len("tons_per_day_"):]: float(r[c]) for c in per_class if pd.notna(r[c])}
+            overrides[str(r["name"])] = d if d else float(r["tons_per_day"])
         config["transport_capacity_overrides"] = overrides
-        print(f"transport_capacity_overrides: {len(overrides)} edges; capacity_constraint: {args.constraint_mode}")
+        print(f"transport_capacity_overrides: {len(overrides)} edges; capacity_constraint: {args.constraint_mode}"
+              + (f"; Rhine capacities per cargo class ({', '.join(c[len('tons_per_day_'):] for c in per_class)})" if per_class else ""))
     else:
         n_closed = sum(1 for d in kaub if d["type"] == "transport_disruption")
         print(f"capacity routing off: {n_closed} closure week(s) + {len(kaub) - n_closed} "
