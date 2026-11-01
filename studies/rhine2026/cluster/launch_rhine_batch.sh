@@ -18,15 +18,17 @@
 # named in the jobs file, and check that config/user_defined_EU.yaml resolves its data through
 # DISRUPT_SC_DATA_PATH (the EU config uses "repo:" paths and the scope data folder, no absolute paths).
 #
-# Run log on the node's local disk (1 Nov 2026): the run's stdout and stderr go to /tmp/rhine2026_<name>.log on the
-# compute node, a background loop copies that file to <out>.log on the project volume every three minutes, and the
-# job copies it once more at the end (five attempts a minute apart) before returning the run's exit status. Reason:
-# eleven runs died on two nights (30 Oct 03:09, 31 Oct 22:02-22:07, on four nodes within five minutes) with Python's
-# exit status 120 and no traceback: a write to the project volume failed (120 is the status when the final flush of
-# stdout fails), the traceback itself was lost on the same file, and other users' jobs on other volumes were not
-# touched. A log held open on the project volume for three hours is the one file descriptor the run cannot do
-# without; on the local disk it survives a volume hiccup, the copy recovers once the volume is back, and a
-# traceback, if the run dies anyway, is preserved. The data export at the end still writes to the project volume.
+# The run on the node's local disk (1 Nov 2026): the export folder and the log are written in the job's TMPDIR on
+# the compute node (/scratch/slurm/<jobid>, a 5.8 TB NVMe disk) and copied to the project volume when the run ends
+# (20 attempts 90 s apart), the log alone also every three minutes for monitoring; the job returns the run's own
+# exit status. Reason: eighteen runs died on three days (30 Oct 03:09, 31 Oct 22:02-22:07, 1 Nov 09:56-10:01; on up
+# to four nodes within five minutes each time) with Python's exit status 120 and no traceback: a write to the
+# project volume failed (120 is the status when the final flush of stdout fails), the traceback was lost on the same
+# file, and other users' jobs on other volumes were not touched. The model appends its exports to the run folder
+# every step, so a run writing on the project volume holds files open there for its whole duration; on the local
+# disk it survives a volume hiccup, the copy recovers once the volume is back, and a traceback, if the run dies
+# anyway, is preserved. The cache build of a --cache-isolation run still writes tmp/ on the project volume (at the
+# start only), and the post-processing jobs read the copied folder on the volume as before.
 #
 set -e
 
@@ -96,11 +98,17 @@ while IFS='|' read -r name flags; do
     # Quoting of the wrapped command is exercised by cluster/check_launcher_quoting.sh (bash only, no sbatch).
     common="$COMMON"; full=false
     if [[ "$flags" == *--full-export* ]]; then full=true; flags="${flags//--full-export/}"; common="${COMMON//--light-export/}"; fi
-    # 1 Nov 2026: the log is written on the node's local disk and copied to the project volume (see the header);
-    # no shell variable may appear in the payload (eval in submit() would expand it at submission time).
-    local_log="/tmp/rhine2026_${name}.log"
-    copy_log="for i in 1 2 3 4 5; do cp -f ${local_log} ${out}.log 2>/dev/null && break; sleep 60; done"
-    payload="( while sleep 180; do cp -f ${local_log} ${out}.log 2>/dev/null; done ) & if python studies/rhine2026/run_rhine.py ${common} ${flags} --out ${out} > ${local_log} 2>&1; then ${copy_log}; true; else ${copy_log}; false; fi"
+    # 1 Nov 2026 (evening): the whole run, export folder and log, is written on the node's local NVMe disk in the
+    # job's TMPDIR (/scratch/slurm/<jobid>, 5.8 TB, removed when the job ends) and copied to the project volume at
+    # the end, up to 20 attempts 90 s apart; the log alone is also copied every three minutes for monitoring. The
+    # model appends its exports to the run folder every step, so a run with --out on the project volume holds files
+    # open there for its whole duration: eleven runs died that way on 30 Oct, 31 Oct and 1 Nov (status 120). A
+    # shell variable that must expand on the node at run time is written \${VAR}: the eval in submit() turns \$
+    # into $ and leaves the expansion to the job's bash (check_launcher_quoting.sh, case D).
+    local_out="\\\${TMPDIR}/${name}"
+    local_log="\\\${TMPDIR}/${name}.log"
+    copy_out="for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do mkdir -p ${out} && cp -r ${local_out}/. ${out}/ && cp -f ${local_log} ${out}.log && break; sleep 90; done"
+    payload="mkdir -p ${local_out}; ( while sleep 180; do cp -f ${local_log} ${out}.log 2>/dev/null; done ) & if python studies/rhine2026/run_rhine.py ${common} ${flags} --out ${local_out} > ${local_log} 2>&1; then ${copy_out}; true; else ${copy_out}; false; fi"
     dep=""
     if $INDEPENDENT; then
         dep=""

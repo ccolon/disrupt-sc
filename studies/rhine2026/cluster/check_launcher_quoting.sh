@@ -6,9 +6,15 @@
 # It tests the bash mechanics only. It does not test sbatch, memory, paths or the python scripts on the cluster.
 set -u
 tmp=$(mktemp -d)
-run_wrapped() {   # same nesting as submit(): eval of a double-quoted string holding bash -c '...'
+sbatch_stub() {   # stand-in for sbatch: runs the --wrap argument the way the batch script does (a shell -c "<wrap>")
+    local a
+    for a in "$@"; do
+        case $a in --wrap=*) bash -c "${a#--wrap=}"; return $?;; esac
+    done
+}
+run_wrapped() {   # same nesting as submit(): eval of a double-quoted string holding --wrap="bash -c '...'"
     local payload=$1
-    local cmd="bash -c 'export X=1 && cd ${tmp} && ${payload}'"
+    local cmd="sbatch_stub --parsable --wrap=\"bash -c 'export X=1 && cd ${tmp} && ${payload}'\""
     eval "$cmd"
 }
 # case A: builder succeeds -> extraction runs
@@ -24,8 +30,14 @@ run_wrapped "( for n in 1 2; do sleep 1; cp -f ${tmp}/local1.log ${tmp}/out1.log
 rc_ok=$?
 run_wrapped "( for n in 1 2; do sleep 1; cp -f ${tmp}/local2.log ${tmp}/out2.log 2>/dev/null; done ) & if { echo run-fail > ${tmp}/local2.log 2>&1; false; }; then ${copy2}; true; else ${copy2}; false; fi"
 rc_fail=$?
+# case D (1 Nov 2026, evening): a variable the job must expand on the node (TMPDIR) is written \${VAR} in the payload;
+# eval turns \$ into $ and the wrapped bash expands it at run time. The stand-in: X is exported inside the wrapped
+# command only (unset here), so d.txt holds "1" when the expansion happens at run time and nothing if eval did it.
+unset X
+run_wrapped "mkdir -p ${tmp}/\\\${X}_dir; echo \\\${X} > ${tmp}/d.txt; ls -d ${tmp}/\\\${X}_dir > ${tmp}/d2.txt"
 sleep 3   # let the bounded copiers finish before the directory goes
 pass=true
+[[ -f ${tmp}/d.txt && "$(cat "${tmp}/d.txt")" == 1 && -d ${tmp}/1_dir ]] || { echo "FAIL case D: a run-time variable in the payload did not expand on the node side"; pass=false; }
 [[ -f ${tmp}/a.txt && -f ${tmp}/f.txt && -f ${tmp}/v_ok.txt ]]   || { echo "FAIL case A: extraction did not run after a successful builder"; pass=false; }
 [[ -f ${tmp}/a2.txt && -f ${tmp}/f2.txt ]]                        || { echo "FAIL case B: earlier steps did not run"; pass=false; }
 [[ ! -f ${tmp}/v_fail.txt ]]                                      || { echo "FAIL case B: extraction ran although the builder failed"; pass=false; }
