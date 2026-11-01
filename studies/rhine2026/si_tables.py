@@ -9,6 +9,7 @@ Writes to the Overleaf repository's tables/ folder:
   si_thresholds.tex         the modal-switch rule: offline classification and threshold sensitivity (S4)
   si_representations.tex    the 2018 monthly industrial path under both representations and stock levels (S6)
   si_runs.tex               every run of the batch of 30 Sep: German and EU loss, peak (review S7)
+  si_ports.tex              the seaports of the calibrated baseline against Eurostat 2023, with the mechanism of each gap (S2; 1 Nov 2026)
 
 The parameter values are read from config/user_defined_EU.yaml (the configuration of the batch of 30 Sep 2026); the
 stock evidence from evidence/inventory_durations_by_industry.md (sections 6.2 and 6.3); the rate evidence is quoted
@@ -698,10 +699,65 @@ def revision_table(out: Path):
 """, encoding="utf-8")
 
 
+# ------------------------------------------------------------------------------------------------ S2: seaports
+# the mechanism behind each gap of the calibrated baseline (1 Nov 2026, the read of the recalibration rounds):
+# "crude ..." = tonnage the statistics count that is not a transport flow of the model (crude and gas are pipelined
+# by the rule, sea-to-sea transhipment does not exist); "transhipment hub" = the same at its extreme; "nearest-coast
+# landing" = an import landed at the coastal node nearest its buyer under the uniform sea tariff; "landings at X" =
+# the tonnage of this port landed at a nearby node instead.
+PORT_NOTES = {
+    "Rotterdam": "crude and products, transhipment", "Antwerp-Bruges": "crude and products, transhipment",
+    "Amsterdam": "coal and oil products; fee 0.75", "Gdansk": "landings at Szczecin", "Algeciras": "transhipment hub",
+    "Constanta": "crude; grain exports and Ukraine transit", "Valencia": "transhipment", "Trieste": "crude terminal (TAL pipeline)",
+    "Piraeus": "transhipment hub", "Sines": "crude, gas, transhipment", "Cartagena": "crude terminal",
+    "Zeeland Seaports": "crude, chemicals", "Gioia Tauro": "transhipment hub", "Tarragona": "crude terminal",
+    "Wilhelmshaven": "crude terminal", "Livorno": "ro-ro ferries", "Huelva": "crude terminal",
+    "Klaipeda": "oil products, fertilisers", "Augusta": "crude terminal", "Gdynia": "landings at Szczecin",
+    "Porto Foxi": "crude terminal", "Agioi Theodoroi": "crude terminal", "Rostock": "ferries; landings at Szczecin",
+    "Venezia": "nearest-coast landing (the lagoon)", "Koper": "landings at the lagoon",
+    "Monfalcone": "nearest-coast landing (the lagoon)", "Szczecin": "nearest-coast landing", "Burgas": "nearest-coast landing",
+    "Helsinki": "nearest-coast landing", "Oslo": "nearest-coast landing", "Málaga": "nearest-coast landing",
+    "Sète": "nearest-coast landing", "Civitavecchia": "nearest-coast landing",
+}
+
+
+def ports_table(out: Path, run: str = "r6_h01_feeder3"):
+    """The seaports of the calibrated baseline against Eurostat 2023: the ports.csv of flow_score.py on the base run
+    (the forty largest ports by gross weight handled, then the ports outside the forty where the model lands 20 Mt
+    or more), with the mechanism of each gap from PORT_NOTES."""
+    p = pd.read_csv(RUNS / run / "flow_score" / "ports.csv")
+    p = p[p["model_mt"].notna() & p["eurostat_mt"].notna()]
+    scored = p["scored"].astype(str).str.lower() == "true"
+    top = p[scored].sort_values("eurostat_mt", ascending=False)
+    rest = p[~scored & (p["model_mt"] >= 20)].sort_values("model_mt", ascending=False)
+
+    def row(r):
+        return (f"{tex(r['label'])} & {r['cc']} & {r['eurostat_mt']:.0f} & {r['model_mt']:.0f} & {r['ratio']:.2f} & "
+                f"{tex(PORT_NOTES.get(r['label'], ''))} \\\\")
+    rows = [row(r) for _, r in top.iterrows()] + [r"\midrule"] + [row(r) for _, r in rest.iterrows()]
+    (out / "si_ports.tex").write_text(r"""\begingroup\footnotesize
+\begin{longtable}{llrrrl}
+\caption{\textbf{The seaports of the calibrated baseline.} The forty largest seaports by gross weight of goods handled (Eurostat 2023, Mt) and the model's tonnage through their connectors; below the line, the ports outside the forty where the model lands 20~Mt or more. The note names the mechanism of a gap: crude, gas and sea-to-sea transhipment are counted by the statistics but are not transport flows of the model (crude and gas are pipelined by construction, a cargo lands once); a transhipment hub has no hinterland flow; a nearest-coast landing is an import landed at the coastal node nearest its buyer under the uniform sea tariff. Two of the forty (Sk\"oldvik, Las Palmas) have no connector in the network and are not shown.}
+\label{tab:ports} \\
+\toprule
+port & & observed & model & ratio & note \\
+\midrule
+\endfirsthead
+\toprule
+port & & observed & model & ratio & note \\
+\midrule
+\endhead
+""" + "\n".join(rows) + r"""
+\bottomrule
+\end{longtable}
+\endgroup
+""", encoding="utf-8")
+
+
 def main(overleaf: Path):
     out = overleaf / "tables"; out.mkdir(exist_ok=True)
     for fn in (rates_table, stocks_table, criticality_table, thresholds_table, loading_table, forecast_table,
-               runs_table, representations_table, channels_table, gate_table, prospective_table, prospective_sectors_table, revision_table, cross_table, rail_weeks_table):
+               runs_table, representations_table, channels_table, gate_table, prospective_table, prospective_sectors_table, revision_table, cross_table, rail_weeks_table, ports_table):
         try:
             fn(out)
         except FileNotFoundError as e:      # a table whose runs are not extracted yet keeps its previous version

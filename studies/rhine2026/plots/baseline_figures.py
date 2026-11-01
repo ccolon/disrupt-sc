@@ -72,14 +72,18 @@ def fig_modal_split(edges: gpd.GeoDataFrame, out: Path):
         sub = inland[inland["cc"] == cc]
         tot = sub["tkm"].sum()
         model[cc] = [100 * sub.loc[sub["type"] == m, "tkm"].sum() / tot for m in modes]
+    # 1 Nov 2026: the cargo-class panel is scored against the German NST targets, so it must take the German
+    # edges only (the first country code of the edge); the earlier version summed every inland edge of the
+    # scope, which put the EU-wide split (dry bulk 69 / 22 / 10) against the German one (53 / 27 / 20).
     cargo = {}
+    de = inland[inland["cc"] == "DE"]
     for ct in DE_CARGO_TARGETS:
         col = f"tons_{ct}"
         if col not in inland.columns:
             continue
-        ctkm = inland[col].fillna(0) * inland["km"]
+        ctkm = de[col].fillna(0) * de["km"]
         tot = ctkm.sum()
-        cargo[ct] = [100 * ctkm[inland["type"] == m].sum() / tot for m in modes]
+        cargo[ct] = [100 * ctkm[de["type"] == m].sum() / tot for m in modes]
 
     fig, axes = plt.subplots(1, 2, figsize=(11, 4.6), gridspec_kw={"width_ratios": [len(countries), len(cargo) + 1.0]})
     fig.patch.set_facecolor(SURFACE)
