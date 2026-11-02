@@ -43,6 +43,14 @@ def pct(x):
 
 
 def main(tag: str, overleaf: Path, date_list: str):
+    # 2 Nov 2026: the batch of 7 October named its revision runs 2026_rev_*, its 15-day waves wave09_* and its waves
+    # wave07_*, in lists of three dates; a later batch carries one tag in every name (2026_<tag>_rail50, wave_<tag>_A,
+    # wave_<tag>_A_rest15) and one list date (--lists), so the names and the table dates are derived here.
+    old_naming = tag == "s07"
+    REV = "rev" if old_naming else tag
+    WV9 = "wave09" if old_naming else f"wave_{tag}"
+    cross_date = "20261009" if old_naming else date_list
+    norail_date = "20261020" if old_naming else date_list
     m = table(AD / f"compare_runs_batch_jobs_{date_list}_main.csv")
     p = table(AD / f"compare_runs_batch_jobs_{date_list}_paired.csv")
     rv = AD / f"compare_runs_batch_jobs_{date_list}_rev.csv"
@@ -156,7 +164,7 @@ def main(tag: str, overleaf: Path, date_list: str):
         put(mac, r2(m.loc[run, "DEU_%quarter"]), run)
     put("NoPoolQ", r1(m.loc[f"2026_{tag}_nopool", "DEU_%quarter"])); put("NoPoolQyy", r1(m.loc[f"2018_{tag}_nopool", "DEU_%quarter"]))
     # ---- waves
-    wv = tag.replace("s", "wave")
+    wv = tag.replace("s", "wave") if old_naming else f"wave_{tag}"
     A, Bw = m.loc[f"{wv}_A", "DEU_%quarter"], m.loc[f"{wv}_B", "DEU_%quarter"]; base = b["DEU_%quarter"]
     put("WaveAQ", r2(A), "first wave alone"); put("WaveBQ", r2(Bw), "second wave alone"); put("WaveSumQ", r2(A + Bw))
     put("WaveBafterAQ", r2(base - A), "what the second wave adds after the first"); put("WaveBratio", r2((base - A) / Bw))
@@ -195,7 +203,25 @@ def main(tag: str, overleaf: Path, date_list: str):
             put(mac, pct(100 * mm.get(mo, np.nan)), f"{year}: % of the normal tonnage past Kaub, monthly mean of the loading table")
         if year == 2026:
             put("KaubMinWeek", pct(100 * d.min()), "% of the normal tonnage in the worst week (the floor below 5 cm)")
-    put("KaubMt", "54", "model throughput of the Kaub reach at the baseline, Mt/yr (dry bulk 22, liquid 31, containers nil)")
+    # ---- the Kaub throughput at the baseline, by cargo class (2 Nov 2026): from the t=0 flow file of the reference run or of the
+    # link-level run (weekly tons x 52, the largest feature of the reach, as anchor_rhine_capacities.py reads it); the first
+    # version's runs were packed without the flow file, so its figure stays as a constant
+    kf = next((RUNS / r_ / "transport_edges_with_flows_0.geojson" for r_ in (B, f"2026_{tag}_full")
+               if (RUNS / r_ / "transport_edges_with_flows_0.geojson").exists()), None)
+    if kf is not None:
+        import json as _json
+        kb = {}
+        for f_ in _json.load(open(kf, encoding="utf-8"))["features"]:
+            pp = f_["properties"]
+            if str(pp.get("name") or "") == "rhine_mainz_koblenz" and float(pp.get("flow_total_tons") or 0.0) > kb.get("flow_total_tons", -1.0):
+                kb = {k: float(pp.get(k) or 0.0) for k in ("flow_total_tons", "tons_container", "tons_dry_bulk", "tons_liquid_bulk")}
+        kmt = {k: v * 52 / 1e6 for k, v in kb.items()}
+        put("KaubMt", pct(kmt["flow_total_tons"]), f"model throughput of the Kaub reach at the baseline, Mt/yr (dry bulk {kmt['tons_dry_bulk']:.1f}, liquid {kmt['tons_liquid_bulk']:.1f}, containers {kmt['tons_container']:.1f}; {kf.parent.name})")
+        put("KaubContMt", r1(kmt["tons_container"]), "containers through Kaub at the baseline, Mt/yr (CCNR: roughly 10)")
+        put("KaubDryMt", r1(kmt["tons_dry_bulk"]), "dry bulk through Kaub at the baseline, Mt/yr"); put("KaubLiquidMt", r1(kmt["tons_liquid_bulk"]), "liquid bulk")
+        put("KaubContShare", pct(100 * kmt["tons_container"] / kmt["flow_total_tons"]), "% of the Kaub tonnage that is containers at the baseline (CCNR: about a sixth)")
+    else:
+        put("KaubMt", "54", "model throughput of the Kaub reach at the baseline, Mt/yr (dry bulk 22, liquid 31, containers nil; constant: no flow file in the packed runs)")
     put("DestatisNovyy", "34", "Destatis: German inland-waterway tonnage, November 2018, % year on year")
     gt = {}
     for line in (RUNS / f"{B}.log").read_text(encoding="utf-8", errors="replace").splitlines():
@@ -225,20 +251,20 @@ def main(tag: str, overleaf: Path, date_list: str):
     if len(r):
         def rel(run, base=B):
             return pct(100 * (r.loc[run, "DEU_%quarter"] / m.loc[base, "DEU_%quarter"] - 1))
-        for mac, run in (("RevRailFifty", "2026_rev_rail50"), ("RevRailHundredForty", "2026_rev_rail140"), ("RevHeadTen", "2026_rev_head10"), ("RevHeadTwentyFive", "2026_rev_head25"),
-                         ("RevRestFifteen", "2026_rev_rest15"), ("RevRestSixty", "2026_rev_rest60"), ("RevFloorLow", "2026_rev_floor04"), ("RevFloorHigh", "2026_rev_floor16"),
-                         ("RevDeepLocal", "2026_rev_deeplocal"), ("RevFleetWide", "2026_rev_fleetwide"), ("RevDfuel", "2026_rev_dfuel0"), ("RevServ", "2026_rev_serv45"),
-                         ("RevQLow", "2026_rev_q25"), ("RevQHigh", "2026_rev_q75")):
+        for mac, run in (("RevRailFifty", f"2026_{REV}_rail50"), ("RevRailHundredForty", f"2026_{REV}_rail140"), ("RevHeadTen", f"2026_{REV}_head10"), ("RevHeadTwentyFive", f"2026_{REV}_head25"),
+                         ("RevRestFifteen", f"2026_{REV}_rest15"), ("RevRestSixty", f"2026_{REV}_rest60"), ("RevFloorLow", f"2026_{REV}_floor04"), ("RevFloorHigh", f"2026_{REV}_floor16"),
+                         ("RevDeepLocal", f"2026_{REV}_deeplocal"), ("RevFleetWide", f"2026_{REV}_fleetwide"), ("RevDfuel", f"2026_{REV}_dfuel0"), ("RevServ", f"2026_{REV}_serv45"),
+                         ("RevQLow", f"2026_{REV}_q25"), ("RevQHigh", f"2026_{REV}_q75")):
             put(mac, r2(r.loc[run, "DEU_%quarter"]), f"{run}: {rel(run)} % against the base"); put(mac + "Rel", rel(run).replace("-", "$-$"))
             put(mac + "Abs", rel(run).lstrip("-"), "the same change without its sign")
-        for mac, run in (("RevRailFiftyyy", "2018_rev_rail50"), ("RevRailHundredFortyyy", "2018_rev_rail140")):
+        for mac, run in (("RevRailFiftyyy", f"2018_{REV}_rail50"), ("RevRailHundredFortyyy", f"2018_{REV}_rail140")):
             put(mac, r2(r.loc[run, "DEU_%quarter"]), f"{run}: {rel(run, B18)} % against the 2018 base"); put(mac + "Rel", rel(run, B18).replace("-", "$-$"))
             put(mac + "Abs", rel(run, B18).lstrip("-"), "the same change without its sign")
-        for mac, run in (("RevRailFiftyInt", "2018_rev_rail50"), ("RevRailHundredFortyInt", "2018_rev_rail140")):
+        for mac, run in (("RevRailFiftyInt", f"2018_{REV}_rail50"), ("RevRailHundredFortyInt", f"2018_{REV}_rail140")):
             put(mac, r1(model_path(RUNS / run, 2018)["ind_integrated_pct_months"]), "2018 industrial integral, percent-months")
-        put("RevDeepLocalRemoves", pct(100 * (1 - r.loc["2026_rev_deeplocal", "DEU_cum_mUSD"] / b.DEU_cum_mUSD)), "% of the loss removed by the fairway on the Kaub reach alone")
-        put("RevFleetWideRemoves", pct(100 * (1 - r.loc["2026_rev_fleetwide", "DEU_cum_mUSD"] / b.DEU_cum_mUSD)))
-        rsum = pd.read_csv(RUNS / "2026_rev_rail140" / "routing_summary.csv"); rsum5 = pd.read_csv(RUNS / "2026_rev_rail50" / "routing_summary.csv")
+        put("RevDeepLocalRemoves", pct(100 * (1 - r.loc[f"2026_{REV}_deeplocal", "DEU_cum_mUSD"] / b.DEU_cum_mUSD)), "% of the loss removed by the fairway on the Kaub reach alone")
+        put("RevFleetWideRemoves", pct(100 * (1 - r.loc[f"2026_{REV}_fleetwide", "DEU_cum_mUSD"] / b.DEU_cum_mUSD)))
+        rsum = pd.read_csv(RUNS / f"2026_{REV}_rail140" / "routing_summary.csv"); rsum5 = pd.read_csv(RUNS / f"2026_{REV}_rail50" / "routing_summary.csv")
         put("ReliefBnFifty", r1(rsum5[rsum5.cargo_type.isin(["dry_bulk", "liquid_bulk"])].relief_usd.sum() / 1e3), "bn USD delivered through the 50 kt ceiling over the run")
         put("ReliefBnHundredForty", r1(rsum[rsum.cargo_type.isin(["dry_bulk", "liquid_bulk"])].relief_usd.sum() / 1e3))
     # ---- constants: the price-with-closures representation (S6) and the model size
@@ -268,14 +294,14 @@ def main(tag: str, overleaf: Path, date_list: str):
         put(f"IndVAMaxDiff{suf}", r1(max(abs(mp_[k] - ms_[k]) for k in months)), "largest monthly difference between the two aggregations (points)")
     grp_of = lambda s: "A" if s[0] == "A" else ("I" if s[0] in "BCDE" else ("F" if s[0] == "F" else "S"))
     put("RatioBase", r1(tot / ind.loss.sum()), "German loss over its industrial part, reference run")
-    for mac, run in (("Serv", "2026_rev_serv45"), ("Dfuel", "2026_rev_dfuel0"), ("RailFifty", "2026_rev_rail50"), ("RailHundredForty", "2026_rev_rail140")):
+    for mac, run in (("Serv", f"2026_{REV}_serv45"), ("Dfuel", f"2026_{REV}_dfuel0"), ("RailFifty", f"2026_{REV}_rail50"), ("RailHundredForty", f"2026_{REV}_rail140")):
         if (RUNS / run / "firm_data.csv").exists():
             fx = firm_losses(RUNS / run); dx = fx[(fx.region == "DEU") & (fx.time_step >= 1)]; tx = dx.loss.sum()
             gx = dx.groupby(dx.sector.map(grp_of)).loss.sum() / tx * 100
             put(f"ShareServices{mac}", pct(gx.get("S", 0)), f"{run}: G-T share of the German gross loss"); put(f"ShareIndustry{mac}", pct(gx.get("I", 0)), "B-E")
             put(f"ShareConstruction{mac}", pct(gx.get("F", 0)), "F"); put(f"ShareUtilities{mac}", pct(100 * dx[dx.sector.isin(["D", "E"])].loss.sum() / tx), "D+E")
             put(f"Ratio{mac}", r1(100 / max(gx.get("I", 0), 1e-9)), "German loss over its industrial part")
-    for mac, run in (("Fifty", "2026_rev_rail50"), ("HundredForty", "2026_rev_rail140")):
+    for mac, run in (("Fifty", f"2026_{REV}_rail50"), ("HundredForty", f"2026_{REV}_rail140")):
         rs = RUNS / run / "routing_summary.csv"
         if rs.exists():
             g = pd.read_csv(rs).groupby("cargo_type").relief_usd.sum()
@@ -336,37 +362,37 @@ def main(tag: str, overleaf: Path, date_list: str):
             put("CorridorStopRhine" + suf, r1(100 * (sel.production < 0.5 * sel.base).mean()), f"% of them producing below half of baseline in week {wk}")
             put("CorridorFirmsBelowDEU" + suf, r1(100 * (at.production < 0.99 * at.base).mean()), f"the same share over all German firms, week {wk}")
     # ---- the no-rail runs (jobs_20261020_norail.txt): no bulk may use rail as an alternative
-    nr = AD / "compare_runs_batch_jobs_20261020_norail.csv"
+    nr = AD / f"compare_runs_batch_jobs_{norail_date}_norail.csv"
     if nr.exists():
         tn = table(nr)
-        for mac, run, base in (("RevNoRail", "2026_rev_norail", B), ("RevNoRailyy", "2018_rev_norail", B18)):
+        for mac, run, base in (("RevNoRail", f"2026_{REV}_norail", B), ("RevNoRailyy", f"2018_{REV}_norail", B18)):
             if run in tn.index:
                 relv = pct(100 * (tn.loc[run, "DEU_%quarter"] / m.loc[base, "DEU_%quarter"] - 1))
                 put(mac, r2(tn.loc[run, "DEU_%quarter"]), f"{run}: {relv} % against the base"); put(mac + "Rel", relv.replace("-", "$-$")); put(mac + "Abs", relv.lstrip("-"))
     # ---- the batch of 9 October 2026 (jobs_20261009_cross.txt): the levers under the 50 kt rail ceiling, the waves at 15 days
-    cx = AD / "compare_runs_batch_jobs_20261009_cross.csv"
+    cx = AD / f"compare_runs_batch_jobs_{cross_date}_cross.csv"
     if cx.exists() and len(r):
         c = table(cx)
-        b50 = r.loc["2026_rev_rail50", "DEU_cum_mUSD"]
+        b50 = r.loc[f"2026_{REV}_rail50", "DEU_cum_mUSD"]
         b0c = m.loc[B, "DEU_cum_mUSD"]; rail_alone = b0c - b50
         put("RailAloneBn", r1(rail_alone / 1e3), "bn USD avoided by the 50 kt rail relief alone")
         for mac, k in (("CrossStockRail", "stock7"), ("CrossDeepRail", "deep20"), ("CrossFleetRail", "fleet"), ("CrossStockTRail", "stock7t")):
-            run = f"2026_rev_rail50_{k}"
+            run = f"2026_{REV}_rail50_{k}"
             if run in c.index:
                 put(mac, pct(100 * (1 - c.loc[run, "DEU_cum_mUSD"] / b50)), f"{run}: % of the rail-50 base's loss avoided")
                 alone = b0c - m.loc[f"2026_{tag}_{k}", "DEU_cum_mUSD"]; both = b0c - c.loc[run, "DEU_cum_mUSD"]
                 put(mac.replace("Rail", "AloneBn"), r1(alone / 1e3), f"bn USD avoided by the lever alone"); put(mac.replace("Rail", "OnRailBn"), r1((both - rail_alone) / 1e3), "bn USD avoided by the lever on top of the rail relief")
                 put(mac.replace("Rail", "Overlap"), pct(100 * (1 - both / (alone + rail_alone))), "% by which the two together avoid less than the sum of their separate benefits")
-        if all(k in c.index for k in ("wave09_A_rest15", "wave09_B_rest15", "wave09_AB_gap2_rest15", "wave09_AB_gap4_rest15")):
-            a15, b15 = c.loc["wave09_A_rest15", "DEU_%quarter"], c.loc["wave09_B_rest15", "DEU_%quarter"]
-            s15 = r.loc["2026_rev_rest15", "DEU_%quarter"]
+        if all(k in c.index for k in (f"{WV9}_A_rest15", f"{WV9}_B_rest15", f"{WV9}_AB_gap2_rest15", f"{WV9}_AB_gap4_rest15")):
+            a15, b15 = c.loc[f"{WV9}_A_rest15", "DEU_%quarter"], c.loc[f"{WV9}_B_rest15", "DEU_%quarter"]
+            s15 = r.loc[f"2026_{REV}_rest15", "DEU_%quarter"]
             put("WaveARest", r2(a15), "wave A alone at a 15-day refill time, % of a quarter"); put("WaveBRest", r2(b15)); put("WaveSumRest", r2(a15 + b15))
-            put("WaveSeqRest", r2(s15), "the sequence without a gap at 15 days (2026_rev_rest15)")
+            put("WaveSeqRest", r2(s15), f"the sequence without a gap at 15 days (2026_{REV}_rest15)")
             put("WaveInterRest", pct(100 * (s15 / (a15 + b15) - 1)).replace("-", "$-$"), "% more than the sum, 15 days, no gap")
-            put("WaveGapTwoRest", pct(100 * (c.loc["wave09_AB_gap2_rest15", "DEU_%quarter"] / (a15 + b15) - 1)).replace("-", "$-$"), "gap of 2 weeks, 15 days")
-            put("WaveGapFourRest", pct(100 * (c.loc["wave09_AB_gap4_rest15", "DEU_%quarter"] / (a15 + b15) - 1)).replace("-", "$-$"), "gap of 4 weeks, 15 days")
-            put("WaveGapTwoRestAbs", pct(100 * (1 - c.loc["wave09_AB_gap2_rest15", "DEU_%quarter"] / (a15 + b15))), "% less than the sum, gap of 2 weeks, 15 days")
-            put("WaveGapFourRestAbs", pct(100 * (1 - c.loc["wave09_AB_gap4_rest15", "DEU_%quarter"] / (a15 + b15))), "gap of 4 weeks")
+            put("WaveGapTwoRest", pct(100 * (c.loc[f"{WV9}_AB_gap2_rest15", "DEU_%quarter"] / (a15 + b15) - 1)).replace("-", "$-$"), "gap of 2 weeks, 15 days")
+            put("WaveGapFourRest", pct(100 * (c.loc[f"{WV9}_AB_gap4_rest15", "DEU_%quarter"] / (a15 + b15) - 1)).replace("-", "$-$"), "gap of 4 weeks, 15 days")
+            put("WaveGapTwoRestAbs", pct(100 * (1 - c.loc[f"{WV9}_AB_gap2_rest15", "DEU_%quarter"] / (a15 + b15))), "% less than the sum, gap of 2 weeks, 15 days")
+            put("WaveGapFourRestAbs", pct(100 * (1 - c.loc[f"{WV9}_AB_gap4_rest15", "DEU_%quarter"] / (a15 + b15))), "gap of 4 weeks")
     lines = [f"% Key numbers of the paper, generated by studies/rhine2026/make_numbers.py from the batch of {date_list} (run names {tag}): the river as a",
              "% quantity constraint with the voyage surcharge, stocks at their evidence values, crude and gas by pipeline, construction a",
              "% non-storable input, the loading table rebuilt on its ledger (6 Oct 2026); the 2026 profile of 30 Sep (observations to 29 Sep,",
