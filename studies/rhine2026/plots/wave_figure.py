@@ -19,6 +19,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from print_style import finish  # noqa: E402  text at print size (13 Oct 2026)
+from batch_names import TAG, WV, REV, WV9, LISTS, CROSS, NORAIL  # noqa: E402  run and table names of the batch (2 Nov 2026)
 import pandas as pd
 
 HERE = Path(__file__).resolve().parents[1]
@@ -55,16 +56,16 @@ def style(ax):
 
 
 def main(out: Path):
-    w = weekly_block(AD / "compare_runs_batch_jobs_20261007_main.txt")
-    base = weekly_block(AD / "compare_runs_batch_jobs_20261007_main.txt")["2026_s07_base"]
-    t = table(AD / "compare_runs_batch_jobs_20261007_main.csv")
-    b0 = t.loc["2026_s07_base"]
+    w = weekly_block(AD / f"compare_runs_batch_jobs_{LISTS}_main.txt")
+    base = weekly_block(AD / f"compare_runs_batch_jobs_{LISTS}_main.txt")[f"2026_{TAG}_base"]
+    t = table(AD / f"compare_runs_batch_jobs_{LISTS}_main.csv")
+    b0 = t.loc[f"2026_{TAG}_base"]
     q = b0["DEU_cum_mUSD"] / b0["DEU_%quarter"]                 # mUSD per 1 % of a quarter
     wk = q / 13.0                                                  # mUSD per 1 % of a week
 
     weeks = range(0, 34)
-    a = w["wave07_A"].reindex(weeks).fillna(0.0)
-    b = w["wave07_B"].reindex(weeks).fillna(0.0)
+    a = w[f"{WV}_A"].reindex(weeks).fillna(0.0)
+    b = w[f"{WV}_B"].reindex(weeks).fillna(0.0)
     b_shift = pd.Series([b.get(i - SPLIT, 0.0) if i >= SPLIT else 0.0 for i in weeks], index=weeks)
     season = base.reindex(weeks).fillna(0.0)
     dates = [FIRST + pd.Timedelta(weeks=i - 1) for i in weeks]
@@ -93,19 +94,19 @@ def main(out: Path):
 
     ax = axes[1]; style(ax)
     gaps = [0, 1, 2, 4, 8]
-    L = [b0["DEU_%quarter"]] + [t.loc[f"wave07_AB_gap{g}", "DEU_%quarter"] for g in gaps[1:]]      # the run table's column, as Table S-runs prints it
-    s = t.loc["wave07_A", "DEU_%quarter"] + t.loc["wave07_B", "DEU_%quarter"]
+    L = [b0["DEU_%quarter"]] + [t.loc[f"{WV}_AB_gap{g}", "DEU_%quarter"] for g in gaps[1:]]      # the run table's column, as Table S-runs prints it
+    s = t.loc[f"{WV}_A", "DEU_%quarter"] + t.loc[f"{WV}_B", "DEU_%quarter"]
     ax.axhline(s, color=MUTED, linewidth=1.3, linestyle="--")
     ax.text(0.1, s + 0.012, "the two episodes alone, summed", color=MUTED, fontsize=7.5, ha="left", va="bottom")
     ax.plot(gaps, L, color=INK, linewidth=1.8, marker="o", markersize=5, label="in sequence, 30-day refill time")
-    cx = AD / "compare_runs_batch_jobs_20261009_cross.csv"; rv = AD / "compare_runs_batch_jobs_20261007_rev.csv"
+    cx = AD / f"compare_runs_batch_jobs_{CROSS}_cross.csv"; rv = AD / f"compare_runs_batch_jobs_{LISTS}_rev.csv"
     if cx.exists() and rv.exists():                            # the batch of 9 Oct: the same experiment at a 15-day refill time
         c, r = table(cx), table(rv)
-        s15 = c.loc["wave09_A_rest15", "DEU_%quarter"] + c.loc["wave09_B_rest15", "DEU_%quarter"]
-        L15 = [r.loc["2026_rev_rest15", "DEU_%quarter"], c.loc["wave09_AB_gap2_rest15", "DEU_%quarter"], c.loc["wave09_AB_gap4_rest15", "DEU_%quarter"]]
+        s15 = c.loc[f"{WV9}_A_rest15", "DEU_%quarter"] + c.loc[f"{WV9}_B_rest15", "DEU_%quarter"]
+        L15 = [r.loc[f"2026_{REV}_rest15", "DEU_%quarter"], c.loc[f"{WV9}_AB_gap2_rest15", "DEU_%quarter"], c.loc[f"{WV9}_AB_gap4_rest15", "DEU_%quarter"]]
         TEAL = "#1f9e9e"
         ax.plot([0, 2, 4], L15, color=TEAL, linewidth=1.6, marker="o", markersize=4.5, label="in sequence, 15-day refill time")
-    f = t.loc["wave07_flat", "DEU_%quarter"]
+    f = t.loc[f"{WV}_flat", "DEU_%quarter"]
     ax.axhline(f, color=GREEN, linewidth=1.0, linestyle=":")
     ax.text(8.0, f + 0.012, "flat profile", color=GREEN, fontsize=7.5, ha="right", va="bottom")
     ax.legend(frameon=False, fontsize=7, loc="lower right")

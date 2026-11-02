@@ -13,6 +13,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from print_style import finish  # noqa: E402  text at print size (13 Oct 2026)
+from batch_names import TAG, WV, REV, WV9, LISTS, CROSS, NORAIL  # noqa: E402  run and table names of the batch (2 Nov 2026)
 import numpy as np
 import pandas as pd
 
@@ -93,7 +94,7 @@ def main(run: Path, out: Path):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--run", default="C:/dsc_runs/rhine2026/2026_s07_base")
+    ap.add_argument("--run", default=f"C:/dsc_runs/rhine2026/2026_{TAG}_base")
     ap.add_argument("--out", default=str(HERE / "figures"))
     a = ap.parse_args()
     main(Path(a.run), Path(a.out))

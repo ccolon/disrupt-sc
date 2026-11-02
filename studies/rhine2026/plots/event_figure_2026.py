@@ -22,6 +22,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from event_loss_panel import AD, HERE, SHADE, table, weekly_block  # noqa: E402
 from print_style import finish  # noqa: E402
+from batch_names import TAG, WV, REV, WV9, LISTS, CROSS, NORAIL  # noqa: E402  run and table names of the batch (2 Nov 2026)
 from scenario_figures import load_factor_curve, weekly_reductions  # noqa: E402
 
 INK, MUTED, GRID = "#1f2328", "#6e7781", "#e6e8eb"
@@ -40,15 +41,15 @@ def main(out: Path):
     weeks = pd.to_datetime(prof["week_start"])
     curve = load_factor_curve(HERE / "scenarios" / "draught_table.csv")
     share = [100 * (1 - r) for r in weekly_reductions(prof, curve)]
-    m = table(AD / "compare_runs_batch_jobs_20261007_main.csv")
-    wm = weekly_block(AD / "compare_runs_batch_jobs_20261007_main.txt")
-    wp = weekly_block(AD / "compare_runs_batch_jobs_20261007_paired.txt")
-    q_week = m.loc["2026_s07_base", "DEU_cum_mUSD"] / m.loc["2026_s07_base", "DEU_%quarter"] / 13.0
+    m = table(AD / f"compare_runs_batch_jobs_{LISTS}_main.csv")
+    wm = weekly_block(AD / f"compare_runs_batch_jobs_{LISTS}_main.txt")
+    wp = weekly_block(AD / f"compare_runs_batch_jobs_{LISTS}_paired.txt")
+    q_week = m.loc[f"2026_{TAG}_base", "DEU_cum_mUSD"] / m.loc[f"2026_{TAG}_base", "DEU_%quarter"] / 13.0
     first = pd.Timestamp(prof.week_start.iloc[0])
     wk = range(0, 30)
     dates = [first + pd.Timedelta(weeks=i - 1) for i in wk]
-    nets = pd.DataFrame({s: wp[f"2026_s07_seed{s}_base"].reindex(wk).fillna(0) / q_week for s in range(1, 11)})
-    nets["ref"] = wm["2026_s07_base"].reindex(wk).fillna(0) / q_week
+    nets = pd.DataFrame({s: wp[f"2026_{TAG}_seed{s}_base"].reindex(wk).fillna(0) / q_week for s in range(1, 11)})
+    nets["ref"] = wm[f"2026_{TAG}_base"].reindex(wk).fillna(0) / q_week
     mean = nets.mean(axis=1)
 
     fig, (a1, a2) = plt.subplots(2, 1, figsize=(7.0, 4.6), sharex=True, gridspec_kw={"height_ratios": [1, 1.15]})

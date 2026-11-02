@@ -23,6 +23,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from print_style import finish  # noqa: E402  text at print size (13 Oct 2026)
+from batch_names import TAG, WV, REV, WV9, LISTS, CROSS, NORAIL  # noqa: E402  run and table names of the batch (2 Nov 2026)
 import numpy as np
 import pandas as pd
 
@@ -51,11 +52,11 @@ def style(ax):
 
 
 def main(out: Path):
-    m = table(AD / "compare_runs_batch_jobs_20261007_main.csv")
-    p = table(AD / "compare_runs_batch_jobs_20261007_paired.csv")
-    rv = AD / "compare_runs_batch_jobs_20261007_rev.csv"
+    m = table(AD / f"compare_runs_batch_jobs_{LISTS}_main.csv")
+    p = table(AD / f"compare_runs_batch_jobs_{LISTS}_paired.csv")
+    rv = AD / f"compare_runs_batch_jobs_{LISTS}_rev.csv"
     r = table(rv) if rv.exists() else pd.DataFrame()
-    nr = AD / "compare_runs_batch_jobs_20261020_norail.csv"  # no rail alternative for any bulk (20 Oct 2026)
+    nr = AD / f"compare_runs_batch_jobs_{NORAIL}_norail.csv"  # no rail alternative for any bulk (20 Oct 2026)
     if nr.exists():
         r = pd.concat([r, table(nr)])
     q = "DEU_%quarter"
@@ -64,24 +65,24 @@ def main(out: Path):
     rng = np.random.default_rng(2)
     for ax, year in zip(axes, ("2026", "2018")):
         style(ax)
-        base = m.loc[f"{year}_s07_base", q]
-        draws = ([p.loc[f"2026_s07_seed{s}_base", q] for s in range(1, 11)] if year == "2026"
-                 else [m.loc[f"2018_s07_seed{s}", q] for s in range(1, 11)])
+        base = m.loc[f"{year}_{TAG}_base", q]
+        draws = ([p.loc[f"2026_{TAG}_seed{s}_base", q] for s in range(1, 11)] if year == "2026"
+                 else [m.loc[f"2018_{TAG}_seed{s}", q] for s in range(1, 11)])
         groups = [("network\ndraws\n(11)", draws + [base], BLUE),
-                  ("loading\ncurve\n(±15 %)", [m.loc[f"{year}_s07_tablelow", q], m.loc[f"{year}_s07_tablehigh", q]], GREEN),
-                  ("two\nsuppliers", [m.loc[f"{year}_s07_sup2", q]], PINK),
-                  ("no input\npooling", [m.loc[f"{year}_s07_nopool", q]], ORANGE)]
+                  ("loading\ncurve\n(±15 %)", [m.loc[f"{year}_{TAG}_tablelow", q], m.loc[f"{year}_{TAG}_tablehigh", q]], GREEN),
+                  ("two\nsuppliers", [m.loc[f"{year}_{TAG}_sup2", q]], PINK),
+                  ("no input\npooling", [m.loc[f"{year}_{TAG}_nopool", q]], ORANGE)]
         if year == "2026":
-            groups.append(("one\nchannel\nonly", [m.loc["2026_s07_gateonly", q], m.loc["2026_s07_surchargeonly", q]], MUTED))
-        if len(r) and f"{year}_rev_rail50" in r.index:
-            rail = [r.loc[f"{year}_rev_rail50", q], r.loc[f"{year}_rev_rail140", q]]
-            if f"{year}_rev_norail" in r.index:
-                groups.append(("rail\nnone, 50,\n140 kt", [r.loc[f"{year}_rev_norail", q]] + rail, PURPLE))
+            groups.append(("one\nchannel\nonly", [m.loc[f"2026_{TAG}_gateonly", q], m.loc[f"2026_{TAG}_surchargeonly", q]], MUTED))
+        if len(r) and f"{year}_{REV}_rail50" in r.index:
+            rail = [r.loc[f"{year}_{REV}_rail50", q], r.loc[f"{year}_{REV}_rail140", q]]
+            if f"{year}_{REV}_norail" in r.index:
+                groups.append(("rail\nnone, 50,\n140 kt", [r.loc[f"{year}_{REV}_norail", q]] + rail, PURPLE))
             else:
                 groups.append(("rail\n50, 140 kt", rail, PURPLE))
-        if year == "2026" and len(r) and "2026_rev_rest15" in r.index:
-            groups.append(("refill\ntime\n15, 60 d", [r.loc["2026_rev_rest15", q], r.loc["2026_rev_rest60", q]], TEAL))
-            groups.append(("service\nrules", [r.loc["2026_rev_serv45", q], r.loc["2026_rev_dfuel0", q]], GOLD))
+        if year == "2026" and len(r) and f"2026_{REV}_rest15" in r.index:
+            groups.append(("refill\ntime\n15, 60 d", [r.loc[f"2026_{REV}_rest15", q], r.loc[f"2026_{REV}_rest60", q]], TEAL))
+            groups.append(("service\nrules", [r.loc[f"2026_{REV}_serv45", q], r.loc[f"2026_{REV}_dfuel0", q]], GOLD))
         ax.axvline(base, color=INK, linewidth=1.2, linestyle="--")
         ax.text(base + 0.02, -0.5, f"reference {base:.2f}", color=INK, fontsize=7.5, ha="left", va="top")
         top = max(max(v) for lab, v, _ in groups if not lab.startswith("no input")) * 1.22

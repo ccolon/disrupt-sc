@@ -27,6 +27,7 @@ matplotlib.use("Agg")
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 from print_style import finish  # noqa: E402  text at print size (13 Oct 2026)
+from batch_names import TAG, WV, REV, WV9, LISTS, CROSS, NORAIL  # noqa: E402  run and table names of the batch (2 Nov 2026)
 import numpy as np
 import pandas as pd
 
@@ -72,28 +73,28 @@ def style(ax):
 
 
 def main(runs: Path, out: Path):
-    ref = matched(runs / "2018_s07_base")
-    seeds = [matched(runs / f"2018_s07_seed{s}") for s in range(1, 11)]
-    low, high = matched(runs / "2018_s07_tablelow"), matched(runs / "2018_s07_tablehigh")
-    sup2 = matched(runs / "2018_s07_sup2")
+    ref = matched(runs / f"2018_{TAG}_base")
+    seeds = [matched(runs / f"2018_{TAG}_seed{s}") for s in range(1, 11)]
+    low, high = matched(runs / f"2018_{TAG}_tablelow"), matched(runs / f"2018_{TAG}_tablehigh")
+    sup2 = matched(runs / f"2018_{TAG}_sup2")
     # the record: the published dynamic specification (column 1) with its 16-84 % band
     rec_t, rec_s = record(2018, 1)
     ev = rec_t[rec_t.month.isin(EVENT_MONTHS[2018])]
     REC, REC16, REC84 = ev.central.values, ev.p16.values, ev.p84.values
     # the stock ladder of 28 Sep (x1.25, x1.5, x2) and the priced river with closures (x1, x1.5, x2), same rule
     # the ladder on the rebuilt table (7 Oct 2026) when its runs are there, else the ladder of 28 Sep on the earlier table
-    if all((runs / f"2018_s07_inv{k}" / "firm_data.csv").exists() for k in ("125", "150", "200")):
-        INT_GATE = {1.25: matched(runs / "2018_s07_inv125")["integral"], 1.5: matched(runs / "2018_s07_inv150")["integral"],
-                    2.0: matched(runs / "2018_s07_inv200")["integral"]}
+    if all((runs / f"2018_{TAG}_inv{k}" / "firm_data.csv").exists() for k in ("125", "150", "200")):
+        INT_GATE = {1.25: matched(runs / f"2018_{TAG}_inv125")["integral"], 1.5: matched(runs / f"2018_{TAG}_inv150")["integral"],
+                    2.0: matched(runs / f"2018_{TAG}_inv200")["integral"]}
     else:
         INT_GATE = {1.25: matched(runs / "2018_gs_inv125")["integral"], 1.5: matched(runs / "2018_gs_inv150")["integral"],
                     2.0: matched(runs / "2018_gs")["integral"]}
     priced1 = matched(runs / "2018_baseline")
     INT_PRICED = {1.0: priced1["integral"], 1.5: matched(runs / "2018_inv150")["integral"], 2.0: matched(runs / "2018_pipe")["integral"]}
     PRICED_X1 = [priced1[mo] for mo in MONTHS]
-    m = table(AD / "compare_runs_batch_jobs_20261007_main.csv")
-    p = table(AD / "compare_runs_batch_jobs_20261007_paired.csv")
-    Q_DEU = m.loc["2026_s07_base", "DEU_cum_mUSD"] / m.loc["2026_s07_base", "DEU_%quarter"]
+    m = table(AD / f"compare_runs_batch_jobs_{LISTS}_main.csv")
+    p = table(AD / f"compare_runs_batch_jobs_{LISTS}_paired.csv")
+    Q_DEU = m.loc[f"2026_{TAG}_base", "DEU_cum_mUSD"] / m.loc[f"2026_{TAG}_base", "DEU_%quarter"]
 
     fig, axes = plt.subplots(2, 2, figsize=(7.0, 6.2), gridspec_kw={"height_ratios": [1.1, 1]})
     fig.patch.set_facecolor("white")
@@ -145,11 +146,11 @@ def main(runs: Path, out: Path):
 
     # (c) weekly 2018 loss with the band
     ax = axes[1, 0]; style(ax)
-    ens = weekly_block(AD / "compare_runs_batch_jobs_20261007_main.txt")
-    cols = [f"2018_s07_seed{s}" for s in range(1, 11)]
+    ens = weekly_block(AD / f"compare_runs_batch_jobs_{LISTS}_main.txt")
+    cols = [f"2018_{TAG}_seed{s}" for s in range(1, 11)]
     first = pd.Timestamp(pd.read_csv(HERE / "scenarios" / "2018.csv")["week_start"].iloc[0])
     dates = [first + pd.Timedelta(weeks=int(t) - 1) for t in ens.index]
-    band = ens[cols + ["2018_s07_base"]] * 13 / Q_DEU                      # the eleven networks
+    band = ens[cols + [f"2018_{TAG}_base"]] * 13 / Q_DEU                      # the eleven networks
     c_rng = ax.fill_between(dates, band.min(axis=1), band.max(axis=1), color=GREY, alpha=0.35, linewidth=0)
     c_iqr = ax.fill_between(dates, band.quantile(0.25, axis=1), band.quantile(0.75, axis=1), color=GREY, alpha=0.6, linewidth=0)
     cm, = ax.plot(dates, band.mean(axis=1), color=INK, linewidth=2)
@@ -166,8 +167,8 @@ def main(runs: Path, out: Path):
 
     # (d) the two ensembles
     ax = axes[1, 1]; style(ax)
-    e26 = [p.loc[f"2026_s07_seed{s}_base", "DEU_%quarter"] for s in range(1, 11)] + [m.loc["2026_s07_base", "DEU_%quarter"]]
-    e18 = [m.loc[f"2018_s07_seed{s}", "DEU_%quarter"] for s in range(1, 11)] + [m.loc["2018_s07_base", "DEU_%quarter"]]
+    e26 = [p.loc[f"2026_{TAG}_seed{s}_base", "DEU_%quarter"] for s in range(1, 11)] + [m.loc[f"2026_{TAG}_base", "DEU_%quarter"]]
+    e18 = [m.loc[f"2018_{TAG}_seed{s}", "DEU_%quarter"] for s in range(1, 11)] + [m.loc[f"2018_{TAG}_base", "DEU_%quarter"]]
     rng = np.random.default_rng(3)
     for xx, vals, col in [(0, e18, BLUE), (1, e26, ORANGE)]:
         jitter = rng.uniform(-0.12, 0.12, len(vals))

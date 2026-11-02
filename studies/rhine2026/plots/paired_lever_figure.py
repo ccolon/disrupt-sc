@@ -18,6 +18,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from print_style import finish  # noqa: E402  text at print size (13 Oct 2026)
+from batch_names import TAG, WV, REV, WV9, LISTS, CROSS, NORAIL  # noqa: E402  run and table names of the batch (2 Nov 2026)
 import numpy as np
 import pandas as pd
 
@@ -55,20 +56,20 @@ def style(ax):
 
 
 def main(out: Path):
-    m = table(AD / "compare_runs_batch_jobs_20261007_main.csv")
-    p = table(AD / "compare_runs_batch_jobs_20261007_paired.csv")
-    w = weekly_block(AD / "compare_runs_batch_jobs_20261007_main.txt")
+    m = table(AD / f"compare_runs_batch_jobs_{LISTS}_main.csv")
+    p = table(AD / f"compare_runs_batch_jobs_{LISTS}_paired.csv")
+    w = weekly_block(AD / f"compare_runs_batch_jobs_{LISTS}_main.txt")
     fig = plt.figure(figsize=(7.0, 3.2))
     gs = fig.add_gridspec(1, 2, width_ratios=[1.0, 1.25])
     fig.patch.set_facecolor("white")
     rng = np.random.default_rng(1)
     key = "DEU_cum_mUSD"
     ax = fig.add_subplot(gs[0, 0]); style(ax); ax.grid(axis="x", color=GRID, linewidth=0.6)
-    base = m.loc["2026_s07_base", key]
+    base = m.loc[f"2026_{TAG}_base", key]
     ys = np.arange(len(LEVERS))[::-1]
     for y, (lv, lab) in zip(ys, LEVERS):
-        ref = 100 * (1 - m.loc[f"2026_s07_{lv}", key] / base)
-        paired = [100 * (1 - p.loc[f"2026_s07_seed{s}_{lv}", key] / p.loc[f"2026_s07_seed{s}_base", key]) for s in range(1, 11)]
+        ref = 100 * (1 - m.loc[f"2026_{TAG}_{lv}", key] / base)
+        paired = [100 * (1 - p.loc[f"2026_{TAG}_seed{s}_{lv}", key] / p.loc[f"2026_{TAG}_seed{s}_base", key]) for s in range(1, 11)]
         avg = float(np.mean(paired + [ref]))   # the mean over the eleven networks (22 Oct 2026, decision D2)
         ax.barh(y, avg, color=COLORS[lv], alpha=0.85, height=0.55)
         ax.scatter(paired + [ref], y + rng.uniform(-0.16, 0.16, 11), color=INK, s=13, zorder=3, alpha=0.75)
@@ -76,12 +77,12 @@ def main(out: Path):
     ax.set_xlim(0, 100); ax.set_xlabel("German loss avoided (% of the base)", color=MUTED, fontsize=8)
     ax.set_title("(a) Loss avoided (mean of 11 networks)", loc="left", fontsize=9, color=INK)
     ax = fig.add_subplot(gs[0, 1]); style(ax); ax.grid(axis="y", color=GRID, linewidth=0.6)
-    q = m.loc["2026_s07_base", "DEU_cum_mUSD"] / m.loc["2026_s07_base", "DEU_%quarter"] / 13.0
+    q = m.loc[f"2026_{TAG}_base", "DEU_cum_mUSD"] / m.loc[f"2026_{TAG}_base", "DEU_%quarter"] / 13.0
     first = pd.Timestamp("2026-06-22")
     weeks = range(0, 30); dates = [first + pd.Timedelta(weeks=i - 1) for i in weeks]
-    ax.plot(dates, w["2026_s07_base"].reindex(weeks).fillna(0) / q, color=INK, linewidth=2.2, label="base")
+    ax.plot(dates, w[f"2026_{TAG}_base"].reindex(weeks).fillna(0) / q, color=INK, linewidth=2.2, label="base")
     for lv, lab in LEVERS:
-        ax.plot(dates, w[f"2026_s07_{lv}"].reindex(weeks).fillna(0) / q, color=COLORS[lv], linewidth=1.5, label=lab)
+        ax.plot(dates, w[f"2026_{TAG}_{lv}"].reindex(weeks).fillna(0) / q, color=COLORS[lv], linewidth=1.5, label=lab)
     import matplotlib.dates as mdates
     ax.xaxis.set_major_locator(mdates.MonthLocator()); ax.xaxis.set_major_formatter(mdates.DateFormatter("%b")); ax.set_ylim(0, 3.7)
     ax.set_ylabel("German loss (% of a week)", color=MUTED, fontsize=8)

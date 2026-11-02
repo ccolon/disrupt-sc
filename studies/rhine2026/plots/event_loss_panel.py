@@ -17,6 +17,7 @@ matplotlib.use("Agg")
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 from print_style import finish  # noqa: E402  text at print size (13 Oct 2026)
+from batch_names import TAG, WV, REV, WV9, LISTS, CROSS, NORAIL  # noqa: E402  run and table names of the batch (2 Nov 2026)
 import pandas as pd
 
 HERE = Path(__file__).resolve().parents[1]
@@ -42,16 +43,16 @@ def table(path: Path) -> pd.DataFrame:
 
 
 def main(out: Path):
-    m = table(AD / "compare_runs_batch_jobs_20261007_main.csv")
-    wm = weekly_block(AD / "compare_runs_batch_jobs_20261007_main.txt")
-    wp = weekly_block(AD / "compare_runs_batch_jobs_20261007_paired.txt")
-    q_week = m.loc["2026_s07_base", "DEU_cum_mUSD"] / m.loc["2026_s07_base", "DEU_%quarter"] / 13.0
+    m = table(AD / f"compare_runs_batch_jobs_{LISTS}_main.csv")
+    wm = weekly_block(AD / f"compare_runs_batch_jobs_{LISTS}_main.txt")
+    wp = weekly_block(AD / f"compare_runs_batch_jobs_{LISTS}_paired.txt")
+    q_week = m.loc[f"2026_{TAG}_base", "DEU_cum_mUSD"] / m.loc[f"2026_{TAG}_base", "DEU_%quarter"] / 13.0
     prof = pd.read_csv(HERE / "scenarios" / "2026.csv")
     first = pd.Timestamp(prof.week_start.iloc[0])
     weeks = range(0, 30)
     dates = [first + pd.Timedelta(weeks=i - 1) for i in weeks]
-    ref = wm["2026_s07_base"].reindex(weeks).fillna(0) / q_week
-    band = pd.DataFrame({s: wp[f"2026_s07_seed{s}_base"].reindex(weeks).fillna(0) / q_week for s in range(1, 11)})
+    ref = wm[f"2026_{TAG}_base"].reindex(weeks).fillna(0) / q_week
+    band = pd.DataFrame({s: wp[f"2026_{TAG}_seed{s}_base"].reindex(weeks).fillna(0) / q_week for s in range(1, 11)})
     fig, ax = plt.subplots(figsize=(7.0, 2.7))
     fig.patch.set_facecolor("white")
     for s in ("top", "right"):
