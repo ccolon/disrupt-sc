@@ -37,6 +37,16 @@
 # (a still-running tier-1 gather) instead of starting immediately; the
 # t2 yaml existence check is skipped - the gather writes them first.
 #
+# --seeds "43,44,45" re-runs the CURRENT tier-2 top-150 under extra
+# supply-chain draws (user decision 3 Nov 2026: SC-reconstruction
+# uncertainty): per seed S, a setup job builds the caches in the named dir
+# tmp/esS (seed only redraws sc_network + routes, ~4 min), 15 chunk jobs
+# (run_id eS_chunk_NN, cloned from the final t2 chunks at submit time) run
+# afterok on it, and a gather packages criticality_eS_results.zip. Seeds run
+# in parallel, independent of tmp/ and of each other. Launch ONLY after the
+# baseline sweep is done (it needs the final t2_chunk_*.yaml). Merge spread:
+# studies/criticality_ro/ensemble_spread.py after extracting the zips.
+#
 set -e
 
 # ========================= EDIT FOR YOUR CLUSTER ===========================
@@ -58,7 +68,7 @@ EXPORTS="export DISRUPT_SC_DATA_PATH=${DATA_PATH} && export PYTHONPATH=${SCRIPT_
 CHUNK_DIR="${SCRIPT_DIR}/studies/criticality_ro/chunks"
 GATHER_SH="${SCRIPT_DIR}/studies/criticality_ro/cluster/gather_and_merge.sh"
 
-DRY_RUN=false; TIER2=false; ONLY=""; GATHER=true; FRESH=false; CHAIN=false; AFTER=""
+DRY_RUN=false; TIER2=false; ONLY=""; GATHER=true; FRESH=false; CHAIN=false; AFTER=""; SEEDS=""
 while [[ $# -gt 0 ]]; do
     case $1 in
         --dry-run)   DRY_RUN=true; shift ;;
@@ -68,6 +78,7 @@ while [[ $# -gt 0 ]]; do
         --fresh)     FRESH=true; shift ;;
         --chain)     CHAIN=true; shift ;;
         --after)     AFTER=$2; shift 2 ;;
+        --seeds)     SEEDS=$2; shift 2 ;;
         *) shift ;;
     esac
 done
@@ -104,6 +115,35 @@ submit_tier2() {
             "bash ${GATHER_SH} t2"
     fi
 }
+
+if [[ -n "$SEEDS" ]]; then
+    ls "${CHUNK_DIR}"/t2_chunk_*.yaml >/dev/null 2>&1 || { echo "--seeds needs the final t2_chunk_*.yaml (run the baseline sweep first)"; exit 1; }
+    for S in ${SEEDS//,/ }; do
+        if ! $DRY_RUN; then
+            rm -rf "${SCRIPT_DIR}/output/Romania/criticality/e${S}_chunk_"*
+            for yml in "${CHUNK_DIR}"/t2_chunk_*.yaml; do
+                nn=$(basename "$yml" .yaml | sed 's/t2_chunk_//')
+                sed "s/run_id: t2_chunk_/run_id: e${S}_chunk_/" "$yml" \
+                    > "${CHUNK_DIR}/e${S}_chunk_${nn}.yaml"
+            done
+        fi
+        SSETUP=$(submit "crit_es${S}" "$TIME_SETUP" "$MEM_SETUP" "" \
+            "python -m disruptsc.run Romania --simulation_type initial_state --seed ${S} --cache auto --cache_dir es${S}")
+        EIDS=""
+        for nn in $(seq -w 0 14); do
+            jid=$(submit "crit_e${S}_${nn}" "$TIME_T2" "$MEM_T2" "$SSETUP" \
+                "export DISRUPT_SC_EXTRA_CONFIG=${CHUNK_DIR}/e${S}_chunk_${nn}.yaml && python -m disruptsc.run Romania --seed ${S} --cache auto --cache_dir es${S}")
+            EIDS="${EIDS}:${jid}"
+        done
+        if $GATHER; then
+            submit "crit_gath_e${S}" "$TIME_GATHER" "$MEM_GATHER" "${EIDS#:}" \
+                "bash ${GATHER_SH} e${S}"
+        fi
+        echo "seed ${S}: setup ${SSETUP} (cache tmp/es${S}), 15 chunks + gather queued"
+    done
+    echo "ensemble submitted for seeds: ${SEEDS}"
+    exit 0
+fi
 
 if $TIER2; then
     if [[ -z "$AFTER" ]]; then

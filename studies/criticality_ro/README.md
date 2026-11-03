@@ -55,6 +55,28 @@ bash studies/criticality_ro/cluster/launch_criticality.sh --tier2
 # ... 15 jobs + gather (packages criticality_t2_results.zip) ...
 ```
 
+## Supply-chain ensemble (tier-2 top-150 × extra seeds)
+
+After the baseline sweep is complete (final `t2_chunk_*.yaml` in place):
+
+```bash
+bash studies/criticality_ro/cluster/launch_criticality.sh --seeds 43,44,45,46,47
+```
+
+Per seed: a setup job builds the caches in `tmp/es<seed>` (the seed only
+redraws the supplier matching + routes, ~4 min), 15 chunk jobs re-run the
+top-150 (run_id `e<seed>_chunk_NN`), and a gather packages
+`criticality_e<seed>_results.zip`. Seeds run in parallel. Extract each zip
+at `studies/criticality_ro/` like the t1/t2 ones, then:
+
+```bash
+python studies/criticality_ro/ensemble_spread.py
+```
+
+writes `results/ensemble/criticality_t2_ensemble.csv` — per-edge mean / sd /
+min / max and rank range across draws (supplier-matching uncertainty at
+equal data and parameters).
+
 ## Notes
 
 - A failed/preempted chunk is **resume-safe**: re-submit it alone with
