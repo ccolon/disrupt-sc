@@ -42,11 +42,11 @@ OVERLEAF = Path("C:/Users/Celian/OneDrive/DisruptSC/Paper_Rhine2026/git-overleaf
 # ---- run and table names of the batch (3 Nov 2026): --tag / --lists as in make_numbers.py and plots/batch_names.py. The
 # defaults (s07, 20261007) reproduce the tables of 7 October; --tag r6_bycargo --lists 20261102 (or RHINE_TAG, RHINE_LISTS)
 # those of the per-class batch of 2 November. set_batch() fills the names the table functions read.
-TAG = LISTS = REV = WV = WV9 = CROSS = NORAIL = B26 = B18 = None
+TAG = LISTS = REV = WV = WV9 = CROSS = NORAIL = ALT = B26 = B18 = None
 
 
 def set_batch(tag: str, lists: str):
-    global TAG, LISTS, REV, WV, WV9, CROSS, NORAIL, B26, B18
+    global TAG, LISTS, REV, WV, WV9, CROSS, NORAIL, ALT, B26, B18
     old = tag == "s07"
     TAG, LISTS = tag, lists
     REV = "rev" if old else tag                      # the revision runs: 2026_rev_rail50 / 2026_r6_bycargo_rail50
@@ -54,13 +54,14 @@ def set_batch(tag: str, lists: str):
     WV9 = "wave09" if old else f"wave_{tag}"         # the waves at a 15-day refill time (cross list)
     CROSS = "20261009" if old else lists             # the date of the cross list's table
     NORAIL = "20261020" if old else lists            # the date of the no-rail list's table
+    ALT = None if old else "20261103"                # the date of the alternative-river list's table (3 Nov 2026, three 2018 runs)
     B26, B18 = f"2026_{tag}_base", f"2018_{tag}_base"
 
 
 set_batch(os.environ.get("RHINE_TAG", "s07"), os.environ.get("RHINE_LISTS", "20261007"))
 
 OLD_RUNS_CAPTION = r"""\textbf{Every run of the batches of 7 and 9 October 2026.} German value-added loss as a share of a quarter, its peak (share of a week's value added, run week), the EU loss and the household consumption loss (billion USD). The four job lists of 7 October 2026 (\texttt{cluster/jobs\_20261007\_*.txt}), all on the loading curve rebuilt on 6 October: the paper set (36 runs), the paired levers (60), the sensitivities of the revision (16) and the inventory ladder (3). Names: \texttt{2026\_s07\_*} and \texttt{2018\_s07\_*} the two events on the reference network and their variants (\texttt{s07} for the batch of 7 October; the batch of 30 September on the earlier table carried \texttt{s30}); \texttt{seedN} the further networks; \texttt{wave07\_*} the wave-isolation profiles; \texttt{seedN\_<lever>} a lever paired with the base of the same draw; \texttt{rev\_*} the sensitivities of the revision; \texttt{s07\_invNNN} the inventory ladder; \texttt{rev\_rail50\_<lever>} a lever under the 50 kt rail ceiling and \texttt{wave09\_*\_rest15} the wave-isolation profiles at a 15-day refill time (the batch of 9 October, \texttt{jobs\_20261009\_cross.txt})."""
-NEW_RUNS_CAPTION = r"""\textbf{Every run of the batch of 2 November 2026.} German value-added loss as a share of a quarter, its peak (share of a week's value added, run week), the EU loss and the household consumption loss (billion USD). The job lists of 2 November 2026 (\texttt{cluster/jobs\_20261102\_*.txt}), all on the capacities per cargo class anchored on 1 November (Supplementary Section~S2): the main table (36 runs: the two reference runs, the ten further 2018 networks of 1 November and the 24 runs of the paper set), the paired levers (60), the sensitivities of the revision (16), the inventory ladder (3), the levers under the 50 kt rail ceiling with the waves at a 15-day refill time (8) and the no-rail pair (2). Names: \texttt{2026\_r6\_bycargo\_*} and \texttt{2018\_r6\_bycargo\_*} the two events on the reference network and their variants (\texttt{r6\_bycargo}: the round-6 calibration with the capacities per cargo class); \texttt{seedN} the further networks; \texttt{wave\_r6\_bycargo\_*} the wave-isolation profiles; \texttt{seedN\_<lever>} a lever paired with the base of the same draw; \texttt{invNNN} the inventory ladder; \texttt{rail50\_<lever>} a lever under the 50 kt rail ceiling and \texttt{*\_rest15} the wave-isolation profiles at a 15-day refill time."""
+NEW_RUNS_CAPTION = r"""\textbf{Every run of the batches of 2 and 3 November 2026.} German value-added loss as a share of a quarter, its peak (share of a week's value added, run week), the EU loss and the household consumption loss (billion USD). The job lists of 2 November 2026 (\texttt{cluster/jobs\_20261102\_*.txt}) and the alternative-river list of 3 November (\texttt{jobs\_20261103\_altriver.txt}), all on the capacities per cargo class anchored on 1 November (Supplementary Section~S2): the main table (36 runs: the two reference runs, the ten further 2018 networks of 1 November and the 24 runs of the paper set), the paired levers (60), the sensitivities of the revision (16), the inventory ladder (3), the levers under the 50 kt rail ceiling with the waves at a 15-day refill time (8), the no-rail pair (2) and the priced river with closures on the 2018 benchmark at three inventory levels (3). Names: \texttt{2026\_r6\_bycargo\_*} and \texttt{2018\_r6\_bycargo\_*} the two events on the reference network and their variants (\texttt{r6\_bycargo}: the round-6 calibration with the capacities per cargo class); \texttt{seedN} the further networks; \texttt{wave\_r6\_bycargo\_*} the wave-isolation profiles; \texttt{seedN\_<lever>} a lever paired with the base of the same draw; \texttt{invNNN} the inventory ladder; \texttt{rail50\_<lever>} a lever under the 50 kt rail ceiling and \texttt{*\_rest15} the wave-isolation profiles at a 15-day refill time; \texttt{priced}, \texttt{priced\_inv150} and \texttt{priced\_inv200} the alternative representation of the river (Supplementary Section~S6) at inventories $\times$1, $\times$1.5 and $\times$2."""
 
 
 def batch_text(key: str) -> str:
@@ -408,7 +409,7 @@ week of & vintage 10 Sep & status & vintage 30 Sep & status \\
 def runs_table(out: Path):
     m = table(AD / f"compare_runs_batch_jobs_{LISTS}_main.csv")
     p = table(AD / f"compare_runs_batch_jobs_{LISTS}_paired.csv")
-    extra = [table(AD / f) for f in (f"compare_runs_batch_jobs_{LISTS}_rev.csv", f"compare_runs_batch_jobs_{LISTS}_ladder.csv", f"compare_runs_batch_jobs_{CROSS}_cross.csv", f"compare_runs_batch_jobs_{NORAIL}_norail.csv") if (AD / f).exists()]
+    extra = [table(AD / f) for f in (f"compare_runs_batch_jobs_{LISTS}_rev.csv", f"compare_runs_batch_jobs_{LISTS}_ladder.csv", f"compare_runs_batch_jobs_{CROSS}_cross.csv", f"compare_runs_batch_jobs_{NORAIL}_norail.csv", f"compare_runs_batch_jobs_{ALT}_altriver.csv") if (AD / f).exists()]
     t = pd.concat([m, p] + extra)
     cols = ["DEU_%quarter", "DEU_peak_%week", "DEU_peak_week", "EU_cum_mUSD", "cons_loss_cum_mUSD"]
     rows = "\n".join(f"{tex(r)} & {v['DEU_%quarter']:.2f} & {v['DEU_peak_%week']:.2f} & {int(v['DEU_peak_week'])} & {v['EU_cum_mUSD'] / 1e3:.1f} & {v['cons_loss_cum_mUSD'] / 1e3:.1f} \\\\"
