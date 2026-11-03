@@ -154,8 +154,15 @@ def main(tag: str, overleaf: Path, date_list: str):
         li = {k: model_path(RUNS / v, 2018)["ind_integrated_pct_months"] for k, v in {1.25: "2018_gs_inv125", 1.5: "2018_gs_inv150", 2.0: "2018_gs"}.items()}
     put("LadderA", r2(lq[1.25]), f"x1.25, all sectors, % of a quarter ({src})"); put("LadderB", r2(lq[1.5])); put("LadderD", r2(lq[2.0]))
     put("LadderIntA", r1(li[1.25]), "x1.25, industrial shortfall, percent-months"); put("LadderIntB", r1(li[1.5])); put("LadderIntD", r1(li[2.0]))
-    pr = model_path(RUNS / "2018_baseline", 2018)
-    put("PricedInt", r1(pr["ind_integrated_pct_months"]), "priced river with closures, x1, on the earlier table (S6)"); put("PricedNov", r1(pr["ind_Nov"]))
+    # the alternative river (the priced river with closures): the rerun of 3 Nov 2026 on the per-class calibration when its
+    # runs carry firm data (2018_<tag>_priced, _priced_inv150, _priced_inv200), else the first version's runs of 22-28 Sep
+    priced = {1.0: f"2018_{tag}_priced", 1.5: f"2018_{tag}_priced_inv150", 2.0: f"2018_{tag}_priced_inv200"}
+    if not all((RUNS / v / "firm_data.csv").exists() for v in priced.values()):
+        priced = {1.0: "2018_baseline", 1.5: "2018_inv150", 2.0: "2018_pipe"}
+    pr = model_path(RUNS / priced[1.0], 2018)
+    put("PricedInt", r1(pr["ind_integrated_pct_months"]), f"priced river with closures, x1 ({priced[1.0]}; S6)"); put("PricedNov", r1(pr["ind_Nov"]))
+    put("PricedIntB", r1(model_path(RUNS / priced[1.5], 2018)["ind_integrated_pct_months"]), f"priced river with closures, x1.5 ({priced[1.5]})")
+    put("PricedIntC", r1(model_path(RUNS / priced[2.0], 2018)["ind_integrated_pct_months"]), f"priced river with closures, x2 ({priced[2.0]})")
     # ---- structural sensitivities
     for mac, run in (("TableLowInt", f"2018_{tag}_tablelow"), ("TableHighInt", f"2018_{tag}_tablehigh"), ("SupTwoInt", f"2018_{tag}_sup2")):
         put(mac, r1(model_path(RUNS / run, 2018)["ind_integrated_pct_months"]), run)

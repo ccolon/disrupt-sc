@@ -3,7 +3,7 @@
 (a) Monthly shortfall of German industrial production in 2018: the path implied by the published coefficients
     (Ademmer et al., with and without the lagged term), the model on the reference draw (quantity constraint with
     the surcharge, stocks at their evidence value), the band of ten further draws, and the priced river with
-    closures (stocks x2, the representation of the earlier drafts).
+    closures (stocks x1, the alternative representation).
 (b) The shortfall cumulated from August to December (percent-months) against the stock multiplier under the two
     representations, with the range of the record shaded, the loading-table band and two suppliers per input at x1.
 (c) Weekly German value-added loss in 2018: reference draw and the band of ten further draws, against the events.
@@ -14,9 +14,11 @@ Usage:
 Inputs: firm_data.csv of 2018_<TAG>_base, 2018_<TAG>_seed1..10, 2018_<TAG>_tablelow/high, 2018_<TAG>_sup2 and the
 ladder 2018_<TAG>_inv125/150/200 (matched estimand computed here; TAG from batch_names.py, RHINE_TAG);
 additional_data/compare_runs_batch_jobs_<LISTS>_{main,paired}.{csv,txt}; scenarios/2018.csv.
-The priced river (x1, x1.5, x2: 2018_baseline, 2018_inv150, 2018_pipe) comes from the runs of 22-28 Sep on the first
-version's calibration (before construction was made non-storable, which leaves the 2018 industrial path unchanged:
-5.57 percent-months before and after); the ladder falls back to the 28 Sep runs when the batch has none.
+The priced river (x1, x1.5, x2) is 2018_<TAG>_priced, _priced_inv150, _priced_inv200 when those runs carry firm data (the
+rerun of 3 Nov 2026 on the per-class calibration, jobs_20261103_altriver.txt), else 2018_baseline, 2018_inv150, 2018_pipe
+of 22-28 Sep on the first version's calibration (before construction was made non-storable, which leaves the 2018
+industrial path unchanged: 5.57 percent-months before and after); the ladder falls back to the 28 Sep runs when the batch
+has none.
 """
 from __future__ import annotations
 
@@ -91,8 +93,14 @@ def main(runs: Path, out: Path):
     else:
         INT_GATE = {1.25: matched(runs / "2018_gs_inv125")["integral"], 1.5: matched(runs / "2018_gs_inv150")["integral"],
                     2.0: matched(runs / "2018_gs")["integral"]}
-    priced1 = matched(runs / "2018_baseline")
-    INT_PRICED = {1.0: priced1["integral"], 1.5: matched(runs / "2018_inv150")["integral"], 2.0: matched(runs / "2018_pipe")["integral"]}
+    # the alternative river (the priced river with closures, x1, x1.5, x2): the rerun of 3 Nov 2026 on the per-class
+    # calibration when its runs carry firm data, else the first version's runs of 22-28 Sep on the earlier calibration
+    PRICED = {1.0: f"2018_{TAG}_priced", 1.5: f"2018_{TAG}_priced_inv150", 2.0: f"2018_{TAG}_priced_inv200"}
+    if not all((runs / v / "firm_data.csv").exists() for v in PRICED.values()):
+        PRICED = {1.0: "2018_baseline", 1.5: "2018_inv150", 2.0: "2018_pipe"}
+    print(f"priced river: {PRICED[1.0]}, {PRICED[1.5]}, {PRICED[2.0]}")
+    priced1 = matched(runs / PRICED[1.0])
+    INT_PRICED = {1.0: priced1["integral"], 1.5: matched(runs / PRICED[1.5])["integral"], 2.0: matched(runs / PRICED[2.0])["integral"]}
     PRICED_X1 = [priced1[mo] for mo in MONTHS]
     m = table(AD / f"compare_runs_batch_jobs_{LISTS}_main.csv")
     p = table(AD / f"compare_runs_batch_jobs_{LISTS}_paired.csv")

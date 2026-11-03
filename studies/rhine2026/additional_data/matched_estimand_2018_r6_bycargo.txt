@@ -1,0 +1,31 @@
+Record (Ademmer et al., dynamic counterfactual of the published specification, column 1; shortfall of German industrial production, %):
+  central        : Aug 0.99, Sep 1.00, Oct 1.22, Nov 1.55, Dec 0.56  integrated 5.32 %-months; peak 11 1.55 (published: 1.5)
+  16-84 % band   : Aug 0.64-1.33, Sep 0.57-1.44, Oct 0.84-1.62, Nov 1.04-2.09, Dec 0.19-0.95  integral 3.59-7.11
+  2.5-97.5 % band: integral 2.00-8.97
+  column 2       : Aug 1.10, Sep 0.89, Oct 1.22, Nov 1.51, Dec 0.35  integrated 5.08
+  column 3       : Aug 0.84, Sep 0.12, Oct 0.86, Nov 0.57, Dec -0.11  integrated 2.28
+  column 4       : Aug 1.19, Sep 1.19, Oct 1.35, Nov 1.86, Dec 0.53  integrated 6.12
+
+Model, Germany, monthly shortfall of INDUSTRIAL production on the production-index measure (NACE B-D, sector rates weighted by the German sector value added; % of the month's baseline; days of the month covered by the run in days_*):
+                        ind_Aug  ind_Sep  ind_Oct  ind_Nov  ind_Dec  ind_integrated_pct_months peak_month_ind  ind_share_of_total_va_loss_pct
+run                                                                                                                                          
+2018_r6_bycargo_base       0.12     0.16     0.67     1.15     0.01                       2.10            Nov                            41.0
+2018_r6_bycargo_inv125     0.06     0.07     0.37     0.94     0.02                       1.47            Nov                            40.0
+2018_r6_bycargo_inv150     0.04     0.05     0.24     0.59     0.04                       0.96            Nov                            37.0
+2018_r6_bycargo_inv200     0.04     0.02     0.12     0.31    -0.05                       0.43            Nov                            38.0
+
+Model, Germany, monthly shortfall of TOTAL value added (all sectors, %):
+                        va_Aug  va_Sep  va_Oct  va_Nov  va_Dec
+run                                                           
+2018_r6_bycargo_base      0.10    0.12    0.27    0.44   -0.25
+2018_r6_bycargo_inv125    0.06    0.03    0.20    0.42   -0.21
+2018_r6_bycargo_inv150    0.03    0.02    0.09    0.33   -0.14
+2018_r6_bycargo_inv200    0.01    0.01    0.06    0.10   -0.06
+
+Days of each month covered by the run:
+                        days_Aug  days_Sep  days_Oct  days_Nov  days_Dec
+run                                                                     
+2018_r6_bycargo_base          31        30        31        30        31
+2018_r6_bycargo_inv125        31        30        31        30        31
+2018_r6_bycargo_inv150        31        30        31        30        31
+2018_r6_bycargo_inv200        31        30        31        30        31

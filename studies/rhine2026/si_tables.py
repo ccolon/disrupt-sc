@@ -431,16 +431,36 @@ run & DEU (\% of a quarter) & peak (\% of a week) & peak week & EU (bn) & consum
 
 
 def representations_table(out: Path):
+    """The 2018 benchmark under the two representations at several inventory levels. The 7 Oct tables (TAG s07) read the
+    first version's runs of 22-28 Sep (matched_estimand_2018_gsladder.txt, _pipe.txt); a later batch reads
+    matched_estimand_2018_<TAG>.txt (matched_estimand_2018.py on 2018_<TAG>_base, _inv125, _inv150, _inv200 and the priced
+    river rerun of 3 Nov 2026: 2018_<TAG>_priced, _priced_inv150, _priced_inv200), with the first version's priced rows
+    while the rerun is pending."""
     lines = {}
-    for name, f in (("gs", "matched_estimand_2018_gsladder.txt"), ("pipe", "matched_estimand_2018_pipe.txt")):
+    files = ["matched_estimand_2018_gsladder.txt", "matched_estimand_2018_pipe.txt"] + ([f"matched_estimand_2018_{TAG}.txt"] if TAG != "s07" else [])
+    for f in files:
+        if not (AD / f).exists():
+            continue
         for line in (AD / f).read_text(encoding="utf-8").splitlines():
             parts = line.split()
             if parts and parts[0].startswith("2018_") and len(parts) >= 8:
                 lines[parts[0]] = parts[1:6] + [parts[6]]
-    order = [("2018_gs_inv100", "capacity limit, stocks $\\times$1"), ("2018_gs_inv125", "capacity limit, $\\times$1.25"),
-             ("2018_gs_inv150", "capacity limit, $\\times$1.5"), ("2018_gs", "capacity limit, $\\times$2"),
-             ("2018_baseline", "priced river with closures, $\\times$1"), ("2018_inv150", "priced river with closures, $\\times$1.5"),
-             ("2018_pipe", "priced river with closures, $\\times$2")]
+    if TAG == "s07":
+        gate = [("2018_gs_inv100", "capacity limit, stocks $\\times$1"), ("2018_gs_inv125", "capacity limit, $\\times$1.25"),
+                ("2018_gs_inv150", "capacity limit, $\\times$1.5"), ("2018_gs", "capacity limit, $\\times$2")]
+        priced = [("2018_baseline", "priced river with closures, $\\times$1"), ("2018_inv150", "priced river with closures, $\\times$1.5"),
+                  ("2018_pipe", "priced river with closures, $\\times$2")]
+    else:
+        gate = [(f"2018_{TAG}_base", "capacity limit, stocks $\\times$1"), (f"2018_{TAG}_inv125", "capacity limit, $\\times$1.25"),
+                (f"2018_{TAG}_inv150", "capacity limit, $\\times$1.5"), (f"2018_{TAG}_inv200", "capacity limit, $\\times$2")]
+        priced = [(f"2018_{TAG}_priced", "priced river with closures, $\\times$1"), (f"2018_{TAG}_priced_inv150", "priced river with closures, $\\times$1.5"),
+                  (f"2018_{TAG}_priced_inv200", "priced river with closures, $\\times$2")]
+        if not all(k in lines for k, _ in priced):
+            priced = [("2018_baseline", "priced river with closures, $\\times$1 (first version)"), ("2018_inv150", "priced river with closures, $\\times$1.5 (first version)"),
+                      ("2018_pipe", "priced river with closures, $\\times$2 (first version)")]
+    order = gate + priced
+    priced_new = order[4][0] != "2018_baseline"
+    print(f"  representations: {[k for k, _ in order]}")
     from benchmark_ademmer import record, EVENT_MONTHS
     t, s = record(2018, 1)
     ev = t[t.month.isin(EVENT_MONTHS[2018])]
@@ -456,7 +476,7 @@ def representations_table(out: Path):
             rows.append(f"{lab} & " + " & ".join(v[:5]) + f" & {v[5]} \\\\")
     (out / "si_representations.tex").write_text(r"""\begin{table}[tbp]
 \centering\small
-\caption{\textbf{Two representations of the river on the 2018 benchmark.} Monthly shortfall of German industrial production (\%; the production-index measure, each sector's shortfall rate weighted by its German value added, sections B--D), August to December 2018, and its integral (percent-months, the plain sum of the months). The benchmark is the production path implied by the published regression (ref.~\citep{ademmer2023}; Table~2, column 1, of the working paper) on the low-water days of the daily gauge record, with the 16--84\,\% band of a Monte Carlo over its coefficients and, for comparison, the contemporaneous-only specification (column 3). The model rows are the capacity limit with the surcharge at four inventory levels and the priced river with closures at three; runs of 22--28 September 2026 on the reference network, the industrial path unchanged by the later treatment of construction as a non-storable input. Each month of a model row is the mean of its days, every day carrying the value of the model week it belongs to.}
+\caption{\textbf{Two representations of the river on the 2018 benchmark.} Monthly shortfall of German industrial production (\%; the production-index measure, each sector's shortfall rate weighted by its German value added, sections B--D), August to December 2018, and its integral (percent-months, the plain sum of the months). The benchmark is the production path implied by the published regression (ref.~\citep{ademmer2023}; Table~2, column 1, of the working paper) on the low-water days of the daily gauge record, with the 16--84\,\% band of a Monte Carlo over its coefficients and, for comparison, the contemporaneous-only specification (column 3). The model rows are the capacity limit with the surcharge at four inventory levels and the priced river with closures at three; """ + ("runs of 2 and 3 November 2026 on the reference network and the per-class calibration (the capacity limit from the batch of 2 November, the priced river rerun on 3 November with the same flows, loading curve and inventories)" if priced_new else ("runs of 22--28 September 2026 on the reference network, the industrial path unchanged by the later treatment of construction as a non-storable input" if TAG == "s07" else "the capacity-limit rows from the batch of 2 November 2026 on the per-class calibration, the priced-river rows from the first version's runs of 22--28 September 2026 on the earlier calibration")) + r""". Each month of a model row is the mean of its days, every day carrying the value of the model week it belongs to.}
 \label{tab:representations}
 \begin{tabular}{lrrrrrr}
 \toprule
