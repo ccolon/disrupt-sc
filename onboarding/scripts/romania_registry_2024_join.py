@@ -23,7 +23,8 @@ user to review):
        weight (Michelin Ilfov->Salaj/Prahova, breweries Bucharest->plants).
        The v19 layer is kept on disk for A/B.
   D8.  Within-county weight = 2024 turnover, localities collapsed to their
-       UAT (SIRSUP walk), placed at the UAT polygon representative point.
+       UAT (SIRSUP walk), placed at the UAT seat settlement (D14, v26;
+       originally the UAT polygon representative point).
        Locality-vs-UAT error is a few km, immaterial vs the county centroid.
   D9.  The county used is the SIRUTA-derived one (register JUD), not the
        file's county label - immune to label transpositions like D4's
@@ -34,7 +35,12 @@ user to review):
        identifiable firm; same precedent as the committed county file,
        flagged for the user's data-agreement judgment.
   D11. UAT without geometry match / SIRUTA missing from the register ->
-       county representative point fallback, counted and printed.
+       county seat fallback (D14, v26; originally the county
+       representative point), counted and printed.
+  D14. (v26, 3 Nov 2026) Every admin-derived point sits at its unit's
+       seat settlement from the GeoNames gazetteer (_settlements.py),
+       not at the admin polygon's representative point - see the module
+       docstring for the criticality artifact that forced this.
   D12. Heavy-tail plant overrides (sources/registry_plant_overrides.csv,
        public plant locations, shares employee/capacity-based or marked
        ESTIMATE): six multi-plant/HQ-booked firms (Michelin, Coca-Cola HBC,
@@ -207,25 +213,38 @@ def main() -> int:
     for (c, k) in poly:
         by_cty.setdefault(c, []).append(k)
 
-    pts, miss = {}, 0
-    cty_pt = {r.shapeName: r.geometry.representative_point()
+    # D14 (v26): place each UAT at its seat settlement, not the polygon's
+    # representative point (GeoNames gazetteer; _settlements.py)
+    from _settlements import load_places, seat_points
+    places = load_places(SRC)
+    seat2 = seat_points(adm2d, places)
+    uat_pt = {(r.county, r.key):
+              seat2.get(r.Index, r.geometry.representative_point())
+              for r in adm2d.itertuples()}
+    n_noseat = sum(1 for r in adm2d.itertuples() if r.Index not in seat2)
+    seat1 = seat_points(adm1, places)
+    cty_pt = {r.shapeName: seat1.get(r.Index, r.geometry.representative_point())
               for r in adm1.itertuples()}
+
+    pts, miss = {}, 0
     for r in lau.itertuples():
         if pd.isna(r.lau_code) or r.county is None:
             continue
-        g = poly.get((r.county, r.key))
-        if g is None:
+        kk = r.key if (r.county, r.key) in poly else None
+        if kk is None:
             cand = difflib.get_close_matches(r.key, by_cty.get(r.county, []),
                                              n=1, cutoff=0.82)
-            g = poly[(r.county, cand[0])] if cand else None
-        if g is None:
+            kk = cand[0] if cand else None
+        if kk is None:
             miss += 1
-            g = cty_pt.get(r.county)
-        if g is not None:
-            p = g.representative_point() if g.geom_type != "Point" else g
+            p = cty_pt.get(r.county)
+        else:
+            p = uat_pt[(r.county, kk)]
+        if p is not None:
             pts[int(r.lau_code)] = (p.x, p.y)
-    print(f"\nUAT geometry: {len(pts)} LAUs placed, {miss} fell back to "
-          f"county point")
+    print(f"\nUAT geometry: {len(pts)} LAUs placed at seat settlements "
+          f"({n_noseat} polygons without gazetteer place kept their "
+          f"representative point), {miss} fell back to county seat")
 
     # ---- committed artifact: UAT x sector aggregates, 14 goods sectors ------
     w = j[j["sec24"].isin(SALES_SECTORS) & j["uat"].notna()].copy()

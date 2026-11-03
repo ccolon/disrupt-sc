@@ -165,7 +165,7 @@ logistics:
     # v24: half-revert of the v19.1 notch on the v23 geography - territorial
     # rail reads 12.0 vs 12.65 bn tkm (-5%); one notch back recovers the level
     # (v19.1 sensitivity ~0.7 bn tkm per 0.001). 1520 classes untouched.
-    railways: {attribute: class, rail_1520: 0.025, rail_1520_md: 0.040, default: 0.047}  # v25.2: the named-plant layer snaps big shippers onto rail-served nodes (rail 0.046 -> 14.6 bn tkm vs 12.65 measured); one notch up re-anchors. Ladder on this geometry: 0.046 -> 14.6, 0.047 -> see run
+    railways: {attribute: class, rail_1520: 0.025, rail_1520_md: 0.040, default: 0.044}  # v26 SET (D14 seat-settlement snap removed ~3 bn tkm of county-access branch traffic, re-anchored on the new geometry: 0.047 -> 10.40, 0.045 -> 12.03, 0.044 -> 13.11 vs 12.65 measured; +3.6% accepted, the 0.045 side is -4.9% and loses wagonload/liquid). v25.2 history: 0.046 -> 14.6, 0.047 -> 13.5
     # v10: per-sector import links enlarged the dry-bulk base and IWW drifted
     # to 48% of dry-bulk tkm (target 41.7); bulk barge rate up one notch.
     # KNIFE EDGE (v10): raising the dry-bulk barge rate to 0.0058+ flips the
