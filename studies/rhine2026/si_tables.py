@@ -16,11 +16,14 @@ stock evidence from evidence/inventory_durations_by_industry.md (sections 6.2 an
 from evidence/waterway_rates_by_vessel_type.md; the criticality counts from additional_data/input_criticality.csv.
 
 Usage:
-    python studies/rhine2026/si_tables.py [--overleaf <repo folder>]
+    python studies/rhine2026/si_tables.py [--overleaf <repo folder>] [--tag s07|r6_bycargo] [--lists 20261007|20261102]
+The run and table names follow --tag / --lists (or RHINE_TAG / RHINE_LISTS) as in make_numbers.py: the defaults reproduce
+the tables of 7 October 2026, --tag r6_bycargo --lists 20261102 writes those of the per-class batch of 2 November (3 Nov 2026).
 """
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import sys
 from pathlib import Path
@@ -35,6 +38,64 @@ EVIDENCE = HERE / "evidence"
 CONFIG = ROOT / "config" / "user_defined_EU.yaml"
 BS = chr(92)   # one backslash, for the generated LaTeX of cross_table
 OVERLEAF = Path("C:/Users/Celian/OneDrive/DisruptSC/Paper_Rhine2026/git-overleaf/6aaa98617957ab816097822f")
+
+# ---- run and table names of the batch (3 Nov 2026): --tag / --lists as in make_numbers.py and plots/batch_names.py. The
+# defaults (s07, 20261007) reproduce the tables of 7 October; --tag r6_bycargo --lists 20261102 (or RHINE_TAG, RHINE_LISTS)
+# those of the per-class batch of 2 November. set_batch() fills the names the table functions read.
+TAG = LISTS = REV = WV = WV9 = CROSS = NORAIL = B26 = B18 = None
+
+
+def set_batch(tag: str, lists: str):
+    global TAG, LISTS, REV, WV, WV9, CROSS, NORAIL, B26, B18
+    old = tag == "s07"
+    TAG, LISTS = tag, lists
+    REV = "rev" if old else tag                      # the revision runs: 2026_rev_rail50 / 2026_r6_bycargo_rail50
+    WV = "wave07" if old else f"wave_{tag}"          # the waves of the main list
+    WV9 = "wave09" if old else f"wave_{tag}"         # the waves at a 15-day refill time (cross list)
+    CROSS = "20261009" if old else lists             # the date of the cross list's table
+    NORAIL = "20261020" if old else lists            # the date of the no-rail list's table
+    B26, B18 = f"2026_{tag}_base", f"2018_{tag}_base"
+
+
+set_batch(os.environ.get("RHINE_TAG", "s07"), os.environ.get("RHINE_LISTS", "20261007"))
+
+OLD_RUNS_CAPTION = r"""\textbf{Every run of the batches of 7 and 9 October 2026.} German value-added loss as a share of a quarter, its peak (share of a week's value added, run week), the EU loss and the household consumption loss (billion USD). The four job lists of 7 October 2026 (\texttt{cluster/jobs\_20261007\_*.txt}), all on the loading curve rebuilt on 6 October: the paper set (36 runs), the paired levers (60), the sensitivities of the revision (16) and the inventory ladder (3). Names: \texttt{2026\_s07\_*} and \texttt{2018\_s07\_*} the two events on the reference network and their variants (\texttt{s07} for the batch of 7 October; the batch of 30 September on the earlier table carried \texttt{s30}); \texttt{seedN} the further networks; \texttt{wave07\_*} the wave-isolation profiles; \texttt{seedN\_<lever>} a lever paired with the base of the same draw; \texttt{rev\_*} the sensitivities of the revision; \texttt{s07\_invNNN} the inventory ladder; \texttt{rev\_rail50\_<lever>} a lever under the 50 kt rail ceiling and \texttt{wave09\_*\_rest15} the wave-isolation profiles at a 15-day refill time (the batch of 9 October, \texttt{jobs\_20261009\_cross.txt})."""
+NEW_RUNS_CAPTION = r"""\textbf{Every run of the batch of 2 November 2026.} German value-added loss as a share of a quarter, its peak (share of a week's value added, run week), the EU loss and the household consumption loss (billion USD). The job lists of 2 November 2026 (\texttt{cluster/jobs\_20261102\_*.txt}), all on the capacities per cargo class anchored on 1 November (Supplementary Section~S2): the main table (36 runs: the two reference runs, the ten further 2018 networks of 1 November and the 24 runs of the paper set), the paired levers (60), the sensitivities of the revision (16), the inventory ladder (3), the levers under the 50 kt rail ceiling with the waves at a 15-day refill time (8) and the no-rail pair (2). Names: \texttt{2026\_r6\_bycargo\_*} and \texttt{2018\_r6\_bycargo\_*} the two events on the reference network and their variants (\texttt{r6\_bycargo}: the round-6 calibration with the capacities per cargo class); \texttt{seedN} the further networks; \texttt{wave\_r6\_bycargo\_*} the wave-isolation profiles; \texttt{seedN\_<lever>} a lever paired with the base of the same draw; \texttt{invNNN} the inventory ladder; \texttt{rail50\_<lever>} a lever under the 50 kt rail ceiling and \texttt{*\_rest15} the wave-isolation profiles at a 15-day refill time."""
+
+
+def batch_text(key: str) -> str:
+    """The caption sentences that name the batch: the 7 October texts, or those of the per-class batch of 2 November 2026."""
+    new = LISTS != "20261007"
+    return {
+        "runs": NEW_RUNS_CAPTION if new else OLD_RUNS_CAPTION,
+        "channels": ("In the per-class representation of 2 November 2026 the containers sail the Rhine and are rationed by their own class's capacity "
+                     "(Methods); the surcharge moves the shipments with an alternative on their own modes off the river before the cut."
+                     if new else
+                     "No container is cut by the gate or rerouted around it in any run: the model's containers do not use the gated reaches. "
+                     "The surcharge moves bulk with an alternative on its own modes off the river before the cut."),
+        "issued": ("river information of 30 September; rerun on 2 November on the capacities per cargo class" if new
+                   else "river information of 30 September, issued 7 October"),
+        "cross": (r"Batch of 2 November 2026 (\texttt{jobs\_20261102\_cross.txt})" if new
+                  else r"Batch of 9 October 2026 (\texttt{jobs\_20261009\_cross.txt})"),
+        "revision": (r"for the sensitivities of the review of 5 October 2026, rerun on 2 November on the capacities per cargo class (the review's points in brackets; \texttt{jobs\_20261102\_rev.txt})"
+                     if new else
+                     r"for the sensitivities run after the review of 5 October 2026 on the rebuilt loading curve (the review's points in brackets; \texttt{jobs\_20261007\_rev.txt})"),
+    }[key]
+
+
+def kaub_kt() -> float:
+    """The baseline weekly tonnage of the Kaub reach (kt) from the t=0 flow file of the reference run or of the link-level run
+    (the largest feature of the reach, as make_numbers.py reads it); the first version's runs were packed without the flow
+    file, whose figure the text carried as 1,036 kt."""
+    import json
+    for r in (B26, f"2026_{TAG}_full"):
+        f = RUNS / r / "transport_edges_with_flows_0.geojson"
+        if f.exists():
+            best = max((float(ft["properties"].get("flow_total_tons") or 0.0) for ft in json.load(open(f, encoding="utf-8"))["features"]
+                        if str(ft["properties"].get("name") or "") == "rhine_mainz_koblenz"), default=0.0)
+            if best > 0:
+                return best / 1e3
+    return 1036.0
 
 sys.path.insert(0, str(HERE))
 from build_criticality_eu import ICIO_TO_WIOD  # noqa: E402
@@ -345,15 +406,15 @@ week of & vintage 10 Sep & status & vintage 30 Sep & status \\
 
 # ------------------------------------------------------------------------------------------------ S6, S7
 def runs_table(out: Path):
-    m = table(AD / "compare_runs_batch_jobs_20261007_main.csv")
-    p = table(AD / "compare_runs_batch_jobs_20261007_paired.csv")
-    extra = [table(AD / f) for f in ("compare_runs_batch_jobs_20261007_rev.csv", "compare_runs_batch_jobs_20261007_ladder.csv", "compare_runs_batch_jobs_20261009_cross.csv") if (AD / f).exists()]
+    m = table(AD / f"compare_runs_batch_jobs_{LISTS}_main.csv")
+    p = table(AD / f"compare_runs_batch_jobs_{LISTS}_paired.csv")
+    extra = [table(AD / f) for f in (f"compare_runs_batch_jobs_{LISTS}_rev.csv", f"compare_runs_batch_jobs_{LISTS}_ladder.csv", f"compare_runs_batch_jobs_{CROSS}_cross.csv", f"compare_runs_batch_jobs_{NORAIL}_norail.csv") if (AD / f).exists()]
     t = pd.concat([m, p] + extra)
     cols = ["DEU_%quarter", "DEU_peak_%week", "DEU_peak_week", "EU_cum_mUSD", "cons_loss_cum_mUSD"]
     rows = "\n".join(f"{tex(r)} & {v['DEU_%quarter']:.2f} & {v['DEU_peak_%week']:.2f} & {int(v['DEU_peak_week'])} & {v['EU_cum_mUSD'] / 1e3:.1f} & {v['cons_loss_cum_mUSD'] / 1e3:.1f} \\\\"
                      for r, v in t[cols].iterrows())
     (out / "si_runs.tex").write_text(r"""\begin{longtable}{lrrrrr}
-\caption{\textbf{Every run of the batches of 7 and 9 October 2026.} German value-added loss as a share of a quarter, its peak (share of a week's value added, run week), the EU loss and the household consumption loss (billion USD). The four job lists of 7 October 2026 (\texttt{cluster/jobs\_20261007\_*.txt}), all on the loading curve rebuilt on 6 October: the paper set (36 runs), the paired levers (60), the sensitivities of the revision (16) and the inventory ladder (3). Names: \texttt{2026\_s07\_*} and \texttt{2018\_s07\_*} the two events on the reference network and their variants (\texttt{s07} for the batch of 7 October; the batch of 30 September on the earlier table carried \texttt{s30}); \texttt{seedN} the further networks; \texttt{wave07\_*} the wave-isolation profiles; \texttt{seedN\_<lever>} a lever paired with the base of the same draw; \texttt{rev\_*} the sensitivities of the revision; \texttt{s07\_invNNN} the inventory ladder; \texttt{rev\_rail50\_<lever>} a lever under the 50 kt rail ceiling and \texttt{wave09\_*\_rest15} the wave-isolation profiles at a 15-day refill time (the batch of 9 October, \texttt{jobs\_20261009\_cross.txt}).}
+\caption{""" + batch_text("runs") + r"""}
 \label{tab:runs} \\
 \toprule
 run & DEU (\% of a quarter) & peak (\% of a week) & peak week & EU (bn) & consumption (bn) \\
@@ -416,14 +477,14 @@ def channels_table(out: Path):
     """What leaves the normal route and what the gate withholds, by cargo class, base against each channel alone
     (routing_summary.csv totals over the run; revision of 6 Oct 2026, review C05)."""
     rows = []
-    for run, lab in (("2026_s07_base", "constraint and surcharge (the paper)"), ("2026_s07_gateonly", "constraint alone"),
-                     ("2026_s07_surchargeonly", "surcharge alone")):
+    for run, lab in ((B26, "constraint and surcharge (the paper)"), (f"2026_{TAG}_gateonly", "constraint alone"),
+                     (f"2026_{TAG}_surchargeonly", "surcharge alone")):
         s = pd.read_csv(RUNS / run / "routing_summary.csv")
         b = s[s.cargo_type.isin(["dry_bulk", "liquid_bulk"])]; c = s[s.cargo_type == "container"]
         rows.append(f"{lab} & {b.alternative_usd.sum() / 1e3:.1f} & {b.capacity_blocked_usd.sum() / 1e3:.1f} & {c.alternative_usd.sum() / 1e3:.1f} & {c.capacity_blocked_usd.sum() / 1e3:.1f} \\\\")
     (out / "si_channels.tex").write_text(r"""\begin{table}[tbp]
 \centering\small
-\caption{\textbf{The two channels at the routing level.} Value (billion USD, summed over the 43 weeks of the 2026 run) that leaves its normal route for an alternative, and value that the capacity gate withholds, by cargo class, in the reference run and with each channel alone. No container is cut by the gate or rerouted around it in any run: the model's containers do not use the gated reaches. The surcharge moves bulk with an alternative on its own modes off the river before the cut.}
+\caption{\textbf{The two channels at the routing level.} Value (billion USD, summed over the 43 weeks of the 2026 run) that leaves its normal route for an alternative, and value that the capacity gate withholds, by cargo class, in the reference run and with each channel alone. """ + batch_text("channels") + r"""}
 \label{tab:channels}
 \begin{tabular}{lrrrr}
 \toprule
@@ -444,7 +505,7 @@ def gate_table(out: Path):
     import numpy as np
     lf = lambda cm: float(np.interp(cm, curve.kaub_cm, curve.load_factor, left=curve.load_factor.iloc[0], right=1.0))
     gt = {}
-    for line in (RUNS / "2026_s07_base.log").read_text(encoding="utf-8", errors="replace").splitlines():
+    for line in (RUNS / f"{B26}.log").read_text(encoding="utf-8", errors="replace").splitlines():
         m = re.search(r"Capacity gate t=(\d+):.*cut ([\d,]+) t, re-sent ([\d,]+) t, blocked ([\d,]+) t", line)
         if m:
             gt[int(m.group(1))] = tuple(float(m.group(i).replace(",", "")) for i in (2, 3, 4))
@@ -462,7 +523,7 @@ def gate_table(out: Path):
         rows.append(f"{t} & {r.week_start} & {tex(r.status)} & {float(r.kaub_cm):.1f} & {lf(float(r.kaub_cm)):.2f} & {cut / 1e3:.0f} & {resent / 1e3:.0f} & {blocked / 1e3:.0f} \\\\")
     (out / "si_gate.tex").write_text(r"""\begingroup\footnotesize
 \begin{longtable}{rllrrrrr}
-\caption{\textbf{The gate week by week, 2026 reference run.} For each profile week: the status of the gauge, its weekly mean (cm), the loading share of the loading curve, and the tonnage (kt) that the gates of the Rhine chain cut, re-sent on another route and withheld (returned to the supplier's inventory), from the run's log. The cut tonnage is the offered load above capacity; the withheld tonnage is what found no acceptable route. The baseline flow at Kaub is 1,036 kt a week. """ + horizon + r"""}
+\caption{\textbf{The gate week by week, 2026 reference run.} For each profile week: the status of the gauge, its weekly mean (cm), the loading share of the loading curve, and the tonnage (kt) that the gates of the Rhine chain cut, re-sent on another route and withheld (returned to the supplier's inventory), from the run's log. The cut tonnage is the offered load above capacity; the withheld tonnage is what found no acceptable route. """ + f"The baseline flow at Kaub is {kaub_kt():,.0f} kt a week. " + horizon + r"""}
 \label{tab:gate} \\
 \toprule
 week & start & status & Kaub & loading share & cut & re-sent & withheld \\
@@ -485,16 +546,21 @@ def prospective_table(out: Path):
     from matched_estimand_2018 import model_path
     from benchmark_ademmer import record, EVENT_MONTHS
     labs = ["Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-    d = model_path(RUNS / "2026_s07_base", 2026)
+    d = model_path(RUNS / B26, 2026)
     t, s = record(2026, 1)
     ev = t[t.month.isin(EVENT_MONTHS[2026])]
-    rows = ["model, reference network, index measure (river information of 30 September, issued 7 October) & " + " & ".join(f"{d[f'ind_{m}']:.1f}" for m in labs) + f" & {d['ind_integrated_pct_months']:.1f} \\\\",
+    rows = [f"model, reference network, index measure ({batch_text('issued')}) & " + " & ".join(f"{d[f'ind_{m}']:.1f}" for m in labs) + f" & {d['ind_integrated_pct_months']:.1f} \\\\",
             "model, reference network, production-weighted B--E (the measure of the earlier version) & " + " & ".join(f"{d[f'indprod_{m}']:.1f}" for m in labs) + f" & {d['indprod_integrated_pct_months']:.1f} \\\\"]
-    band = AD / "prospective_band_2026.csv"      # written by read_batch_20261006.py once the seed bases are repacked with firm data
+    seeds = [RUNS / B26] + [RUNS / f"2026_{TAG}_seed{s}_base" for s in range(1, 11)]
+    band = AD / ("prospective_band_2026.csv" if TAG == "s07" else f"prospective_band_2026_{TAG}.csv")   # the 7 Oct file was written by read_batch_20261007_rev.py
+    if all((r_ / "firm_data.csv").exists() for r_ in seeds):
+        import numpy as np
+        a = np.array([[model_path(r_, 2026)[f"ind_{m}"] for m in labs] for r_ in seeds])
+        pd.DataFrame({"month": labs, "min": a.min(axis=0), "max": a.max(axis=0), "mean": a.mean(axis=0)}).to_csv(band, index=False)
     if band.exists():
         bd = pd.read_csv(band)
-        rows.append("model, range of the eleven networks & " + " & ".join(f"{a:.1f}--{b:.1f}" for a, b in zip(bd["min"], bd["max"])) + " & \\\\")
-    for run, lab in (("2026_s07_tablelow", "model, loading curve with the shortfall $\\times$1.15"), ("2026_s07_tablehigh", "model, loading curve with the shortfall $\\times$0.85")):
+        rows.append("model, range of the eleven networks & " + " & ".join((f"{a:.1f} to {b:.1f}" if b < 0 else f"{a:.1f}--{b:.1f}") for a, b in zip(bd["min"], bd["max"])) + " & \\\\")
+    for run, lab in ((f"2026_{TAG}_tablelow", "model, loading curve with the shortfall $\\times$1.15"), (f"2026_{TAG}_tablehigh", "model, loading curve with the shortfall $\\times$0.85")):
         if (RUNS / run / "firm_data.csv").exists():
             dd = model_path(RUNS / run, 2026)
             rows.append(f"{lab} & " + " & ".join(f"{dd[f'ind_{m}']:.1f}" for m in labs) + f" & {dd['ind_integrated_pct_months']:.1f} \\\\")
@@ -515,7 +581,7 @@ def prospective_sectors_table(out: Path):
     """Sectoral signatures of the 2026 forecast (review 8 Oct, G2/E3): monthly production shortfall of the German sectors on
     the river and of the transport operators, reference network, production-weighted within the sector."""
     from matched_estimand_2018 import monthly_from_weekly, FIRST
-    run = RUNS / "2026_s07_base"
+    run = RUNS / B26
     fd = pd.read_csv(run / "firm_data.csv", usecols=["time_step", "firm", "region", "sector", "production"])
     b0 = fd[fd.time_step == 0].set_index("firm")["production"]
     de = fd[(fd.region == "DEU") & (fd.time_step >= 1)].copy(); de["base"] = de.firm.map(b0)
@@ -537,7 +603,7 @@ def prospective_sectors_table(out: Path):
         rows.append(f"{lab} & " + " & ".join(f"{mo[m]:.1f}" for m in months) + f" & {sum(mo.values()):.1f} \\\\")
     (out / "si_prospective_sectors.tex").write_text(r"""\begin{table}[tbp]
 \centering\small
-\caption{\textbf{Sectoral signatures of the 2026 forecast.} Monthly shortfall of production (\%, production-weighted within the sector; negative values are production above the no-event baseline) of the German sectors on the river and of the transport operators, reference network, river information of 30 September, issued 7 October; the last column is the plain sum of the months (percent-months). Pre-specified for the prospective test of the main text: the production index gives the industrial rows by month, the turnover index of transport and storage the operators' rows.}
+\caption{\textbf{Sectoral signatures of the 2026 forecast.} Monthly shortfall of production (\%, production-weighted within the sector; negative values are production above the no-event baseline) of the German sectors on the river and of the transport operators, reference network, """ + batch_text("issued") + r"""; the last column is the plain sum of the months (percent-months). Pre-specified for the prospective test of the main text: the production index gives the industrial rows by month, the turnover index of transport and storage the operators' rows.}
 \label{tab:prospective_sectors}
 \begin{tabular}{lrrrrrrr}
 \toprule
@@ -553,24 +619,24 @@ def prospective_sectors_table(out: Path):
 def cross_table(out: Path):
     """The batch of 9 October 2026 (review of 8 Oct, OR2 and OR3): the four single levers under the 50 kt rail ceiling
     against their no-rail values, and the wave-isolation gap experiment at a 15-day refill time against 30 days."""
-    m = table(AD / "compare_runs_batch_jobs_20261007_main.csv"); r = table(AD / "compare_runs_batch_jobs_20261007_rev.csv")
-    c = table(AD / "compare_runs_batch_jobs_20261009_cross.csv")
+    m = table(AD / f"compare_runs_batch_jobs_{LISTS}_main.csv"); r = table(AD / f"compare_runs_batch_jobs_{LISTS}_rev.csv")
+    c = table(AD / f"compare_runs_batch_jobs_{CROSS}_cross.csv")
     q = "DEU_%quarter"
-    b0, b50 = m.loc["2026_s07_base", "DEU_cum_mUSD"], r.loc["2026_rev_rail50", "DEU_cum_mUSD"]
-    rows = [f"reference run (no substitution; 50 kt a week) & {m.loc['2026_s07_base', q]:.2f} & & {r.loc['2026_rev_rail50', q]:.2f} & " + BS * 2]
+    b0, b50 = m.loc[B26, "DEU_cum_mUSD"], r.loc[f"2026_{REV}_rail50", "DEU_cum_mUSD"]
+    rows = [f"reference run (no substitution; 50 kt a week) & {m.loc[B26, q]:.2f} & & {r.loc[f'2026_{REV}_rail50', q]:.2f} & " + BS * 2]
     for k, lab in (("stock7", "stocks +7 days"), ("deep20", "fairway +20" + BS + ",cm"), ("stock7t", "targeted stocks +7 days"), ("fleet", "low-water fleet")):
-        a0 = 100 * (1 - m.loc[f"2026_s07_{k}", "DEU_cum_mUSD"] / b0); a50 = 100 * (1 - c.loc[f"2026_rev_rail50_{k}", "DEU_cum_mUSD"] / b50)
-        rows.append(f"{lab} & {m.loc[f'2026_s07_{k}', q]:.2f} & {a0:.0f} & {c.loc[f'2026_rev_rail50_{k}', q]:.2f} & {a50:.0f} " + BS * 2)
-    a30, b30 = m.loc["wave07_A", q], m.loc["wave07_B", q]; a15, b15 = c.loc["wave09_A_rest15", q], c.loc["wave09_B_rest15", q]
-    seq30 = {0: m.loc["2026_s07_base", q], 2: m.loc["wave07_AB_gap2", q], 4: m.loc["wave07_AB_gap4", q]}
-    seq15 = {0: r.loc["2026_rev_rest15", q], 2: c.loc["wave09_AB_gap2_rest15", q], 4: c.loc["wave09_AB_gap4_rest15", q]}
+        a0 = 100 * (1 - m.loc[f"2026_{TAG}_{k}", "DEU_cum_mUSD"] / b0); a50 = 100 * (1 - c.loc[f"2026_{REV}_rail50_{k}", "DEU_cum_mUSD"] / b50)
+        rows.append(f"{lab} & {m.loc[f'2026_{TAG}_{k}', q]:.2f} & {a0:.0f} & {c.loc[f'2026_{REV}_rail50_{k}', q]:.2f} & {a50:.0f} " + BS * 2)
+    a30, b30 = m.loc[f"{WV}_A", q], m.loc[f"{WV}_B", q]; a15, b15 = c.loc[f"{WV9}_A_rest15", q], c.loc[f"{WV9}_B_rest15", q]
+    seq30 = {0: m.loc[B26, q], 2: m.loc[f"{WV}_AB_gap2", q], 4: m.loc[f"{WV}_AB_gap4", q]}
+    seq15 = {0: r.loc[f"2026_{REV}_rest15", q], 2: c.loc[f"{WV9}_AB_gap2_rest15", q], 4: c.loc[f"{WV9}_AB_gap4_rest15", q]}
     wrows = [f"first wave alone (A) & {a30:.2f} & & {a15:.2f} & " + BS * 2, f"second wave alone (B) & {b30:.2f} & & {b15:.2f} & " + BS * 2,
              f"A + B & {a30 + b30:.2f} & & {a15 + b15:.2f} & " + BS * 2]
     for g in (0, 2, 4):
         wrows.append(f"A then B, {g} weeks of normal water between & {seq30[g]:.2f} & {100 * (seq30[g] / (a30 + b30) - 1):+.0f} & {seq15[g]:.2f} & {100 * (seq15[g] / (a15 + b15) - 1):+.0f} " + BS * 2)
     (out / "si_cross.tex").write_text(r"""\begin{table}[tbp]
 \centering\small
-\caption{\textbf{The levers under finite rail, and the memory of the season at a 15-day refill time.} Batch of 9 October 2026 (\texttt{jobs\_20261009\_cross.txt}). Upper block: German loss (\% of a quarter) with each single lever, and the share of its base's loss it avoids (\%), under the paper's rule (no substitution for bulk) and under the 50 kt a week rail ceiling. Lower block: the two waves of 2026 alone, their sum and their sequence with 0, 2 and 4 weeks of normal water between them, at the 30-day refill time of the paper and at 15 days; the change is the sequence against the sum (\%).}
+\caption{\textbf{The levers under finite rail, and the memory of the season at a 15-day refill time.} """ + batch_text("cross") + r""". Upper block: German loss (\% of a quarter) with each single lever, and the share of its base's loss it avoids (\%), under the paper's rule (no substitution for bulk) and under the 50 kt a week rail ceiling. Lower block: the two waves of 2026 alone, their sum and their sequence with 0, 2 and 4 weeks of normal water between them, at the 30-day refill time of the paper and at 15 days; the change is the sequence against the sum (\%).}
 \label{tab:cross}
 \begin{tabular}{lrrrr}
 \toprule
@@ -602,10 +668,10 @@ def rail_weeks_table(out: Path):
             if m:
                 out[int(m.group(1))] = (float(m.group(2).replace(",", "")) / 1e3, float(m.group(3).replace(",", "")) / 1e3)
         return out
-    runs = {k: weeks(k) for k in ("2026_rev_rail50", "2026_rev_rail140", "2018_rev_rail50", "2018_rev_rail140")}
+    runs = {k: weeks(k) for k in (f"2026_{REV}_rail50", f"2026_{REV}_rail140", f"2018_{REV}_rail50", f"2018_{REV}_rail140")}
     if not all(runs.values()):
         raise FileNotFoundError("rail run logs")
-    ceilings = {"2026_rev_rail50": 50, "2026_rev_rail140": 140, "2018_rev_rail50": 50, "2018_rev_rail140": 140}
+    ceilings = {f"2026_{REV}_rail50": 50, f"2026_{REV}_rail140": 140, f"2018_{REV}_rail50": 50, f"2018_{REV}_rail140": 140}
     prof = {"2026": 23, "2018": 22}
     counts = {}
     for k, w in runs.items():
@@ -619,15 +685,15 @@ def rail_weeks_table(out: Path):
     rows = []
     for t in range(1, tmax + 1):
         vals = []
-        for k in ("2026_rev_rail50", "2026_rev_rail140", "2018_rev_rail50", "2018_rev_rail140"):
+        for k in (f"2026_{REV}_rail50", f"2026_{REV}_rail140", f"2018_{REV}_rail50", f"2018_{REV}_rail140"):
             pl, of = runs[k].get(t, (0.0, 0.0))
             vals.append(f"{of:.0f} & {pl:.0f}" if of > 0 else "--- & ---")
         if all(v.startswith("---") for v in vals):
             continue
         rows.append(f"{t} & " + " & ".join(vals) + " " + BS * 2)
-    cap = (f"The 50 kt ceiling binds (the placed tonnage reaches the ceiling) in {counts['2026_rev_rail50'][0]} of the {prof['2026']} profile weeks of 2026 "
-           f"and {counts['2018_rev_rail50'][0]} of the {prof['2018']} of 2018, and in {counts['2026_rev_rail50'][2]} and {counts['2018_rev_rail50'][2]} of the recovery weeks in which bulk is still cut; "
-           f"the 140 kt ceiling in {counts['2026_rev_rail140'][0]} and {counts['2018_rev_rail140'][0]} profile weeks and {counts['2026_rev_rail140'][2]} and {counts['2018_rev_rail140'][2]} recovery weeks.")
+    cap = (f"The 50 kt ceiling binds (the placed tonnage reaches the ceiling) in {counts[f'2026_{REV}_rail50'][0]} of the {prof['2026']} profile weeks of 2026 "
+           f"and {counts[f'2018_{REV}_rail50'][0]} of the {prof['2018']} of 2018, and in {counts[f'2026_{REV}_rail50'][2]} and {counts[f'2018_{REV}_rail50'][2]} of the recovery weeks in which bulk is still cut; "
+           f"the 140 kt ceiling in {counts[f'2026_{REV}_rail140'][0]} and {counts[f'2018_{REV}_rail140'][0]} profile weeks and {counts[f'2026_{REV}_rail140'][2]} and {counts[f'2018_{REV}_rail140'][2]} recovery weeks.")
     (out / "si_rail_weeks.tex").write_text(r"""\begingroup\footnotesize
 \begin{longtable}{rrrrrrrrr}
 \caption{\textbf{The bounded substitution by rail, week by week.} For each run week of the four rail runs (Supplementary Table~\ref{tab:revision}): the cut bulk that found an eligible rail route (offered, kt) and the tonnage placed under the ceiling (placed, kt), from the runs' logs; a dash is a week without a cut. The offered tonnage differs between the two ceilings of an event because the runs differ. """ + cap + r"""}
@@ -651,42 +717,42 @@ week & offered & placed & offered & placed & offered & placed & offered & placed
 
 def revision_table(out: Path):
     """The sensitivities of the revision (jobs_20261007_rev.txt) against the reference runs (review of 5 Oct 2026)."""
-    m = table(AD / "compare_runs_batch_jobs_20261007_main.csv"); r = table(AD / "compare_runs_batch_jobs_20261007_rev.csv")
-    nr = AD / "compare_runs_batch_jobs_20261020_norail.csv"
+    m = table(AD / f"compare_runs_batch_jobs_{LISTS}_main.csv"); r = table(AD / f"compare_runs_batch_jobs_{LISTS}_rev.csv")
+    nr = AD / f"compare_runs_batch_jobs_{NORAIL}_norail.csv"
     if nr.exists():
         r = pd.concat([r, table(nr)])
     rows = []
     for run, lab, base in (
-        ("2026_rev_rail50", "bounded substitution by rail, 50 kt a week (review OR2)", "2026_s07_base"),
-        ("2026_rev_rail140", "bounded substitution by rail, 140 kt a week", "2026_s07_base"),
-        ("2018_rev_rail50", "2018: bounded substitution, 50 kt a week", "2018_s07_base"),
-        ("2018_rev_rail140", "2018: bounded substitution, 140 kt a week", "2018_s07_base"),
-        ("2026_rev_head10", "headroom of the capacity at normal water 10\\,\\% (OR1)", "2026_s07_base"),
-        ("2026_rev_head25", "headroom 25\\,\\%", "2026_s07_base"),
-        ("2026_rev_rest15", "refill time of a stock gap 15 days (OR4)", "2026_s07_base"),
-        ("2026_rev_rest60", "refill time 60 days", "2026_s07_base"),
-        ("2026_rev_floor04", "loading-table floor below 5\\,cm at 0.04 (NS1)", "2026_s07_base"),
-        ("2026_rev_floor16", "floor at 0.16", "2026_s07_base"),
-        ("2026_rev_deeplocal", "fairway +20\\,cm on the Kaub reach alone (NS3)", "2026_s07_base"),
-        ("2026_rev_fleetwide", "low-water fleet with its gain carried to 100\\,cm (NS2)", "2026_s07_base"),
-        ("2026_rev_dfuel0", "power sector's fuel-oil input non-critical (E4)", "2026_s07_base"),
-        ("2026_rev_serv45", "45-day coping duration for the non-storable inputs (E4)", "2026_s07_base"),
-        ("2026_rev_q25", "outlook's 25th percentile path (NS4)", "2026_s07_base"),
-        ("2026_rev_q75", "outlook's 75th percentile path", "2026_s07_base"),
-        ("2026_rev_norail", "no rail alternative for any bulk shipment (line-haul threshold 500\\,km; 20 Oct)", "2026_s07_base"),
-        ("2018_rev_norail", "2018: no rail alternative for any bulk shipment", "2018_s07_base"),
+        (f"2026_{REV}_rail50", "bounded substitution by rail, 50 kt a week (review OR2)", B26),
+        (f"2026_{REV}_rail140", "bounded substitution by rail, 140 kt a week", B26),
+        (f"2018_{REV}_rail50", "2018: bounded substitution, 50 kt a week", B18),
+        (f"2018_{REV}_rail140", "2018: bounded substitution, 140 kt a week", B18),
+        (f"2026_{REV}_head10", "headroom of the capacity at normal water 10\\,\\% (OR1)", B26),
+        (f"2026_{REV}_head25", "headroom 25\\,\\%", B26),
+        (f"2026_{REV}_rest15", "refill time of a stock gap 15 days (OR4)", B26),
+        (f"2026_{REV}_rest60", "refill time 60 days", B26),
+        (f"2026_{REV}_floor04", "loading-table floor below 5\\,cm at 0.04 (NS1)", B26),
+        (f"2026_{REV}_floor16", "floor at 0.16", B26),
+        (f"2026_{REV}_deeplocal", "fairway +20\\,cm on the Kaub reach alone (NS3)", B26),
+        (f"2026_{REV}_fleetwide", "low-water fleet with its gain carried to 100\\,cm (NS2)", B26),
+        (f"2026_{REV}_dfuel0", "power sector's fuel-oil input non-critical (E4)", B26),
+        (f"2026_{REV}_serv45", "45-day coping duration for the non-storable inputs (E4)", B26),
+        (f"2026_{REV}_q25", "outlook's 25th percentile path (NS4)", B26),
+        (f"2026_{REV}_q75", "outlook's 75th percentile path", B26),
+        (f"2026_{REV}_norail", "no rail alternative for any bulk shipment (line-haul threshold 500\\,km; 20 Oct)", B26),
+        (f"2018_{REV}_norail", "2018: no rail alternative for any bulk shipment", B18),
     ):
         if run not in r.index:
             continue
         v, b = r.loc[run], m.loc[base]
         rows.append(f"{lab} & {v['DEU_%quarter']:.2f} & {100 * (v['DEU_%quarter'] / b['DEU_%quarter'] - 1):+.0f} & {v['DEU_peak_%week']:.2f} & {int(v['DEU_peak_week'])} & {v['EU_cum_mUSD'] / 1e3:.1f} \\\\".replace("+", "$+$").replace("-", "$-$", 1) if False else
                     f"{lab} & {v['DEU_%quarter']:.2f} & {100 * (v['DEU_%quarter'] / b['DEU_%quarter'] - 1):+.0f} & {v['DEU_peak_%week']:.2f} & {int(v['DEU_peak_week'])} & {v['EU_cum_mUSD'] / 1e3:.1f} \\\\")
-    b26, b18 = m.loc["2026_s07_base"], m.loc["2018_s07_base"]
+    b26, b18 = m.loc[B26], m.loc[B18]
     head = [f"reference run 2026 & {b26['DEU_%quarter']:.2f} & & {b26['DEU_peak_%week']:.2f} & {int(b26.DEU_peak_week)} & {b26.EU_cum_mUSD / 1e3:.1f} \\\\",
             f"reference run 2018 & {b18['DEU_%quarter']:.2f} & & {b18['DEU_peak_%week']:.2f} & {int(b18.DEU_peak_week)} & {b18.EU_cum_mUSD / 1e3:.1f} \\\\", r"\midrule"]
     (out / "si_revision.tex").write_text(r"""\begin{table}[tbp]
 \centering\small
-\caption{\textbf{The sensitivities of the revision.} German value-added loss as a share of a quarter, its change against the reference run of the same event, the peak week (share of a week's value added, run week) and the loss of the 28 economies (billion USD), for the sensitivities run after the review of 5 October 2026 on the rebuilt loading curve (the review's points in brackets; \texttt{jobs\_20261007\_rev.txt}). The rail ceilings are 50 kt a week (the 400 wagons that the national rail freight operator could add at short notice in August 2026, at two rotations a week) and 140 kt (the rail response of past low waters, +0.07\,\% of rail tonnage per low-water day over a full low-water month).}
+\caption{\textbf{The sensitivities of the revision.} German value-added loss as a share of a quarter, its change against the reference run of the same event, the peak week (share of a week's value added, run week) and the loss of the 28 economies (billion USD), """ + batch_text("revision") + r""". The rail ceilings are 50 kt a week (the 400 wagons that the national rail freight operator could add at short notice in August 2026, at two rotations a week) and 140 kt (the rail response of past low waters, +0.07\,\% of rail tonnage per low-water day over a full low-water month).}
 \label{tab:revision}
 \begin{tabular}{lrrrrr}
 \toprule
@@ -754,7 +820,10 @@ port & & observed & model & ratio & note \\
 """, encoding="utf-8")
 
 
-def main(overleaf: Path):
+def main(overleaf: Path, tag: str = None, lists: str = None):
+    if tag or lists:
+        set_batch(tag or TAG, lists or LISTS)
+    print(f"batch: tag {TAG}, lists {LISTS}")
     out = overleaf / "tables"; out.mkdir(exist_ok=True)
     for fn in (rates_table, stocks_table, criticality_table, thresholds_table, loading_table, forecast_table,
                runs_table, representations_table, channels_table, gate_table, prospective_table, prospective_sectors_table, revision_table, cross_table, rail_weeks_table, ports_table):
@@ -768,5 +837,7 @@ def main(overleaf: Path):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--overleaf", default=str(OVERLEAF))
+    ap.add_argument("--tag", default=None, help="run-name tag of the batch (s07: the 7 Oct batch; r6_bycargo: the per-class batch of 2 Nov); default RHINE_TAG or s07")
+    ap.add_argument("--lists", default=None, help="date of the job lists (compare_runs_batch_jobs_<date>_*.csv); default RHINE_LISTS or 20261007")
     a = ap.parse_args()
-    main(Path(a.overleaf))
+    main(Path(a.overleaf), a.tag, a.lists)
