@@ -20,12 +20,22 @@
 #   by the Tier-1 gather job.
 #
 # Usage:  bash launch_criticality.sh [--dry-run] [--tier2] [--only NN,NN] [--no-gather] [--fresh]
+#                                    [--chain] [--after JOBID]
 #
 # --fresh removes the existing per-chunk output dirs for the tier BEFORE
 # submitting. Use it after a BASELINE CHANGE (new reference run / config):
 # the resume guard refuses (correctly) to append new-fingerprint results to
 # stale chunk CSVs ("Cannot resume criticality results ... fingerprint
 # differs"). NEVER pass it while chunk jobs of that tier are running.
+#
+# --chain (tier-1 path) also queues the 15 tier-2 jobs afterok on the tier-1
+# gather, so the whole sweep runs unattended: the gather regenerates the
+# t2_chunk_*.yaml from the fresh ranking before any tier-2 job starts (the
+# fixed names t2_chunk_00..14 are known in advance, merge_results.py
+# n_chunks=15). Stale t2 output dirs are cleared at submit time.
+# --after JOBID (with --tier2) makes the tier-2 jobs wait afterok on JOBID
+# (a still-running tier-1 gather) instead of starting immediately; the
+# t2 yaml existence check is skipped - the gather writes them first.
 #
 set -e
 
@@ -48,7 +58,7 @@ EXPORTS="export DISRUPT_SC_DATA_PATH=${DATA_PATH} && export PYTHONPATH=${SCRIPT_
 CHUNK_DIR="${SCRIPT_DIR}/studies/criticality_ro/chunks"
 GATHER_SH="${SCRIPT_DIR}/studies/criticality_ro/cluster/gather_and_merge.sh"
 
-DRY_RUN=false; TIER2=false; ONLY=""; GATHER=true; FRESH=false
+DRY_RUN=false; TIER2=false; ONLY=""; GATHER=true; FRESH=false; CHAIN=false; AFTER=""
 while [[ $# -gt 0 ]]; do
     case $1 in
         --dry-run)   DRY_RUN=true; shift ;;
@@ -56,6 +66,8 @@ while [[ $# -gt 0 ]]; do
         --only)      ONLY=$2; shift 2 ;;
         --no-gather) GATHER=false; shift ;;
         --fresh)     FRESH=true; shift ;;
+        --chain)     CHAIN=true; shift ;;
+        --after)     AFTER=$2; shift 2 ;;
         *) shift ;;
     esac
 done
@@ -76,12 +88,14 @@ submit() {   # job time mem dep payload -> job id
     else eval "$cmd"; fi
 }
 
-if $TIER2; then
-    ls "${CHUNK_DIR}"/t2_chunk_*.yaml >/dev/null 2>&1 || { echo "t2 chunks missing - the tier-1 gather job generates them; git pull first"; exit 1; }
-    T2IDS=""
-    for yml in "${CHUNK_DIR}"/t2_chunk_*.yaml; do
-        nn=$(basename "$yml" .yaml | sed 's/t2_chunk_//')
-        jid=$(submit "crit_t2_${nn}" "$TIME_T2" "$MEM_T2" "" \
+# Submit the 15 tier-2 jobs (+ gather), all afterok on $1 when given. The
+# fixed names t2_chunk_00..14 let a --chain/--after submission enumerate them
+# before the tier-1 gather has (re)written the files.
+submit_tier2() {
+    local dep=$1 T2IDS="" nn yml jid
+    for nn in $(seq -w 0 14); do
+        yml="${CHUNK_DIR}/t2_chunk_${nn}.yaml"
+        jid=$(submit "crit_t2_${nn}" "$TIME_T2" "$MEM_T2" "$dep" \
             "export DISRUPT_SC_EXTRA_CONFIG=${yml} && python -m disruptsc.run Romania --seed 42 --cache auto")
         T2IDS="${T2IDS}:${jid}"
     done
@@ -89,7 +103,14 @@ if $TIER2; then
         submit "crit_gather_t2" "$TIME_GATHER" "$MEM_GATHER" "${T2IDS#:}" \
             "bash ${GATHER_SH} t2"
     fi
-    echo "tier-2 jobs submitted"
+}
+
+if $TIER2; then
+    if [[ -z "$AFTER" ]]; then
+        ls "${CHUNK_DIR}"/t2_chunk_*.yaml >/dev/null 2>&1 || { echo "t2 chunks missing - the tier-1 gather job generates them (or attach with --after GATHER_JOBID)"; exit 1; }
+    fi
+    submit_tier2 "$AFTER"
+    echo "tier-2 jobs submitted${AFTER:+ (afterok:${AFTER})}"
     exit 0
 fi
 
@@ -109,9 +130,23 @@ for yml in "${CHUNK_DIR}"/t1_chunk_*.yaml; do
 done
 echo "tier-1 chunk jobs submitted (afterok:${SETUP})"
 if $GATHER && [[ -z "$ONLY" ]]; then
-    submit "crit_gather_t1" "$TIME_GATHER" "$MEM_GATHER" "${T1IDS#:}" \
-        "bash ${GATHER_SH} t1"
-    echo "gather+merge job queued after all chunks; it COMMITS the results -"
-    echo "push from the cluster (or your usual channel), git pull on the laptop,"
-    echo "then: bash studies/criticality_ro/cluster/launch_criticality.sh --tier2"
+    GATHER1=$(submit "crit_gather_t1" "$TIME_GATHER" "$MEM_GATHER" "${T1IDS#:}" \
+        "bash ${GATHER_SH} t1")
+    echo "tier-1 gather+merge job ${GATHER1} queued after all chunks; it packages"
+    echo "criticality_t1_results.zip (download via the file manager, extract at"
+    echo "studies/criticality_ro/ on the laptop)"
+    if $CHAIN; then
+        if ! $DRY_RUN; then
+            rm -rf "${SCRIPT_DIR}/output/Romania/criticality/t2_chunk_"*
+            echo "--chain: removed stale t2_chunk_* output dirs"
+        fi
+        submit_tier2 "$GATHER1"
+        echo "--chain: tier-2 jobs queued afterok:${GATHER1} (its regenerated"
+        echo "t2_chunk_*.yaml are read when the jobs start); the whole sweep now"
+        echo "runs unattended through criticality_t2_results.zip"
+    else
+        echo "then: bash studies/criticality_ro/cluster/launch_criticality.sh --tier2 --fresh"
+    fi
+elif $CHAIN; then
+    echo "--chain ignored (--only or --no-gather set): no tier-1 gather to chain on" >&2
 fi

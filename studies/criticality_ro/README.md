@@ -25,8 +25,14 @@ cd ../disrupt-sc-data && git push    # Romania data (committed 94b02d5)
 cd /projects/disruptsc/disrupt-sc        && git pull
 cd /projects/disruptsc/disrupt-sc-data   && git pull
 cd /projects/disruptsc/disrupt-sc
-bash studies/criticality_ro/cluster/launch_criticality.sh
+bash studies/criticality_ro/cluster/launch_criticality.sh --fresh --chain
 ```
+
+`--chain` queues the 15 tier-2 jobs `afterok` on the tier-1 gather (which
+regenerates their chunk configs first), so both tiers run unattended
+back-to-back; without it, launch tier 2 by hand as below. After ANY data
+edit, `--fresh` (and, pre-KI-47-fix deployments, clearing `tmp/Romania_*`)
+keeps the sweep honest.
 
 This submits: one **setup job** that builds the stage caches (seed 42,
 PYTHONHASHSEED=0 — deterministic build), then **40 chunk jobs** (afterok,
