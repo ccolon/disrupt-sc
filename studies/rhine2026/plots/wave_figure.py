@@ -97,9 +97,10 @@ def main(out: Path):
     L = [b0["DEU_%quarter"]] + [t.loc[f"{WV}_AB_gap{g}", "DEU_%quarter"] for g in gaps[1:]]      # the run table's column, as Table S-runs prints it
     s = t.loc[f"{WV}_A", "DEU_%quarter"] + t.loc[f"{WV}_B", "DEU_%quarter"]
     ax.axhline(s, color=MUTED, linewidth=1.3, linestyle="--")
-    ax.text(0.1, s + 0.012, "the two episodes alone, summed", color=MUTED, fontsize=7.5, ha="left", va="bottom")
+    ax.text(0.1, s - 0.012, "the two episodes alone, summed", color=MUTED, fontsize=7.5, ha="left", va="top")
     ax.plot(gaps, L, color=INK, linewidth=1.8, marker="o", markersize=5, label="in sequence, 30-day refill time")
     cx = AD / f"compare_runs_batch_jobs_{CROSS}_cross.csv"; rv = AD / f"compare_runs_batch_jobs_{LISTS}_rev.csv"
+    L15 = []
     if cx.exists() and rv.exists():                            # the batch of 9 Oct: the same experiment at a 15-day refill time
         c, r = table(cx), table(rv)
         s15 = c.loc[f"{WV9}_A_rest15", "DEU_%quarter"] + c.loc[f"{WV9}_B_rest15", "DEU_%quarter"]
@@ -109,11 +110,12 @@ def main(out: Path):
     f = t.loc[f"{WV}_flat", "DEU_%quarter"]
     ax.axhline(f, color=GREEN, linewidth=1.0, linestyle=":")
     ax.text(8.0, f + 0.012, "flat profile", color=GREEN, fontsize=7.5, ha="right", va="bottom")
-    ax.legend(frameon=False, fontsize=7, loc="lower right")
+    ax.legend(frameon=False, fontsize=7, loc="upper right")
     ax.set_xticks(gaps)
     ax.set_xlabel("weeks of normal water between the two episodes", color=MUTED, fontsize=8)
     ax.set_ylabel("German loss (% of a quarter)", color=MUTED, fontsize=8)
-    ax.set_ylim(0.76, 1.85)
+    ys = L + L15 + [s, f]
+    ax.set_ylim(min(ys) - 0.06, max(ys) + 0.12)            # from the data: the per-class batch runs 0.65 to 1.11, the 7 Oct one 1.1 to 1.64
     ax.set_title("(b) The interaction, by gap and refill time", loc="left", fontsize=9.5, color=INK)
 
     finish(fig)

@@ -11,10 +11,12 @@
 
 Usage:
     python studies/rhine2026/plots/validation_figure.py [--runs C:/dsc_runs/rhine2026] [--out studies/rhine2026/figures]
-Inputs: firm_data.csv of 2018_s07_base, 2018_s07_seed1..10, 2018_s07_tablelow/high, 2018_s07_sup2 (matched
-estimand computed here); additional_data/compare_runs_batch_jobs_20261007_{main,paired}.{csv,txt}; scenarios/2018.csv.
-The stock ladder (x1.25, x1.5, x2) and the priced river come from the runs of 22-28 Sep (before construction was
-made non-storable, which leaves the 2018 industrial path unchanged: 5.57 percent-months before and after).
+Inputs: firm_data.csv of 2018_<TAG>_base, 2018_<TAG>_seed1..10, 2018_<TAG>_tablelow/high, 2018_<TAG>_sup2 and the
+ladder 2018_<TAG>_inv125/150/200 (matched estimand computed here; TAG from batch_names.py, RHINE_TAG);
+additional_data/compare_runs_batch_jobs_<LISTS>_{main,paired}.{csv,txt}; scenarios/2018.csv.
+The priced river (x1, x1.5, x2: 2018_baseline, 2018_inv150, 2018_pipe) comes from the runs of 22-28 Sep on the first
+version's calibration (before construction was made non-storable, which leaves the 2018 industrial path unchanged:
+5.57 percent-months before and after); the ladder falls back to the 28 Sep runs when the batch has none.
 """
 from __future__ import annotations
 
@@ -121,27 +123,33 @@ def main(runs: Path, out: Path):
     ax = axes[0, 1]; style(ax)
     ax.axhspan(rec_s["p16"], rec_s["p84"], color=GREEN, alpha=0.2, linewidth=0)
     ax.axhline(rec_s["integral"], color=GREEN, linewidth=1.2)
-    ax.text(0.82, rec_s["p84"] + 0.15, f"benchmark {rec_s['integral']:.1f} (±1 s.d. band {rec_s['p16']:.1f}–{rec_s['p84']:.1f})",
-            color=GREEN, fontsize=7.5, ha="left", va="bottom")
+    ax.text(2.08, rec_s["integral"] + 0.12, f"benchmark {rec_s['integral']:.1f} (±1 s.d. band {rec_s['p16']:.1f}–{rec_s['p84']:.1f})",
+            color=GREEN, fontsize=7.5, ha="right", va="bottom")
     gate = {1.0: ref["integral"], **INT_GATE}
     ax.plot(list(gate), list(gate.values()), color=INK, linewidth=1.8, marker="o", markersize=5, label="model")
     ax.plot(list(INT_PRICED), list(INT_PRICED.values()), color=ORANGE, linewidth=1.3, linestyle="--", marker="o", markersize=4, label="alternative river")
     for mm, v in gate.items():
-        ax.annotate(f"{v:.1f}", (mm, v), textcoords="offset points", xytext=(5, 5) if mm in (1.0, 2.0) else (4, -11), fontsize=7.5, color=INK)
+        ax.annotate(f"{v:.1f}", (mm, v), textcoords="offset points", xytext=(5, 5), fontsize=7.5, color=INK)
     ints = [s["integral"] for s in seeds]
     ints = ints + [ref["integral"]]
     ax.scatter(0.93 + np.random.default_rng(5).uniform(-0.035, 0.035, len(ints)), ints, color=BLUE, s=14, alpha=0.7, zorder=3, label="eleven networks, ×1")
     ax.plot([1.0, 1.0], [high["integral"], low["integral"]], color=GREEN, linewidth=2.5, alpha=0.8, solid_capstyle="round", zorder=2)
-    ax.text(1.03, low["integral"], f"loading curve, shortfall ×1.15: {low['integral']:.1f}", fontsize=7, color=GREEN, va="center")
-    ax.text(1.03, high["integral"] - 0.42, f"shortfall ×0.85: {high['integral']:.1f}", fontsize=7, color=GREEN, va="top")
     ax.scatter([1.0], [sup2["integral"]], color=INK, marker="x", s=40, zorder=4)
-    ax.text(1.03, sup2["integral"], f"two suppliers: {sup2['integral']:.1f}", fontsize=7, color=INK, va="center")
+    # the labels of the x1 column: short, on a white ground (the alternative river's line passes behind the upper one),
+    # the two lower ones kept apart (per-class batch of 2 Nov 2026: 1.1 and 0.6)
+    y_sup, y_hi = sup2["integral"], high["integral"]
+    if abs(y_hi - y_sup) < 0.62:
+        y_hi = y_sup + 0.62 if y_hi >= y_sup else y_sup - 0.62
+    box = dict(facecolor="white", alpha=0.85, edgecolor="none", pad=1.0)
+    ax.text(1.03, low["integral"], f"loading curve ×1.15: {low['integral']:.1f}", fontsize=7, color=GREEN, va="center", bbox=box, zorder=5)
+    ax.text(1.03, y_hi, f"×0.85: {high['integral']:.1f}", fontsize=7, color=GREEN, va="center", bbox=box, zorder=5)
+    ax.text(1.03, y_sup, f"two suppliers: {sup2['integral']:.1f}", fontsize=7, color=INK, va="center", bbox=box, zorder=5)
     ax.set_xticks([1.0, 1.25, 1.5, 2.0]); ax.set_xticklabels(["×1\n(statistics)", "×1.25", "×1.5", "×2"], fontsize=8)
     ax.set_xlim(0.8, 2.1)
     ax.set_xlabel("inventory multiplier", color=MUTED, fontsize=8)
     ax.set_ylabel("industrial shortfall, Aug–Dec 2018 (percent-months)", color=MUTED, fontsize=8)
-    ax.set_ylim(0, 8.2)
-    ax.legend(frameon=True, framealpha=0.9, edgecolor="none", fontsize=7, loc="upper right", bbox_to_anchor=(1.0, 0.62))
+    ax.set_ylim(0, 9.2)                                   # room above the band for the legend
+    ax.legend(frameon=True, framealpha=0.9, edgecolor="none", fontsize=7, loc="upper left")
     ax.set_title("(b) Cumulated shortfall: inventories, loading curve, suppliers", loc="left", fontsize=9.5, color=INK)
 
     # (c) weekly 2018 loss with the band
