@@ -40,6 +40,7 @@ KAUB_EDGE_NAME = "rhine_mainz_koblenz"
 # counts of the committed extractions (definition any), by cache directory name; "" is the default folder tmp/
 EXPECTED = {
     "": {"total": 5746, "dry_bulk": 3583, "liquid_bulk": 2124, "container": 39},     # 17 Sep 2026 (routes of 5 Oct)
+    "r6cal": {"total": 8176, "dry_bulk": 3562, "liquid_bulk": 2160, "container": 2454},  # 3 Nov 2026 (round 6: containers on the river; 2026 and 2018 full runs alike)
 }
 CACHE_LINE = re.compile(r"(?:Named|Isolated) cache: (\S+)")
 
