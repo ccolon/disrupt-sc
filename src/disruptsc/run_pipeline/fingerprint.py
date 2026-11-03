@@ -3,10 +3,16 @@
 A *fingerprint* captures everything that, if changed between two runs,
 would invalidate already-computed results: code version, RNG seed, the
 subset of config keys that drives agent / SC / route construction, and
-the **filepaths** of the input data. We deliberately do not hash file
-contents — it's the user's responsibility to bump the filename when the
-data changes (e.g. ``mrio_oecd_2022.csv`` → ``mrio_oecd_2022_v2.csv``).
-That keeps resume checks O(microseconds) rather than O(seconds).
+the input data files — path AND content (sha256 + size). Until 3 Nov
+2026 only the filepaths were recorded, with filename bumps left to the
+user; that contract was violated twice (KI-47: the 24 Sep UKR 5-bloc
+mrio replacement, then the 3 Nov D14 seat-snap edits, where the cluster
+criticality sweep silently reused the previous economy's agent caches).
+Content hashing costs well under a second for a national scope and is
+mtime-insensitive, so OneDrive sync churn and git checkouts do not
+invalidate caches spuriously. NOTE: adding the content signature changed
+every fingerprint hash once — the first `--cache auto` run per scope
+after this fix rebuilds all stages (EU/r6cal included, ~1 h).
 
 Typical usage::
 
@@ -21,6 +27,7 @@ Typical usage::
 
 from __future__ import annotations
 
+import functools
 import hashlib
 import json
 import logging
@@ -78,8 +85,9 @@ WATERMARKED_CONFIG_KEYS = (
     "transport_capacity_overrides",
 )
 
-# Filepath keys to include in the fingerprint. Values stored verbatim
-# (as strings) — user is responsible for renaming when content changes.
+# Filepath keys to include in the fingerprint. Each is recorded as a
+# content signature (path + sha256 + size, see _file_signature), so an
+# in-place edit of the data invalidates caches like a rename does.
 WATERMARKED_FILEPATH_KEYS = (
     "mrio",
     "sector_table",
@@ -102,8 +110,8 @@ WATERMARKED_FILEPATH_KEYS = (
 # NOT included: run-time parameters that do not change the build (t_final,
 # epsilon_stop, simulation_type, disruptions, the household-inventory config
 # — which is re-applied on every cache load), and the code version/git SHA
-# (same contract as filenames-not-contents above: caches survive commits;
-# delete tmp/ after a change that alters build behavior).
+# (caches survive commits; delete tmp/ after a change that alters build
+# behavior — data files, by contrast, ARE content-hashed since 3 Nov 2026).
 
 _STAGE_ORDER = ("transport_network", "agents", "sc_network", "logistic_routes")
 
@@ -204,7 +212,7 @@ def build_stage_fingerprint(config: dict, stage: str) -> dict:
         "build_version": _STAGE_BUILD_VERSION.get(stage, 1),
         "scope": config.get("scope"),
         "config": {**cfg, **sub_cfg},
-        "filepaths": {k: _path_str(filepaths.get(k)) for k in fp_keys},
+        "filepaths": {k: _file_signature(filepaths.get(k)) for k in fp_keys},
     }
     return {"hash": fingerprint_hash(payload), "payload": payload}
 
@@ -272,6 +280,57 @@ def _path_str(value) -> str | None:
     return str(value)
 
 
+@functools.lru_cache(maxsize=128)
+def _content_sha(path_str: str, size: int, mtime_ns: int) -> str:
+    """sha256 of a file's content. The (size, mtime_ns) arguments only key
+    the per-process cache so each file is read once per run, not per stage;
+    the hash itself is pure content."""
+    h = hashlib.sha256()
+    with open(path_str, "rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def _file_signature(value) -> dict | None:
+    """Path + content signature of one data input (KI-47 fix, 3 Nov 2026).
+
+    The path alone missed same-name edits twice; sha256 + size catches
+    them and ignores mtime churn (OneDrive sync, git checkout). A missing
+    path is recorded as such — a config pointing at a file that appears
+    later must not reuse caches built without it. A directory is signed
+    by the sorted manifest of its files' (relative path, size, sha256).
+    """
+    if value is None:
+        return None
+    p = Path(str(value))
+    sig: dict = {"path": str(value)}
+    try:
+        if p.is_file():
+            st = p.stat()
+            sig["size"] = st.st_size
+            sig["sha256"] = _content_sha(str(p), st.st_size, st.st_mtime_ns)
+        elif p.is_dir():
+            h = hashlib.sha256()
+            n = 0
+            for q in sorted(p.rglob("*")):
+                if not q.is_file():
+                    continue
+                st = q.stat()
+                h.update(str(q.relative_to(p)).encode())
+                h.update(str(st.st_size).encode())
+                h.update(_content_sha(str(q), st.st_size, st.st_mtime_ns).encode())
+                n += 1
+            sig["dir_files"] = n
+            sig["sha256"] = h.hexdigest()
+        else:
+            sig["missing"] = True
+    except OSError as exc:
+        logging.warning(f"Could not hash fingerprint input {p}: {exc}")
+        sig["unreadable"] = True
+    return sig
+
+
 def build_fingerprint(config: dict, *, criticality_duration: int | None = None) -> dict:
     """Return the fingerprint payload for the current run.
 
@@ -286,7 +345,8 @@ def build_fingerprint(config: dict, *, criticality_duration: int | None = None) 
         "git_sha": _git_sha(),
         "criticality_duration": criticality_duration,
         "config": {k: config.get(k) for k in WATERMARKED_CONFIG_KEYS},
-        "filepaths": {k: _path_str(filepaths.get(k)) for k in WATERMARKED_FILEPATH_KEYS},
+        "filepaths": {k: _file_signature(filepaths.get(k))
+                      for k in WATERMARKED_FILEPATH_KEYS},
     }
     return payload
 

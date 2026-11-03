@@ -57,3 +57,30 @@ def test_seed_change_keeps_transport_and_agents():
     b = _hashes(cfg)
     assert a["transport_network"] == b["transport_network"] and a["agents"] == b["agents"]
     assert a["sc_network"] != b["sc_network"]
+
+
+def test_same_name_data_edit_invalidates_agents(tmp_path):
+    """KI-47 (24 Sep + 3 Nov 2026): editing a data file IN PLACE, same
+    filename, must invalidate the agents stage - and mtime churn alone
+    (OneDrive sync, git checkout) must not."""
+    import os
+    import time
+
+    from disruptsc.run_pipeline.fingerprint import _content_sha
+
+    f = tmp_path / "firms.geojson"
+    f.write_text('{"features": 1}')
+    cfg = copy.deepcopy(BASE)
+    cfg["filepaths"]["firms_spatial"] = str(f)
+    a = _hashes(cfg)
+
+    _content_sha.cache_clear()
+    os.utime(f, (time.time() + 9999, time.time() + 9999))
+    assert _hashes(cfg) == a  # mtime-only churn reuses every cache
+
+    _content_sha.cache_clear()
+    f.write_text('{"features": 2}')
+    b = _hashes(cfg)
+    assert a["agents"] != b["agents"]
+    assert a["logistic_routes"] != b["logistic_routes"]
+    assert a["transport_network"] == b["transport_network"]
