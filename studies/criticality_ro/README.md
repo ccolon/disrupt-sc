@@ -1,11 +1,13 @@
 # Romania per-edge criticality sweep (manifest p29)
 
 One-week closure of every domestic road / railway / waterway edge that
-carries baseline flow (1,821 of 2,345 edges — zero-flow closures provably
+carries baseline flow (1,807 of 2,345 edges — zero-flow closures provably
 cause zero loss), then a 4-week re-run of the top 150. Loss metric:
 household + country loss relative to the no-disruption reference (the raw
 columns carry a constant offset that `merge_results.py` subtracts).
-Reference baseline: run `20261023_174435` (v25.2 named-plant layer, manifest p38), slimmed into
+Reference baseline: run `20261103_010942` (v26 seat-settlement snap D14,
+manifest p40 — the v25.2 sweep's rail top ranks were county-point access
+artifacts), slimmed into
 `reference_edges.geojson` so every step works from the git checkout alone.
 
 Everything travels by git — no ssh/rsync (same flow as the Rhine study).

@@ -16,6 +16,13 @@ Rebuilds (deterministically) the two v7 spatial inputs:
       romania_registry_2024_join.py); county totals preserved from
       firms_firmlevel.geojson (v19 2023-sales weights). Counties absent
       from the UAT file keep their county point (fallback).
+  v26 (3 Nov 2026): D14 - every admin-derived point (county households,
+      urban-LAU households, county-aggregate firm rows; registry UAT
+      points via the regenerated registry_uat_2024.csv) sits at its
+      unit's SEAT SETTLEMENT (GeoNames gazetteer, _settlements.py), not
+      at the admin polygon's representative point, which for mountain /
+      elongated units fell tens of km from the built-up area and
+      fabricated critical access edges in the criticality sweep.
 
 Inputs (all in Spatial/sources or Spatial/):
   ROU_adm1.geojson, ROU_adm2.geojson          geoBoundaries gbOpen
@@ -99,7 +106,17 @@ def build_urban_points() -> gpd.GeoDataFrame:
     assert not (lau.urban & lau.geometry.isna()).any(), "unmatched urban LAU"
 
     g = gpd.GeoDataFrame(lau[lau.geometry.notna()].copy(), geometry="geometry", crs=adm1.crs)
-    g["pt"] = g.geometry.representative_point()
+    # D14 (v26): seat settlement, not representative point (Baia Mare's
+    # representative point fell 11 km up the Firiza valley)
+    from _settlements import load_places, seat_points
+    places = load_places(SRC)
+    seats = seat_points(g, places)
+    nofix = [i for i in g.index if i not in seats]
+    if nofix:
+        print(f"urban mesh: {len(nofix)} LAU polygons without gazetteer "
+              f"place keep their representative point")
+    rp = g.geometry.representative_point()
+    g["pt"] = [seats.get(i, rp.loc[i]) for i in g.index]
     urban, rural = g[g.urban].copy(), g[~g.urban].copy()
     add: dict = {}
     for county, ru in rural.groupby("county"):
@@ -128,6 +145,17 @@ def main() -> None:
     keep = hh_old[~hh_old["subregion_adm1"].isin(FINE)][
         ["region", "population", "subregion_adm1", "geometry"]].copy()
     keep["subregion_lau"] = None
+    # D14 (v26): coarse-county demand sits at the county seat (PPLA), not
+    # at the county polygon's representative point (Arad: 65 km apart)
+    from _settlements import load_places, seat_points
+    places = load_places(SRC)
+    adm1 = gpd.read_file(SRC + "/ROU_adm1.geojson")
+    seat1 = seat_points(adm1, places)
+    cap = {r.shapeName: seat1.get(r.Index, r.geometry.representative_point())
+           for r in adm1.itertuples()}
+    moved = keep["subregion_adm1"].map(cap)
+    assert moved.notna().all(), "county without seat point"
+    keep["geometry"] = moved.values
     fine = gpd.GeoDataFrame({
         "region": "ROU", "population": urban["population"].values,
         "subregion_adm1": urban["county"].values,
@@ -150,7 +178,16 @@ def main() -> None:
              & fj["sector"].isin(REGISTRY14))
     target = (fj["source"].isin(["regional_stats", "households_fallback"])
               & fj["county"].isin(FINE) & ~fj["sector"].isin(REGISTRY14))
-    keep_f = fj[~target & ~t_reg].drop(columns="county")
+    keep_f = fj[~target & ~t_reg].copy()
+    # D14 (v26): county-aggregate firm rows move to the county seat too
+    snap = (keep_f["source"].isin(["regional_stats", "households_fallback"])
+            & keep_f["county"].notna())
+    keep_f.loc[snap, "geometry"] = keep_f.loc[snap, "county"].map(cap).values
+    n_unsnapped = int((keep_f["source"].isin(
+        ["regional_stats", "households_fallback"]) & keep_f["county"].isna()).sum())
+    print(f"county-level firm rows snapped to county seats: {int(snap.sum())}"
+          f" ({n_unsnapped} without county match left in place)")
+    keep_f = keep_f.drop(columns="county")
     rows = []
     from shapely.geometry import Point
     for sector, grp in fj[t_reg].groupby("sector"):
