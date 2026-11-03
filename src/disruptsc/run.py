@@ -56,7 +56,7 @@ from disruptsc.init_pipeline.supply_chain import build_supply_chain_network, loa
 from disruptsc.init_pipeline.routing import setup_logistic_routes, intern_routes
 
 from disruptsc.run_pipeline.cache import (
-    setup_cache_isolation,
+    setup_cache_isolation, setup_cache_dir,
     parse_cache_arg, resolve_auto_cache_flags, CACHE_LEVELS,
     cache_transport_network, load_cached_transport_network,
     cache_agents, load_cached_agents,
@@ -134,11 +134,13 @@ def _main_impl():
         config["export_files"] = True
 
     return execute(config, cache=args.cache,
-                   cache_isolation=args.cache_isolation, open_report=args.open)
+                   cache_isolation=args.cache_isolation, cache_dir=args.cache_dir,
+                   open_report=args.open)
 
 
 def execute(config: dict, *, cache: str | None = None,
-            cache_isolation: bool = False, open_report: bool = False,
+            cache_isolation: bool = False, cache_dir: str | None = None,
+            open_report: bool = False,
             export_folder: Path | str | None = None):
     """Run the full pipeline for a (already-loaded, already-overridden) config.
 
@@ -174,6 +176,8 @@ def execute(config: dict, *, cache: str | None = None,
     stage_fps = {level: build_stage_fingerprint(config, level) for level in CACHE_LEVELS}
     if cache_isolation:
         setup_cache_isolation(scope)
+    elif cache_dir:
+        setup_cache_dir(cache_dir)
     if cache == "auto":
         cache_flags = resolve_auto_cache_flags(scope, stage_fps)
     else:
@@ -998,6 +1002,10 @@ def _parse_args():
                         help="Alias for --log_level debug")
     parser.add_argument("--cache_isolation", action="store_true",
                         help="Isolate cache per process")
+    parser.add_argument("--cache_dir", default=None,
+                        help="Named cache directory tmp/<name>, shared by the runs that name it "
+                             "(e.g. the per-seed chains of a supply-chain ensemble); ignored when "
+                             "--cache_isolation is set")
     parser.add_argument("--open", action="store_true",
                         help="Generate report and open it in browser after simulation")
     parser.add_argument("--version", action="version", version=f"DisruptSC {__version__}")

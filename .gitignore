@@ -169,4 +169,6 @@ studies/earthquake/**/_*.log
 # (user preference 21 Oct 2026); t2 chunks are derived on the cluster
 studies/criticality_ro/results/
 studies/criticality_ro/chunks/t2_chunk_*.yaml
+studies/criticality_ro/chunks/e*_chunk_*.yaml
 studies/criticality_ro/criticality_t*_results.zip
+studies/criticality_ro/criticality_e*_results.zip
