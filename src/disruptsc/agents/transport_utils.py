@@ -521,6 +521,16 @@ def _send_routed(agent_pid, od_point: int, transport_share: float, link: Commerc
     # Place shipment on transport network
     if link.delivery_in_tons > EPSILON:
         _place(route, link.pid, link.delivery_in_tons, link.delivery, leg)
+    elif link.delivery > 0.0 and link.destination_node in transport_network._node:
+        # KI-53 (6 Nov 2026): a shipment of EPSILON tons (1 g) or less moves no tonnage worth loading on the
+        # edges, but its value is booked as delivered just below (the supplier's stock is drawn down), so it
+        # must reach the buyer: it is deposited at the destination node like the pipelined part. Before,
+        # it was dropped - on the v2 Cambodia scope (20,860 firms, daily steps) thousands of inputs were
+        # never received, their stocks ran out after their target days and strict Leontief stopped the
+        # buyers: national production -36 % by day 33 of an undisturbed run.
+        transport_network.place_direct_delivery(link.pid, link.destination_node, link.delivery,
+                                                product_type=link.product_type, flow_category=link.category,
+                                                cargo_type=link.cargo_type)
 
     link.realized_delivery = link.delivery
     link.payment = link.delivery * link.price
