@@ -144,8 +144,56 @@ def num(v) -> str:
 
 
 # ------------------------------------------------------------------------------------------------ S1: rates
+class _Lenient(yaml.SafeLoader):
+    """A run's parameters.yaml holds python/PosixPath tags (file paths); the logistics block needs none of them."""
+
+
+_Lenient.add_multi_constructor("tag:yaml.org,2002:python/", lambda loader, suffix, node: None)
+
+
+def batch_logistics() -> tuple[dict, bool]:
+    """The logistics parameters the batch's runs used. 5 Nov 2026: the table read config/user_defined_EU.yaml, but the
+    runs of the per-class batch add the job lists' overrides (--config-set: rail by country, round 2; waterway costs by
+    waterway, round 5; seaport fees by port, round 6; --container-water-vot 0.32), so it printed the config's 0.35 and
+    none of the regional costs. The reference run's parameters.yaml records what every run of the batch used. The 7 Oct
+    tables (TAG s07) keep reading the config."""
+    p = RUNS / B26 / "parameters.yaml"
+    if TAG != "s07" and p.exists():
+        return yaml.load(p.read_text(encoding="utf-8"), _Lenient)["logistics"], True
+    return config()["logistics"], False
+
+
+def regional(node, cargo: str = "default", base_key: str = "default"):
+    """(base value, {region: value}) of a cost node: a number, a {cargo: value} dict, or a regional dict keyed by an
+    attribute (country code, waterway name) whose 'default' entry covers the regions not listed."""
+    pick = lambda d: float(d.get(cargo, d.get("default"))) if isinstance(d, dict) else float(d)
+    if not (isinstance(node, dict) and "attribute" in node):
+        return pick(node), {}
+    others = {k: pick(v) for k, v in node.items() if k not in ("attribute", base_key)}
+    if base_key != "default":
+        others["(other waterways)"] = pick(node["default"])
+    return pick(node[base_key]), others
+
+
+def rail_cell(bc, cargo: str) -> str:
+    base, var = regional(bc["railways"], cargo)
+    dear = {k: v for k, v in var.items() if abs(v - base) > 1e-12}
+    if not dear:
+        return f"{base:.3f}"
+    vals = sorted(set(dear.values()))
+    return f"{base:.3f} ({' / '.join(f'{v:.3f}' for v in vals)} in {len(dear)} countries: {', '.join(sorted(dear))})"
+
+
+def water_cell(bc, cargo: str) -> str:
+    node = bc["waterways"]
+    if not (isinstance(node, dict) and "attribute" in node):
+        return f"{regional(node, cargo)[0]:.3f}"
+    base, var = regional(node, cargo, base_key="Rhine")
+    return f"{base:.3f} on the Rhine, {min(var.values()):.3f}--{max(var.values()):.3f} on the other waterways"
+
+
 def rates_table(out: Path):
-    lg = config()["logistics"]
+    lg, from_run = batch_logistics()
     bc, vot, dw, lf, sp = lg["basic_cost"], lg["cost_of_time"], lg["dwell_times"], lg["loading_fees"], lg["speeds"]
 
     def transfer(pair: str) -> str:
@@ -155,15 +203,38 @@ def rates_table(out: Path):
                              (("container", "containers"), ("dry_bulk", "dry bulk"), ("liquid_bulk", "liquid bulk")))
         return f"{num(d)} h / {num(f)}"
 
+    # notes and rows that exist only with the job lists' overrides (from_run); the 7 Oct tables are unchanged
+    rail_note = (" Dearer in the countries named, where the model over-used rail (calibration round 2, Section~S2)."
+                 if from_run and isinstance(bc["railways"], dict) and "attribute" in bc["railways"] else "")
+    water_note = ""
+    if from_run and "attribute" in bc["waterways"]:
+        w_base, w_var = regional(bc["waterways"], "dry_bulk", base_key="Rhine")
+        same = sorted(k for k, v in w_var.items() if abs(v - w_base) < 1e-12 and not k.startswith("("))
+        water_note = (f" Set by waterway in calibration round 5 (Section~S2): the Rhine's values hold on {len(same)} other "
+                      f"named waterways ({', '.join(same)}), the others are up to {max(w_var.values()) / w_base:.0f} times "
+                      f"dearer (about the same factors for every cargo class).")
+    container_note = ("The per-class batch carries containers on the Rhine (\\KaubContMt~Mt a year through Kaub against "
+                      "about 10 in the counts, Section~S2), within the capacities of their vessel class (Methods)."
+                      if from_run else "The model routes the Rhine's containers by rail (Methods).")
+    port_rows = []
+    if from_run and isinstance(lf.get("by_port"), dict):
+        fees = lf["by_port"]
+        cont = [float(v["container"] if isinstance(v, dict) else v) for v in fees.values()]
+        other = [float(v["default"] if isinstance(v, dict) else v) for v in fees.values()]
+        port_rows.append(f"seaport fee, by port & containers {min(cont):g}--{max(cont):g}, other cargo {min(other):g}--{max(other):g} "
+                         f"USD per tonne at {len(fees)} ports & On top of the transfer above: the feeder ladder of calibration round 6 "
+                         f"(Section~S2), a fee that falls with the port's tonnage, so that the small ports do not draw the cargo "
+                         f"of the large ones. \\\\")
+
     rows = [
         r"\multicolumn{3}{l}{\emph{Line haul, USD per tonne-kilometre}} \\",
         f"road, containers and dry bulk & {bc['roads']['default']:.3f} & A full-load long-haul rate. No rate series was collected; the Panteia comparison for 2018 gives 0.115 EUR per tonne-kilometre for a tractor-semitrailer at fleet average, empty legs included. Road is never a line-haul mode for bulk (Methods). Calibrated. \\\\",
         f"road, liquid bulk & {bc['roads']['liquid_bulk']:.3f} & Road tankers: dedicated equipment and cleaning. No rate evidence; set with the rail value so that the German liquid-bulk split by mode matches Eurostat 2023 (28 / 42 / 30 road / rail / waterway). Calibrated. \\\\",
-        f"rail, containers and dry bulk & {bc['railways']['default']:.3f} & Within the range of block-train and intermodal rates in Europe (0.02--0.04); lowered from 0.044 in the calibration of the modal split (Fig.~S2). Calibrated. \\\\",
-        f"rail, liquid bulk & {bc['railways']['liquid_bulk']:.3f} & Tank cars: as the road tankers. Calibrated. \\\\",
-        f"inland waterway, dry bulk & {bc['waterways']['dry_bulk']:.3f} & Push-convoy cost 0.008--0.012 EUR per tonne-kilometre (ores 0.009, coal 0.008; Panteia for KiM 2023, 2021 prices); the published coal rate Rotterdam--Basel of 2015, 10.5 EUR per tonne (0.013; INFRAS for the Swiss Federal Statistical Office). Single motor vessels cost 0.018 (CEMT Va) to 0.036 (Kempenaar), so grain-type flows in single vessels are under-priced in the model. \\\\",
-        f"inland waterway, liquid bulk & {bc['waterways']['liquid_bulk']:.3f} & Tanker spot rates: ARA--Karlsruhe 27--29 EUR per tonne in June--July 2025 (0.042--0.045; Riverlake via OPIS) and about 20 in June 2022 (0.031; Handelsblatt), ARA--Cologne 15--17 (0.047--0.053), ARA--Basel 42 in November 2023 (0.051; Refinitiv series in the CCNR price-formation report); operator cost 0.029 (Panteia for KiM). \\\\",
-        f"inland waterway, containers & {bc['waterways']['container']:.3f} & Operator cost 0.025 (Panteia for KiM); Rotterdam--Basel 162--178 EUR per TEU upstream (INFRAS 2015 worked example); Middle Rhine tariffs 125--140 EUR per TEU (Konings 2009), 12--18 EUR per tonne all-in at 10 tonnes per TEU. The model routes the Rhine's containers by rail (Methods). \\\\",
+        f"rail, containers and dry bulk & {rail_cell(bc, 'default')} & Within the range of block-train and intermodal rates in Europe (0.02--0.04); lowered from 0.044 in the calibration of the modal split (Fig.~S2). Calibrated.{rail_note} \\\\",
+        f"rail, liquid bulk & {rail_cell(bc, 'liquid_bulk')} & Tank cars: as the road tankers. Calibrated. \\\\",
+        f"inland waterway, dry bulk & {water_cell(bc, 'dry_bulk')} & Push-convoy cost 0.008--0.012 EUR per tonne-kilometre (ores 0.009, coal 0.008; Panteia for KiM 2023, 2021 prices); the published coal rate Rotterdam--Basel of 2015, 10.5 EUR per tonne (0.013; INFRAS for the Swiss Federal Statistical Office). Single motor vessels cost 0.018 (CEMT Va) to 0.036 (Kempenaar), so grain-type flows in single vessels are under-priced in the model.{water_note} \\\\",
+        f"inland waterway, liquid bulk & {water_cell(bc, 'liquid_bulk')} & Tanker spot rates: ARA--Karlsruhe 27--29 EUR per tonne in June--July 2025 (0.042--0.045; Riverlake via OPIS) and about 20 in June 2022 (0.031; Handelsblatt), ARA--Cologne 15--17 (0.047--0.053), ARA--Basel 42 in November 2023 (0.051; Refinitiv series in the CCNR price-formation report); operator cost 0.029 (Panteia for KiM). \\\\",
+        f"inland waterway, containers & {water_cell(bc, 'container')} & Operator cost 0.025 (Panteia for KiM); Rotterdam--Basel 162--178 EUR per TEU upstream (INFRAS 2015 worked example); Middle Rhine tariffs 125--140 EUR per TEU (Konings 2009), 12--18 EUR per tonne all-in at 10 tonnes per TEU. {container_note} \\\\",
         f"sea & {bc['maritime']:.4f} & The prior of the scope; sea lanes are unconstrained in this study. \\\\",
         r"\midrule",
         r"\multicolumn{3}{l}{\emph{Value of time, USD per tonne-hour}} \\",
@@ -175,6 +246,7 @@ def rates_table(out: Path):
         f"road-- or rail--waterway & {transfer('roads-waterways')} & The fixed per-voyage element of the rates: tankers 3--7 EUR per tonne across lanes (fit to the spot quotes), two container lifts 70--80 EUR per TEU (Konings 2009; 7--8 EUR per tonne at 10 tonnes per TEU); the liquid-bulk terminal set at 8 h and 3.5 USD in the calibration of the German liquid-bulk split. \\\\",
         f"waterway--sea & {transfer('waterways-maritime')} & Port handling. \\\\",
         f"road-- or rail--sea & {transfer('roads-maritime')} & Port handling; the sea leg is unconstrained in this study. \\\\",
+    ] + port_rows + [
         r"\midrule",
         r"\multicolumn{3}{l}{\emph{Speed, kilometres per hour}} \\",
         f"road / rail / inland waterway / sea & {num(sp['roads'])} / {num(sp['railways'])} / {num(sp['waterways'])} / {num(sp['maritime'])} & Motorway line haul; freight trains; Rhine barges (about 10 upstream, 15 downstream); short sea. \\\\",
@@ -192,6 +264,13 @@ mode, cargo class & value & evidence \\
 \end{tabular}
 \end{table}
 """, encoding="utf-8")
+    if from_run:        # the caption names where the values come from (5 Nov 2026)
+        f_ = out / "si_rates.tex"
+        f_.write_text(f_.read_text(encoding="utf-8").replace(
+            "(the configuration of the batches of 30 September and 7 October 2026, identical but for the loading curve)",
+            "(as the reference run of the batch of 2 November 2026 records them: the scope's configuration with the "
+            "overrides of the job lists, which set rail costs by country, waterway costs by waterway, seaport fees by "
+            "port and the containers' value of time on the waterway)"), encoding="utf-8")
 
 
 # ------------------------------------------------------------------------------------------------ S1: stocks
