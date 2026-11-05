@@ -89,7 +89,8 @@ def config_hash(config: dict) -> str:
 
 
 def summarise_firm_data(folder: Path):
-    """firm_data.csv -> firm_daily.csv (sums by day and sector), then delete the per-firm file."""
+    """firm_data.csv -> firm_daily.csv and household_data_by_sector.csv -> household_daily_by_sector.csv (sums by
+    day and sector), then delete the per-agent files."""
     import pandas as pd
 
     src = folder / "firm_data.csv"
@@ -103,6 +104,17 @@ def summarise_firm_data(folder: Path):
     daily = pd.concat(parts).groupby(["time_step", "sector"], as_index=False).sum(numeric_only=True)
     daily.to_csv(folder / "firm_daily.csv", index=False)
     src.unlink()
+    # household_data_by_sector.csv has no export switch: 1,621 households x ~60 sectors a day, ~1.6 GB for 180
+    # days. Kept as sums by day and sector (household_data.csv keeps the per-household totals).
+    hs = folder / "household_data_by_sector.csv"
+    if hs.exists():
+        parts = []
+        for chunk in pd.read_csv(hs, chunksize=2_000_000):
+            parts.append(chunk.drop(columns=["household"]).groupby(["time_step", "sector"], as_index=False)
+                         .sum(numeric_only=True))
+        pd.concat(parts).groupby(["time_step", "sector"], as_index=False).sum(numeric_only=True) \
+            .to_csv(folder / "household_daily_by_sector.csv", index=False)
+        hs.unlink()
 
 
 def main():
