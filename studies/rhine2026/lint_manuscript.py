@@ -65,10 +65,13 @@ def main(repo: Path):
         spec = re.search(r"\\begin\{(?:tabular|longtable)\}\{((?:[^{}]|\{[^{}]*\})*)\}", t).group(1)
         ncol = len(re.findall(r"[lrc]|p\{[^}]*\}", spec))
         for i, line in enumerate(t.splitlines(), 1):
-            if line.rstrip().endswith("\\\\") and "&" in line and line.count("&") + 1 != ncol:
-                problems.append(f"{f.name}:{i}: {line.count('&') + 1} cells for {ncol} columns")
+            # a \multicolumn{n} cell spans n columns (5 Nov 2026: the header rows of si_cross / si_rail_weeks were false alarms)
+            span = line.count("&") + 1 + sum(int(n) - 1 for n in re.findall(r"\\multicolumn\{(\d+)\}", line))
+            if line.rstrip().endswith("\\\\") and "&" in line and span != ncol:
+                problems.append(f"{f.name}:{i}: {span} cells for {ncol} columns")
     print("\n".join(problems) if problems else "no static problems found")
     print(f"checked {len(files)} files, {len(keys)} bib keys")
+    return problems                    # read by paper_gate.py (5 Nov 2026)
 
 
 if __name__ == "__main__":

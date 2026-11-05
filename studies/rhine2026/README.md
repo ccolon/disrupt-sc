@@ -462,3 +462,40 @@ hine2026`), because the
 
 See §1.1 Q1–Q5. Everything not depending on them proceeds: evidence curation,
 scenario mechanics, network capacities, config draft.
+
+## 4. Manuscript gate before a push to Overleaf (5 Nov 2026)
+
+`paper_gate.py` runs every check the Overleaf copy must pass before a push or a
+submission and exits 1 when one fails:
+
+```
+python studies/rhine2026/paper_gate.py                 # static lint, macros, ledger, bare numbers, words, refs, compile
+python studies/rhine2026/paper_gate.py --regen         # + make_numbers.py / si_tables.py rerun and diffed (needs C:/dsc_runs)
+python studies/rhine2026/paper_gate_selftest.py        # the gate's own failure modes, on planted faults
+```
+
+The rule it enforces: a number in the prose comes from `numbers.tex` or is listed
+in `paper_gate_ledger/` (one YAML per manuscript file) with the reason it may stay
+a literal (`evidence`, `data`, `design`, `convention`, `count`). A verbal
+quantity that paraphrases a result ("two fifths", "nearly three times") is a
+`claim` bound to a macro expression and the range the words are true for, so a
+new batch that moves the macro fails the gate instead of leaving the words stale.
+Model outputs still written as literals are `pending` entries with the proposed
+fix (the macro to use or to add): they fail until the text changes. Entries
+match a snippet of the LaTeX source; a rewritten sentence makes its entry stale
+and the gate asks for a re-check. `data:` entries name their input (the gauge
+profile of 30 Sep, the loading table) so the November profile refresh can find
+every literal it touches.
+
+The compile uses tectonic 0.17 (`C:/Users/Celian/.local/bin/tectonic.exe`, on the
+user PATH; `--tex` to override); `--pdf` keeps the PDF. A plain local build of
+the Overleaf copy, without touching its folder:
+
+```
+tectonic --outdir C:/dsc_runs/rhine2026/paper_pdf C:/Users/Celian/OneDrive/DisruptSC/Paper_Rhine2026/git-overleaf/6aaa98617957ab816097822f/main.tex
+```
+
+Tectonic is XeTeX; Overleaf compiles with pdfLaTeX. XeTeX accepts any Unicode
+character, pdfLaTeX only what inputenc utf8 + T1 declare, so the gate's
+`pdflatex` check lists every non-ASCII character and fails on the others
+(write them as LaTeX commands: `$\approx$`, `$-$`, `\textrightarrow`).

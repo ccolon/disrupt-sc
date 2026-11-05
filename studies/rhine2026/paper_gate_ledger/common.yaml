@@ -1,0 +1,8 @@
+# Ledger of paper_gate.py (5 Nov 2026): the literals the Rhine 2026 manuscript may keep, and the verbal quantities bound
+# to the macros they paraphrase. See the docstring of paper_gate.py for the format.
+ignore:
+  - 'of a quarter'
+  - 'third-quarter'
+  - 'a quarter of German value added'
+allowed: []
+claims: []
