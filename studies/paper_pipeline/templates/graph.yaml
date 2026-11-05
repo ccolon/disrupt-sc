@@ -1,0 +1,9 @@
+# Evidence graph. See RUNBOOK.md "The evidence graph". Ids: C* claims, E* evidence, A* analyses, R* runs,
+# D* data, T* text. `accept` and `rule` are written BEFORE the result is known.
+nodes:
+  - id: C1
+    type: claim
+    what: "@CLAIM@"
+    needs: []
+    status: todo
+    risk: ""

@@ -1,0 +1,23 @@
+# Project state - read first by every session, written last by every phase.
+title: "@TITLE@"
+claim: "@CLAIM@"            # the main claim as the user stated it
+venue: "@VENUE@"            # target journal (and special issue, if any)
+deadline: "@DEADLINE@"      # submission deadline, YYYY-MM-DD, or empty
+created: "@TODAY@"
+phase: 1                    # 1 gap, 2 plan, 3 analysis loop, 4 writing, 5 panel, 6 package, 7 retrospective
+gates:                      # dates the user passed each gate, with the choice made
+  A_option: null
+  B_plan: null
+  C_outline_figures: null
+  D_submit: null
+material:                   # where the background material lives
+  manuscript: ""            # Overleaf clone path
+  code: ""                  # repository or cluster path
+  results: ""               # run outputs
+  notes: []
+budgets:
+  tokens_per_tick: 300000
+  cpu_hours_per_tick: 200
+  panel_runs_max: 2
+people: []                  # co-authors and roles (who decides what)
+log: []                     # one line per phase transition: "YYYY-MM-DD phase N -> M: why"

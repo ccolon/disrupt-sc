@@ -1,0 +1,12 @@
+# Decision log and queue. kind: log | default | block. status: open | answered | defaulted.
+decisions: []
+# - id: Q1
+#   asked: 2026-11-05
+#   question: "..."
+#   options: ["...", "..."]
+#   default: "..."
+#   kind: default
+#   deadline: 2026-11-07
+#   status: open
+#   answer: null
+#   by: null
