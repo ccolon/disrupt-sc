@@ -384,6 +384,9 @@ allowed:
   - file: sections/si.tex
     text: 'in the offline classification of Table~\ref{tab:thresholds}, 15\,\% of the bulk orders'
     why: '5 Nov 2026 pending fix (patch_pending_20261105.py); data: the complement of the adopted rule''s 85 % in Table si_thresholds (offline classification of 14-15 Sep 2026 on the first version''s network; jobs_20261020_norail.txt header)'
+  - file: sections/si.tex
+    text: 'over the four sectors, fuel is'
+    why: '5 Nov 2026 (patch_fuel_20261105.py); count: the four fuel-fed service sectors named in the sentence (H49, H52, D, H50)'
 claims:
   - file: sections/si.tex
     text: 'where the benchmark keeps a third, because the closures of November'

@@ -42,7 +42,9 @@ EUROSTAT_2023 = {  # tran_hv_frmod 2023, % of inland tkm road / rail / IWW
     "DE": (72.8, 20.6, 6.6), "NL": (52.8, 6.4, 40.9), "BE": (77.6, 11.7, 10.7), "FR": (88.9, 9.2, 1.9),
     "AT": (68.9, 29.3, 1.7), "CH": (65.6, 34.3, 0.1), "PL": (75.8, 24.1, 0.0), "IT": (88.0, 12.0, 0.0),
 }
-DE_CARGO_TARGETS = {"container": (68, 28, 5), "dry_bulk": (53, 27, 20), "liquid_bulk": (28, 42, 30)}
+# Eurostat NST shares for Germany (flow_score nst_modal_split.csv targets, %): general cargo rail is 27.48, printed 28
+# until 5 Nov 2026 (the paper's gate: SI S2 and this figure must agree; 68 / 27 / 5)
+DE_CARGO_TARGETS = {"container": (68, 27, 5), "dry_bulk": (53, 27, 20), "liquid_bulk": (28, 42, 30)}
 CARGO_LABEL = {"container": "General cargo", "dry_bulk": "Dry bulk", "liquid_bulk": "Liquid bulk"}
 
 
