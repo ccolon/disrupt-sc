@@ -22,5 +22,11 @@ Write `<project>/gap/options.md`:
 4. **Decisions for the user**: what must be decided at gate A, with the default.
 5. **Rejected options**: one line each, why.
 
+For each option's headline, check in the model code whether the effect could hold or vanish by construction
+(relative thresholds, quantities that rescale with the baseline, parameters that cancel); if so, add a cheap pilot
+with its acceptance rule written before the run, and make it part of the go/no-go. (Cambodia pilot: a carbon price set
+in the config becomes the baseline, and the give-up rule is relative, so a uniform multiplier gives the
+proportional null by construction.)
+
 Effort estimates: base them on the material audit (what exists) and on the run times visible in the material, not
 on optimism; state the assumption (e.g. one researcher full time, cluster available).

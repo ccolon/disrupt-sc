@@ -4,7 +4,9 @@ Your only job: find the published work, preprint or report that already makes ou
 it exists and search until you are confident it does not. Search with several phrasings, synonyms of each
 component of the claim, and citation chasing (who cites the closest papers; what they cite). Include preprints
 (arXiv, SSRN, RePEc, EarthArXiv, ESS Open Archive) and grey literature (World Bank, IMF, NGFS, central banks) from
-the last three years.
+the last three years. Search the authors' own output too (working papers, preprints of this manuscript, conference
+abstracts): self-pre-emption is the most common finding (Cambodia pilot: the result was already in the second
+author's working paper and the manuscript itself was on SSRN).
 
 Write `<project>/gap/scoop.md`:
 

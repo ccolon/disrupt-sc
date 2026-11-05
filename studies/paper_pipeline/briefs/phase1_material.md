@@ -17,5 +17,10 @@ Write `<project>/gap/material.md` with these sections:
 4. **What is reusable.** Runs, figures, text sections, code, data that a revised paper can use as they are.
 5. **Numbers typed in the text.** A count, and the ten most important ones with their source if known.
 
+Standard checks for simulation results (each found a critical defect in the Cambodia pilot): read the run outputs,
+not only the configs; check that all runs pooled in one figure share horizon, seeds and configuration; check that
+the losses of every simulated shock settle within the horizon (daily loss back near zero after the shock ends);
+check that the scenario definitions actually run are the ones the text describes (look in the run logs).
+
 Also write `<project>/gap/graph_seed.yaml`: the current draft as an evidence graph (format in RUNBOOK.md), with
 statuses reflecting what actually exists (`done` only if the output exists and is reproducible).

@@ -93,5 +93,15 @@ Template `templates/report.md`. Short: where we stand (does the headline hold?),
 
 ## Status of this runbook
 
-Built 5 Nov 2026. Phase 1 piloted on the Cambodia compound-flood paper (Economic Modelling special issue).
-Phases 2-3 are specified, not yet piloted; phase 4 reuses the Rhine numbers gate; phase 5 is `studies/review_panel`.
+Built 5 Nov 2026. Phases 2-3 are specified, not yet piloted; phase 4 reuses the Rhine numbers gate; phase 5 is
+`studies/review_panel`.
+
+Phase 1 pilot, 5 Nov 2026 (Cambodia compound-flood paper; target Economic Modelling special issue, 25 days to the
+deadline): five agents, ~1.45 M tokens, ~2 h wall-clock (roles 18-30 min each, in parallel). Findings the user had
+not seen: the headline figure pooled 30/60/90-day horizons; the model did not return to equilibrium after a cascade
+(verified by the orchestrator); the headline wording contradicted the figure; the result was already in the second
+author's working paper; the special issue's main criterion was not met. Lessons, now in the briefs: give the material
+role read access to run outputs and the standard settling/pooling checks; search the authors' own output for
+pre-emption; check whether an option's headline holds by construction and pilot it before committing; the
+orchestrator must check the roles' most consequential claims itself (it confirmed the post-cascade rise and the venue
+facts, and found the mechanical-interaction risk the synthesis had missed).
