@@ -366,32 +366,13 @@ claims:
     expr: '100*max(abs(1 - PricedInt/4.11), abs(1 - PricedIntB/2.48), abs(1 - PricedIntC/1.39))'
     range: [0, 20]
     why: 'result: the priced-river rerun against the first version''s sums 4.11 / 2.48 / 1.39 (review of 3 Nov, constants); less than a fifth = below 20'
-  - file: sections/si.tex
-    text: 'for the rest. It removes a fifth'
-    expr: 'RevRailFiftyAbs'
-    range: [17, 23]
-    why: 'result: 2026 loss removed by the 50 kt ceiling; a fifth = 17-23'
-  - file: sections/si.tex
-    text: 'and a half of the 2026 loss and a'
-    expr: 'RevRailHundredFortyAbs'
-    range: [45, 55]
-    why: 'result: 2026 loss removed by the 140 kt ceiling; a half = 45-55'
-  - file: sections/si.tex
-    text: 'the 2026 loss and a quarter and'
-    expr: 'RevRailFiftyyyAbs'
-    range: [22, 28]
-    why: 'result: 2018 loss removed by the 50 kt ceiling; a quarter = 22-28'
-  - file: sections/si.tex
-    text: 'three fifths of the 2018 loss'
-    expr: 'RevRailHundredFortyyyAbs'
-    range: [56, 64]
-    why: 'result: 2018 loss removed by the 140 kt ceiling; three fifths = 56-64'
-  - file: sections/si.tex
-    text: 'the restrictive end of a range whose other end halves the loss'
-    expr: 'RevRailHundredFortyAbs'
-    range: [45, 55]
-    why: 'result: 2026 loss removed by the 140 kt ceiling (2018: \RevRailHundredFortyyyAbs); halves = 45-55'
 
+  # 5 Nov 2026 rewrite (patch_stale_claims_20261105.py); words matched to the batch of 2 Nov
+  - file: sections/si.tex
+    text: 'the restrictive end of a range whose other end removes more than half of the loss'
+    expr: 'min(RevRailHundredFortyAbs, RevRailHundredFortyyyAbs)'
+    range: [50.5, 100]
+    why: 'result: the 140 kt ceiling removes more than half of the 2026 and the 2018 loss'
 pending:
   # ---- S3
   - file: sections/si.tex

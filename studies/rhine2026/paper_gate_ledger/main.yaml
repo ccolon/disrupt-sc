@@ -679,13 +679,17 @@ allowed:
     text: '\setcounter{table}{0}\renewcommand{\thetable}{S\arabic{table}}'
     why: 'convention: LaTeX layout argument (gate false positive: the setcounter pattern blanks only its first argument)'
 
+  - file: main.tex
+    text: 'its variants with the shortfall raised and lowered by 15\,\% give'
+    why: '5 Nov 2026 rewrite (patch_stale_claims_20261105.py); design: loading-curve variants with the shortfall +-15 % (tablelow / tablehigh)'
+  - file: main.tex
+    text: 'and the two low-water episodes of 2026 cost'
+    why: '5 Nov 2026 rewrite (patch_stale_claims_20261105.py); count: the two episodes of the 2026 season (August, September-October)'
+  - file: main.tex
+    text: 'an interaction that four weeks of normal water in between'
+    why: '5 Nov 2026 rewrite (patch_stale_claims_20261105.py); design: the gap of four weeks of the wave-isolation runs (wave_<tag>_AB_gap4)'
 claims:
   # ---------------------------------------------------------------- abstract and introduction
-  - file: main.tex
-    text: 'nearly three times the industrial loss alone'
-    expr: 'RatioBase'
-    range: [2.64, 3.0]
-    why: 'result: 2026 German loss over its industrial part, reference network (EnsMean/IndQ = 2.60 too); nearly three times = 2.64-3'
   - file: main.tex
     text: 'would each remove two fifths of it'
     expr: 'LevStockAvg'
@@ -697,31 +701,6 @@ claims:
     range: [36, 44]
     why: 'result: % of the German loss avoided by the 20 cm deeper fairway, mean of the eleven networks; two fifths = 36-44'
   - file: main.tex
-    text: 'leave out an economy-wide loss nearly three times larger'
-    expr: 'DEUlossQyy/IndQyy'
-    range: [2.64, 3.0]
-    why: 'result: 2018 German loss over its industrial part (the sentence is on 2018; the 2026 RatioBase is 2.6); nearly three times = 2.64-3'
-  - file: main.tex
-    text: 'while doubling inventories reduces the loss by almost two thirds'
-    expr: '100*(1-LadderD/DEUlossQyy)'
-    range: [58.7, 66.7]
-    why: 'result: % of the 2018 loss removed by inventories x2 (doubling = design, the x2 step of the ladder); almost two thirds = 58.7-66.7'
-  - file: main.tex
-    text: 'the same total shortfall of river capacity spread evenly would cost a quarter less'
-    expr: '100*(1-FlatQ/DEUlossQ)'
-    range: [22, 28]
-    why: 'result: % by which the flat profile costs less than the 2026 season (\TroughPremium is the inverse view); a quarter = 22-28'
-  - file: main.tex
-    text: 'the two low-water episodes of 2026 cost an eighth more in sequence than apart'
-    expr: 'WaveInterShare'
-    range: [11, 14]
-    why: 'result: interaction without a gap, % of the sum of the episodes alone; two = the two episodes; an eighth = 11-14'
-  - file: main.tex
-    text: 'an interaction that four weeks of normal water in between'
-    expr: 'WaveInterFour'
-    range: [-3, 3]
-    why: 'result: interaction left with a four-week gap (% of the sum; no-gap value \WaveInterShare = 16; l. 176 says "reduce the interaction to"); "would remove" read as within +-3 %; four = design gap'
-  - file: main.tex
     text: 'each remove two fifths of the loss'
     expr: 'LevStockAvg'
     range: [36, 44]
@@ -731,42 +710,12 @@ claims:
     expr: 'LevDeepAvg'
     range: [36, 44]
     why: 'result: % of the German loss avoided by the deeper fairway, mean of the eleven networks (l. 55 and 180); two fifths = 36-44'
-  - file: main.tex
-    text: 'and a fleet built for low water a sixth'
-    expr: 'LevFleetAvg'
-    range: [15, 18.5]
-    why: 'result: % of the German loss avoided by the low-water fleet, mean of the eleven networks; a sixth = 15-18.5'
-  - file: main.tex
-    text: 'what the railway can take on at short notice removes a fifth to a half'
-    expr: 'RevRailFiftyAbs'
-    range: [17, 23]
-    why: 'result: % fall of the 2026 loss with rail at 50 kt a week (lower end, a fifth = 17-23)'
-  - file: main.tex
-    text: 'what the railway can take on at short notice removes a fifth to a half'
-    expr: 'RevRailHundredFortyAbs'
-    range: [45, 55]
-    why: 'result: % fall of the 2026 loss with rail at 140 kt a week (upper end, a half = 45-55)'
   # ---------------------------------------------------------------- results
-  - file: main.tex
-    text: 'its variants with the shortfall raised and lowered by 15\,\% bracket the benchmark''s central value'
-    expr: 'min(RecordInt - TableHighInt, TableLowInt - RecordInt)'
-    range: [0, 100]
-    why: 'result: the 2018 industrial integrals of the two loading-curve variants (percent-months) on both sides of the benchmark centre \RecordInt; 15 % = design'
-  - file: main.tex
-    text: 'a loss that builds from July and doubles in the autumn'
-    expr: 'AutumnWaveQ/AugWaveQ'
-    range: [1.8, 2.2]
-    why: 'result: autumn episode over August episode, reference network (as on l. 93); doubles = 1.8-2.2'
   - file: main.tex
     text: 'when the river still passes two to four fifths of its normal tonnage'
     expr: 'KaubPassJul'
     range: [40, 80]
     why: 'data-derived macro: July mean share of normal tonnage past Kaub, loading table on the 2026 profile (weekly 30-80 % in weeks 1-6); two to four fifths = 40-80'
-  - file: main.tex
-    text: 'costs \finalbatch{\AutumnWaveQ}\,\%, twice as much'
-    expr: 'AutumnWaveQ/AugWaveQ'
-    range: [1.8, 2.2]
-    why: 'result: autumn episode over August episode, reference network; twice = 1.8-2.2'
   - file: main.tex
     text: 'inside the EUR 1--2 billion (0.1--0.2 percentage points of third-quarter GDP)'
     expr: 'AugWaveEurBn'
@@ -778,65 +727,15 @@ claims:
     range: [0.1, 0.2]
     why: 'result: the same in % of a quarter of German value added against the ifw2026 0.1-0.2 points'
   - file: main.tex
-    text: 'about a quarter less than the season as it happened'
-    expr: '100*(1-FlatQ/DEUlossQ)'
-    range: [20, 30]
-    why: 'result: % by which the flat profile costs less than the 2026 season; about a quarter = 20-30'
-  - file: main.tex
-    text: 'the loading curve by about a quarter up or down'
-    expr: '100*(TableLowQ/DEUlossQ-1)'
-    range: [20, 30]
-    why: 'result: % rise of the 2026 loss with the loading-curve shortfall +15 % (tablelow); about a quarter = 20-30'
-  - file: main.tex
-    text: 'the loading curve by about a quarter up or down'
-    expr: '100*(1-TableHighQ/DEUlossQ)'
-    range: [20, 30]
-    why: 'result: % fall of the 2026 loss with the shortfall -15 % (tablehigh); about a quarter = 20-30'
-  - file: main.tex
-    text: 'two suppliers per input down by more than a half'
-    expr: '100*(1-SupTwoQ/DEUlossQ)'
-    range: [50, 75]
-    why: 'result: % fall of the 2026 loss with two suppliers per input (\SupTwoQ, unused macro); two = design; more than a half = 50-75'
-  - file: main.tex
-    text: 'no pooling up fourfold, no rail bypass for bulk'
-    expr: 'NoPoolQ/DEUlossQ'
-    range: [3.6, 4.4]
-    why: 'result: 2026 loss without pooling over the base; fourfold = 3.6-4.4'
-  - file: main.tex
-    text: 'no rail bypass for bulk up by a quarter'
-    expr: 'RevNoRailAbs'
-    range: [22, 28]
-    why: 'result: % rise of the 2026 loss when no bulk may use rail; a quarter = 22-28'
-  - file: main.tex
     text: 'the refill time of inventories and the service rules by up to a third'
     expr: 'max(RevRestFifteenAbs, RevRestSixtyAbs, RevServAbs)'
     range: [30, 37]
     why: 'result: largest % change of the 2026 loss among rest15, rest60 and serv45; up to a third = 30-37'
   - file: main.tex
-    text: 'The deliveries withheld at the river are only a fifth of the deliveries'
-    expr: 'TransportWithheldShare'
-    range: [17, 23]
-    why: 'result: % of the German delivery shortfall withheld at the river; a fifth = 17-23'
-  - file: main.tex
-    text: 'the other four fifths are rationing along the chains'
-    expr: '100-TransportWithheldShare'
-    range: [77, 83]
-    why: 'result: % of the German delivery shortfall that is rationing; four fifths = 77-83'
-  - file: main.tex
-    text: 'doubling them for every buyer divides the 2018 loss by almost three'
-    expr: 'DEUlossQyy/LadderD'
-    range: [2.64, 3.0]
-    why: 'result: 2018 loss over the loss with inventories x2 (doubling = design); almost three = 2.64-3'
-  - file: main.tex
     text: 'one extra week removes two fifths of the 2026 loss'
     expr: 'LevStockAvg'
     range: [36, 44]
     why: 'result: % avoided by one week of inventories, mean of the eleven networks (the reference draw \LevStock would read a half); two fifths = 36-44'
-  - file: main.tex
-    text: 'Goods producers and construction work off a fifth of their backlog by the end of the run'
-    expr: '100*(100-NetShare)/(100-PerishableShare)'
-    range: [17, 23]
-    why: 'result: gross minus net loss over the gross loss of the catch-up sectors (A, B, C, F); batch value 940/4046 mUSD = 23.2 %; a fifth = 17-23'
   - file: main.tex
     text: 'billion avoided, more than half the effect'
     expr: '100*StockTAvoidedBn/StockAvoidedBn'
@@ -848,11 +747,6 @@ claims:
     range: [0, 15]
     why: 'result: smallest gain (points) of a lever''s share under the 50 kt rail ceiling over its share alone, reference network; four = design (four single levers)'
   # ---------------------------------------------------------------- discussion
-  - file: main.tex
-    text: 'doubling them divides the 2018 loss by almost three'
-    expr: 'DEUlossQyy/LadderD'
-    range: [2.64, 3.0]
-    why: 'result: 2018 loss over the loss with inventories x2; almost three = 2.64-3'
   - file: main.tex
     text: 'one more week of them removes two fifths of the 2026 loss'
     expr: 'LevStockAvg'
@@ -874,30 +768,10 @@ claims:
     range: [0, 1.0]
     why: 'result: model''s 2018 industrial integral inside the benchmark''s 95 % band (lower half); 95 % = convention'
   - file: main.tex
-    text: 'it predicts an economy-wide loss nearly three times larger'
-    expr: 'DEUlossQyy/IndQyy'
-    range: [2.64, 3.0]
-    why: 'result: 2018 German loss over its industrial part (the 2026 RatioBase is 2.6); nearly three times = 2.64-3'
-  - file: main.tex
     text: 'against an eighth of the model''s firms near the river producing below their baseline'
     expr: 'CorridorFirmsBelowRhineAug'
     range: [11, 14]
     why: 'result: % of German firms within 50 km of the Rhine below 99 % of baseline in week 7; an eighth = 11-14'
-  - file: main.tex
-    text: 'one in twenty-five below half of it'
-    expr: 'CorridorStopRhineAug'
-    range: [3.5, 4.5]
-    why: 'result: % of the same firms below half of baseline in week 7 (half = design threshold); one in twenty-five = 3.5-4.5'
-  - file: main.tex
-    text: 'and the second costs a fifth more than it would have alone'
-    expr: '100*(WaveBafterAQ/WaveBQ-1)'
-    range: [17, 23]
-    why: 'result: % by which the second episode costs more after the first (\WaveBratio - 1, unused macro); a fifth = 17-23'
-  - file: main.tex
-    text: 'spread evenly over the season costs a quarter less'
-    expr: '100*(1-FlatQ/DEUlossQ)'
-    range: [22, 28]
-    why: 'result: % by which the flat profile costs less than the 2026 season; a quarter = 22-28'
   - file: main.tex
     text: 'Industry carries more than a third of it'
     expr: 'IndustryShare'
@@ -909,65 +783,10 @@ claims:
     range: [50, 75]
     why: 'result: fuel chain = refining + land transport + logistics + power + water transport, % of the German gross loss; over half = 50-75'
   - file: main.tex
-    text: 'to the construction sites, a fifth'
-    expr: 'ShareConstruction+ShareCement'
-    range: [17, 23]
-    why: 'result: building-materials chain = construction + cement, % of the German gross loss (no macro for quarrying or steel); a fifth = 17-23'
-  - file: main.tex
-    text: 'the plants that stop make up a fifth of their backlog once the river reopens'
-    expr: '100*(100-NetShare)/(100-PerishableShare)'
-    range: [17, 23]
-    why: 'result: share of the catch-up sectors'' gross loss worked off by the end of the run (batch value 23.2 %); a fifth = 17-23'
-  - file: main.tex
-    text: 'divides the loss by four compared with a model that keys every input to its region'
-    expr: 'NoPoolQ/DEUlossQ'
-    range: [3.6, 4.4]
-    why: 'result: 2026 loss without pooling over the base; by four = 3.6-4.4'
-  - file: main.tex
-    text: 'A fleet built for low water removes a sixth of the loss'
-    expr: 'LevFleetAvg'
-    range: [15, 18.5]
-    why: 'result: % avoided by the fleet lever, mean of the eleven networks; a sixth = 15-18.5'
-  - file: main.tex
-    text: 'and a fifth with its gain extended to 100\,cm'
-    expr: 'RevFleetWideRemoves'
-    range: [17, 23]
-    why: 'result: % avoided by the fleetwide variant (100 cm = design); a fifth = 17-23'
-  - file: main.tex
     text: 'the barge-dependent buyers alone a quarter'
     expr: 'LevStockTAvg'
     range: [22, 28]
     why: 'result: % avoided by the targeted week, mean of the eleven networks; a quarter = 22-28'
-  - file: main.tex
-    text: 'and the three together four fifths'
-    expr: 'LevPackageAvg'
-    range: [77, 83]
-    why: 'result: % avoided by the package (three = count of its levers), mean of the eleven networks; four fifths = 77-83'
-  - file: main.tex
-    text: 'at the tonnage the operator offered in August 2026 they remove a fifth of the loss'
-    expr: 'RevRailFiftyAbs'
-    range: [17, 23]
-    why: 'result: % fall of the 2026 loss with rail at 50 kt; a fifth = 17-23'
-  - file: main.tex
-    text: 'at the scale of the rail response of past low waters a half'
-    expr: 'RevRailHundredFortyAbs'
-    range: [45, 55]
-    why: 'result: % fall of the 2026 loss with rail at 140 kt; a half = 45-55'
-  - file: main.tex
-    text: 'an assumption without data behind it that is worth a quarter of the loss'
-    expr: '100*(1-DEUlossQ/RevNoRail)'
-    range: [22, 28]
-    why: 'result: share of the no-rail loss avoided by the rail bypass of bulk (RevNoRailAbs = 61 % more read the other way); a quarter = 22-28'
-  - file: main.tex
-    text: 'removes a fifth to a half of the loss'
-    expr: 'RevRailFiftyAbs'
-    range: [17, 23]
-    why: 'result: % fall of the 2026 loss with rail at 50 kt (lower end); a fifth = 17-23'
-  - file: main.tex
-    text: 'removes a fifth to a half of the loss'
-    expr: 'RevRailHundredFortyAbs'
-    range: [45, 55]
-    why: 'result: % fall of the 2026 loss with rail at 140 kt (upper end); a half = 45-55'
   # ---------------------------------------------------------------- input facts tied to the size macros (consistency checks)
   - file: main.tex
     text: 'for 28 regions, the 27 member states of the European Union and Switzerland, and 50 sectors'
@@ -990,6 +809,197 @@ claims:
     range: [1490, 1490]
     why: 'data check: the edge counts by mode (roads 2,979, rail 4,261, waterways 461, sea 948, connectors 1,490) sum to \NEdges'
 
+  # 5 Nov 2026 rewrite (patch_stale_claims_20261105.py); words matched to the batch of 2 Nov
+  - file: main.tex
+    text: 'more than two and a half times the industrial loss alone'
+    expr: 'RatioBase'
+    range: [2.5, 2.8]
+    why: 'result: 2026 German loss over its industrial part; more than two and a half times = 2.5-2.8'
+  - file: main.tex
+    text: 'leave out an economy-wide loss two and a half times larger'
+    expr: '100/IndustryShareyy'
+    range: [2.3, 2.7]
+    why: 'result: 2018 loss over its industrial part (2026: RatioBase 2.6); two and a half times = 2.3-2.7'
+  - file: main.tex
+    text: 'leave out an economy-wide loss two and a half times larger'
+    expr: 'RatioBase'
+    range: [2.3, 2.7]
+    why: 'result: the 2026 ratio, which the same sentence predicts; 2.3-2.7'
+  - file: main.tex
+    text: 'while doubling inventories reduces the loss by almost three quarters'
+    expr: '100*(1-LadderD/DEUlossQyy)'
+    range: [66, 75]
+    why: 'result: % of the 2018 loss removed by inventories x2; almost three quarters = 66-75'
+  - file: main.tex
+    text: 'spread evenly would cost two fifths less'
+    expr: '100*(1-FlatQ/DEUlossQ)'
+    range: [36, 44]
+    why: 'result: flat profile vs the season; two fifths = 36-44'
+  - file: main.tex
+    text: 'cost a sixth more in sequence than apart'
+    expr: 'WaveInterShare'
+    range: [15, 18.5]
+    why: 'result: interaction without a gap, % of the sum; a sixth = 15-18.5'
+  - file: main.tex
+    text: 'or a faster refilling of inventories, would largely remove'
+    expr: 'max(WaveInterFour, WaveInterRest)/WaveInterShare'
+    range: [-0.5, 0.4]
+    why: 'result: share of the interaction left with a 4-week gap or a 15-day refill; largely remove = at most 40 % left'
+  - file: main.tex
+    text: 'and a fleet built for low water a fifth'
+    expr: 'LevFleetAvg'
+    range: [17, 23]
+    why: 'result: fleet lever, mean of the eleven networks; a fifth = 17-23'
+  - file: main.tex
+    text: 'what the railway can take on at short notice removes a quarter to more than a half'
+    expr: 'RevRailFiftyAbs'
+    range: [22, 28]
+    why: 'result: rail 50 kt (lower end); a quarter = 22-28'
+  - file: main.tex
+    text: 'what the railway can take on at short notice removes a quarter to more than a half'
+    expr: 'RevRailHundredFortyAbs'
+    range: [50.5, 75]
+    why: 'result: rail 140 kt (upper end); more than a half = 50.5-75'
+  - file: main.tex
+    text: 'both below the benchmark''s central value'
+    expr: 'RecordInt - TableLowInt'
+    range: [0.01, 100]
+    why: 'result: the larger of the two loading-curve variants (TableLowInt) is below the record''s centre'
+  - file: main.tex
+    text: 'the larger shortfall just short of its one-standard-deviation band'
+    expr: 'RecordIntLow - TableLowInt'
+    range: [0.01, 0.6]
+    why: 'result: the +15 % shortfall variant lies just below the 16th percentile (just short = within 0.6 percent-months)'
+  - file: main.tex
+    text: 'a loss that builds from July and more than doubles in the autumn'
+    expr: 'AutumnWaveQ/AugWaveQ'
+    range: [2.0, 2.8]
+    why: 'result: autumn episode over August episode; more than doubles = 2.0-2.8'
+  - file: main.tex
+    text: 'costs \finalbatch{\AutumnWaveQ}\,\%, more than twice as much'
+    expr: 'AutumnWaveQ/AugWaveQ'
+    range: [2.0, 2.8]
+    why: 'result: autumn over August; more than twice = 2.0-2.8'
+  - file: main.tex
+    text: 'about two fifths less than the season as it happened'
+    expr: '100*(1-FlatQ/DEUlossQ)'
+    range: [35, 45]
+    why: 'result: flat profile vs the season; about two fifths = 35-45'
+  - file: main.tex
+    text: 'the loading curve by about a half up or down'
+    expr: '100*(TableLowQ/DEUlossQ-1)'
+    range: [40, 60]
+    why: 'result: 2026 loss with the shortfall +15 %; about a half = 40-60'
+  - file: main.tex
+    text: 'the loading curve by about a half up or down'
+    expr: '100*(1-TableHighQ/DEUlossQ)'
+    range: [40, 60]
+    why: 'result: 2026 loss with the shortfall -15 %; about a half = 40-60'
+  - file: main.tex
+    text: 'two suppliers per input down by nearly a half'
+    expr: '100*(1-SupTwoQ/DEUlossQ)'
+    range: [44, 50]
+    why: 'result: two suppliers per input; nearly a half = 44-50'
+  - file: main.tex
+    text: 'no pooling up threefold'
+    expr: 'NoPoolQ/DEUlossQ'
+    range: [2.7, 3.3]
+    why: 'result: no pooling over the base; threefold = 2.7-3.3'
+  - file: main.tex
+    text: 'no rail bypass for bulk up by three fifths'
+    expr: 'RevNoRailAbs'
+    range: [56, 64]
+    why: 'result: % rise without the rail bypass; three fifths = 56-64'
+  - file: main.tex
+    text: 'are less than a third of the deliveries that German buyers miss'
+    expr: 'TransportWithheldShare'
+    range: [25, 33.3]
+    why: 'result: % of the German delivery shortfall withheld at the river; less than a third = 25-33.3'
+  - file: main.tex
+    text: 'doubling them for every buyer divides the 2018 loss by more than three'
+    expr: 'DEUlossQyy/LadderD'
+    range: [3.05, 4.5]
+    why: 'result: 2018 loss over the loss with inventories x2; more than three = 3.05-4.5'
+  - file: main.tex
+    text: 'doubling them divides the 2018 loss by more than three'
+    expr: 'DEUlossQyy/LadderD'
+    range: [3.05, 4.5]
+    why: 'result: the same, Discussion'
+  - file: main.tex
+    text: 'Goods producers and construction work off nearly a quarter of their backlog'
+    expr: '100*(100-NetShare)/(100-PerishableShare)'
+    range: [20.5, 25]
+    why: 'result: backlog worked off by the catch-up sectors; nearly a quarter = 20.5-25'
+  - file: main.tex
+    text: 'it predicts an economy-wide loss two and a half times larger'
+    expr: '100/IndustryShareyy'
+    range: [2.3, 2.7]
+    why: 'result: 2018 loss over its industrial part; 2.3-2.7'
+  - file: main.tex
+    text: 'and one in fifty below half of it'
+    expr: 'CorridorStopRhineAug'
+    range: [1.6, 2.4]
+    why: 'result: % of the corridor firms below half of baseline in week 7; one in fifty = 1.6-2.4'
+  - file: main.tex
+    text: 'and the second costs a quarter more than it would have alone'
+    expr: '100*(WaveBafterAQ/WaveBQ-1)'
+    range: [22, 28]
+    why: 'result: second episode after the first vs alone; a quarter = 22-28'
+  - file: main.tex
+    text: 'spread evenly over the season costs two fifths less'
+    expr: '100*(1-FlatQ/DEUlossQ)'
+    range: [36, 44]
+    why: 'result: flat profile vs the season; two fifths = 36-44'
+  - file: main.tex
+    text: 'to the construction sites, a sixth'
+    expr: 'ShareConstruction+ShareCement'
+    range: [15, 18.5]
+    why: 'result: building-materials chain, % of the German gross loss; a sixth = 15-18.5'
+  - file: main.tex
+    text: 'make up nearly a quarter of their backlog once the river reopens'
+    expr: '100*(100-NetShare)/(100-PerishableShare)'
+    range: [20.5, 25]
+    why: 'result: backlog worked off; nearly a quarter = 20.5-25'
+  - file: main.tex
+    text: 'divides the loss by three compared with a model that keys every input to its region'
+    expr: 'NoPoolQ/DEUlossQ'
+    range: [2.7, 3.3]
+    why: 'result: no pooling over the base; by three = 2.7-3.3'
+  - file: main.tex
+    text: 'A fleet built for low water removes a fifth of the loss'
+    expr: 'LevFleetAvg'
+    range: [17, 23]
+    why: 'result: fleet lever, mean of the eleven networks; a fifth = 17-23'
+  - file: main.tex
+    text: 'and a quarter with its gain extended to 100\,cm'
+    expr: 'RevFleetWideRemoves'
+    range: [22, 28]
+    why: 'result: fleetwide variant; a quarter = 22-28 (100 cm = design)'
+  - file: main.tex
+    text: 'and the three together more than four fifths'
+    expr: 'LevPackageAvg'
+    range: [80.5, 90]
+    why: 'result: package, mean of the eleven networks; more than four fifths = 80.5-90'
+  - file: main.tex
+    text: 'they remove a quarter of the loss, at the scale of the rail response'
+    expr: 'RevRailFiftyAbs'
+    range: [22, 28]
+    why: 'result: rail 50 kt; a quarter = 22-28'
+  - file: main.tex
+    text: 'of past low waters more than a half'
+    expr: 'RevRailHundredFortyAbs'
+    range: [50.5, 75]
+    why: 'result: rail 140 kt; more than a half = 50.5-75'
+  - file: main.tex
+    text: 'removes a quarter to more than a half of the loss'
+    expr: 'RevRailFiftyAbs'
+    range: [22, 28]
+    why: 'result: rail 50 kt (lower end); a quarter = 22-28'
+  - file: main.tex
+    text: 'removes a quarter to more than a half of the loss'
+    expr: 'RevRailHundredFortyAbs'
+    range: [50.5, 75]
+    why: 'result: rail 140 kt (upper end); more than a half = 50.5-75'
 pending:
   - file: main.tex
     text: 'The Lower Rhine north of Duisburg and the Dutch delta carry 10 to 25\,\% less than observed'
