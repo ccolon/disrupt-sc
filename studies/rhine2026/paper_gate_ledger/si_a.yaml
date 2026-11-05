@@ -130,6 +130,142 @@ allowed:
     text: 'TEN-T edges by mode, the named Rhine chain'
     why: 'convention: TEN-T is the network name; the number word ''ten'' is a false positive'
 
+  # 5 Nov 2026 pending fix (patch_pending_20261105.py); literals the fixed text keeps
+  - file: sections/si.tex
+    text: 'containers 1.0 USD per ton-hour on road and rail, 0.32 on the waterway'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); data: logistics.cost_of_time of every run of the batches of 2 and 3 November (container default 1.0; --container-water-vot 0.32 in all 141 job lines of cluster/jobs_202611*.txt; 2026_r6_bycargo_base/parameters.yaml container.waterways 0.32)'
+  - file: sections/si.tex
+    text: '18--60 days across manufacturing industries'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); data: stock targets of Table tab:stocks (C10T12 and C29 18; C21, C26, C27, C301, C302T309 60; inventory_duration_targets.values of 2026_r6_bycargo_base/parameters.yaml)'
+  - file: sections/si.tex
+    text: 'at 0.30 three times the observed tonnage does'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); history: calibration round 3 (27 Oct 2026): at a container value of time of 0.30 the runs r3_e04_fees05_cont30 and r3_e06_fees10_cont30 carry 29.6 and 29.3 Mt of containers past Kaub against about 10 observed (CCNR), at 0.32 (r3_e03, r3_e05) 11.5 and 11.4; calibration_log.md 27 Oct "0.32 = 11.5 Mt at Kaub, 0.30 = 30"'
+  - file: sections/si.tex
+    text: 'against 73 / 21 / 7'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat tran_hv_frmod 2023, Germany, % of inland tkm road / rail / waterway (72.8 / 20.6 / 6.6)'
+  - file: sections/si.tex
+    text: 'against 53 / 6 / 41'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat tran_hv_frmod 2023, Netherlands (52.8 / 6.4 / 40.9)'
+  - file: sections/si.tex
+    text: 'against 78 / 12 / 11'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat tran_hv_frmod 2023, Belgium (77.6 / 11.7 / 10.7)'
+  - file: sections/si.tex
+    text: 'against 89 / 9 / 2'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat tran_hv_frmod 2023, France (88.9 / 9.2 / 1.9)'
+  - file: sections/si.tex
+    text: 'against 69 / 29 / 2'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat tran_hv_frmod 2023, Austria (68.9 / 29.3 / 1.7)'
+  - file: sections/si.tex
+    text: 'against 66 / 34 / 0'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat tran_hv_frmod 2023, Switzerland (65.6 / 34.3 / 0.1)'
+  - file: sections/si.tex
+    text: 'against 76 / 24 / 0'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat tran_hv_frmod 2023, Poland (75.8 / 24.1 / 0.0)'
+  - file: sections/si.tex
+    text: 'against 88 / 12 / 0'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat tran_hv_frmod 2023, Italy (88.0 / 12.0 / 0.0)'
+  - file: sections/si.tex
+    text: 'against 68 / 27 / 5'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat 2023 NST-2007, Germany, manufactured goods (the groups other than GT01-03 and GT07), tkm-weighted 67.5 / 27.5 / 5.0 (nst_modal_split.csv target_pct)'
+  - file: sections/si.tex
+    text: 'against 53 / 27 / 20'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat 2023 NST-2007, Germany, agriculture and mining products (GT01-03), tkm-weighted 53.1 / 27.2 / 19.6'
+  - file: sections/si.tex
+    text: 'against 28 / 42 / 30'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat 2023 NST-2007, Germany, coke and refined petroleum (GT07), 28.0 / 41.7 / 30.2'
+  - file: sections/si.tex
+    text: 'against the 50--60 of the counts'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: ccnr2023 (about 50 Mt past Kaub, scenarios/rhine_capacities.csv; the estimates up to Koblenz-Bonn 55-60)'
+  - file: sections/si.tex
+    text: 'of containers against about 10'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: ccnr2023 (containers past Kaub roughly 10 Mt a year)'
+  - file: sections/si.tex
+    text: 'Koblenz \RhineKoblenzMt{} against 55--60, Bonn \RhineBonnMt{} against 65, Cologne \RhineKoelnMt{} against 80, Duisburg \RhineDuisburgMt{} against 110'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: ccnr2023 counts and estimates (scenarios/rhine_capacities.csv: Koblenz 55, Koblenz-Bonn 60, Bonn 65, Cologne 80, Duisburg 110)'
+  - file: sections/si.tex
+    text: 'Emmerich \RhineEmmerichMt{} against 118, the Waal at Tiel \RhineTielMt{} against 125, the delta below Dordrecht \RhineDordrechtRotterdamMt{} against 140'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: ccnr2023 (Emmerich 117.9 Mt in 2023; Tiel 125, Dordrecht-Rotterdam 140 in scenarios/rhine_capacities.csv)'
+  - file: sections/si.tex
+    text: 'Basel \RhineBaselMt{} against 5.5, Strasbourg \RhineStrasbourgMt{} against 16 and Karlsruhe \RhineKarlsruheMt{} against 22'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: ccnr2023 (Iffezheim count and the estimates above it: Basel 5.5, Strasbourg 16, Karlsruhe 22 in scenarios/rhine_capacities.csv)'
+  - file: sections/si.tex
+    text: 'a quarter less than observed on the Lower Rhine and a tenth of the Waal''s tonnage'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); history: the first version''s baseline (2026_s07_flows/flow_score/rhine.csv): the Lower Rhine sections from Bonn to Emmerich at 0.64-0.86 of the counts, mean 0.73, the border 87 against 118 (0.74); Tiel 12 against 125 (0.10)'
+  - file: sections/si.tex
+    text: 'tonne-kilometres against 41.5 observed'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat iww_go_atygo 2023, German waterways 41.5 bn tkm (mode_split_targets_DE_2023.csv TOTAL)'
+  - file: sections/si.tex
+    text: 'the Rhine at the border \BasinRhineMt{} against 118~Mt, the Main \BasinMainMt{} against 12, the Neckar \BasinNeckarMt{} against 4'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Destatis 46321-0014 2023 and CCNR (Rhine at the border 117.9, Main 12.3, Neckar 3.8 Mt on the busiest section; waterway_targets_2023.csv)'
+  - file: sections/si.tex
+    text: 'the Danube \BasinDanubeMt{} against 3, the Rhine--Herne canal \BasinRheinHerneMt{} against 11, the Elbe \BasinElbeMt{} against 5 and the Moselle \BasinMoselleMt{} against 6'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Destatis 46321-0014 2023 (Danube 2.6, Rhein-Herne-Kanal 10.7, Elbe 5.3, Moselle 6.0 Mt on the busiest section)'
+  - file: sections/si.tex
+    text: 'Hamburg (\PortHamburgMt~Mt against 100), Le Havre--Rouen (\PortHavreMt{} against 76), Marseille (\PortMarseilleMt{} against 67), Genoa (\PortGenoaMt{} against 47), Gothenburg (\PortGothenburgMt{} against 35) and Bilbao (\PortBilbaoMt{} against 32)'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat mar_go_aa 2023, gross weight of goods handled, Mt (Table tab:ports)'
+  - file: sections/si.tex
+    text: 'Dublin (\PortDublinMt{} against 25), Nantes (\PortNantesMt{} against 28), Dunkirk (\PortDunkirkMt{} against 35) and Bremerhaven (\PortBremerhavenMt{} against 39)'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat mar_go_aa 2023, gross weight of goods handled, Mt (Table tab:ports)'
+  - file: sections/si.tex
+    text: 'Antwerp-Bruges (\PortAntwerpMt{} against 242) and Amsterdam (\PortAmsterdamMt{} against 81)'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat mar_go_aa 2023, gross weight of goods handled, Mt (Table tab:ports)'
+  - file: sections/si.tex
+    text: 'Barcelona (\PortBarcelonaMt{} against 51), Ghent (\PortGhentMt{} against 30) and Valencia (\PortValenciaMt{} against 62)'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat mar_go_aa 2023, gross weight of goods handled, Mt (Table tab:ports)'
+  - file: sections/si.tex
+    text: 'Rotterdam carries \PortRotterdamMt~Mt in the model against 402 handled, Antwerp-Bruges \PortAntwerpMt{} against 242'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat mar_go_aa 2023, gross weight handled (Rotterdam 401.6, Antwerp-Bruges 242.2 Mt; Table tab:ports)'
+  - file: sections/si.tex
+    text: 'Trieste \PortTriesteMt{} against 51, Sines \PortSinesMt{} against 40, Wilhelmshaven \PortWilhelmshavenMt{} against 30, Zeeland \PortZeelandMt{} against 37'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat mar_go_aa 2023, gross weight handled (51.2, 39.8, 29.8, 36.5 Mt; Table tab:ports)'
+  - file: sections/si.tex
+    text: 'against 118, shows that'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: ccnr2023 (Emmerich cross-section 117.9 Mt in 2023)'
+  - file: sections/si.tex
+    text: 'Algeciras \PortAlgecirasMt{} against 79, Piraeus \PortPiraeusMt{} against 45, Gioia Tauro \PortGioiaTauroMt{} against 35'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat mar_go_aa 2023, gross weight handled (79.5, 45.2, 35.4 Mt; Table tab:ports)'
+  - file: sections/si.tex
+    text: '(Venice, Chioggia, Monfalcone and Porto Nogaro together \PortLagoonMt~Mt against 28), at Szczecin (\PortSzczecinMt{} against 12'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat mar_go_aa 2023 (Venice 22.5 + Chioggia 0.9 + Monfalcone 3.8 + Porto Nogaro 0.9 = 28.1; Szczecin 11.8 Mt)'
+  - file: sections/si.tex
+    text: 'with Gda\''nsk at \PortGdanskMt{} against 80 as the other side of the same coin), Burgas (\PortBurgasMt{} against 17)'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat mar_go_aa 2023 (Gdansk 79.8, Burgas 17.0 Mt)'
+  - file: sections/si.tex
+    text: 'Oslo (\PortOsloMt{} against 5), M\''alaga (\PortMalagaMt{} against 2)'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat mar_go_aa 2023 (Oslo 5.3, Malaga 2.1 Mt)'
+  - file: sections/si.tex
+    text: 'ports outside the top forty carry'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); design: the scored port set of flow_score.py (top 40 Eurostat ports)'
+  - file: sections/si.tex
+    text: 'billion against 111) and its waterways half (\NLWaterTkmBn{} against 41.6)'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat 2023, Dutch inland transport 110.8 bn tkm (road 62.7 + rail 6.5 + waterway 41.6, mode_split_targets_NL_2023.csv), waterways 41.6'
+  - file: sections/si.tex
+    text: 'against 125 and 140 for the same reason'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: ccnr2023 estimates (Tiel 125, Dordrecht-Rotterdam 140 in scenarios/rhine_capacities.csv)'
+  - file: sections/si.tex
+    text: 'the Wesel--Datteln canal carries \BasinWeselDattelnMt~Mt against 16, the Dortmund--Ems canal \BasinDortmundEmsMt{} against 15'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Destatis 46321-0014 2023 (Wesel-Datteln-Kanal 16.2, Dortmund-Ems-Kanal 14.7 Mt on the busiest section)'
+  - file: sections/si.tex
+    text: 'and the Mittellandkanal \BasinMittellandMt{} against 12'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Destatis 46321-0014 2023 (Mittellandkanal 12.2 Mt on the busiest section)'
+  - file: sections/si.tex
+    text: 'and \BasinKuestenMt~Mt against 3'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Destatis 46321-0014 2023 (Weser 3.0, Kuestenkanal-Hunte 3.0 Mt on the busiest section)'
+  - file: sections/si.tex
+    text: '(Basel \RhineBaselMt{} against 5.5'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: ccnr2023 (Basel 5.5 Mt, scenarios/rhine_capacities.csv)'
+  - file: sections/si.tex
+    text: 'Strasbourg \RhineStrasbourgMt{} against 16, Karlsruhe \RhineKarlsruheMt{} against 22) while the Mannheim--Mainz reach is above them (\RhineMannheimMainzMt{} against 40)'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: ccnr2023 estimates (Strasbourg 16, Karlsruhe 22, Mannheim-Mainz 40 Mt in scenarios/rhine_capacities.csv)'
+  - file: sections/si.tex
+    text: 'against 29\,\%) and France (\ModalFRRail{} against 9)'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat tran_hv_frmod 2023 rail shares (Austria 29.3, France 9.2 %)'
+  - file: sections/si.tex
+    text: 'against 21, carries the short-haul correction'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat tran_hv_frmod 2023, German rail share 20.6 %'
+  - file: sections/si.tex
+    text: 'against 41.5 observed: intra-European'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat mar_sg_am_cw 2023, EU27 deep-sea share of the maritime tonnage 41.5 %'
 claims:
   - file: sections/si.tex
     text: 'nine per region--sector on average'
@@ -152,163 +288,107 @@ claims:
     range: [1490, 1490]
     why: 'data bound to the macro: the five edge counts of the TEN-T extraction sum to \NEdges'
 
+  # 5 Nov 2026 pending fix (patch_pending_20261105.py); words bound to the new macros
+  - file: sections/si.tex
+    text: 'Road is under-represented by construction in Germany, the Netherlands, Belgium, France and Austria'
+    expr: 'max(ModalDERoad-73, ModalNLRoad-53, ModalBERoad-78, ModalFRRoad-89, ModalATRoad-69)'
+    range: [-100, -1]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: the model''s road share below Eurostat''s in each of the five (gaps 8-15 points, the smallest France 81 against 89)'
+  - file: sections/si.tex
+    text: 'with the waterway share of liquids nearly a third too high'
+    expr: '100*(CargoLiquidIww/30-1)'
+    range: [27, 33]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: the liquid-bulk waterway share 39 against 30 % (unrounded 39.1 against 30.2: +29 %); nearly a third = 27-33'
+  - file: sections/si.tex
+    text: 'a quarter below at D\"usseldorf and Duisburg'
+    expr: '100*(1-RhineDuisburgMt/110)'
+    range: [22, 28]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: Duisburg 82 against 110 = 25 % below (Duesseldorf 70.8 against 92 = 23 %, Duesseldorf-Duisburg 26 %); a quarter = 22-28'
+  - file: sections/si.tex
+    text: 'above them on the Middle Rhine'
+    expr: 'min(KaubMt/50, RhineKoblenzMt/55)'
+    range: [1.0, 1.5]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: Kaub reach 63 against 50, Koblenz 66 against 55 (Mainz +24 %, Koblenz-Bonn +10 %)'
+  - file: sections/si.tex
+    text: 'below them from Cologne to Duisburg'
+    expr: 'max(RhineKoelnMt/80, RhineDuisburgMt/110)'
+    range: [0, 1.0]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: Cologne 66 against 80, Duisburg 82 against 110 (the reaches between 0.74-0.80)'
+  - file: sections/si.tex
+    text: 'within 10\,\% at Hamburg'
+    expr: 'max(abs(PortHamburgMt/99.6-1), abs(PortHavreMt/75.56-1), abs(PortMarseilleMt/67.26-1), abs(PortGenoaMt/46.6-1), abs(PortGothenburgMt/34.98-1), abs(PortBilbaoMt/31.53-1))*100'
+    range: [0, 10]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: largest gap of the six to Eurostat 2023 (unrounded: Marseille +7.8 %)'
+  - file: sections/si.tex
+    text: 'within a quarter at Dublin'
+    expr: 'max(abs(PortDublinMt/24.67-1), abs(PortNantesMt/28.48-1), abs(PortDunkirkMt/35.39-1), abs(PortBremerhavenMt/39.19-1))*100'
+    range: [10, 25]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: Dublin +11, Nantes -13, Dunkirk -19, Bremerhaven -24 % (unrounded); within a quarter = up to 25'
+  - file: sections/si.tex
+    text: 'a third below at Antwerp-Bruges'
+    expr: 'max(abs(100*(1-PortAntwerpMt/242.24)-100/3), abs(100*(1-PortAmsterdamMt/80.76)-100/3))'
+    range: [0, 3.7]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: Antwerp-Bruges and Amsterdam 33 % below; a third = 30-37'
+  - file: sections/si.tex
+    text: 'about two fifths below at Barcelona'
+    expr: 'max(abs(100*(1-PortBarcelonaMt/51.46)-40), abs(100*(1-PortGhentMt/29.95)-40), abs(100*(1-PortValenciaMt/62.25)-40))'
+    range: [0, 5]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: Barcelona 36, Ghent 39, Valencia 41 % below (unrounded); about two fifths = 35-45'
+  - file: sections/si.tex
+    text: 'the preceding paragraph gives these within a third of the observations'
+    expr: 'max(abs(KaubMt/50-1), abs(KaubContMt/10-1), abs(ModalDERoad/73-1), abs(ModalDERail/21-1), abs(CargoDryRoad/53-1), abs(CargoDryRail/27-1), abs(CargoDryIww/20-1), abs(CargoLiquidRoad/28-1), abs(CargoLiquidRail/42-1), abs(CargoLiquidIww/30-1))*100'
+    range: [25, 33.4]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: the largest gap of the Kaub tonnage and composition and of the German road and rail shares (overall and by bulk class): liquid bulk by road 19 against 28 (-32 %); within a third = 25-33.4'
+  - file: sections/si.tex
+    text: 'where the model is within a third of the counts except at Rotterdam'
+    expr: 'max(abs(PortHamburgMt/99.6-1), abs(PortBremerhavenMt/39.19-1), abs(PortAmsterdamMt/80.76-1), abs(PortAntwerpMt/242.24-1))*100'
+    range: [25, 33.4]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: Hamburg -4, Bremerhaven -24, Amsterdam -33, Antwerp-Bruges -33 % against Eurostat 2023 gross weight; within a third = up to 33.4'
+  - file: sections/si.tex
+    text: 'is a third of its observed tonne-kilometres'
+    expr: '100*NLTkmBn/110.8'
+    range: [30, 37]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: Dutch inland tkm 39 against 110.8 bn = 35 %; a third = 30-37'
+  - file: sections/si.tex
+    text: 'and its waterways half'
+    expr: '100*NLWaterTkmBn/41.6'
+    range: [45, 55]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: Dutch waterway tkm 21.5 against 41.6 bn = 52 %; half = 45-55'
+  - file: sections/si.tex
+    text: 'the model carries half to two thirds of the counts'
+    expr: 'RhineBaselMt/5.5'
+    range: [0.45, 0.55]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: the lower end, Basel 2.6 against 5.5 = 0.47; half = 0.45-0.55'
+  - file: sections/si.tex
+    text: 'the model carries half to two thirds of the counts'
+    expr: 'max(RhineStrasbourgMt/16, RhineKarlsruheMt/22)'
+    range: [0.58, 0.72]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: the upper end, Strasbourg 10 against 16 = 0.62 (Karlsruhe 0.59); two thirds = 0.58-0.72'
+  - file: sections/si.tex
+    text: 'the Mannheim--Mainz reach is above them'
+    expr: 'RhineMannheimMainzMt/40'
+    range: [1.0, 2.0]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: Mannheim-Mainz 46 against 40 (+16 %)'
+  - file: sections/si.tex
+    text: 'Rail keeps a higher share than observed in Austria'
+    expr: 'min(ModalATRail-29, ModalFRRail-9)'
+    range: [1, 100]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: rail share above Eurostat in both (Austria +11, France +3 points)'
+  - file: sections/si.tex
+    text: 'intra-European trade uses the sea less in the model'
+    expr: 'DeepSeaShare-41.5'
+    range: [0.5, 100]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: the model''s deep-sea share above Eurostat''s (47 against 41.5)'
 pending:
   # ---------------------------------------------------------------- S1
-  - file: sections/si.tex
-    text: 'containers 1.0 USD per ton-hour on road and rail, 0.35 on the waterway'
-    note: 'inconsistent: every run of the batch uses 0.32 for containers on the waterway (S2 line 19; jobs_20261102_main.txt), but S1 and Table tab:rates (whose caption says "the values used by every run") give the first version''s 0.35'
-  - file: sections/si.tex
-    text: '18--70 days across manufacturing industries'
-    note: 'inconsistent: the manufacturing targets of Table tab:stocks run 18-60 days (C10T12 and C29 18; C21, C26, C27, C30 60); 70 is the Bundesbank 2023 figure for divisions 26-27 (70.3 d), which the model sets at 60'
   # ---------------------------------------------------------------- S2 intro
-  - file: sections/si.tex
-    text: 'at 0.30 three times the observed tonnage does'
-    note: 'model output, no macro: calibration round 3, about 30 Mt of containers through Kaub at a value of time of 0.30 against about 10 observed (calibration_log.md, 27 Oct)'
-  - file: sections/si.tex
-    text: 'fell from 0.36 for the first version to 0.29'
-    note: 'model output, no macro: flow_score OVERALL 0.359 (2026_s07_flows) and 0.285 (r6_h01_feeder3): add to make_numbers.py'
   # ---------------------------------------------------------------- S2 the fit: modal split
-  - file: sections/si.tex
-    text: 'Germany 62 / 26 / 13 against 73 / 21 / 7, the Netherlands 39 / 6 / 55 against 53 / 6 / 41'
-    note: 'model output, no macro: modal split by country of the calibrated baseline (flow_score/country_modal_split.csv of r6_h01_feeder3; values match); the Eurostat shares beside them are evidence: add to make_numbers.py or a generated table'
-  - file: sections/si.tex
-    text: 'Belgium 63 / 13 / 23 against 78 / 12 / 11, France 81 / 12 / 7 against 89 / 9 / 2'
-    note: 'model output, no macro: country_modal_split.csv of r6_h01_feeder3 (values match)'
-  - file: sections/si.tex
-    text: 'Austria 56 / 40 / 4 against 69 / 29 / 2, Switzerland 70 / 30 / 0 against 66 / 34 / 0'
-    note: 'model output, no macro: country_modal_split.csv of r6_h01_feeder3 (values match)'
-  - file: sections/si.tex
-    text: 'Poland 75 / 25 / 0 against 76 / 24 / 0, Italy 88 / 12 / 0 against 88 / 12 / 0'
-    note: 'model output, no macro: country_modal_split.csv of r6_h01_feeder3 (values match)'
-  - file: sections/si.tex
-    text: 'Road is under-represented everywhere by construction'
-    note: 'inconsistent: Switzerland is 70 against 66, so the model''s road share is above Eurostat there (and Italy is 88 against 88)'
-  - file: sections/si.tex
-    text: 'general cargo 77 / 19 / 4 against 68 / 28 / 5'
-    note: 'model output, no macro: nst_modal_split.csv (DE manufacturing); inconsistent: the Eurostat rail share is 27.5 %, which rounds to 27 (68 / 27 / 5), not 28'
-  - file: sections/si.tex
-    text: 'dry bulk 45 / 33 / 22 against 53 / 27 / 20 and liquid bulk 19 / 42 / 39 against 28 / 42 / 30'
-    note: 'model output, no macro: nst_modal_split.csv (DE agriculture + mining, oil and gas; values match)'
-  - file: sections/si.tex
-    text: 'with the waterway share of liquids a third too high'
-    note: 'model output, no macro: 39.1 against 30.2 = +29 %, just below the 30-37 of "a third" ("nearly a third" is honest)'
   # ---------------------------------------------------------------- S2 the fit: Rhine
-  - file: sections/si.tex
-    text: 'Kaub carries 63~Mt a year against the 50--60 of the counts, of which 11.6 of containers against about 10'
-    note: 'model output hard-coded: use \KaubMt (63) and \KaubContMt (11.6); 50--60 and about 10 are CCNR evidence'
-  - file: sections/si.tex
-    text: '22 of dry bulk and 29 of liquid bulk'
-    note: 'model output hard-coded: use \KaubDryMt (22.5, written 22) and \KaubLiquidMt (28.8, written 29)'
-  - file: sections/si.tex
-    text: 'Koblenz 66 against 55--60, Bonn 65 against 65, Cologne 66 against 80, Duisburg 82 against 110'
-    note: 'model output, no macro: rhine.csv of r6_h01_feeder3 (values match); counts are CCNR evidence'
-  - file: sections/si.tex
-    text: 'Emmerich 106 against 118, the Waal at Tiel 84 against 125, the delta below Dordrecht 102 against 140'
-    note: 'model output, no macro: rhine.csv of r6_h01_feeder3 (values match)'
-  - file: sections/si.tex
-    text: 'the Upper Rhine at Basel 2.6 against 5.5, Strasbourg 10 against 16 and Karlsruhe 13 against 22'
-    note: 'model output, no macro: rhine.csv of r6_h01_feeder3 (values match)'
-  - file: sections/si.tex
-    text: 'a quarter less than observed on the Lower Rhine and a tenth of the Waal''s tonnage'
-    note: 'model output, no macro: first version (2026_s07_flows rhine.csv: Lower Rhine 0.64-0.74 of the counts, Tiel 12 against 125)'
-  - file: sections/si.tex
-    text: 'is now within 15\,\% of the counts except at D\"usseldorf and Duisburg (a quarter below)'
-    note: 'inconsistent: Cologne 66 against 80 (-18 %) and Cologne-Duesseldorf (-20 %) fall outside 15 % but are not named as exceptions; Mannheim-Mainz is +16 %. Model output, no macro (rhine.csv; Duesseldorf -23 %, Duisburg -25 %)'
-  - file: sections/si.tex
-    text: 'The German waterways as a whole carry 42.8 billion tonne-kilometres against 41.5 observed'
-    note: 'model output, no macro: basins.csv ALL DE 42.76 bn tkm (Eurostat 41.5)'
-  - file: sections/si.tex
-    text: 'by section, the Rhine at the border 106 against 118~Mt, the Main 15 against 12, the Neckar 7 against 4'
-    note: 'model output, no macro: basins.csv of r6_h01_feeder3 (values match; Destatis 46321-0014 evidence)'
-  - file: sections/si.tex
-    text: 'the Danube 4 against 3, the Rhine--Herne canal 9 against 11, the Elbe 10 against 5 and the Moselle 2 against 6'
-    note: 'model output, no macro: basins.csv of r6_h01_feeder3 (values match)'
   # ---------------------------------------------------------------- S2 the fit: seaports
-  - file: sections/si.tex
-    text: 'within 10\,\% at Hamburg (96~Mt against 100), Le Havre--Rouen (80 against 76), Marseille (72 against 67)'
-    note: 'model output, no macro: model port tonnage against Eurostat 2023 (evidence); cite the generated table si_ports or add to make_numbers.py (values match si_ports)'
-  - file: sections/si.tex
-    text: 'Genoa (48 against 47), Gothenburg (34 against 35), Bilbao (32 against 32) and Dublin (27 against 25)'
-    note: 'inconsistent: Dublin is 27.4 against 24.7, ratio 1.11 in si_ports, outside "within 10 %". Model output, no macro'
-  - file: sections/si.tex
-    text: 'within a third at Antwerp-Bruges (162 against 242), Amsterdam (54 against 81), Bremerhaven (30 against 39)'
-    note: 'model output, no macro: si_ports (Antwerp 0.67, Amsterdam 0.67, Bremerhaven 0.76)'
-  - file: sections/si.tex
-    text: 'Dunkirk (29 against 35), Nantes (25 against 28), Ghent (18 against 30)'
-    note: 'inconsistent: Ghent is at 0.61 in si_ports, 39 % below, outside "within a third". Model output, no macro'
-  - file: sections/si.tex
-    text: 'Barcelona (33 against 51) and Valencia (37 against 62)'
-    note: 'inconsistent: Barcelona 0.64 and Valencia 0.59 in si_ports are 36 % and 41 % below, outside "within a third". Model output, no macro'
-  - file: sections/si.tex
-    text: 'the preceding paragraph gives these within 10 to 25\,\% of the observations'
-    note: 'unsure: model-result summary with no macro; Kaub 63 against 50-60 is +5 to +26 %, the German waterway share 13 against 7'
   # ---------------------------------------------------------------- S2 gaps: crude, gas and transhipment
-  - file: sections/si.tex
-    text: 'Rotterdam carries 131~Mt in the model against 402 handled, Antwerp-Bruges 162 against 242'
-    note: 'model output hard-coded (model port tonnage; 402 and 242 = Eurostat evidence): no macro, add to make_numbers.py or cite the generated table si_ports'
-  - file: sections/si.tex
-    text: 'Trieste 6 against 51, Sines 11 against 40, Wilhelmshaven 2 against 30, Zeeland 6 against 37'
-    note: 'model output, no macro: si_ports (values match)'
-  - file: sections/si.tex
-    text: 'and the Rhine at the Dutch border, 106 against 118, shows'
-    note: 'model output, no macro: rhine.csv Emmerich 105.7 (CCNR 117.9)'
-  - file: sections/si.tex
-    text: 'Algeciras 7 against 79, Piraeus 8 against 45, Gioia Tauro 11 against 35'
-    note: 'model output, no macro: si_ports (values match)'
   # ---------------------------------------------------------------- S2 gaps: nearest-coast landing
   - file: sections/si.tex
     text: 'the ladder of fees sent 140~Mt back to the large ports'
     note: 'unsure: model output, no macro, a difference between calibration runs (round 5 g04 and the round-6 ladder); calibration_log.md gives 816 -> 685 Mt (131 Mt) on the secondary ports then counted, not 140; not checkable on the base run''s flow_score'
-  - file: sections/si.tex
-    text: '(Venice, Chioggia, Monfalcone and Porto Nogaro together 205~Mt against 28), at Szczecin (95 against 12'
-    note: 'model output, no macro: ports.csv (125.7 + 0.0 + 73.3 + 6.1 = 205 against 28.1; Szczecin 95.2 against 11.8)'
-  - file: sections/si.tex
-    text: 'with Gda\''nsk at 33 against 80 as the other side of the same coin), Burgas (47 against 17)'
-    note: 'model output, no macro: ports.csv (values match)'
-  - file: sections/si.tex
-    text: 'Oslo (29 against 5), M\''alaga (26 against 2)'
-    note: 'model output, no macro: ports.csv (values match)'
-  - file: sections/si.tex
-    text: 'the 98 ports outside the top forty carry 786~Mt against 634'
-    note: 'model output, no macro: flow_score summary.csv (secondary ports 786 Mt against Eurostat 634, 98 gazetteer ports)'
-  - file: sections/si.tex
-    text: 'where the model is within 10 to 35\,\% of the counts once crude and transhipment are set aside'
-    note: 'unsure: model-result summary with no macro; si_ports gives Hamburg -4 %, Bremerhaven -24 %, Amsterdam and Antwerp -33 %; Rotterdam net of crude and transhipment is not computed anywhere'
   # ---------------------------------------------------------------- S2 gaps: Dutch delta and Ruhr canals
-  - file: sections/si.tex
-    text: 'is a third of its observed tonne-kilometres (39 billion against 111) and its waterways half (21.5 against 41.6)'
-    note: 'model output, no macro: country_modal_split / nst_modal_split NL (39.2 against 110.8 bn tkm = 35 %; waterways 21.5 against 41.6 = 52 %)'
-  - file: sections/si.tex
-    text: 'carry 84 and 102~Mt against 125 and 140 for the same reason'
-    note: 'model output, no macro: rhine.csv (Tiel 83.7, Dordrecht-Rotterdam 101.8)'
-  - file: sections/si.tex
-    text: 'the Wesel--Datteln canal carries 3.5~Mt against 16, the Dortmund--Ems canal 4 against 15'
-    note: 'model output, no macro: basins.csv (values match)'
-  - file: sections/si.tex
-    text: 'and the Mittellandkanal 6 against 12'
-    note: 'model output, no macro: basins.csv (6.3 against 12.2)'
-  - file: sections/si.tex
-    text: 'The Weser and the K\"ustenkanal, on the contrary, carry 24 and 23~Mt against 3'
-    note: 'model output, no macro: basins.csv (23.8 and 22.8 against 3.0)'
   # ---------------------------------------------------------------- S2 gaps: Upper Rhine and rail shares
-  - file: sections/si.tex
-    text: 'the model carries half to two thirds of the counts (Basel 2.6 against 5.5'
-    note: 'model output, no macro: rhine.csv (Basel 0.47, Strasbourg 0.62, Karlsruhe 0.61: Basel just under half)'
-  - file: sections/si.tex
-    text: 'Strasbourg 10 against 16, Karlsruhe 13 against 22) while the Mannheim--Mainz reach is above them (46 against 40)'
-    note: 'model output, no macro: rhine.csv (values match)'
-  - file: sections/si.tex
-    text: 'the bulk through at 369 kt a week in the trough of 2018, where the fleet carries 290'
-    note: 'model output, no macro: add to make_numbers.py (source: Kaub reach of scenarios/rhine_capacities_anchored_r6_bycargo.csv x 7 days x load factor 0.30: total 175,900 t/day -> 369 kt; 290 = the CCNR file capacity 137,000 t/day -> 288 kt)'
-  - file: sections/si.tex
-    text: 'per class the bulk is allowed 301'
-    note: 'model output, no macro: (62,900 + 80,600) t/day x 7 x 0.30 = 301 kt, anchored on the model baseline'
-  - file: sections/si.tex
-    text: 'Rail keeps a higher share than observed in Austria (40 against 29\,\%) and France (12 against 9)'
-    note: 'model output, no macro: country_modal_split.csv (values match)'
-  - file: sections/si.tex
-    text: 'the German rail share, 26 against 21, carries the short-haul correction above'
-    note: 'model output, no macro: country_modal_split.csv DE (25.6 against 20.6)'
-  - file: sections/si.tex
-    text: 'The share of deep-sea shipping in the maritime tonnage is 47\,\% against 41.5 observed'
-    note: 'model output, no macro: flow_score summary.csv short_sea (47.2 % against Eurostat EU27 41.5 %)'

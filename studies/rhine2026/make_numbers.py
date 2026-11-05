@@ -400,6 +400,312 @@ def main(tag: str, overleaf: Path, date_list: str):
             put("WaveGapFourRest", pct(100 * (c.loc[f"{WV9}_AB_gap4_rest15", "DEU_%quarter"] / (a15 + b15) - 1)).replace("-", "$-$"), "gap of 4 weeks, 15 days")
             put("WaveGapTwoRestAbs", pct(100 * (1 - c.loc[f"{WV9}_AB_gap2_rest15", "DEU_%quarter"] / (a15 + b15))), "% less than the sum, gap of 2 weeks, 15 days")
             put("WaveGapFourRestAbs", pct(100 * (1 - c.loc[f"{WV9}_AB_gap4_rest15", "DEU_%quarter"] / (a15 + b15))), "gap of 4 weeks")
+    # ---- the pending literals of the gate (5 Nov 2026): model outputs that the manuscript wrote as numbers, now
+    # computed here (review/pending_fixes_20261105.yaml, applied by review/patch_pending_20261105.py). Each section runs
+    # in its own function, so its variables cannot overwrite the ones above, and _put_once refuses to redefine a macro
+    # with another value.
+    def _put_once(name, val, comment=""):
+        if name in M and M[name][0] != val:
+            raise ValueError(f"\\{name} defined twice: {M[name][0]!r} and {val!r}")
+        put(name, val, comment)
+    # -- main text (residuals on the Rhine, peak weeks, France, catch-up, forecast misses ...)
+    def _pending_main():
+        put = _put_once
+        # inside 'if kf is not None:' of the river block, after put("KaubContShare", ...); _json is imported there.
+        # The Rhine residuals of the baseline (SI S2): reach tonnage as flow_score.py computes it (km-weighted mean over
+        # the edges of each rhine_* reach, weekly tons x 52) against the normal-year counts of rhine_capacities.csv.
+        # This block also writes LowerRhineGapMax, DeltaGapMin, DeltaGapMax, UpperRhineShareMin, UpperRhineShareMax.
+        acc = {}
+        for f_ in _json.load(open(kf, encoding="utf-8"))["features"]:
+            pp = f_["properties"]; nm = str(pp.get("name") or "")
+            if nm.startswith("rhine_"):
+                km_ = float(pp.get("km") or 0.0); a_ = acc.setdefault(nm, [0.0, 0.0])
+                a_[0] += float(pp.get("flow_total_tons") or 0.0) * 52 / 1e6 * km_; a_[1] += km_
+        cnt = pd.read_csv(HERE / "scenarios" / "rhine_capacities.csv").set_index("name").mt_per_year
+        rat = {k: (v[0] / v[1]) / cnt[k] for k, v in acc.items() if v[1] > 0 and k in cnt.index}
+        LOWER = ["rhine_duisburg", "rhine_duisburg_wesel", "rhine_wesel", "rhine_wesel_emmerich", "rhine_emmerich", "rhine_emmerich_nijmegen", "rhine_nijmegen", "rhine_nijmegen_tiel"]
+        DELTA = ["rhine_tiel", "rhine_tiel_dordrecht", "rhine_dordrecht", "rhine_dordrecht_rotterdam"]
+        UPPER = ["rhine_basel", "rhine_strasbourg", "rhine_karlsruhe"]
+        put("LowerRhineGapMin", pct(100 * (1 - max(rat[k] for k in LOWER))), "% below the normal-year count, the Lower Rhine from Duisburg to Nijmegen (km-weighted reach tonnage, as flow_score.py; rhine_capacities.csv), smallest gap")
+        put("LowerRhineGapMax", pct(100 * (1 - min(rat[k] for k in LOWER))), "largest gap (Duisburg)")
+        put("DeltaGapMin", pct(100 * (1 - max(rat[k] for k in DELTA))), "% below the count, the Waal from Tiel and the delta to Rotterdam, smallest gap")
+        put("DeltaGapMax", pct(100 * (1 - min(rat[k] for k in DELTA))), "largest gap")
+        put("UpperRhineShareMin", pct(100 * min(rat[k] for k in UPPER)), "% of the count at Basel, Strasbourg and Karlsruhe (the cross-sections of SI S2), smallest")
+        put("UpperRhineShareMax", pct(100 * max(rat[k] for k in UPPER)), "largest")
+        # written by the LowerRhineGapMin block
+        # written by the LowerRhineGapMin block (proposal of 'The Lower Rhine north of Duisburg ...')
+        # after put("PricedIntC", ...) (the priced river block); 'priced' and 'rt' (record(2018, 1)) are defined above.
+        from matched_estimand_2018 import FIRST as FIRST_PK
+        fpr = firm_losses(RUNS / priced[1.0]); wpr = fpr[(fpr.region == "DEU") & (fpr.time_step >= 1)].groupby("time_step").loss.sum()
+        on = int(wpr[wpr > 0.01 * wpr.max()].index.min()); d_on = FIRST_PK[2018] + pd.Timedelta(days=7 * (on - 1))
+        put("PricedOnsetDate", f"{d_on.day}~{d_on.strftime('%B')}", f"first week of German loss in the priced river with closures ({priced[1.0]}, week {on}, > 1 % of its worst week)")
+        rec0 = pd.Timestamp(next(mo for mo, v in zip(rt.month, rt.central) if mo in EVENT_MONTHS[2018] and v > 0) + "-01")
+        put("PricedOnsetLagMonths", r1((d_on - rec0).days / 30.44), f"months from the first day of the benchmark's first month of shortfall ({rec0:%B}) to that week")
+        # written by the PricedOnsetDate block
+        # after the ensemble lines of the 2026 baseline (put("EnsMeanBn", ...)); also writes DEUpeakDate and EnsMedian.
+        from matched_estimand_2018 import FIRST as FIRST_PK
+
+        def wk_date(y, t):
+            d_ = FIRST_PK[y] + pd.Timedelta(days=7 * (int(t) - 1))
+            return f"{d_.day}~{d_.strftime('%B')}"
+
+        pk26 = [int(p.loc[f"2026_{tag}_seed{s}_base", "DEU_peak_week"]) for s in range(1, 11)] + [int(b.DEU_peak_week)]
+        put("DEUpeakDate", wk_date(2026, b.DEU_peak_week), f"Monday of the peak week of the reference run (week {int(b.DEU_peak_week)}; week 1 = 22 June 2026)")
+        put("PeakDateFirst", wk_date(2026, min(pk26)), f"earliest peak week over the eleven networks (week {min(pk26)})")
+        put("PeakDateLast", wk_date(2026, max(pk26)), f"latest peak week over the eleven networks (week {max(pk26)})")
+        put("EnsMedian", r2(np.median(e26)), "2026, median of the eleven networks, % of a quarter")
+        # written by the PeakDateFirst block
+        # written by the PeakDateFirst block (proposal of 'with the peak in the week of 5 or 12 October ...')
+        # after put("WaveInterEight", ...)
+        put("WaveInterEightAbs", f"{abs(100 * (gaps[8] - A - Bw) / (A + Bw)):.1f}", "the same, without its sign")
+        # in the river block, after the loading-table loop (after put("KaubMinWeek", ...), outside the loop)
+        put("SurchargeMax", r1(1 / dt.load_factor.min()), "the largest freight multiplier of the model: the inverse of the lowest loading share (below 5 cm)")
+        # after put("FRAlossBn", ...); fd = firm_losses(RUNS / B) holds every region. Also writes FRARoadShare, ESPlossBn, AUTlossBn, NLDlossBn.
+        fr = fd[(fd.region == "FRA") & (fd.time_step >= 1)]; frt = fr.loss.sum()
+        put("FRAFoodShare", pct(100 * fr[fr.sector.isin(["A01", "C10T12"])].loss.sum() / frt), "% of France's gross loss in crops (A01) and the food industry (C10-12)")
+        put("FRARoadShare", pct(100 * fr[fr.sector == "H49"].loss.sum() / frt), "% of France's gross loss in land transport (H49)")
+        for cc in ("ESP", "AUT", "NLD"):
+            put(f"{cc}lossBn", r1(fd[fd.region == cc].loss.sum() / 1e3), f"bn USD, {cc} gross value-added loss, reference network (firm_data)")
+        # written by the FRAFoodShare block
+        # written by the FRAFoodShare block (proposal of 'three-fifths in its food chain ...')
+        # after put("EnsMeanyy", ...) of the 2018 block (e18 defined on the line before)
+        put("EnsMedianyy", r2(np.median(e18)), "2018, median of the eleven networks, % of a quarter")
+        # anywhere in main(), e.g. after the Rhine residuals; the same file si_tables.ports_table reads
+        pf = pd.read_csv(RUNS / "r6_h01_feeder3" / "flow_score" / "ports.csv")
+        pf = pf[pf.model_mt.notna() & pf.eurostat_mt.notna() & (pf.scored.astype(str).str.lower() == "true")]
+        nwin = int(((pf.model_mt / pf.eurostat_mt - 1).abs() <= 0.30).sum())
+        put("PortsWithinThirty", WORDS.get(nwin, str(nwin)), f"of the {len(pf)} largest seaports with a connector (the forty of Eurostat 2023 less two) within 30 % of the Eurostat tonnage (r6_h01_feeder3/flow_score/ports.csv, the source of Table S-ports)")
+        # in the river block after the loading-table loop (dt and lfn defined there); also writes DailyTurnedAwayyy
+        for year, suf in ((2026, ""), (2018, "yy")):
+            prof_ = pd.read_csv(HERE / "scenarios" / f"{year}.csv")
+            dly = pd.read_csv(HERE / "scenarios" / f"kaub_daily_{year}.csv", parse_dates=["date"]).set_index("date").kaub_cm
+            aw = ad_ = 0.0; nw = 0
+            for _, rw in prof_.iterrows():
+                days_ = [pd.Timestamp(rw.week_start) + pd.Timedelta(days=k) for k in range(7)]
+                if all(x in dly.index for x in days_):
+                    aw += 1 - lfn(float(rw.kaub_cm)); ad_ += 1 - np.mean([lfn(float(dly[x])) for x in days_]); nw += 1
+            put(f"DailyTurnedAway{suf}", r1(abs(100 * (ad_ / aw - 1))), f"{year}: % change of the tonnage turned away at Kaub (sum of 1 - loading share over the {nw} weeks with seven daily gauges) when the share is computed day by day and averaged over the week instead of read at the weekly mean gauge; signed {100 * (ad_ / aw - 1):+.2f}")
+        # written by the DailyTurnedAway block
+        # after put("ShareUtilities", ...) of the 2026 baseline (de = German firm losses with base, production, vs); also writes CatchUpLastM, CatchUpDecay, CatchUpTailShare
+        gd = de[de.sector.str[:1].isin(list("ABCF")) & (de.time_step >= 1)]
+        catch = ((gd.production - gd.base) * gd.vs).clip(lower=0).groupby(gd.time_step).sum()
+        t0c, t1c = len(pd.read_csv(HERE / "scenarios" / "2026.csv")) + 1, int(catch.index.max())   # first recovery week, last week of the run
+        dec = (catch[t1c] / catch[t0c]) ** (1 / (t1c - t0c))
+        put("CatchUpFirstM", f"{catch[t0c]:.0f}", f"mUSD a week, German catch-up production of goods and construction (A-C, F, above baseline, value-added weights), week {t0c}")
+        put("CatchUpLastM", r1(catch[t1c]), f"the same, week {t1c}")
+        put("CatchUpDecay", pct(100 * (1 - dec)), f"% by which it falls a week, geometric mean of weeks {t0c}-{t1c}")
+        put("CatchUpTailShare", r1(100 * catch[t1c] * dec / (1 - dec) / b.DEU_net_deferrable_mUSD), "% of the backlog left at the end (DEU_net_deferrable_mUSD) that the geometric tail after the last week would add")
+        # written by the CatchUpFirstM block
+        # written by the CatchUpFirstM block (proposal of 'decays from 300 million USD ...')
+        # after the signed-quarter block (the same computation as si_tables.prospective_sectors_table); also writes ProspRefOct, ProspChemAug, ProspChemOct
+        from matched_estimand_2018 import monthly_from_weekly, FIRST as FIRST_MS
+        for code, nm in (("C19", "Ref"), ("C20", "Chem")):
+            sub = de[(de.sector == code) & (de.time_step >= 1)]
+            s_ = 100 * (sub.base - sub.production).groupby(sub.time_step).sum() / sub.base.groupby(sub.time_step).sum()
+            mo_, _ = monthly_from_weekly(s_, FIRST_MS[2026], ["2026-08", "2026-10"])
+            put(f"Prosp{nm}Aug", pct(mo_["2026-08"]), f"{code}: German production shortfall, August 2026, % (Table S-prospective sectors, {mo_['2026-08']:.1f})")
+            put(f"Prosp{nm}Oct", pct(mo_["2026-10"]), f"{code}: October 2026 ({mo_['2026-10']:.1f})")
+        # written by the ProspRefAug block
+    _pending_main()
+    # -- SI S1-S2 (the baseline against the freight statistics, from flow_score)
+    def _pending_si_a():
+        put = _put_once
+        # ---- the baseline against the freight statistics (SI S2, 5 Nov 2026): the tables of onboarding/scripts/flow_score.py on
+        # the batch's baseline. The batch runs were not scored; r6_h01_feeder3, the round-6 base the batch was built on, has the
+        # same t=0 flows to the ton (transport_edges_with_flows_0 and transport_nodes identical; flow_score rerun on a copy of
+        # 2026_r6_bycargo_base byte-identical, 5 Nov 2026), so its folder stands in until the base run carries a flow_score/.
+        FS = RUNS / B / "flow_score"
+        if not FS.exists():
+            FS = RUNS / {"s07": "2026_s07_flows"}.get(tag, "r6_h01_feeder3") / "flow_score"
+        fsum = pd.read_csv(FS / "summary.csv").set_index("block").loc["OVERALL"]
+        put("FlowScore", r2(fsum.mean_abs_log10), f"flow score of the baseline: weighted mean |log10| model/observation over {int(fsum.n_items)} items ({FS.parent.name})")
+        put("FlowScoreFirst", r2(pd.read_csv(RUNS / "2026_s07_flows" / "flow_score" / "summary.csv").set_index("block").loc["OVERALL", "mean_abs_log10"]), "the same for the first version's baseline (2026_s07_flows)")
+        # inland modal split by country, % of tonne-km road / rail / waterway (Eurostat 2023 in the comment; the text quotes it)
+        fcm = pd.read_csv(FS / "country_modal_split.csv").set_index("geo")
+        for cc in ("DE", "NL", "BE", "FR", "AT", "CH", "PL", "IT"):
+            for col, md in (("ROAD", "Road"), ("RAIL", "Rail"), ("IWW", "Iww")):
+                put(f"Modal{cc}{md}", pct(fcm.loc[cc, f"model_{col}"]), f"{cc}: % of inland tkm by {md.lower()} at the baseline ({fcm.loc[cc, f'model_{col}']:.1f}; Eurostat 2023 {fcm.loc[cc, f'target_{col}']:.1f})")
+        put("NLTkmBn", pct(fcm.loc["NL", "model_bn_tkm"]), "bn tkm of inland transport on the Dutch edges at the baseline (Eurostat 2023: 110.8)")
+        # Germany by cargo class on the German edges, % of tonne-km road / rail / waterway: general cargo = NST manufacturing
+        # (containers), dry bulk = agriculture + mining, liquid bulk = oil and gas; the NST target aggregated the same way
+        fns = pd.read_csv(FS / "nst_modal_split.csv")
+        fns = fns[(fns.cc == "DE") & (fns.category != "TOTAL")].copy()
+        fns["cls"] = fns.category.map({"manufacturing": "General", "agriculture": "Dry", "mining": "Dry", "oil_and_gas": "Liquid"})
+        for cls, g_ in fns.groupby("cls"):
+            tk = g_.groupby("mode")[["model_bn_tkm", "target_bn_tkm"]].sum(); sh = 100 * tk / tk.sum()
+            for md, nm in (("roads", "Road"), ("railways", "Rail"), ("waterways", "Iww")):
+                put(f"Cargo{cls}{nm}", pct(sh.loc[md, "model_bn_tkm"]), f"Germany, {cls.lower()} cargo: % of tkm by {nm.lower()} on the German edges ({sh.loc[md, 'model_bn_tkm']:.1f}; NST target {sh.loc[md, 'target_bn_tkm']:.1f})")
+        # the Rhine sections, Mt/yr (km-weighted mean of the reach), against the CCNR counts and estimates (in the comment);
+        # one decimal below 5 Mt, as the text writes Basel
+        frh = pd.read_csv(FS / "rhine.csv").set_index("name")
+        for nm in ("rhine_basel", "rhine_strasbourg", "rhine_karlsruhe", "rhine_mannheim_mainz", "rhine_koblenz", "rhine_bonn", "rhine_koeln",
+                   "rhine_duisburg", "rhine_emmerich", "rhine_tiel", "rhine_dordrecht_rotterdam"):
+            v = frh.loc[nm, "model_mt"]
+            put("Rhine" + "".join(w.capitalize() for w in nm.split("_")[1:]) + "Mt", r1(v) if v < 5 else pct(v), f"{nm}: Mt/yr at the baseline (CCNR {frh.loc[nm, 'normal_mt']:g})")
+        fsel = frh.index[list(frh.index).index("rhine_mannheim"): list(frh.index).index("rhine_emmerich") + 1]
+        put("RhineDevMaxPct", pct(100 * (frh.loc[fsel, "model_mt"] / frh.loc[fsel, "normal_mt"] - 1).abs().max()), "largest % gap between model and CCNR from Mannheim to Emmerich")
+        # the German waterway sections (Destatis 46321-0014, 2023, in the comment): the busiest section of each waterway, Mt/yr;
+        # integers, the Wesel-Datteln canal with one decimal as the text writes it
+        fbs = pd.read_csv(FS / "basins.csv"); fbs = fbs[fbs.cc == "DE"].set_index("waterway")
+        put("DEWaterTkmBn", r1(fbs.loc["ALL", "bn_tkm"]), f"bn tkm on the German waterways at the baseline (Eurostat 2023: {fbs.loc['ALL', 'bn_tkm_per_year']:g})")
+        for ww, mac in (("Rhine", "BasinRhineMt"), ("Main", "BasinMainMt"), ("Neckar", "BasinNeckarMt"), ("Danube", "BasinDanubeMt"), ("Rhein-Herne-Kanal", "BasinRheinHerneMt"),
+                        ("Elbe", "BasinElbeMt"), ("Moselle", "BasinMoselleMt"), ("Wesel-Datteln-Kanal", "BasinWeselDattelnMt"), ("Dortmund-Ems-Kanal", "BasinDortmundEmsMt"),
+                        ("Mittellandkanal", "BasinMittellandMt"), ("Weser", "BasinWeserMt"), ("Kuestenkanal-Hunte", "BasinKuestenMt")):
+            v = fbs.loc[ww, "max_mt"]
+            put(mac, r1(v) if ww == "Wesel-Datteln-Kanal" else pct(v), f"{ww}: Mt/yr on its busiest section at the baseline (Destatis 2023 {fbs.loc[ww, 'mt_per_year']:g})")
+        fnl = pd.read_csv(FS / "basins.csv").set_index(["waterway", "cc"])
+        put("NLWaterTkmBn", r1(fnl.loc[("ALL", "NL"), "bn_tkm"]), f"bn tkm on the Dutch waterways at the baseline (Eurostat 2023: {fnl.loc[('ALL', 'NL'), 'bn_tkm_per_year']:g})")
+        # the seaports (the rows of Table tab:ports, si_tables.ports_table): Mt/yr through the port's connectors (Eurostat 2023 gross
+        # weight handled in the comment; the text quotes it)
+        fpt = pd.read_csv(FS / "ports.csv").set_index("rep_mar")
+        for code, mac in (("NL_0NLRTM", "Rotterdam"), ("BE_0BE003", "Antwerp"), ("DE_1DEHAM", "Hamburg"), ("NL_0NLAMS", "Amsterdam"), ("PL_0PLGDN", "Gdansk"),
+                          ("ES_2ESALG", "Algeciras"), ("FR_1FR001", "Havre"), ("FR_2FRMRS", "Marseille"), ("ES_2ESVLC", "Valencia"), ("ES_2ESBCN", "Barcelona"),
+                          ("IT_0ITTRS", "Trieste"), ("IT_0ITGOA", "Genoa"), ("EL_0GRPIR", "Piraeus"), ("PT_0PTSIE", "Sines"), ("DE_1DEBRV", "Bremerhaven"),
+                          ("NL_0NLZSP", "Zeeland"), ("IT_0ITGIT", "GioiaTauro"), ("FR_1FRDKK", "Dunkirk"), ("SE_2SEGOT", "Gothenburg"), ("ES_1ESBIO", "Bilbao"),
+                          ("BE_0BEGNE", "Ghent"), ("DE_1DEWVN", "Wilhelmshaven"), ("FR_1FRNTE", "Nantes"), ("IE_0IEDUB", "Dublin"), ("BG_0BGBOJ", "Burgas"),
+                          ("PL_0PLSZZ", "Szczecin"), ("NO_0NOOSL", "Oslo"), ("ES_2ESAGP", "Malaga")):
+            put(f"Port{mac}Mt", pct(fpt.loc[code, "model_mt"]), f"{mac} ({code}): Mt/yr at the baseline ({fpt.loc[code, 'model_mt']:.1f}; Eurostat 2023 {fpt.loc[code, 'eurostat_mt']:.1f})")
+        lagoon = ["IT_0ITVCE", "IT_0ITCHI", "IT_0ITMNF", "IT_0ITPNG"]
+        put("PortLagoonMt", pct(fpt.loc[lagoon, "model_mt"].sum()), f"Venice, Chioggia, Monfalcone and Porto Nogaro together, Mt/yr (Eurostat 2023 {fpt.loc[lagoon, 'eurostat_mt'].sum():.1f})")
+        fsec = fpt[(fpt.scored.astype(str).str.lower() != "true") & fpt.n_terminals.notna()]
+        put("SecPortsN", str(len(fsec)), "gazetteer ports outside the top forty with a connector (flow_score secondary ports)")
+        put("SecPortsMt", pct(fsec.model_mt.sum()), "Mt/yr landed at them at the baseline"); put("SecPortsObsMt", pct(fsec.eurostat_mt.sum()), "Eurostat 2023 gross weight handled at them, Mt")
+        fss = pd.read_csv(FS / "short_sea.csv", index_col=0)
+        put("DeepSeaShare", pct(fss.loc["EU27_2020", "model_dss_pct_from_gateways"]), f"% of the maritime tonnage on deep-sea lanes at the baseline (Eurostat EU27 2023: {fss.loc['EU27_2020', 'eurostat_dss_pct']:g})")
+        # the gate at Kaub in the trough of 2018 (S2, 5 Nov 2026): kt a week at the loading factor of the trough weeks (Kaub 29-32 cm
+        # in late October and November 2018: the table's 0.30 at 30 cm) for the capacity of the CCNR file, a single capacity anchored
+        # on the model's total and the per-class capacities (rhine_mainz_koblenz; anchor_rhine_capacities.py)
+        if (HERE / "scenarios" / f"rhine_capacities_anchored_{tag}.csv").exists():
+            f18 = lfn(30.0)
+            kc = {k: pd.read_csv(HERE / "scenarios" / f"rhine_capacities{k}.csv").set_index("name").loc["rhine_mainz_koblenz"] for k in ("", "_anchored_r6", f"_anchored_{tag}")}
+            put("GateFleetKt", f"{10 * round(kc[''].tons_per_day * 7 * f18 / 1e4):.0f}", f"kt/week the fleet carries past Kaub at factor {f18:.2f} (CCNR file {kc[''].tons_per_day:,.0f} t/day; to the ten)")
+            put("GateSingleKt", pct(kc["_anchored_r6"].tons_per_day * 7 * f18 / 1e3), f"kt/week a single capacity anchored on the total lets through ({kc['_anchored_r6'].tons_per_day:,.0f} t/day)")
+            kb_ = kc[f"_anchored_{tag}"]
+            put("GateBulkKt", pct((kb_.tons_per_day_dry_bulk + kb_.tons_per_day_liquid_bulk) * 7 * f18 / 1e3), f"kt/week the per-class capacities allow the bulk ({kb_.tons_per_day_dry_bulk:,.0f} dry + {kb_.tons_per_day_liquid_bulk:,.0f} liquid t/day)")
+    _pending_si_a()
+    # -- SI S3-S10 (gate log, daily loading, channels, supplier weights, stationarity, Kaub links ...)
+    def _pending_si_b():
+        put = _put_once
+        # ==== the pending literals of the gate, SI S3-S8 (5 Nov 2026) ====
+        # ---- [A] the gate at Kaub week by week (S3 allocation, S4 flat profile and conservation; Table si_gate): cut, re-sent
+        # and withheld at the gates of the Rhine chain from the run's log, in the profile weeks and the recovery weeks
+        def gate_log(run_):
+            g_ = {}
+            for line_ in (RUNS / f"{run_}.log").read_text(encoding="utf-8", errors="replace").splitlines():
+                mt_ = re.search(r"Capacity gate t=(\d+):.*cut ([\d,]+) t, re-sent ([\d,]+) t, blocked ([\d,]+) t", line_)
+                if mt_ and float(mt_.group(2).replace(",", "")) > 0:
+                    g_[int(mt_.group(1))] = tuple(float(mt_.group(i).replace(",", "")) for i in (2, 3, 4))
+            return g_
+        n_prof26 = len(pd.read_csv(HERE / "scenarios" / "2026.csv"))
+        gl26 = gate_log(B)
+        w_prof = sorted(t_ for t_ in gl26 if t_ <= n_prof26); w_rec = sorted(t_ for t_ in gl26 if t_ > n_prof26)
+        w_ep = [t_ for t_ in w_prof if 7 <= t_ <= 9 or 12 <= t_ <= 19]          # the August episode and the autumn trough
+        rs26 = {t_: 100 * v_[1] / v_[0] for t_, v_ in gl26.items()}             # re-sent share of the week's cut, %
+        for suf_, ws_ in (("", w_prof), ("First", w_prof[:3]), ("Last", w_prof[-3:]), ("Ep", w_ep)):
+            put(f"GateResent{suf_}Min", pct(min(rs26[t_] for t_ in ws_)), f"% of the week's cut at the Rhine gates that is re-sent, lowest over weeks {ws_} ({B} log)")
+            put(f"GateResent{suf_}Max", pct(max(rs26[t_] for t_ in ws_)), "highest")
+        gsum = lambda gl_, ws_, i: sum(gl_[t_][i] for t_ in ws_) / 1e6
+        put("GateResentRec", pct(100 * gsum(gl26, w_rec, 1) / gsum(gl26, w_rec, 0)), "% of the cut re-sent in the recovery weeks")
+        put("GateWeeks", str(len(gl26)), "run weeks in which the gates cut (profile + recovery)"); put("GateRecWeeks", str(len(w_rec)), "recovery weeks in which the gates cut")
+        put("GateCutMt", r1(gsum(gl26, gl26, 0)), "Mt cut at the gates over the season (Table si_gate caption)"); put("GateResentMt", r1(gsum(gl26, gl26, 1)), "Mt re-sent")
+        put("GateHeldMt", r1(gsum(gl26, gl26, 2)), "Mt withheld over the season"); put("GateHeldProfMt", r1(gsum(gl26, w_prof, 2)), "Mt withheld in the profile weeks")
+        put("GateHeldRecMt", r1(gsum(gl26, w_rec, 2)), "Mt withheld in the recovery weeks")
+        glf = gate_log(f"{wv}_flat")
+        put("FlatCutMt", r1(gsum(glf, glf, 0)), f"Mt cut at the gates under the flat profile ({wv}_flat log)"); put("FlatResentMt", r1(gsum(glf, glf, 1)), "Mt re-sent")
+        put("FlatHeldMt", r1(gsum(glf, glf, 2)), "Mt withheld under the flat profile")
+        put("FlatHeldDiff", pct(100 * (1 - gsum(glf, glf, 2) / gsum(gl26, gl26, 2))), "% by which the flat profile withholds less tonnage than the season")
+        # ---- [B] day-by-day loading against weekly means (S3 loading table): tonnage turned away in week-equivalents over the
+        # profile weeks covered by the daily gauge files, on the current loading table (lfn)
+        dd_ = {}
+        for yr_ in (2018, 2026):
+            pf_ = pd.read_csv(HERE / "scenarios" / f"{yr_}.csv")
+            dy_ = pd.read_csv(HERE / "scenarios" / f"kaub_daily_{yr_}.csv", parse_dates=["date"]).set_index("date").kaub_cm
+            wk_ = da_ = 0.0
+            for _, rr_ in pf_.iterrows():
+                days_ = [pd.Timestamp(rr_.week_start) + pd.Timedelta(days=k_) for k_ in range(7)]
+                if all(d_ in dy_.index for d_ in days_):
+                    wk_ += 1 - lfn(float(rr_.kaub_cm)); da_ += float(np.mean([1 - lfn(float(dy_.loc[d_])) for d_ in days_]))
+            dd_[yr_] = 100 * (da_ / wk_ - 1)
+        put("DailyLoadingDiff", r1(max(abs(v_) for v_ in dd_.values())), f"% change of the tonnage turned away when the loading share is taken day by day, largest of the two years (2018 {dd_[2018]:+.2f}, 2026 {dd_[2026]:+.2f}; weeks with daily gauges)")
+        # ---- [C] the two channels at the routing level (S4; Table si_channels): routing_summary.csv totals over the 2026 run
+        for suf_, run_ in (("", B), ("Gate", f"2026_{tag}_gateonly"), ("Sur", f"2026_{tag}_surchargeonly")):
+            rsm_ = pd.read_csv(RUNS / run_ / "routing_summary.csv")
+            bk_ = rsm_[rsm_.cargo_type.isin(["dry_bulk", "liquid_bulk"])]; ct_ = rsm_[rsm_.cargo_type == "container"]
+            put(f"ChanBulkAlt{suf_}Bn", r1(bk_.alternative_usd.sum() / 1e3), f"{run_}: bn USD of bulk that leaves its normal route for an alternative")
+            put(f"ChanContAlt{suf_}Bn", r1(ct_.alternative_usd.sum() / 1e3), f"{run_}: bn USD of containers that leave their normal route")
+            if suf_ != "Sur":
+                put(f"ChanBulkHeld{suf_}Bn", r1(bk_.capacity_blocked_usd.sum() / 1e3), f"{run_}: bn USD of bulk withheld by the capacity gate")
+        # ---- [D] supplier weights of the Kaub-served German buyers through the season (S4; revision_diagnostics.supplier_weights)
+        # on the link-level run: buyers with a supplier pair cut at Kaub in the August episode (weeks 7-9), share of their offered
+        # deliveries from those pairs at the start (t=0), the end of the first wave (t=10), the second episode (t=19), after (t=40)
+        kw_ = lf[lf.buyer_region == "DEU"].copy()
+        kkey_ = ["seller_region", "seller_sector", "buyer_region", "buyer_sector"]
+        kdep_ = kw_[kw_.time_step.isin([7, 8, 9]) & (kw_.capacity_blocked > 0)].groupby(kkey_).size().index
+        kw_["kaub"] = kw_.set_index(kkey_).index.isin(kdep_)
+        kbuy_ = kw_[kw_.kaub].groupby(["buyer_region", "buyer_sector"]).size().index
+        kw_ = kw_[kw_.set_index(["buyer_region", "buyer_sector"]).index.isin(kbuy_)]
+        put("SupWeightBuyers", str(len(kbuy_)), f"German buyer region-sectors with a supplier pair cut at Kaub in weeks 7-9 (2026_{tag}_full)")
+        for suf_, st_ in (("Start", 0), ("WaveEnd", 10), ("Second", 19), ("After", 40)):
+            x_ = kw_[kw_.time_step == st_]
+            put(f"SupWeight{suf_}", r1(100 * x_[x_.kaub].delivery_offered.sum() / x_.delivery_offered.sum()), f"% of their offered deliveries from those pairs, week {st_}")
+        # ---- [E] stationarity of the undisturbed baseline (S4, S10; stationarity_check.py): six weeks at 250 cm, constraint off.
+        # STAT_RUN is the check run of 5 Oct 2026 (inputs before the per-class calibration) until it is rerun on the r6 inputs
+        STAT_RUN = RUNS / "stationarity6w"
+        sd_ = pd.read_csv(STAT_RUN / "firm_data.csv", usecols=["time_step", "firm", "production", "production_target", "input_stock"])
+        s0_ = sd_[sd_.time_step == 0].set_index("firm"); mat_ = s0_.index[s0_.production > 0.01]          # > 10,000 USD a week
+        tmax_ = int(sd_.time_step.max()); sT_ = sd_[sd_.time_step == tmax_].set_index("firm")
+        tdev_ = max(abs(sd_[sd_.time_step == t_].production.sum() / s0_.production.sum() - 1) for t_ in range(1, tmax_ + 1))
+        gap_ = (sT_.production_target - sT_.production) / sT_.production_target.clip(lower=1e-12)
+        ism_ = sT_.index.isin(mat_)
+        rel_ = sT_.production / s0_.production
+        stk_ = (sT_.input_stock / s0_.input_stock).replace([np.inf, -np.inf], np.nan)
+        put("StatFirms", f"{len(mat_):,}".replace(",", "{,}"), f"firms producing more than 10,000 USD a week at t=0 ({STAT_RUN.name})")
+        put("StatTotalDevPpm", r2(1e6 * tdev_), "largest deviation of total production from its initial value over the run, parts per million")
+        put("StatBelow", WORDS[int((gap_[ism_] > 1e-6).sum())], f"of those firms, below their production target in week {tmax_}")
+        put("StatBelowPct", pct(100 * (1 - rel_[ism_].min())), "% below its initial production, the lowest of those firms")
+        put("StatStockLow", f"{100 * (stk_[ism_].min() - 1):+.1f}".replace("-", "$-$"), f"% deviation of the input inventories from t=0, lowest, week {tmax_}")
+        put("StatStockHigh", f"{100 * (stk_[ism_].max() - 1):+.1f}".replace("-", "$-$"), "highest")
+        put("StatDrift", str(int((gap_[~ism_] > 1e-6).sum())), f"smaller agents below target in week {tmax_} (the drift at the numerical floor)")
+        # ---- [F] the bounded substitution by rail (S4, S8; Table si_rail_weeks): the cut bulk that found an eligible rail route in
+        # the profile weeks of the two 50 kt runs, rounded to 10 kt
+        offr_ = []
+        for yr_, run_ in ((2026, f"2026_{REV}_rail50"), (2018, f"2018_{REV}_rail50")):
+            np_ = len(pd.read_csv(HERE / "scenarios" / f"{yr_}.csv"))
+            for line_ in (RUNS / f"{run_}.log").read_text(encoding="utf-8", errors="replace").splitlines():
+                mt_ = re.search(r"Capacity gate t=(\d+):.*relief ([\d,]+) t of ([\d,]+) t offered", line_)
+                if mt_ and int(mt_.group(1)) <= np_ and float(mt_.group(3).replace(",", "")) > 0:
+                    offr_.append(float(mt_.group(3).replace(",", "")) / 1e3)
+        put("RailOfferedMin", f"{10 * np.floor(min(offr_) / 10 + 0.5):.0f}", f"kt a week: the least cut bulk offered to rail in a profile week of the 50 kt runs ({min(offr_):.1f}, rounded to 10 kt)")
+        put("RailOfferedMax", f"{10 * np.floor(max(offr_) / 10 + 0.5):.0f}", f"the most ({max(offr_):.1f})")
+        # ---- [G] what crosses Kaub (S5): the Kaub-crossing links of the link-level run at the baseline (v0: validation_outputs.csv,
+        # group kaub, t=0), the services' missing refined fuel and the French buyers (link_flows_disrupted.csv.gz)
+        put("KaubLinks", f"{int(v0.n.sum()):,}".replace(",", "{,}"), f"commercial links whose baseline route crosses Kaub (2026_{tag}_full)")
+        put("KaubWeekMt", r2(v0.delivered_tons.sum() / 1e6), "Mt a week that they carry at the baseline")
+        fu_ = dl[dl.buyer_sector.isin(["H49", "H52", "D", "H50"]) & (dl.seller_sector == "C19")]
+        fs_ = (fu_.base_realized - fu_.realized_delivery).clip(lower=0)
+        put("FuelWithheldShare", pct(100 * np.minimum(fu_.withheld_by_transport, fs_).sum() / fs_.sum()),
+            "% of the refined fuel that German hauliers, logistics, power and shipping miss which is withheld at the river (withheld capped at the week's shortfall; uncapped as TransportWithheldShare: "
+            f"{100 * fu_.withheld_by_transport.sum() / fs_.sum():.0f})")
+        fr_ = lf[(lf.buyer_region == "FRA") & (lf.time_step >= 1)]
+        put("FRAFarmWithheldBn", r1(fr_[(fr_.seller_sector == "A01") & (fr_.buyer_sector == "C10T12")].withheld_by_transport.sum() / 1e3), "bn USD of farm products to the French food industry withheld at the river")
+        frd_ = fr_[fr_.seller_region == "DEU"]
+        put("FRAfromDEUBn", r1((frd_.base_realized - frd_.realized_delivery).clip(lower=0).sum() / 1e3), "bn USD of deliveries from German suppliers that French buyers miss")
+        # ---- [H] the priced river with closures (S6, S9): December and the November at twice the inventories
+        prC_ = model_path(RUNS / priced[2.0], 2018)
+        put("PricedNovC", r1(prC_["ind_Nov"]), f"priced river with closures, x2, November ({priced[2.0]})")
+        put("PricedDec", r1(pr["ind_Dec"]), f"priced river with closures, x1, December ({priced[1.0]})")
+        put("PricedDecShare", pct(100 * pr["ind_Dec"] / pr["ind_Nov"]), "December over November of the priced river, x1, %")
+        # ---- [I] run counts of the batch (S7; Table si_runs): the rows of the compare tables of the job lists
+        alt_date = None if old_naming else "20261103"
+        nr_ = {}
+        for suf_, f_ in (("Main", f"compare_runs_batch_jobs_{date_list}_main.csv"), ("Paired", f"compare_runs_batch_jobs_{date_list}_paired.csv"),
+                         ("Rev", f"compare_runs_batch_jobs_{date_list}_rev.csv"), ("Ladder", f"compare_runs_batch_jobs_{date_list}_ladder.csv"),
+                         ("Cross", f"compare_runs_batch_jobs_{cross_date}_cross.csv"), ("NoRail", f"compare_runs_batch_jobs_{norail_date}_norail.csv"),
+                         ("Alt", f"compare_runs_batch_jobs_{alt_date}_altriver.csv")):
+            if (AD / f_).exists():
+                nr_[suf_] = len(table(AD / f_)); put(f"NRuns{suf_}", str(nr_[suf_]), f"runs of {f_}")
+        put("NRuns", str(sum(nr_.values())), "runs of Table si_runs")
+    _pending_si_b()
     lines = [f"% Key numbers of the paper, generated by studies/rhine2026/make_numbers.py from the batch of {date_list} (run names {tag}): the river as a",
              "% quantity constraint with the voyage surcharge, stocks at their evidence values, crude and gas by pipeline, construction a",
              "% non-storable input, the loading table rebuilt on its ledger (6 Oct 2026); the 2026 profile of 30 Sep (observations to 29 Sep,",

@@ -688,6 +688,22 @@ allowed:
   - file: main.tex
     text: 'an interaction that four weeks of normal water in between'
     why: '5 Nov 2026 rewrite (patch_stale_claims_20261105.py); design: the gap of four weeks of the wave-isolation runs (wave_<tag>_AB_gap4)'
+  # 5 Nov 2026 pending fix (patch_pending_20261105.py); literals the fixed text keeps
+  - file: main.tex
+    text: 'and the fleet last in \FleetLastDraws{} of ten'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); design: ten further networks'
+  - file: main.tex
+    text: 'and the fleet last on \FleetLastDraws{} of ten'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); design: ten further networks'
+  - file: main.tex
+    text: 'missed the end-of-September episode by 15 to 44\,cm'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); data: scenarios/2026.csv, the outlook of 7 September (previous values 22 and 42 cm) against the observed weekly means of the weeks of 21 and 28 September (6.6 and -1.7 cm); the Methods give 22 and 42 against 7 and -2'
+  - file: main.tex
+    text: 'of the forty largest seaports are within 30\,\% of the Eurostat counts'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); design: the forty largest seaports by gross weight handled (Eurostat 2023, Table S-ports) and the 30 % threshold of the count'
+  - file: main.tex
+    text: 'a week in week 24 to \CatchUpLastM~million in week 43'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); design: week 24 is the first recovery week after the 23 weeks of the 2026 profile, week 43 the last week of the run'
 claims:
   # ---------------------------------------------------------------- abstract and introduction
   - file: main.tex
@@ -1000,64 +1016,35 @@ claims:
     expr: 'RevRailHundredFortyAbs'
     range: [50.5, 75]
     why: 'result: rail 140 kt (upper end); more than a half = 50.5-75'
-pending:
-  - file: main.tex
-    text: 'The Lower Rhine north of Duisburg and the Dutch delta carry 10 to 25\,\% less than observed'
-    note: 'model output, no macro: add to make_numbers.py (source: baseline Rhine flows vs CCNR counts, SI S2); also inconsistent with SI S2, where the Waal at Tiel is 84 vs 125 Mt (-33 %) and the delta below Dordrecht 102 vs 140 (-27 %)'
-  - file: main.tex
-    text: 'the Upper Rhine above Mannheim carries half to two thirds of the counts'
-    note: 'model output, no macro: add to make_numbers.py (source: SI S2 Basel 2.6/5.5, Strasbourg 10/16, Karlsruhe 13/22 = 47-62 %)'
+  # 5 Nov 2026 pending fix (patch_pending_20261105.py); words bound to the new macros
   - file: main.tex
     text: 'two and a half months after the benchmark'
-    note: 'model output, no macro: onset of the loss in the floor (priced river with closures) representation, late October 2018 vs August (SI S9); add the onset week to make_numbers.py'
+    expr: 'PricedOnsetLagMonths'
+    range: [2.25, 2.75]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: priced river with closures (2018_r6_bycargo_priced), first week of German loss against the first day of the benchmark''s first month of shortfall (August; the benchmark is monthly); two and a half months = 2.25-2.75'
   - file: main.tex
-    text: 'with the peak in the week of 5 or 12 October in every version'
-    note: 'model output, no macro; inconsistent with the batch: the reference run peaks in run week 18 (DEU_peak_week, tables/si_runs, the comment of \DEUpeakWeek), the week of 19 October when week 1 = 22 June as make_numbers.py states; only the ten further networks peak in weeks 16-17 (5 and 12 October)'
+    text: '\,\% with four, and \finalbatch{\WaveInterEightAbs}\,\% less with eight'
+    expr: 'WaveInterEight'
+    range: [-100, -0.05]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); sign: eight weeks apart the sequence costs less than the sum of the episodes (the explanation that follows needs a negative value); four and eight = design (gap4, gap8)'
   - file: main.tex
-    text: 'of a week''s value added in the week of 12 October'
-    note: 'inconsistent: the peak of \DEUpeakWeek is run week 18 = week of 19 October (week 1 = 22 June), not 12 October; model output (a date) with no macro'
+    text: 'two thirds in its food chain'
+    expr: 'FRAFoodShare'
+    range: [62, 71]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: France''s gross loss in crops (A01) and the food industry (C10-12), % of its loss, reference network; two thirds = 62-71'
   - file: main.tex
-    text: '\,\% with four, and 3\,\% less with eight'
-    note: 'model output hard-coded: use \WaveInterEight (value -0.9: about 1 % less, not 3 %); four and eight are the gap design'
+    text: 'a sixth in road transport'
+    expr: 'FRARoadShare'
+    range: [15, 18.5]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: France''s gross loss in land transport (H49), % of its loss; a sixth = 15-18.5'
   - file: main.tex
-    text: 'even when its rate rises twentyfold'
-    note: 'unsure: twentyfold matches neither the model''s largest surcharge (1/0.08 = 12.5 at the loading floor, less on the Lower Rhine) nor the multiples the paper cites (2.5x dry cargo in 2018, EUR 45 -> 200 = 4.4x for tankers in 2026)'
+    text: 'which sits below the median of both events'
+    expr: 'EnsMedian - DEUlossQ'
+    range: [0.005, 10]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: 2026 reference network (\DEUlossQ) below the median of the eleven networks'
   - file: main.tex
-    text: 'About 10\% of the tonnage that is cut is rerouted'
-    note: 'model output hard-coded: use \ResentShare (value 7: % of the tonnage cut at the gates that finds another route, weeks 12-19)'
-  - file: main.tex
-    text: 'three-fifths in its food chain and a fifth in road transport'
-    note: 'model output, no macro: add France''s loss by sector chain to make_numbers.py (source: firm losses of 2026_r6_bycargo_base)'
-  - file: main.tex
-    text: 'Spain, Austria, and the Netherlands lose about 0.2~billion each'
-    note: 'model output, no macro; the batch table compare_runs_batch_jobs_20261102_main.csv gives AUT 218 but NLD 107 mUSD (0.1 bn); Spain not in the table'
-  - file: main.tex
-    text: 'French households among them; German inputs play no part in it'
-    note: 'inconsistent: SI S5 lists German inputs (1.2 bn) next to the farm products (0.5 bn) as the largest missing deliveries of French buyers'
-  - file: main.tex
-    text: 'and the fleet last in nine of ten'
-    note: 'model output hard-coded: use \FleetLastDraws (value seven)'
-  - file: main.tex
-    text: 'and the fleet last on nine of ten'
-    note: 'model output hard-coded: use \FleetLastDraws (value seven)'
-  - file: main.tex
-    text: 'missed the end-of-September episode by 20 to 40\,cm'
-    note: 'inconsistent: Methods (l. 223) gives the 7 Sep outlook at 22 and 42 cm against observed 7 and -2 for the weeks of 21 and 28 September, misses of 15 and 44 cm (data: scenarios/2026.csv previous values)'
-  - file: main.tex
-    text: 'which sits in the upper half of the distribution of both events'
-    note: 'model output, no macro; inconsistent with the batch of 2 Nov (tables/si_runs): the reference network ranks 5th of 11 in 2026 (1.11, median 1.14) and 3rd of 11 in 2018 (0.52, median 0.61), the lower half'
-  - file: main.tex
-    text: 'the Mediterranean and Atlantic ports are within 30\,\% of the Eurostat counts while the North Sea ports are not'
-    note: 'model output, no macro (port residuals, SI S2 / tab:ports); also inconsistent with SI S2: Hamburg (North Sea) within 10 %, the Venice lagoon (205 vs 28 Mt) and Malaga (26 vs 2) far outside 30 %'
-  - file: main.tex
-    text: 'changes the tonnage turned away by less than 1\,\% in both years'
-    note: 'unsure: daily vs weekly loading share; computed from the profiles and the table (data) or from runs? no macro'
-  - file: main.tex
-    text: 'decays from 300 million USD a week in week 24 to 5 million in week 43, by about a fifth a week'
-    note: 'model output, no macro: add to make_numbers.py (source: catch-up production of goods and construction, 2026_r6_bycargo_base)'
-  - file: main.tex
-    text: 'the catch-up that a longer run would add is about 1\,\% of the backlog left at the end'
-    note: 'model output, no macro: add to make_numbers.py (source: the same catch-up series)'
-  - file: main.tex
-    text: 'the model puts refining about 15\,\% and chemicals about 10\,\% below baseline in August and October'
-    note: 'model output, no macro: from tables/si_prospective_sectors (si_tables.py: refining 12.1/14.9, chemicals 8.8/11.6 in Aug/Oct); bind to macros'
+    text: 'which sits below the median of both events'
+    expr: 'EnsMedianyy - DEUlossQyy'
+    range: [0.005, 10]
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: 2018 reference network (\DEUlossQyy) below the median of the eleven networks'
+pending:

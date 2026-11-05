@@ -1,0 +1,2606 @@
+# Reviewed fixes of the gate's pending literals (5 Nov 2026), merged from the three section drafts; applied by
+# patch_pending_20261105.py. One entry per pending ledger entry (kinds: use_macro, new_macro, correct, allow, keep).
+- pending: The Lower Rhine north of Duisburg and the Dutch delta carry 10 to 25\,\% less than observed
+  kind: new_macro
+  old: The Lower Rhine north of Duisburg and the Dutch delta carry 10 to 25\,\% less than observed
+  new: The Lower Rhine from Duisburg to Nijmegen carries \LowerRhineGapMin{} to \LowerRhineGapMax\,\% less than observed and the Dutch delta from Tiel to Rotterdam \DeltaGapMin{} to \DeltaGapMax\,\% less
+  macros:
+  - name: LowerRhineGapMin
+    value_now: '10'
+    code: "# inside 'if kf is not None:' of the river block, after put(\"KaubContShare\", ...); _json is imported there.\n# The Rhine residuals of the baseline (SI S2): reach tonnage as flow_score.py computes it (km-weighted mean over\n# the edges of each rhine_* reach, weekly tons x 52) against the normal-year counts of rhine_capacities.csv.\n# This block also writes LowerRhineGapMax, DeltaGapMin, DeltaGapMax, UpperRhineShareMin, UpperRhineShareMax.\nacc = {}\nfor f_ in _json.load(open(kf, encoding=\"utf-8\"))[\"features\"]:\n    pp = f_[\"properties\"]; nm = str(pp.get(\"name\") or \"\")\n    if nm.startswith(\"rhine_\"):\n        km_ = float(pp.get(\"km\") or 0.0); a_ = acc.setdefault(nm, [0.0, 0.0])\n        a_[0] += float(pp.get(\"flow_total_tons\") or 0.0) * 52 / 1e6 * km_; a_[1] += km_\ncnt = pd.read_csv(HERE / \"scenarios\" / \"rhine_capacities.csv\").set_index(\"name\").mt_per_year\nrat = {k: (v[0] / v[1]) / cnt[k] for k, v in acc.items() if v[1] > 0 and k in cnt.index}\nLOWER = [\"rhine_duisburg\", \"rhine_duisburg_wesel\", \"rhine_wesel\", \"rhine_wesel_emmerich\", \"rhine_emmerich\", \"rhine_emmerich_nijmegen\", \"rhine_nijmegen\", \"rhine_nijmegen_tiel\"]\nDELTA = [\"rhine_tiel\", \"rhine_tiel_dordrecht\", \"rhine_dordrecht\", \"rhine_dordrecht_rotterdam\"]\nUPPER = [\"rhine_basel\", \"rhine_strasbourg\", \"rhine_karlsruhe\"]\nput(\"LowerRhineGapMin\", pct(100 * (1 - max(rat[k] for k in LOWER))), \"% below the normal-year count, the Lower Rhine from Duisburg to Nijmegen (km-weighted reach tonnage, as flow_score.py; rhine_capacities.csv), smallest gap\")\nput(\"LowerRhineGapMax\", pct(100 * (1 - min(rat[k] for k in LOWER))), \"largest gap (Duisburg)\")\nput(\"DeltaGapMin\", pct(100 * (1 - max(rat[k] for k in DELTA))), \"% below the count, the Waal from Tiel and the delta to Rotterdam, smallest gap\")\nput(\"DeltaGapMax\", pct(100 * (1 - min(rat[k] for k in DELTA))), \"largest gap\")\nput(\"UpperRhineShareMin\", pct(100 * min(rat[k] for k in UPPER)), \"% of the count at Basel, Strasbourg and Karlsruhe (the cross-sections of SI S2), smallest\")\nput(\"UpperRhineShareMax\", pct(100 * max(rat[k] for k in UPPER)), \"largest\")\n"
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base/transport_edges_with_flows_0.geojson + studies/rhine2026/scenarios/rhine_capacities.csv (identical to C:/dsc_runs/rhine2026/r6_h01_feeder3/flow_score/rhine.csv, the source of SI S2)
+  - name: LowerRhineGapMax
+    value_now: '25'
+    code: '# written by the LowerRhineGapMin block
+
+      '
+    source: as LowerRhineGapMin
+  - name: DeltaGapMin
+    value_now: '27'
+    code: '# written by the LowerRhineGapMin block
+
+      '
+    source: as LowerRhineGapMin
+  - name: DeltaGapMax
+    value_now: '37'
+    code: '# written by the LowerRhineGapMin block
+
+      '
+    source: as LowerRhineGapMin
+  ledger: []
+  evidence: 'Reach tonnage / count, reference run = r6_h01_feeder3 flow_score/rhine.csv (checked reach by reach): Duisburg 0.749, Duisburg-Wesel 0.877, Wesel 0.892, Wesel-Emmerich 0.895, Emmerich 0.896, Emmerich-Nijmegen 0.894, Nijmegen 0.879, Nijmegen-Tiel 0.864 (10-25 % less); Tiel 0.670, Tiel-Dordrecht 0.651, Dordrecht 0.625, Dordrecht-Rotterdam 0.727 (27-37 % less). The literal 10-25 % holds for the Lower Rhine but not for the delta, which SI S2 gives as the Waal at Tiel 84 vs 125 and below Dordrecht 102 vs 140.'
+  decision: 'The sentence now gives the delta its own, larger gap (27-37 % instead of inside 10-25 %). Reach groups chosen here: Lower Rhine = Duisburg to Nijmegen-Tiel, delta = Tiel to Rotterdam (the SI''s "Waal at Tiel" and "delta below Dordrecht"); the author may prefer to cut at the border (Emmerich), which puts the Nijmegen reaches (11-14 %) in the delta range.'
+  confidence: high
+  file: main.tex
+  section: main
+- pending: the Upper Rhine above Mannheim carries half to two thirds of the counts
+  kind: new_macro
+  old: the Upper Rhine above Mannheim carries half to two thirds of the counts
+  new: the Upper Rhine above Mannheim carries \UpperRhineShareMin{} to \UpperRhineShareMax\,\% of the counts
+  macros:
+  - name: UpperRhineShareMin
+    value_now: '47'
+    code: '# written by the LowerRhineGapMin block (proposal of ''The Lower Rhine north of Duisburg ...'')
+
+      '
+    source: as LowerRhineGapMin
+  - name: UpperRhineShareMax
+    value_now: '62'
+    code: '# written by the LowerRhineGapMin block
+
+      '
+    source: as LowerRhineGapMin
+  ledger: []
+  evidence: 'Basel 2.59 / 5.5 = 0.471, Strasbourg 9.93 / 16 = 0.620, Karlsruhe 13.36 / 22 = 0.607 (the three cross-sections SI S2 quotes): 47-62 %. "Half to two thirds" overstates the upper end (62 is nearer three fifths). The two links between the gauges are outside the range (Basel-Strasbourg 0.30, Karlsruhe-Mannheim 0.74).'
+  decision: 'Numbers instead of words. Alternative that keeps the words: "about half to three fifths of the counts" with two claims (UpperRhineShareMin in [45, 55], UpperRhineShareMax in [57, 63]). SI S2 l. 31 repeats "half to two thirds" (the si.tex agents'' scope): keep the two in step.'
+  confidence: high
+  file: main.tex
+  section: main
+- pending: two and a half months after the benchmark
+  kind: new_macro
+  old: losses only start in late October
+  new: losses only start in the week of \PricedOnsetDate
+  macros:
+  - name: PricedOnsetDate
+    value_now: 22~October
+    code: '# after put("PricedIntC", ...) (the priced river block); ''priced'' and ''rt'' (record(2018, 1)) are defined above.
+
+      from matched_estimand_2018 import FIRST as FIRST_PK
+
+      fpr = firm_losses(RUNS / priced[1.0]); wpr = fpr[(fpr.region == "DEU") & (fpr.time_step >= 1)].groupby("time_step").loss.sum()
+
+      on = int(wpr[wpr > 0.01 * wpr.max()].index.min()); d_on = FIRST_PK[2018] + pd.Timedelta(days=7 * (on - 1))
+
+      put("PricedOnsetDate", f"{d_on.day}~{d_on.strftime(''%B'')}", f"first week of German loss in the priced river with closures ({priced[1.0]}, week {on}, > 1 % of its worst week)")
+
+      rec0 = pd.Timestamp(next(mo for mo, v in zip(rt.month, rt.central) if mo in EVENT_MONTHS[2018] and v > 0) + "-01")
+
+      put("PricedOnsetLagMonths", r1((d_on - rec0).days / 30.44), f"months from the first day of the benchmark''s first month of shortfall ({rec0:%B}) to that week")
+
+      '
+    source: C:/dsc_runs/rhine2026/2018_r6_bycargo_priced/firm_data.csv; benchmark_ademmer.record(2018, 1)
+  - name: PricedOnsetLagMonths
+    value_now: '2.7'
+    code: '# written by the PricedOnsetDate block
+
+      '
+    source: as PricedOnsetDate
+  ledger:
+  - kind: claims
+    text: two and a half months after the benchmark
+    expr: PricedOnsetLagMonths
+    range:
+    - 2.25
+    - 2.75
+    why: 'result: priced river with closures (2018_r6_bycargo_priced), first week of German loss against the first day of the benchmark''s first month of shortfall (August; the benchmark is monthly); two and a half months = 2.25-2.75'
+  evidence: German weekly loss of 2018_r6_bycargo_priced is zero in weeks 1-14 and 260 mUSD in week 15 (22 October 2018; week 1 = 16 July), as SI S9 says ("starts its losses in the week of 22 October"); the benchmark's first month with a shortfall is August (RecAug 0.99). 1 Aug -> 22 Oct = 82 days = 2.7 months, so the words hold. The pending snippet stays in the text, now bound by the claim; the change of "late October" to the macro makes the date a model output the next batch updates.
+  decision: ''
+  confidence: high
+  file: main.tex
+  section: main
+- pending: with the peak in the week of 5 or 12 October in every version
+  kind: new_macro
+  old: with the peak in the week of 5 or 12 October in every version
+  new: with the peak between the weeks of \finalbatch{\PeakDateFirst} and \finalbatch{\PeakDateLast} in every version
+  macros:
+  - name: PeakDateFirst
+    value_now: 5~October
+    code: "# after the ensemble lines of the 2026 baseline (put(\"EnsMeanBn\", ...)); also writes DEUpeakDate and EnsMedian.\nfrom matched_estimand_2018 import FIRST as FIRST_PK\n\ndef wk_date(y, t):\n    d_ = FIRST_PK[y] + pd.Timedelta(days=7 * (int(t) - 1))\n    return f\"{d_.day}~{d_.strftime('%B')}\"\n\npk26 = [int(p.loc[f\"2026_{tag}_seed{s}_base\", \"DEU_peak_week\"]) for s in range(1, 11)] + [int(b.DEU_peak_week)]\nput(\"DEUpeakDate\", wk_date(2026, b.DEU_peak_week), f\"Monday of the peak week of the reference run (week {int(b.DEU_peak_week)}; week 1 = 22 June 2026)\")\nput(\"PeakDateFirst\", wk_date(2026, min(pk26)), f\"earliest peak week over the eleven networks (week {min(pk26)})\")\nput(\"PeakDateLast\", wk_date(2026, max(pk26)), f\"latest peak week over the eleven networks (week {max(pk26)})\")\nput(\"EnsMedian\", r2(np.median(e26)), \"2026, median of the eleven networks, % of a quarter\")\n"
+    source: studies/rhine2026/additional_data/compare_runs_batch_jobs_20261102_main.csv and _paired.csv (DEU_peak_week)
+  - name: PeakDateLast
+    value_now: 19~October
+    code: '# written by the PeakDateFirst block
+
+      '
+    source: as PeakDateFirst
+  ledger: []
+  evidence: 'DEU_peak_week: reference run week 18 (19 October; week 1 = 22 June 2026), seed1 week 16 (5 October), seeds 2-10 week 17 (12 October). The literal leaves out the reference network, which peaks a week later than the ten others.'
+  decision: 'Correction of the stated weeks (the reference network peaks on 19 October). Alternative wording: "in the week of 12 October on nine of the ten further networks (5 October on one) and of 19 October on the reference". The Fig. 5 caption (l. 144) says the peak week is "mid-October 2026"; with week 18 (19-25 October) it is late October (outside this entry, no pending entry).'
+  confidence: high
+  file: main.tex
+  section: main
+- pending: of a week's value added in the week of 12 October
+  kind: new_macro
+  old: of a week's value added in the week of 12 October
+  new: of a week's value added in the week of \finalbatch{\DEUpeakDate}
+  macros:
+  - name: DEUpeakDate
+    value_now: 19~October
+    code: '# written by the PeakDateFirst block (proposal of ''with the peak in the week of 5 or 12 October ...'')
+
+      '
+    source: compare_runs_batch_jobs_20261102_main.csv, 2026_r6_bycargo_base DEU_peak_week = 18
+  ledger: []
+  evidence: The peak of \DEUpeakWeek (2.1 % of a week) is run week 18 (numbers.tex comment, tables/si_runs), the week of 19 October with week 1 = 22 June 2026 (matched_estimand_2018.FIRST); the literal 12 October is week 17, the peak of nine of the ten further networks.
+  decision: ''
+  confidence: high
+  file: main.tex
+  section: main
+- pending: \,\% with four, and 3\,\% less with eight
+  kind: new_macro
+  old: and 3\,\% less with eight
+  new: and \finalbatch{\WaveInterEightAbs}\,\% less with eight
+  macros:
+  - name: WaveInterEightAbs
+    value_now: '0.9'
+    code: '# after put("WaveInterEight", ...)
+
+      put("WaveInterEightAbs", f"{abs(100 * (gaps[8] - A - Bw) / (A + Bw)):.1f}", "the same, without its sign")
+
+      '
+    source: compare_runs_batch_jobs_20261102_main.csv (wave_r6_bycargo_A, _B, _AB_gap8)
+  ledger:
+  - kind: claims
+    text: \,\% with four, and \finalbatch{\WaveInterEightAbs}\,\% less with eight
+    expr: WaveInterEight
+    range:
+    - -100
+    - -0.05
+    why: 'sign: eight weeks apart the sequence costs less than the sum of the episodes (the explanation that follows needs a negative value); four and eight = design (gap4, gap8)'
+  evidence: 'gap8 0.951 % of a quarter against A + B = 0.960: -0.94 % (numbers.tex \WaveInterEight = -0.9); the literal 3 % is stale (about 1 %). Gaps 1, 2, 4: +11.9, +9.1, +4.9 (\WaveInterOne 12, \WaveInterFour 5, as the text has them).'
+  decision: ''
+  confidence: high
+  file: main.tex
+  section: main
+- pending: even when its rate rises twentyfold
+  kind: correct
+  old: even when its rate rises twentyfold (Supplementary Section~S5); shippers paid such multiples in 2018 and 2026
+  new: even when its rate is multiplied by \SurchargeMax, the model's surcharge at the lowest loading (Supplementary Section~S5); shippers paid several times the normal rate in 2018 and 2026
+  macros:
+  - name: SurchargeMax
+    value_now: '12.5'
+    code: '# in the river block, after the loading-table loop (after put("KaubMinWeek", ...), outside the loop)
+
+      put("SurchargeMax", r1(1 / dt.load_factor.min()), "the largest freight multiplier of the model: the inverse of the lowest loading share (below 5 cm)")
+
+      '
+    source: studies/rhine2026/scenarios/draught_table.csv (load_factor 0.08 below 5 cm)
+  ledger: []
+  evidence: 'The surcharge is the inverse of the loading share (Methods), so the model''s largest multiplier is 1 / 0.08 = 12.5 at the floor (\KaubMinWeek = 8 % in the worst week of 2026), less on the Lower Rhine. Twentyfold matches neither the model nor the multiples the paper cites: dry cargo x2.5 in 2018 (Introduction, ccnr2019), tankers EUR 45 -> over 200 = x4.4 in 2026 (Introduction, reuters2026 / icis2026). "Such multiples" (twentyfold) is therefore unsupported; "several times the normal rate" is what the cited evidence carries.'
+  decision: 'Choose: (a) as proposed, the model''s 12.5 bound to a macro and the observed multiples softened to "several times"; (b) keep the sentence model-free: "even when its rate rises severalfold (Supplementary Section~S5), as shippers'' rates did in 2018 and 2026" (allowed entry, no macro); (c) keep twentyfold only with a source for a ~20x rate (none in refs.bib that I found). Check that contargo2026 (low-water surcharge table) supports "several times".'
+  confidence: medium
+  file: main.tex
+  section: main
+- pending: About 10\% of the tonnage that is cut is rerouted
+  kind: use_macro
+  old: About 10\% of the tonnage that is cut is rerouted
+  new: In the autumn episode, about \finalbatch{\ResentShare}\,\% of the tonnage that is cut is rerouted
+  ledger: []
+  evidence: '\ResentShare = 7 (unused so far): re-sent / cut at the gates, weeks 12-19 (7 September - 1 November), from the gate lines of C:/dsc_runs/rhine2026/2026_r6_bycargo_base.log. Over the whole profile (weeks 1-23) the share is 9.7 %, which is the literal 10 %; over the run (1-43) 22 %, because the gate keeps cutting the backlog of the recovery weeks and re-sends three quarters of it.'
+  decision: 'The literal matches the whole low-water season (weeks 1-23: 9.7 %), the macro the autumn episode (7 %). Proposed: the existing macro with "In the autumn episode". Alternative: a new macro over weeks 1 to the profile length (put("ResentShareSeason", pct(...)) with the same log parse, value 10) and the sentence unchanged apart from the macro.'
+  confidence: high
+  file: main.tex
+  section: main
+- pending: three-fifths in its food chain and a fifth in road transport
+  kind: new_macro
+  old: three-fifths in its food chain and a fifth in road transport
+  new: two thirds in its food chain and a sixth in road transport
+  macros:
+  - name: FRAFoodShare
+    value_now: '66'
+    code: "# after put(\"FRAlossBn\", ...); fd = firm_losses(RUNS / B) holds every region. Also writes FRARoadShare, ESPlossBn, AUTlossBn, NLDlossBn.\nfr = fd[(fd.region == \"FRA\") & (fd.time_step >= 1)]; frt = fr.loss.sum()\nput(\"FRAFoodShare\", pct(100 * fr[fr.sector.isin([\"A01\", \"C10T12\"])].loss.sum() / frt), \"% of France's gross loss in crops (A01) and the food industry (C10-12)\")\nput(\"FRARoadShare\", pct(100 * fr[fr.sector == \"H49\"].loss.sum() / frt), \"% of France's gross loss in land transport (H49)\")\nfor cc in (\"ESP\", \"AUT\", \"NLD\"):\n    put(f\"{cc}lossBn\", r1(fd[fd.region == cc].loss.sum() / 1e3), f\"bn USD, {cc} gross value-added loss, reference network (firm_data)\")\n"
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base/firm_data.csv (read_batch_20261007.firm_losses)
+  - name: FRARoadShare
+    value_now: '17'
+    code: '# written by the FRAFoodShare block
+
+      '
+    source: as FRAFoodShare
+  ledger:
+  - kind: claims
+    text: two thirds in its food chain
+    expr: FRAFoodShare
+    range:
+    - 62
+    - 71
+    why: 'result: France''s gross loss in crops (A01) and the food industry (C10-12), % of its loss, reference network; two thirds = 62-71'
+  - kind: claims
+    text: a sixth in road transport
+    expr: FRARoadShare
+    range:
+    - 15
+    - 18.5
+    why: 'result: France''s gross loss in land transport (H49), % of its loss; a sixth = 15-18.5'
+  evidence: 'France 1,568 mUSD (= FRA_cum_mUSD of the batch, \FRAlossBn 1.6): food industry C10-12 51.7 %, crops A01 14.8 % (together 66.4 %; with A02-A03 67.5 %), land transport H49 16.7 %, hospitality 6.1 %. The literal three fifths / a fifth is stale (two thirds / a sixth).'
+  decision: ''
+  confidence: high
+  file: main.tex
+  section: main
+- pending: Spain, Austria, and the Netherlands lose about 0.2~billion each
+  kind: new_macro
+  old: lose about 0.2~billion each
+  new: lose \finalbatch{\ESPlossBn}, \finalbatch{\AUTlossBn} and \finalbatch{\NLDlossBn}~billion USD
+  macros:
+  - name: ESPlossBn
+    value_now: '0.3'
+    code: '# written by the FRAFoodShare block (proposal of ''three-fifths in its food chain ...'')
+
+      '
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base/firm_data.csv
+  - name: AUTlossBn
+    value_now: '0.2'
+    code: '# written by the FRAFoodShare block
+
+      '
+    source: as ESPlossBn (equals AUT_cum_mUSD 218 of compare_runs_batch_jobs_20261102_main.csv)
+  - name: NLDlossBn
+    value_now: '0.1'
+    code: '# written by the FRAFoodShare block
+
+      '
+    source: as ESPlossBn (equals NLD_cum_mUSD 107 of the batch table)
+  ledger: []
+  evidence: 'Gross value-added loss by economy, reference network: DEU 10,606, FRA 1,568, ESP 287, AUT 218, NLD 107, CZE 56 mUSD; the three are the next after France, in that order. The literal "about 0.2 each" holds for Austria only (Spain 0.3, the Netherlands 0.1). Sector attributions of the sentence hold: Spain A01 78 %; Austria H49 39 % + H52 35 %; the Netherlands B06 31 % + C19 21 %, but also A01 27 %.'
+  decision: ''
+  confidence: high
+  file: main.tex
+  section: main
+- pending: French households among them; German inputs play no part in it
+  kind: correct
+  old: French households among them; German inputs play no part in it
+  new: French households among them. French buyers also miss German deliveries, chemicals and power above all (Supplementary Section~S5), most of them to households and to chemical and power plants whose output barely moves; German fuel is part of what the hauliers miss
+  ledger: []
+  evidence: 'link_flows_disrupted.csv.gz of 2026_r6_bycargo_full, buyers in France, weeks >= 1, shortfall = base_realized - realized_delivery clipped at 0: from French sellers 3,607 mUSD, from German sellers 959 (C20 497, D 148, C19 112, H49 99, C23 47; buyers: households 349, C20 126, D 93, F 70, A01 44, H49 28). French C20 and D lose 0.02 and 0.06 % of France''s loss (firm_data). The hauliers (FRA H49) miss 67 mUSD of deliveries, of which 28 from Germany (German C19 25, the largest single source; French C19 13). So German inputs are short and part of the hauliers'' fuel is German: "no part" is wrong, as the note says. SI S5 gives German inputs as 1.2 bn; I get 0.96 bn with this definition (a stale SI number or another definition: for the si.tex agents).'
+  decision: 'The new sentence is a judgement on attribution (the model gives shortfalls by link, not a causal split of France''s loss). Shorter option: "French households among them; German inputs, the largest of the deliveries French buyers miss (Supplementary Section~S5), cost little French output beyond part of the hauliers'' fuel".'
+  confidence: medium
+  file: main.tex
+  section: main
+- pending: and the fleet last in nine of ten
+  kind: use_macro
+  old: and the fleet last in nine of ten
+  new: and the fleet last in \FleetLastDraws{} of ten
+  ledger:
+  - kind: allowed
+    text: and the fleet last in \FleetLastDraws{} of ten
+    why: 'design: ten further networks'
+  evidence: '\FleetLastDraws = seven: of the four single levers the fleet avoids the least in draws 1, 2, 5, 6, 7, 8, 10; the targeted inventories are last in draws 3, 4, 9 (fleet 33.0 vs targeted 30.8; 26.0 vs 23.1; 27.1 vs 20.2). The fleet is also last on the reference network (24 against 28 for the targeted week). Inventories or fairway first in all ten and on the reference: holds. Inventories ahead in four of ten: holds.'
+  decision: With seven of ten "the ranking holds across the eleven networks" is softer than it reads; the author may add "(the targeted inventories in the other three)".
+  confidence: high
+  file: main.tex
+  section: main
+- pending: and the fleet last on nine of ten
+  kind: use_macro
+  old: and the fleet last on nine of ten
+  new: and the fleet last on \FleetLastDraws{} of ten
+  ledger:
+  - kind: allowed
+    text: and the fleet last on \FleetLastDraws{} of ten
+    why: 'design: ten further networks'
+  evidence: 'As the entry above: \FleetLastDraws = seven (numbers.tex), the literal nine is stale.'
+  decision: ''
+  confidence: high
+  file: main.tex
+  section: main
+- pending: missed the end-of-September episode by 20 to 40\,cm
+  kind: correct
+  old: episode by 20 to 40\,cm
+  new: episode by 15 to 44\,cm
+  ledger:
+  - kind: allowed
+    text: missed the end-of-September episode by 15 to 44\,cm
+    why: 'data: scenarios/2026.csv, the outlook of 7 September (previous values 22 and 42 cm) against the observed weekly means of the weeks of 21 and 28 September (6.6 and -1.7 cm); the Methods give 22 and 42 against 7 and -2'
+  evidence: 'scenarios/2026.csv notes: week of 21 Sep observed 6.6, previous value 22.0 (forecast); week of 28 Sep -1.7 (two observed days + outlook), previous value 42.0. Misses 15.4 and 43.7 cm; Methods l. 223 states the same values (22 and 42 cm against 7 and -2). The week of 14 Sep (12 against 25, 13 cm too low) is not part of the end-of-September episode.'
+  decision: ''
+  confidence: high
+  file: main.tex
+  section: main
+- pending: which sits in the upper half of the distribution of both events
+  kind: new_macro
+  old: which sits in the upper half of the distribution of both events
+  new: which sits below the median of both events
+  macros:
+  - name: EnsMedian
+    value_now: '1.14'
+    code: '# written by the PeakDateFirst block (proposal of ''with the peak in the week of 5 or 12 October ...'')
+
+      '
+    source: compare_runs_batch_jobs_20261102_paired.csv + _main.csv (DEU_%quarter of the eleven 2026 networks)
+  - name: EnsMedianyy
+    value_now: '0.61'
+    code: '# after put("EnsMeanyy", ...) of the 2018 block (e18 defined on the line before)
+
+      put("EnsMedianyy", r2(np.median(e18)), "2018, median of the eleven networks, % of a quarter")
+
+      '
+    source: compare_runs_batch_jobs_20261102_main.csv (DEU_%quarter of the eleven 2018 networks)
+  ledger:
+  - kind: claims
+    text: which sits below the median of both events
+    expr: EnsMedian - DEUlossQ
+    range:
+    - 0.005
+    - 10
+    why: 'result: 2026 reference network (\DEUlossQ) below the median of the eleven networks'
+  - kind: claims
+    text: which sits below the median of both events
+    expr: EnsMedianyy - DEUlossQyy
+    range:
+    - 0.005
+    - 10
+    why: 'result: 2018 reference network (\DEUlossQyy) below the median of the eleven networks'
+  evidence: '2026: sorted 0.38 0.51 0.92 1.00 [1.11 reference] 1.14 1.27 1.36 1.42 1.45 1.76 (fifth of eleven from the bottom, median 1.14); 2018: 0.12 0.23 [0.52 reference] 0.55 0.55 0.61 0.63 0.76 0.82 0.87 1.11 (third from the bottom, median 0.61). Lower half in both events, not upper.'
+  decision: Reverses the stated position of the reference network (upper -> lower half). It still supports "not selected on its results"; the author may add the positions ("fifth and third of the eleven from the bottom").
+  confidence: high
+  file: main.tex
+  section: main
+- pending: the Mediterranean and Atlantic ports are within 30\,\% of the Eurostat counts while the North Sea ports are not
+  kind: correct
+  old: the Mediterranean and Atlantic ports are within 30\,\% of the Eurostat counts while the North Sea ports are not
+  new: \PortsWithinThirty{} of the forty largest seaports are within 30\,\% of the Eurostat counts, the largest gaps being crude oil, transhipment and imports landed at the coast nearest their buyer, which do not cross Kaub
+  macros:
+  - name: PortsWithinThirty
+    value_now: ten
+    code: '# anywhere in main(), e.g. after the Rhine residuals; the same file si_tables.ports_table reads
+
+      pf = pd.read_csv(RUNS / "r6_h01_feeder3" / "flow_score" / "ports.csv")
+
+      pf = pf[pf.model_mt.notna() & pf.eurostat_mt.notna() & (pf.scored.astype(str).str.lower() == "true")]
+
+      nwin = int(((pf.model_mt / pf.eurostat_mt - 1).abs() <= 0.30).sum())
+
+      put("PortsWithinThirty", WORDS.get(nwin, str(nwin)), f"of the {len(pf)} largest seaports with a connector (the forty of Eurostat 2023 less two) within 30 % of the Eurostat tonnage (r6_h01_feeder3/flow_score/ports.csv, the source of Table S-ports)")
+
+      '
+    source: C:/dsc_runs/rhine2026/r6_h01_feeder3/flow_score/ports.csv
+  ledger:
+  - kind: allowed
+    text: of the forty largest seaports are within 30\,\% of the Eurostat counts
+    why: 'design: the forty largest seaports by gross weight handled (Eurostat 2023, Table S-ports) and the 30 % threshold of the count'
+  evidence: 'Table S-ports (tables/si_ports.tex): within 30 % are Hamburg 0.96, Bremerhaven 0.76, Dunkirk 0.81, Gothenburg 0.98 (North Sea / Kattegat), Le Havre-Rouen 1.06, Bilbao 1.03, Nantes 0.87, Dublin 1.11 (Channel / Atlantic), Marseille 1.08, Genoa 1.03 (Mediterranean): ten of 38 with a connector. Far outside 30 % on the Mediterranean and Atlantic: Algeciras 0.09, Trieste 0.11, Piraeus 0.18, Sines 0.27, Venice 5.59. The literal statement is wrong both ways. The gap mechanisms and "do not cross Kaub" follow SI S2 ("None of this tonnage enters Germany by the river"; the nearest-coast landings'' "hinterlands do not touch the Rhine basin").'
+  decision: 'New wording of a calibration claim; the author may prefer to name the Rhine''s own ports instead, as SI S2 does ("Rotterdam, Antwerp, Amsterdam, Hamburg and Bremerhaven, within 10 to 35 % once crude and transhipment are set aside": a literal for the si.tex agents).'
+  confidence: medium
+  file: main.tex
+  section: main
+- pending: changes the tonnage turned away by less than 1\,\% in both years
+  kind: new_macro
+  old: by less than 1\,\% in both years
+  new: by \DailyTurnedAwayyy\,\% in 2018 and \DailyTurnedAway\,\% over the observed weeks of 2026
+  macros:
+  - name: DailyTurnedAway
+    value_now: '0.3'
+    code: "# in the river block after the loading-table loop (dt and lfn defined there); also writes DailyTurnedAwayyy\nfor year, suf in ((2026, \"\"), (2018, \"yy\")):\n    prof_ = pd.read_csv(HERE / \"scenarios\" / f\"{year}.csv\")\n    dly = pd.read_csv(HERE / \"scenarios\" / f\"kaub_daily_{year}.csv\", parse_dates=[\"date\"]).set_index(\"date\").kaub_cm\n    aw = ad_ = 0.0; nw = 0\n    for _, rw in prof_.iterrows():\n        days_ = [pd.Timestamp(rw.week_start) + pd.Timedelta(days=k) for k in range(7)]\n        if all(x in dly.index for x in days_):\n            aw += 1 - lfn(float(rw.kaub_cm)); ad_ += 1 - np.mean([lfn(float(dly[x])) for x in days_]); nw += 1\n    put(f\"DailyTurnedAway{suf}\", r1(abs(100 * (ad_ / aw - 1))), f\"{year}: % change of the tonnage turned away at Kaub (sum of 1 - loading share over the {nw} weeks with seven daily gauges) when the share is computed day by day and averaged over the week instead of read at the weekly mean gauge; signed {100 * (ad_ / aw - 1):+.2f}\")\n"
+    source: studies/rhine2026/scenarios/kaub_daily_2026.csv, kaub_daily_2018.csv, 2026.csv, 2018.csv, draught_table.csv
+  - name: DailyTurnedAwayyy
+    value_now: '0.7'
+    code: '# written by the DailyTurnedAway block
+
+      '
+    source: as DailyTurnedAway
+  ledger: []
+  evidence: 'Turned-away tonnage taken as the sum over the weeks of (1 - loading share) times a constant normal tonnage: 2018, 22 weeks all with daily gauges, +0.69 %; 2026, the 14 weeks with seven daily gauges (22 June - 27 September), -0.31 % (whole profile, forecast weeks unchanged, -0.19 %). With the 2 % headroom of the capacities, max(0, 1 - 1.02 x share), +0.72 and -0.32 %. The literal "less than 1 %" is true; it was a model-input computation without a macro.'
+  decision: 'Alternative that keeps the words: "by less than 1 % in both years" with a claim on max(DailyTurnedAway, DailyTurnedAwayyy) in [0, 0.99] (the old text then stays and only the pending entry is replaced by the claim).'
+  confidence: medium
+  file: main.tex
+  section: main
+- pending: decays from 300 million USD a week in week 24 to 5 million in week 43, by about a fifth a week
+  kind: new_macro
+  old: decays from 300 million USD a week in week 24 to 5 million in week 43, by about a fifth a week
+  new: decays from \CatchUpFirstM~million USD a week in week 24 to \CatchUpLastM~million in week 43, by \CatchUpDecay\,\% a week
+  macros:
+  - name: CatchUpFirstM
+    value_now: '218'
+    code: '# after put("ShareUtilities", ...) of the 2026 baseline (de = German firm losses with base, production, vs); also writes CatchUpLastM, CatchUpDecay, CatchUpTailShare
+
+      gd = de[de.sector.str[:1].isin(list("ABCF")) & (de.time_step >= 1)]
+
+      catch = ((gd.production - gd.base) * gd.vs).clip(lower=0).groupby(gd.time_step).sum()
+
+      t0c, t1c = len(pd.read_csv(HERE / "scenarios" / "2026.csv")) + 1, int(catch.index.max())   # first recovery week, last week of the run
+
+      dec = (catch[t1c] / catch[t0c]) ** (1 / (t1c - t0c))
+
+      put("CatchUpFirstM", f"{catch[t0c]:.0f}", f"mUSD a week, German catch-up production of goods and construction (A-C, F, above baseline, value-added weights), week {t0c}")
+
+      put("CatchUpLastM", r1(catch[t1c]), f"the same, week {t1c}")
+
+      put("CatchUpDecay", pct(100 * (1 - dec)), f"% by which it falls a week, geometric mean of weeks {t0c}-{t1c}")
+
+      put("CatchUpTailShare", r1(100 * catch[t1c] * dec / (1 - dec) / b.DEU_net_deferrable_mUSD), "% of the backlog left at the end (DEU_net_deferrable_mUSD) that the geometric tail after the last week would add")
+
+      '
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base/firm_data.csv; DEU_net_deferrable_mUSD of compare_runs_batch_jobs_20261102_main.csv
+  - name: CatchUpLastM
+    value_now: '1.7'
+    code: '# written by the CatchUpFirstM block
+
+      '
+    source: as CatchUpFirstM
+  - name: CatchUpDecay
+    value_now: '22'
+    code: '# written by the CatchUpFirstM block
+
+      '
+    source: as CatchUpFirstM
+  ledger:
+  - kind: allowed
+    text: a week in week 24 to \CatchUpLastM~million in week 43
+    why: 'design: week 24 is the first recovery week after the 23 weeks of the 2026 profile, week 43 the last week of the run'
+  evidence: 'German catch-up (production above baseline, A-C and F, value-added weights, the definition of revision_diagnostics.horizons): 218 mUSD in week 24 (peak 251 in week 22), 1.7 in week 43, -22.5 % a week on average (last five weeks -24 %). The literals (300 -> 5, a fifth) are those of the batch of 7 October: 2026_s07_base gives 334 -> 5.6 and -19.4 % a week.'
+  decision: ''
+  confidence: high
+  file: main.tex
+  section: main
+- pending: the catch-up that a longer run would add is about 1\,\% of the backlog left at the end
+  kind: new_macro
+  old: is about 1\,\% of the backlog left at the end
+  new: is about \CatchUpTailShare\,\% of the backlog left at the end
+  macros:
+  - name: CatchUpTailShare
+    value_now: '0.2'
+    code: '# written by the CatchUpFirstM block (proposal of ''decays from 300 million USD ...'')
+
+      '
+    source: as CatchUpFirstM
+  ledger: []
+  evidence: 'Geometric tail after week 43: 1.73 x 0.775 / 0.225 = 6.0 mUSD; the backlog left at the end, per firm as the Methods define the net loss, is 3,106 mUSD (= DEU_net_deferrable_mUSD; recomputed 3,106.4): 0.19 %. The literal 1 % is the batch of 7 October measured on the aggregate backlog of revision_diagnostics.horizons (s07: 23.4 / 2,464 = 0.95 %); on that aggregate the current run gives 6.0 / 1,504 = 0.40 %.'
+  decision: 'Which backlog: per firm (the paper''s net loss, 0.2 %, proposed) or the aggregate of the goods sectors (0.4 %, the measure behind the old 1 %). Either way the sentence''s point (the horizon is long enough) holds.'
+  confidence: high
+  file: main.tex
+  section: main
+- pending: the model puts refining about 15\,\% and chemicals about 10\,\% below baseline in August and October
+  kind: new_macro
+  old: refining about 15\,\% and chemicals about 10\,\% below baseline
+  new: refining \finalbatch{\ProspRefAug} and \finalbatch{\ProspRefOct}\,\% and chemicals \finalbatch{\ProspChemAug} and \finalbatch{\ProspChemOct}\,\% below baseline
+  macros:
+  - name: ProspRefAug
+    value_now: '12'
+    code: "# after the signed-quarter block (the same computation as si_tables.prospective_sectors_table); also writes ProspRefOct, ProspChemAug, ProspChemOct\nfrom matched_estimand_2018 import monthly_from_weekly, FIRST as FIRST_MS\nfor code, nm in ((\"C19\", \"Ref\"), (\"C20\", \"Chem\")):\n    sub = de[(de.sector == code) & (de.time_step >= 1)]\n    s_ = 100 * (sub.base - sub.production).groupby(sub.time_step).sum() / sub.base.groupby(sub.time_step).sum()\n    mo_, _ = monthly_from_weekly(s_, FIRST_MS[2026], [\"2026-08\", \"2026-10\"])\n    put(f\"Prosp{nm}Aug\", pct(mo_[\"2026-08\"]), f\"{code}: German production shortfall, August 2026, % (Table S-prospective sectors, {mo_['2026-08']:.1f})\")\n    put(f\"Prosp{nm}Oct\", pct(mo_[\"2026-10\"]), f\"{code}: October 2026 ({mo_['2026-10']:.1f})\")\n"
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base/firm_data.csv (as tables/si_prospective_sectors.tex)
+  - name: ProspRefOct
+    value_now: '15'
+    code: '# written by the ProspRefAug block
+
+      '
+    source: as ProspRefAug
+  - name: ProspChemAug
+    value_now: '9'
+    code: '# written by the ProspRefAug block
+
+      '
+    source: as ProspRefAug
+  - name: ProspChemOct
+    value_now: '12'
+    code: '# written by the ProspRefAug block
+
+      '
+    source: as ProspRefAug
+  ledger: []
+  evidence: 'tables/si_prospective_sectors.tex: refined petroleum 12.1 (Aug) and 14.9 (Oct), chemicals 8.8 and 11.6; the code reproduces them (12.1, 14.9, 8.8, 11.6). "About 15" fits October only for refining; the rest of the sentence holds (cement 13.1 and construction 8.2 deepest in October; every row negative in December).'
+  decision: ''
+  confidence: high
+  file: main.tex
+  section: main
+- pending: containers 1.0 USD per ton-hour on road and rail, 0.35 on the waterway
+  kind: correct
+  old: 0.35 on the waterway
+  new: 0.32 on the waterway
+  ledger:
+  - kind: allowed
+    text: containers 1.0 USD per ton-hour on road and rail, 0.32 on the waterway
+    why: 'data: logistics.cost_of_time of every run of the batches of 2 and 3 November (container default 1.0; --container-water-vot 0.32 in all 141 job lines of cluster/jobs_202611*.txt; 2026_r6_bycargo_base/parameters.yaml container.waterways 0.32)'
+  evidence: '2026_r6_bycargo_base/parameters.yaml cost_of_time.container = {default 1.0, maritime 0.15, waterways 0.32}; every job list of 1-3 Nov passes --container-water-vot 0.32 and none 0.35. S2 itself says 0.32 replaced 0.35. Follow-up outside this scope: Table tab:rates (si_tables.rates_table) still prints "0.35 on the waterway", its caption says "the configuration of the batches of 30 September and 7 October 2026" and the container row says "The model routes the Rhine''s containers by rail" (now 11.6 Mt of containers pass Kaub): the generator needs the same fix.'
+  decision: 'S1 states the values of the batch (proposed). Alternative in the style of S2''s rate changes: keep the first version''s 0.35 and add "(0.32 since the recalibration, Section S2)". Either way tab:rates must follow.'
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: 18--70 days across manufacturing industries
+  kind: correct
+  old: 18--70 days across manufacturing industries
+  new: 18--60 days across manufacturing industries
+  ledger:
+  - kind: allowed
+    text: 18--60 days across manufacturing industries
+    why: 'data: stock targets of Table tab:stocks (C10T12 and C29 18; C21, C26, C27, C301, C302T309 60; inventory_duration_targets.values of 2026_r6_bycargo_base/parameters.yaml)'
+  evidence: Table tab:stocks and the batch config give the manufacturing targets 18 (C10T12, C29) to 60 (C21, C26, C27, C301, C302T309); 70 is the Bundesbank 2023 RHB figure of divisions 26-27 (70.3 d) that the model sets at 60 ("between 2019 and 2023"). C19 (refineries) is 12, from the operators' crude stocks, not from the Bundesbank series the sentence names.
+  decision: Plain 18--60 (proposed, the Bundesbank-based industries); or 12--60 to include refining, or "18--60 ... (refineries 12)".
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: at 0.30 three times the observed tonnage does
+  kind: allow
+  ledger:
+  - kind: allowed
+    text: at 0.30 three times the observed tonnage does
+    why: 'history: calibration round 3 (27 Oct 2026): at a container value of time of 0.30 the runs r3_e04_fees05_cont30 and r3_e06_fees10_cont30 carry 29.6 and 29.3 Mt of containers past Kaub against about 10 observed (CCNR), at 0.32 (r3_e03, r3_e05) 11.5 and 11.4; calibration_log.md 27 Oct "0.32 = 11.5 Mt at Kaub, 0.30 = 30"'
+  evidence: 'transport_edges_with_flows_0.geojson of the round-3 runs, rhine_mainz_koblenz tons_container x 52: r3_e04 29.59, r3_e06 29.28 Mt (VOT 0.30); r3_e03 11.48, r3_e05 11.42 (VOT 0.32). 29.3-29.6 against about 10 = 2.9-3.0 times. A calibration-round result that no batch moves: history.'
+  decision: ''
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: fell from 0.36 for the first version to 0.29
+  kind: new_macro
+  old: fell from 0.36 for the first version to 0.29
+  new: fell from \FlowScoreFirst{} for the first version to \FlowScore
+  macros:
+  - name: FlowScore
+    value_now: '0.29'
+    code: "# ---- the baseline against the freight statistics (SI S2, 5 Nov 2026): the tables of onboarding/scripts/flow_score.py on\n# the batch's baseline. The batch runs were not scored; r6_h01_feeder3, the round-6 base the batch was built on, has the\n# same t=0 flows to the ton (transport_edges_with_flows_0 and transport_nodes identical; flow_score rerun on a copy of\n# 2026_r6_bycargo_base byte-identical, 5 Nov 2026), so its folder stands in until the base run carries a flow_score/.\nFS = RUNS / B / \"flow_score\"\nif not FS.exists():\n    FS = RUNS / {\"s07\": \"2026_s07_flows\"}.get(tag, \"r6_h01_feeder3\") / \"flow_score\"\nfsum = pd.read_csv(FS / \"summary.csv\").set_index(\"block\").loc[\"OVERALL\"]\nput(\"FlowScore\", r2(fsum.mean_abs_log10), f\"flow score of the baseline: weighted mean |log10| model/observation over {int(fsum.n_items)} items ({FS.parent.name})\")\nput(\"FlowScoreFirst\", r2(pd.read_csv(RUNS / \"2026_s07_flows\" / \"flow_score\" / \"summary.csv\").set_index(\"block\").loc[\"OVERALL\", \"mean_abs_log10\"]), \"the same for the first version's baseline (2026_s07_flows)\")\n"
+    source: C:/dsc_runs/rhine2026/r6_h01_feeder3/flow_score/summary.csv (OVERALL 0.28526, 187 items)
+  - name: FlowScoreFirst
+    value_now: '0.36'
+    code: '# put by the block above'
+    source: C:/dsc_runs/rhine2026/2026_s07_flows/flow_score/summary.csv (OVERALL 0.35932)
+  ledger: []
+  evidence: OVERALL mean |log10| 0.285 (r6_h01_feeder3 = the batch baseline, see header) and 0.359 (2026_s07_flows, the first version); calibration_log.md 29 Oct "Flow score 0.285 against the paper's 0.359". Literals match after rounding.
+  decision: 'The FS block reads r6_h01_feeder3/flow_score as a stand-in for the batch base (identical flows, verified). If the author prefers the batch''s own folder: python onboarding/scripts/flow_score.py EU --run C:/dsc_runs/rhine2026/2026_r6_bycargo_base once; the code then reads it (same numbers).'
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: Germany 62 / 26 / 13 against 73 / 21 / 7, the Netherlands 39 / 6 / 55 against 53 / 6 / 41
+  kind: new_macro
+  old: Germany 62 / 26 / 13 against 73 / 21 / 7, the Netherlands 39 / 6 / 55 against 53 / 6 / 41
+  new: Germany \ModalDERoad{} / \ModalDERail{} / \ModalDEIww{} against 73 / 21 / 7, the Netherlands \ModalNLRoad{} / \ModalNLRail{} / \ModalNLIww{} against 53 / 6 / 41
+  macros:
+  - name: ModalDERoad
+    value_now: '62'
+    code: "# inland modal split by country, % of tonne-km road / rail / waterway (Eurostat 2023 in the comment; the text quotes it)\nfcm = pd.read_csv(FS / \"country_modal_split.csv\").set_index(\"geo\")\nfor cc in (\"DE\", \"NL\", \"BE\", \"FR\", \"AT\", \"CH\", \"PL\", \"IT\"):\n    for col, md in ((\"ROAD\", \"Road\"), (\"RAIL\", \"Rail\"), (\"IWW\", \"Iww\")):\n        put(f\"Modal{cc}{md}\", pct(fcm.loc[cc, f\"model_{col}\"]), f\"{cc}: % of inland tkm by {md.lower()} at the baseline ({fcm.loc[cc, f'model_{col}']:.1f}; Eurostat 2023 {fcm.loc[cc, f'target_{col}']:.1f})\")\nput(\"NLTkmBn\", pct(fcm.loc[\"NL\", \"model_bn_tkm\"]), \"bn tkm of inland transport on the Dutch edges at the baseline (Eurostat 2023: 110.8)\")\n"
+    source: C:/dsc_runs/rhine2026/r6_h01_feeder3/flow_score/country_modal_split.csv
+  - name: ModalDERail
+    value_now: '26'
+    code: '# Modal loop above'
+  - name: ModalDEIww
+    value_now: '13'
+    code: '# Modal loop above'
+  - name: ModalNLRoad
+    value_now: '39'
+    code: '# Modal loop above'
+  - name: ModalNLRail
+    value_now: '6'
+    code: '# Modal loop above'
+  - name: ModalNLIww
+    value_now: '55'
+    code: '# Modal loop above'
+  ledger:
+  - kind: allowed
+    text: against 73 / 21 / 7
+    why: 'evidence: Eurostat tran_hv_frmod 2023, Germany, % of inland tkm road / rail / waterway (72.8 / 20.6 / 6.6)'
+  - kind: allowed
+    text: against 53 / 6 / 41
+    why: 'evidence: Eurostat tran_hv_frmod 2023, Netherlands (52.8 / 6.4 / 40.9)'
+  evidence: 'country_modal_split.csv DE 61.61 / 25.59 / 12.81, NL 38.99 / 6.12 / 54.89 (pct: 62 / 26 / 13, 39 / 6 / 55): the literals match. The loop also puts NLTkmBn (39, used in the Dutch-delta entry) and the families of BE, FR, AT, CH, PL, IT.'
+  decision: 'Long list: the macro family keeps the eight countries in the prose (proposed). Alternative: a generated SI table of the modal split (si_tables.py from country_modal_split.csv and nst_modal_split.csv, model and Eurostat side by side, the numbers of Fig. S2), the prose keeping only the pattern (road 8-15 points short where waterways carry freight, rail and waterway over; Switzerland, Poland and Italy within 5 points).'
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: Belgium 63 / 13 / 23 against 78 / 12 / 11, France 81 / 12 / 7 against 89 / 9 / 2
+  kind: new_macro
+  old: Belgium 63 / 13 / 23 against 78 / 12 / 11, France 81 / 12 / 7 against 89 / 9 / 2
+  new: Belgium \ModalBERoad{} / \ModalBERail{} / \ModalBEIww{} against 78 / 12 / 11, France \ModalFRRoad{} / \ModalFRRail{} / \ModalFRIww{} against 89 / 9 / 2
+  macros:
+  - name: ModalBERoad
+    value_now: '63'
+    code: '# Modal loop of the proposal for ''Germany 62 / 26 / 13 ...'''
+  - name: ModalBERail
+    value_now: '13'
+    code: '# same loop'
+  - name: ModalBEIww
+    value_now: '23'
+    code: '# same loop'
+  - name: ModalFRRoad
+    value_now: '81'
+    code: '# same loop'
+  - name: ModalFRRail
+    value_now: '12'
+    code: '# same loop'
+  - name: ModalFRIww
+    value_now: '7'
+    code: '# same loop'
+  ledger:
+  - kind: allowed
+    text: against 78 / 12 / 11
+    why: 'evidence: Eurostat tran_hv_frmod 2023, Belgium (77.6 / 11.7 / 10.7)'
+  - kind: allowed
+    text: against 89 / 9 / 2
+    why: 'evidence: Eurostat tran_hv_frmod 2023, France (88.9 / 9.2 / 1.9)'
+  evidence: 'country_modal_split.csv BE 63.35 / 13.39 / 23.26, FR 80.60 / 12.40 / 6.99: the literals match.'
+  decision: See the Germany entry (macro family or generated table).
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: Austria 56 / 40 / 4 against 69 / 29 / 2, Switzerland 70 / 30 / 0 against 66 / 34 / 0
+  kind: new_macro
+  old: Austria 56 / 40 / 4 against 69 / 29 / 2, Switzerland 70 / 30 / 0 against 66 / 34 / 0
+  new: Austria \ModalATRoad{} / \ModalATRail{} / \ModalATIww{} against 69 / 29 / 2, Switzerland \ModalCHRoad{} / \ModalCHRail{} / \ModalCHIww{} against 66 / 34 / 0
+  macros:
+  - name: ModalATRoad
+    value_now: '56'
+    code: '# Modal loop of the proposal for ''Germany 62 / 26 / 13 ...'''
+  - name: ModalATRail
+    value_now: '40'
+    code: '# same loop'
+  - name: ModalATIww
+    value_now: '4'
+    code: '# same loop'
+  - name: ModalCHRoad
+    value_now: '70'
+    code: '# same loop'
+  - name: ModalCHRail
+    value_now: '30'
+    code: '# same loop'
+  - name: ModalCHIww
+    value_now: '0'
+    code: '# same loop'
+  ledger:
+  - kind: allowed
+    text: against 69 / 29 / 2
+    why: 'evidence: Eurostat tran_hv_frmod 2023, Austria (68.9 / 29.3 / 1.7)'
+  - kind: allowed
+    text: against 66 / 34 / 0
+    why: 'evidence: Eurostat tran_hv_frmod 2023, Switzerland (65.6 / 34.3 / 0.1)'
+  evidence: 'country_modal_split.csv AT 56.23 / 39.66 / 4.11, CH 70.08 / 29.92 / 0.00: the literals match.'
+  decision: See the Germany entry.
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: Poland 75 / 25 / 0 against 76 / 24 / 0, Italy 88 / 12 / 0 against 88 / 12 / 0
+  kind: new_macro
+  old: Poland 75 / 25 / 0 against 76 / 24 / 0, Italy 88 / 12 / 0 against 88 / 12 / 0
+  new: Poland \ModalPLRoad{} / \ModalPLRail{} / \ModalPLIww{} against 76 / 24 / 0, Italy \ModalITRoad{} / \ModalITRail{} / \ModalITIww{} against 88 / 12 / 0
+  macros:
+  - name: ModalPLRoad
+    value_now: '75'
+    code: '# Modal loop of the proposal for ''Germany 62 / 26 / 13 ...'''
+  - name: ModalPLRail
+    value_now: '25'
+    code: '# same loop'
+  - name: ModalPLIww
+    value_now: '0'
+    code: '# same loop'
+  - name: ModalITRoad
+    value_now: '88'
+    code: '# same loop'
+  - name: ModalITRail
+    value_now: '12'
+    code: '# same loop'
+  - name: ModalITIww
+    value_now: '0'
+    code: '# same loop'
+  ledger:
+  - kind: allowed
+    text: against 76 / 24 / 0
+    why: 'evidence: Eurostat tran_hv_frmod 2023, Poland (75.8 / 24.1 / 0.0)'
+  - kind: allowed
+    text: against 88 / 12 / 0
+    why: 'evidence: Eurostat tran_hv_frmod 2023, Italy (88.0 / 12.0 / 0.0)'
+  evidence: 'country_modal_split.csv PL 74.85 / 25.15 / 0.00, IT 87.60 / 12.37 / 0.03: the literals match.'
+  decision: See the Germany entry.
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: Road is under-represented everywhere by construction
+  kind: correct
+  old: Road is under-represented everywhere by construction
+  new: Road is under-represented by construction in Germany, the Netherlands, Belgium, France and Austria
+  ledger:
+  - kind: claims
+    text: Road is under-represented by construction in Germany, the Netherlands, Belgium, France and Austria
+    expr: max(ModalDERoad-73, ModalNLRoad-53, ModalBERoad-78, ModalFRRoad-89, ModalATRoad-69)
+    range:
+    - -100
+    - -1
+    why: 'result: the model''s road share below Eurostat''s in each of the five (gaps 8-15 points, the smallest France 81 against 89)'
+  evidence: 'country_modal_split.csv: road model minus Eurostat DE -11.2, NL -13.8, BE -14.3, FR -8.3, AT -12.7, but CH +4.5 (70 against 66), PL -1.0, IT -0.4 (88 against 88 as printed): "everywhere" is false for Switzerland and Italy. The five where it holds are the countries with waterway traffic.'
+  decision: 'Changes the claim from "everywhere" to five named countries (proposed); alternatives: "wherever waterways carry freight" or "except in Switzerland, Poland and Italy, where the shares match within five points".'
+  confidence: medium
+  file: sections/si.tex
+  section: si_a
+- pending: general cargo 77 / 19 / 4 against 68 / 28 / 5
+  kind: new_macro
+  old: general cargo 77 / 19 / 4 against 68 / 28 / 5
+  new: general cargo \CargoGeneralRoad{} / \CargoGeneralRail{} / \CargoGeneralIww{} against 68 / 27 / 5
+  macros:
+  - name: CargoGeneralRoad
+    value_now: '77'
+    code: "# Germany by cargo class on the German edges, % of tonne-km road / rail / waterway: general cargo = NST manufacturing\n# (containers), dry bulk = agriculture + mining, liquid bulk = oil and gas; the NST target aggregated the same way\nfns = pd.read_csv(FS / \"nst_modal_split.csv\")\nfns = fns[(fns.cc == \"DE\") & (fns.category != \"TOTAL\")].copy()\nfns[\"cls\"] = fns.category.map({\"manufacturing\": \"General\", \"agriculture\": \"Dry\", \"mining\": \"Dry\", \"oil_and_gas\": \"Liquid\"})\nfor cls, g_ in fns.groupby(\"cls\"):\n    tk = g_.groupby(\"mode\")[[\"model_bn_tkm\", \"target_bn_tkm\"]].sum(); sh = 100 * tk / tk.sum()\n    for md, nm in ((\"roads\", \"Road\"), (\"railways\", \"Rail\"), (\"waterways\", \"Iww\")):\n        put(f\"Cargo{cls}{nm}\", pct(sh.loc[md, \"model_bn_tkm\"]), f\"Germany, {cls.lower()} cargo: % of tkm by {nm.lower()} on the German edges ({sh.loc[md, 'model_bn_tkm']:.1f}; NST target {sh.loc[md, 'target_bn_tkm']:.1f})\")\n"
+    source: C:/dsc_runs/rhine2026/r6_h01_feeder3/flow_score/nst_modal_split.csv
+  - name: CargoGeneralRail
+    value_now: '19'
+    code: '# Cargo loop above'
+  - name: CargoGeneralIww
+    value_now: '4'
+    code: '# Cargo loop above'
+  ledger:
+  - kind: allowed
+    text: against 68 / 27 / 5
+    why: 'evidence: Eurostat 2023 NST-2007, Germany, manufactured goods (the groups other than GT01-03 and GT07), tkm-weighted 67.5 / 27.5 / 5.0 (nst_modal_split.csv target_pct)'
+  evidence: 'nst_modal_split.csv DE manufacturing: model 77.16 / 19.31 / 3.54 (77 / 19 / 4, match); target 67.54 / 27.48 / 4.97, which rounds to 68 / 27 / 5 (sum 100); the printed 28 is stale or mis-rounded. The 28 comes from DE_CARGO_TARGETS = (68, 28, 5) hard-coded in studies/rhine2026/plots/baseline_figures.py, so Fig. S2 carries it too (follow-up: regenerate the figure with 27).'
+  decision: 'Long list: macro family (proposed) or the generated modal-split table of the Germany entry. The Eurostat 28 -> 27 is a correction; Fig. S2 needs the same fix in baseline_figures.py.'
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: dry bulk 45 / 33 / 22 against 53 / 27 / 20 and liquid bulk 19 / 42 / 39 against 28 / 42 / 30
+  kind: new_macro
+  old: dry bulk 45 / 33 / 22 against 53 / 27 / 20 and liquid bulk 19 / 42 / 39 against 28 / 42 / 30
+  new: dry bulk \CargoDryRoad{} / \CargoDryRail{} / \CargoDryIww{} against 53 / 27 / 20 and liquid bulk \CargoLiquidRoad{} / \CargoLiquidRail{} / \CargoLiquidIww{} against 28 / 42 / 30
+  macros:
+  - name: CargoDryRoad
+    value_now: '45'
+    code: '# Cargo loop of the proposal for ''general cargo 77 / 19 / 4 ...'''
+  - name: CargoDryRail
+    value_now: '33'
+    code: '# same loop'
+  - name: CargoDryIww
+    value_now: '22'
+    code: '# same loop'
+  - name: CargoLiquidRoad
+    value_now: '19'
+    code: '# same loop'
+  - name: CargoLiquidRail
+    value_now: '42'
+    code: '# same loop'
+  - name: CargoLiquidIww
+    value_now: '39'
+    code: '# same loop'
+  ledger:
+  - kind: allowed
+    text: against 53 / 27 / 20
+    why: 'evidence: Eurostat 2023 NST-2007, Germany, agriculture and mining products (GT01-03), tkm-weighted 53.1 / 27.2 / 19.6'
+  - kind: allowed
+    text: against 28 / 42 / 30
+    why: 'evidence: Eurostat 2023 NST-2007, Germany, coke and refined petroleum (GT07), 28.0 / 41.7 / 30.2'
+  evidence: 'nst_modal_split.csv DE agriculture + mining (tkm summed): model 45.0 / 32.8 / 22.2, target 53.1 / 27.2 / 19.6; oil and gas: model 19.3 / 41.6 / 39.1, target 28.0 / 41.7 / 30.2. All literals match.'
+  decision: See the general-cargo entry (macro family or generated table).
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: with the waterway share of liquids a third too high
+  kind: correct
+  old: with the waterway share of liquids a third too high
+  new: with the waterway share of liquids nearly a third too high
+  ledger:
+  - kind: claims
+    text: with the waterway share of liquids nearly a third too high
+    expr: 100*(CargoLiquidIww/30-1)
+    range:
+    - 27
+    - 33
+    why: 'result: the liquid-bulk waterway share 39 against 30 % (unrounded 39.1 against 30.2: +29 %); nearly a third = 27-33'
+  evidence: nst_modal_split.csv DE oil_and_gas waterways 39.06 against 30.22 = +29 %; as printed 39 against 30 = +30 %, below the 30-37 the ledger uses for "a third".
+  decision: ''
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: Kaub carries 63~Mt a year against the 50--60 of the counts, of which 11.6 of containers against about 10
+  kind: use_macro
+  old: Kaub carries 63~Mt a year against the 50--60 of the counts, of which 11.6 of containers
+  new: Kaub carries \KaubMt~Mt a year against the 50--60 of the counts, of which \KaubContMt{} of containers
+  ledger:
+  - kind: allowed
+    text: against the 50--60 of the counts
+    why: 'evidence: ccnr2023 (about 50 Mt past Kaub, scenarios/rhine_capacities.csv; the estimates up to Koblenz-Bonn 55-60)'
+  - kind: allowed
+    text: of containers against about 10
+    why: 'evidence: ccnr2023 (containers past Kaub roughly 10 Mt a year)'
+  evidence: numbers.tex KaubMt 63, KaubContMt 11.6 (2026_r6_bycargo_base, t=0 flows of rhine_mainz_koblenz); r6_h01_feeder3 gives the same 62.9 / 11.58.
+  decision: ''
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: 22 of dry bulk and 29 of liquid bulk
+  kind: use_macro
+  old: 22 of dry bulk and 29 of liquid bulk
+  new: \KaubDryMt{} of dry bulk and \KaubLiquidMt{} of liquid bulk
+  ledger: []
+  evidence: numbers.tex KaubDryMt 22.5 and KaubLiquidMt 28.8 (22.49 and 28.83 Mt/yr); the text then reads one decimal like the 11.6 of containers before it (11.6 + 22.5 + 28.8 = 62.9). No integer macro needed.
+  decision: ''
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: Koblenz 66 against 55--60, Bonn 65 against 65, Cologne 66 against 80, Duisburg 82 against 110
+  kind: new_macro
+  old: Koblenz 66 against 55--60, Bonn 65 against 65, Cologne 66 against 80, Duisburg 82 against 110
+  new: Koblenz \RhineKoblenzMt{} against 55--60, Bonn \RhineBonnMt{} against 65, Cologne \RhineKoelnMt{} against 80, Duisburg \RhineDuisburgMt{} against 110
+  macros:
+  - name: RhineKoblenzMt
+    value_now: '66'
+    code: "# the Rhine sections, Mt/yr (km-weighted mean of the reach), against the CCNR counts and estimates (in the comment);\n# one decimal below 5 Mt, as the text writes Basel\nfrh = pd.read_csv(FS / \"rhine.csv\").set_index(\"name\")\nfor nm in (\"rhine_basel\", \"rhine_strasbourg\", \"rhine_karlsruhe\", \"rhine_mannheim_mainz\", \"rhine_koblenz\", \"rhine_bonn\", \"rhine_koeln\",\n           \"rhine_duisburg\", \"rhine_emmerich\", \"rhine_tiel\", \"rhine_dordrecht_rotterdam\"):\n    v = frh.loc[nm, \"model_mt\"]\n    put(\"Rhine\" + \"\".join(w.capitalize() for w in nm.split(\"_\")[1:]) + \"Mt\", r1(v) if v < 5 else pct(v), f\"{nm}: Mt/yr at the baseline (CCNR {frh.loc[nm, 'normal_mt']:g})\")\nfsel = frh.index[list(frh.index).index(\"rhine_mannheim\"): list(frh.index).index(\"rhine_emmerich\") + 1]\nput(\"RhineDevMaxPct\", pct(100 * (frh.loc[fsel, \"model_mt\"] / frh.loc[fsel, \"normal_mt\"] - 1).abs().max()), \"largest % gap between model and CCNR from Mannheim to Emmerich\")\n"
+    source: C:/dsc_runs/rhine2026/r6_h01_feeder3/flow_score/rhine.csv
+  - name: RhineBonnMt
+    value_now: '65'
+    code: '# Rhine loop above'
+  - name: RhineKoelnMt
+    value_now: '66'
+    code: '# Rhine loop above'
+  - name: RhineDuisburgMt
+    value_now: '82'
+    code: '# Rhine loop above'
+  ledger:
+  - kind: allowed
+    text: Koblenz \RhineKoblenzMt{} against 55--60, Bonn \RhineBonnMt{} against 65, Cologne \RhineKoelnMt{} against 80, Duisburg \RhineDuisburgMt{} against 110
+    why: 'evidence: ccnr2023 counts and estimates (scenarios/rhine_capacities.csv: Koblenz 55, Koblenz-Bonn 60, Bonn 65, Cologne 80, Duisburg 110)'
+  evidence: 'rhine.csv: koblenz 65.87, bonn 64.5 (half up 65), koeln 65.87, duisburg 82.34: the literals match. The loop also puts Basel, Strasbourg, Karlsruhe, Mannheim-Mainz, Emmerich, Tiel, Dordrecht-Rotterdam and RhineDevMaxPct (26) for the entries below.'
+  decision: 'Long list: macro family (proposed). Alternative: Fig. S3 already plots the 30 reaches; a generated SI table of rhine.csv (model, CCNR, ratio) with the prose keeping the pattern (the Middle Rhine above the counts, Cologne to Duisburg a quarter below, the Waal and the delta a third below, the Upper Rhine at half to two thirds).'
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: Emmerich 106 against 118, the Waal at Tiel 84 against 125, the delta below Dordrecht 102 against 140
+  kind: new_macro
+  old: Emmerich 106 against 118, the Waal at Tiel 84 against 125, the delta below Dordrecht 102 against 140
+  new: Emmerich \RhineEmmerichMt{} against 118, the Waal at Tiel \RhineTielMt{} against 125, the delta below Dordrecht \RhineDordrechtRotterdamMt{} against 140
+  macros:
+  - name: RhineEmmerichMt
+    value_now: '106'
+    code: '# Rhine loop of the proposal for ''Koblenz 66 against 55--60 ...'''
+  - name: RhineTielMt
+    value_now: '84'
+    code: '# same loop'
+  - name: RhineDordrechtRotterdamMt
+    value_now: '102'
+    code: '# same loop'
+  ledger:
+  - kind: allowed
+    text: Emmerich \RhineEmmerichMt{} against 118, the Waal at Tiel \RhineTielMt{} against 125, the delta below Dordrecht \RhineDordrechtRotterdamMt{} against 140
+    why: 'evidence: ccnr2023 (Emmerich 117.9 Mt in 2023; Tiel 125, Dordrecht-Rotterdam 140 in scenarios/rhine_capacities.csv)'
+  evidence: 'rhine.csv: emmerich 105.69, tiel 83.74, dordrecht_rotterdam 101.78: the literals match.'
+  decision: See the Koblenz entry.
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: the Upper Rhine at Basel 2.6 against 5.5, Strasbourg 10 against 16 and Karlsruhe 13 against 22
+  kind: new_macro
+  old: the Upper Rhine at Basel 2.6 against 5.5, Strasbourg 10 against 16 and Karlsruhe 13 against 22
+  new: the Upper Rhine at Basel \RhineBaselMt{} against 5.5, Strasbourg \RhineStrasbourgMt{} against 16 and Karlsruhe \RhineKarlsruheMt{} against 22
+  macros:
+  - name: RhineBaselMt
+    value_now: '2.6'
+    code: '# Rhine loop of the proposal for ''Koblenz 66 against 55--60 ...'''
+  - name: RhineStrasbourgMt
+    value_now: '10'
+    code: '# same loop'
+  - name: RhineKarlsruheMt
+    value_now: '13'
+    code: '# same loop'
+  ledger:
+  - kind: allowed
+    text: Basel \RhineBaselMt{} against 5.5, Strasbourg \RhineStrasbourgMt{} against 16 and Karlsruhe \RhineKarlsruheMt{} against 22
+    why: 'evidence: ccnr2023 (Iffezheim count and the estimates above it: Basel 5.5, Strasbourg 16, Karlsruhe 22 in scenarios/rhine_capacities.csv)'
+  evidence: 'rhine.csv: basel 2.59 (one decimal: 2.6), strasbourg 9.93 (10), karlsruhe 13.36 (13): the literals match.'
+  decision: See the Koblenz entry.
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: a quarter less than observed on the Lower Rhine and a tenth of the Waal's tonnage
+  kind: allow
+  ledger:
+  - kind: allowed
+    text: a quarter less than observed on the Lower Rhine and a tenth of the Waal's tonnage
+    why: 'history: the first version''s baseline (2026_s07_flows/flow_score/rhine.csv): the Lower Rhine sections from Bonn to Emmerich at 0.64-0.86 of the counts, mean 0.73, the border 87 against 118 (0.74); Tiel 12 against 125 (0.10)'
+  evidence: '2026_s07_flows/flow_score/rhine.csv: bonn 0.86, bonn_koeln 0.81, koeln 0.73, koeln_duesseldorf 0.71, duesseldorf 0.68, duesseldorf_duisburg 0.66, duisburg 0.64, duisburg_wesel to emmerich 0.73-0.74 (mean 0.73 = 27 % less: "a quarter" 22-28); tiel 12.18 against 125 = 0.097. The first version does not move with a batch: history. (Cologne to Duisburg alone were 26-36 % short.)'
+  decision: ''
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: is now within 15\,\% of the counts except at D\"usseldorf and Duisburg (a quarter below)
+  kind: correct
+  old: is now within 15\,\% of the counts except at D\"usseldorf and Duisburg (a quarter below)
+  new: is now within \RhineDevMaxPct\,\% of the counts, above them on the Middle Rhine and below them from Cologne to Duisburg (a quarter below at D\"usseldorf and Duisburg)
+  macros:
+  - name: RhineDevMaxPct
+    value_now: '26'
+    code: '# Rhine loop of the proposal for ''Koblenz 66 against 55--60 ...'' (largest |model/CCNR - 1| from rhine_mannheim to rhine_emmerich)'
+  ledger:
+  - kind: claims
+    text: a quarter below at D\"usseldorf and Duisburg
+    expr: 100*(1-RhineDuisburgMt/110)
+    range:
+    - 22
+    - 28
+    why: 'result: Duisburg 82 against 110 = 25 % below (Duesseldorf 70.8 against 92 = 23 %, Duesseldorf-Duisburg 26 %); a quarter = 22-28'
+  - kind: claims
+    text: above them on the Middle Rhine
+    expr: min(KaubMt/50, RhineKoblenzMt/55)
+    range:
+    - 1.0
+    - 1.5
+    why: 'result: Kaub reach 63 against 50, Koblenz 66 against 55 (Mainz +24 %, Koblenz-Bonn +10 %)'
+  - kind: claims
+    text: below them from Cologne to Duisburg
+    expr: max(RhineKoelnMt/80, RhineDuisburgMt/110)
+    range:
+    - 0
+    - 1.0
+    why: 'result: Cologne 66 against 80, Duisburg 82 against 110 (the reaches between 0.74-0.80)'
+  evidence: 'rhine.csv ratios from Mannheim to Emmerich: mannheim 0.85, mannheim_mainz 1.16, mainz 1.24, mainz_koblenz 1.26, koblenz 1.20, koblenz_bonn 1.10, bonn 0.99, bonn_koeln 0.90, koeln 0.82, koeln_duesseldorf 0.80, duesseldorf 0.77, duesseldorf_duisburg 0.74, duisburg 0.75, duisburg_wesel to emmerich 0.88-0.90. "Within 15 % except Duesseldorf and Duisburg" is false at six further reaches: the Middle Rhine is 16-26 % above (Kaub itself 63 against 50) and Cologne 18-20 % below. Largest gap 25.8 % (Mainz-Koblenz) -> 26.'
+  decision: 'Changes the claim (15 % -> 26 %, the Middle Rhine overshoot named). Alternative wording: "within 15 % of the counts except on the Middle Rhine (a fifth to a quarter above) and from Cologne to Duisburg (a fifth to a quarter below)".'
+  confidence: medium
+  file: sections/si.tex
+  section: si_a
+- pending: The German waterways as a whole carry 42.8 billion tonne-kilometres against 41.5 observed
+  kind: new_macro
+  old: carry 42.8 billion tonne-kilometres
+  new: carry \DEWaterTkmBn{} billion tonne-kilometres
+  macros:
+  - name: DEWaterTkmBn
+    value_now: '42.8'
+    code: "# the German waterway sections (Destatis 46321-0014, 2023, in the comment): the busiest section of each waterway, Mt/yr;\n# integers, the Wesel-Datteln canal with one decimal as the text writes it\nfbs = pd.read_csv(FS / \"basins.csv\"); fbs = fbs[fbs.cc == \"DE\"].set_index(\"waterway\")\nput(\"DEWaterTkmBn\", r1(fbs.loc[\"ALL\", \"bn_tkm\"]), f\"bn tkm on the German waterways at the baseline (Eurostat 2023: {fbs.loc['ALL', 'bn_tkm_per_year']:g})\")\nfor ww, mac in ((\"Rhine\", \"BasinRhineMt\"), (\"Main\", \"BasinMainMt\"), (\"Neckar\", \"BasinNeckarMt\"), (\"Danube\", \"BasinDanubeMt\"), (\"Rhein-Herne-Kanal\", \"BasinRheinHerneMt\"),\n                (\"Elbe\", \"BasinElbeMt\"), (\"Moselle\", \"BasinMoselleMt\"), (\"Wesel-Datteln-Kanal\", \"BasinWeselDattelnMt\"), (\"Dortmund-Ems-Kanal\", \"BasinDortmundEmsMt\"),\n                (\"Mittellandkanal\", \"BasinMittellandMt\"), (\"Weser\", \"BasinWeserMt\"), (\"Kuestenkanal-Hunte\", \"BasinKuestenMt\")):\n    v = fbs.loc[ww, \"max_mt\"]\n    put(mac, r1(v) if ww == \"Wesel-Datteln-Kanal\" else pct(v), f\"{ww}: Mt/yr on its busiest section at the baseline (Destatis 2023 {fbs.loc[ww, 'mt_per_year']:g})\")\nfnl = pd.read_csv(FS / \"basins.csv\").set_index([\"waterway\", \"cc\"])\nput(\"NLWaterTkmBn\", r1(fnl.loc[(\"ALL\", \"NL\"), \"bn_tkm\"]), f\"bn tkm on the Dutch waterways at the baseline (Eurostat 2023: {fnl.loc[('ALL', 'NL'), 'bn_tkm_per_year']:g})\")\n"
+    source: C:/dsc_runs/rhine2026/r6_h01_feeder3/flow_score/basins.csv
+  ledger:
+  - kind: allowed
+    text: tonne-kilometres against 41.5 observed
+    why: 'evidence: Eurostat iww_go_atygo 2023, German waterways 41.5 bn tkm (mode_split_targets_DE_2023.csv TOTAL)'
+  evidence: 'basins.csv ALL DE bn_tkm 42.76 (42.8): the literal matches. The block also puts the Basin* family (busiest section per waterway, max_mt, the model counterpart flow_score uses for max_cross_section targets) and NLWaterTkmBn (21.5). The snippet ''against 41.5 observed'' alone would also match the deep-sea sentence, hence the longer one.'
+  decision: 'Long list (with the section entries): macro family (proposed) or a generated SI table of the German waterway sections (basins.csv: model busiest section against Destatis 46321-0014), the prose keeping the pattern (Main, Neckar, Elbe above; Ruhr canals and Moselle below; Weser and Kuestenkanal ten times).'
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: by section, the Rhine at the border 106 against 118~Mt, the Main 15 against 12, the Neckar 7 against 4
+  kind: new_macro
+  old: the Rhine at the border 106 against 118~Mt, the Main 15 against 12, the Neckar 7 against 4
+  new: the Rhine at the border \BasinRhineMt{} against 118~Mt, the Main \BasinMainMt{} against 12, the Neckar \BasinNeckarMt{} against 4
+  macros:
+  - name: BasinRhineMt
+    value_now: '106'
+    code: '# Basin loop of the proposal for ''The German waterways as a whole carry 42.8 ...'''
+  - name: BasinMainMt
+    value_now: '15'
+    code: '# same loop'
+  - name: BasinNeckarMt
+    value_now: '7'
+    code: '# same loop'
+  ledger:
+  - kind: allowed
+    text: the Rhine at the border \BasinRhineMt{} against 118~Mt, the Main \BasinMainMt{} against 12, the Neckar \BasinNeckarMt{} against 4
+    why: 'evidence: Destatis 46321-0014 2023 and CCNR (Rhine at the border 117.9, Main 12.3, Neckar 3.8 Mt on the busiest section; waterway_targets_2023.csv)'
+  evidence: 'basins.csv DE max_mt: Rhine 105.71, Main 14.6, Neckar 6.56: the literals match.'
+  decision: See the German-waterways entry.
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: the Danube 4 against 3, the Rhine--Herne canal 9 against 11, the Elbe 10 against 5 and the Moselle 2 against 6
+  kind: new_macro
+  old: the Danube 4 against 3, the Rhine--Herne canal 9 against 11, the Elbe 10 against 5 and the Moselle 2 against 6
+  new: the Danube \BasinDanubeMt{} against 3, the Rhine--Herne canal \BasinRheinHerneMt{} against 11, the Elbe \BasinElbeMt{} against 5 and the Moselle \BasinMoselleMt{} against 6
+  macros:
+  - name: BasinDanubeMt
+    value_now: '4'
+    code: '# Basin loop of the proposal for ''The German waterways as a whole carry 42.8 ...'''
+  - name: BasinRheinHerneMt
+    value_now: '9'
+    code: '# same loop'
+  - name: BasinElbeMt
+    value_now: '10'
+    code: '# same loop'
+  - name: BasinMoselleMt
+    value_now: '2'
+    code: '# same loop'
+  ledger:
+  - kind: allowed
+    text: the Danube \BasinDanubeMt{} against 3, the Rhine--Herne canal \BasinRheinHerneMt{} against 11, the Elbe \BasinElbeMt{} against 5 and the Moselle \BasinMoselleMt{} against 6
+    why: 'evidence: Destatis 46321-0014 2023 (Danube 2.6, Rhein-Herne-Kanal 10.7, Elbe 5.3, Moselle 6.0 Mt on the busiest section)'
+  evidence: 'basins.csv DE max_mt: Danube 3.98, Rhein-Herne-Kanal 8.84, Elbe 9.64, Moselle 2.29: the literals match.'
+  decision: See the German-waterways entry.
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: within 10\,\% at Hamburg (96~Mt against 100), Le Havre--Rouen (80 against 76), Marseille (72 against 67)
+  kind: correct
+  old: within 10\,\% at Hamburg (96~Mt against 100), Le Havre--Rouen (80 against 76), Marseille (72 against 67), Genoa (48 against 47), Gothenburg (34 against 35), Bilbao (32 against 32) and Dublin (27 against 25); within a third at Antwerp-Bruges (162 against 242), Amsterdam (54 against 81), Bremerhaven (30 against 39), Dunkirk (29 against 35), Nantes (25 against 28), Ghent (18 against 30), Barcelona (33 against 51) and Valencia (37 against 62)
+  new: within 10\,\% at Hamburg (\PortHamburgMt~Mt against 100), Le Havre--Rouen (\PortHavreMt{} against 76), Marseille (\PortMarseilleMt{} against 67), Genoa (\PortGenoaMt{} against 47), Gothenburg (\PortGothenburgMt{} against 35) and Bilbao (\PortBilbaoMt{} against 32); within a quarter at Dublin (\PortDublinMt{} against 25), Nantes (\PortNantesMt{} against 28), Dunkirk (\PortDunkirkMt{} against 35) and Bremerhaven (\PortBremerhavenMt{} against 39); a third below at Antwerp-Bruges (\PortAntwerpMt{} against 242) and Amsterdam (\PortAmsterdamMt{} against 81); about two fifths below at Barcelona (\PortBarcelonaMt{} against 51), Ghent (\PortGhentMt{} against 30) and Valencia (\PortValenciaMt{} against 62)
+  macros:
+  - name: PortHamburgMt
+    value_now: '96'
+    code: "# the seaports (the rows of Table tab:ports, si_tables.ports_table): Mt/yr through the port's connectors (Eurostat 2023 gross\n# weight handled in the comment; the text quotes it)\nfpt = pd.read_csv(FS / \"ports.csv\").set_index(\"rep_mar\")\nfor code, mac in ((\"NL_0NLRTM\", \"Rotterdam\"), (\"BE_0BE003\", \"Antwerp\"), (\"DE_1DEHAM\", \"Hamburg\"), (\"NL_0NLAMS\", \"Amsterdam\"), (\"PL_0PLGDN\", \"Gdansk\"),\n                  (\"ES_2ESALG\", \"Algeciras\"), (\"FR_1FR001\", \"Havre\"), (\"FR_2FRMRS\", \"Marseille\"), (\"ES_2ESVLC\", \"Valencia\"), (\"ES_2ESBCN\", \"Barcelona\"),\n                  (\"IT_0ITTRS\", \"Trieste\"), (\"IT_0ITGOA\", \"Genoa\"), (\"EL_0GRPIR\", \"Piraeus\"), (\"PT_0PTSIE\", \"Sines\"), (\"DE_1DEBRV\", \"Bremerhaven\"),\n                  (\"NL_0NLZSP\", \"Zeeland\"), (\"IT_0ITGIT\", \"GioiaTauro\"), (\"FR_1FRDKK\", \"Dunkirk\"), (\"SE_2SEGOT\", \"Gothenburg\"), (\"ES_1ESBIO\", \"Bilbao\"),\n                  (\"BE_0BEGNE\", \"Ghent\"), (\"DE_1DEWVN\", \"Wilhelmshaven\"), (\"FR_1FRNTE\", \"Nantes\"), (\"IE_0IEDUB\", \"Dublin\"), (\"BG_0BGBOJ\", \"Burgas\"),\n                  (\"PL_0PLSZZ\", \"Szczecin\"), (\"NO_0NOOSL\", \"Oslo\"), (\"ES_2ESAGP\", \"Malaga\")):\n    put(f\"Port{mac}Mt\", pct(fpt.loc[code, \"model_mt\"]), f\"{mac} ({code}): Mt/yr at the baseline ({fpt.loc[code, 'model_mt']:.1f}; Eurostat 2023 {fpt.loc[code, 'eurostat_mt']:.1f})\")\nlagoon = [\"IT_0ITVCE\", \"IT_0ITCHI\", \"IT_0ITMNF\", \"IT_0ITPNG\"]\nput(\"PortLagoonMt\", pct(fpt.loc[lagoon, \"model_mt\"].sum()), f\"Venice, Chioggia, Monfalcone and Porto Nogaro together, Mt/yr (Eurostat 2023 {fpt.loc[lagoon, 'eurostat_mt'].sum():.1f})\")\nfsec = fpt[(fpt.scored.astype(str).str.lower() != \"true\") & fpt.n_terminals.notna()]\nput(\"SecPortsN\", str(len(fsec)), \"gazetteer ports outside the top forty with a connector (flow_score secondary ports)\")\nput(\"SecPortsMt\", pct(fsec.model_mt.sum()), \"Mt/yr landed at them at the baseline\"); put(\"SecPortsObsMt\", pct(fsec.eurostat_mt.sum()), \"Eurostat 2023 gross weight handled at them, Mt\")\nfss = pd.read_csv(FS / \"short_sea.csv\", index_col=0)\nput(\"DeepSeaShare\", pct(fss.loc[\"EU27_2020\", \"model_dss_pct_from_gateways\"]), f\"% of the maritime tonnage on deep-sea lanes at the baseline (Eurostat EU27 2023: {fss.loc['EU27_2020', 'eurostat_dss_pct']:g})\")\n"
+    source: C:/dsc_runs/rhine2026/r6_h01_feeder3/flow_score/ports.csv (the file of tab:ports) and short_sea.csv
+  - name: PortHavreMt
+    value_now: '80'
+    code: '# Port loop above'
+  - name: PortMarseilleMt
+    value_now: '72'
+    code: '# Port loop above'
+  - name: PortGenoaMt
+    value_now: '48'
+    code: '# Port loop above'
+  - name: PortGothenburgMt
+    value_now: '34'
+    code: '# Port loop above'
+  - name: PortBilbaoMt
+    value_now: '32'
+    code: '# Port loop above'
+  - name: PortDublinMt
+    value_now: '27'
+    code: '# Port loop above'
+  - name: PortNantesMt
+    value_now: '25'
+    code: '# Port loop above'
+  - name: PortDunkirkMt
+    value_now: '29'
+    code: '# Port loop above'
+  - name: PortBremerhavenMt
+    value_now: '30'
+    code: '# Port loop above'
+  - name: PortAntwerpMt
+    value_now: '162'
+    code: '# Port loop above'
+  - name: PortAmsterdamMt
+    value_now: '54'
+    code: '# Port loop above'
+  - name: PortBarcelonaMt
+    value_now: '33'
+    code: '# Port loop above'
+  - name: PortGhentMt
+    value_now: '18'
+    code: '# Port loop above'
+  - name: PortValenciaMt
+    value_now: '37'
+    code: '# Port loop above'
+  ledger:
+  - kind: claims
+    text: within 10\,\% at Hamburg
+    expr: max(abs(PortHamburgMt/99.6-1), abs(PortHavreMt/75.56-1), abs(PortMarseilleMt/67.26-1), abs(PortGenoaMt/46.6-1), abs(PortGothenburgMt/34.98-1), abs(PortBilbaoMt/31.53-1))*100
+    range:
+    - 0
+    - 10
+    why: 'result: largest gap of the six to Eurostat 2023 (unrounded: Marseille +7.8 %)'
+  - kind: claims
+    text: within a quarter at Dublin
+    expr: max(abs(PortDublinMt/24.67-1), abs(PortNantesMt/28.48-1), abs(PortDunkirkMt/35.39-1), abs(PortBremerhavenMt/39.19-1))*100
+    range:
+    - 10
+    - 25
+    why: 'result: Dublin +11, Nantes -13, Dunkirk -19, Bremerhaven -24 % (unrounded); within a quarter = up to 25'
+  - kind: claims
+    text: a third below at Antwerp-Bruges
+    expr: max(abs(100*(1-PortAntwerpMt/242.24)-100/3), abs(100*(1-PortAmsterdamMt/80.76)-100/3))
+    range:
+    - 0
+    - 3.7
+    why: 'result: Antwerp-Bruges and Amsterdam 33 % below; a third = 30-37'
+  - kind: claims
+    text: about two fifths below at Barcelona
+    expr: max(abs(100*(1-PortBarcelonaMt/51.46)-40), abs(100*(1-PortGhentMt/29.95)-40), abs(100*(1-PortValenciaMt/62.25)-40))
+    range:
+    - 0
+    - 5
+    why: 'result: Barcelona 36, Ghent 39, Valencia 41 % below (unrounded); about two fifths = 35-45'
+  - kind: allowed
+    text: Hamburg (\PortHamburgMt~Mt against 100), Le Havre--Rouen (\PortHavreMt{} against 76), Marseille (\PortMarseilleMt{} against 67), Genoa (\PortGenoaMt{} against 47), Gothenburg (\PortGothenburgMt{} against 35) and Bilbao (\PortBilbaoMt{} against 32)
+    why: 'evidence: Eurostat mar_go_aa 2023, gross weight of goods handled, Mt (Table tab:ports)'
+  - kind: allowed
+    text: Dublin (\PortDublinMt{} against 25), Nantes (\PortNantesMt{} against 28), Dunkirk (\PortDunkirkMt{} against 35) and Bremerhaven (\PortBremerhavenMt{} against 39)
+    why: 'evidence: Eurostat mar_go_aa 2023, gross weight of goods handled, Mt (Table tab:ports)'
+  - kind: allowed
+    text: Antwerp-Bruges (\PortAntwerpMt{} against 242) and Amsterdam (\PortAmsterdamMt{} against 81)
+    why: 'evidence: Eurostat mar_go_aa 2023, gross weight of goods handled, Mt (Table tab:ports)'
+  - kind: allowed
+    text: Barcelona (\PortBarcelonaMt{} against 51), Ghent (\PortGhentMt{} against 30) and Valencia (\PortValenciaMt{} against 62)
+    why: 'evidence: Eurostat mar_go_aa 2023, gross weight of goods handled, Mt (Table tab:ports)'
+  evidence: 'ports.csv (= tab:ports) model / Eurostat: Hamburg 95.75 / 99.6 (0.96), Le Havre-Rouen 80.32 / 75.56 (1.06), Marseille 72.49 / 67.26 (1.08), Genova 48.01 / 46.6 (1.03), Goeteborg 34.31 / 34.98 (0.98), Bilbao 32.38 / 31.53 (1.03); Dublin 27.37 / 24.67 (1.11: outside 10 %, though "27 against 25" reads 8 %), Nantes 0.87, Dunkerque 0.81, Bremerhaven 0.76; Antwerp-Bruges 0.67, Amsterdam 0.67; Barcelona 0.64, Gent 0.61, Valencia 0.59 (36-41 % below: outside "within a third"). Every model literal matches; the bands do not. The block also puts the other Port* macros, PortLagoonMt, SecPorts*, DeepSeaShare for the entries below.'
+  decision: 'Regrouping changes three statements (Dublin out of "within 10 %"; Ghent, Barcelona, Valencia out of "within a third"; four bands instead of two). Alternative (shorter, no port macros in this sentence): name the ports per band and let Table tab:ports (already generated from the same ports.csv) carry the figures.'
+  confidence: medium
+  file: sections/si.tex
+  section: si_a
+- pending: Genoa (48 against 47), Gothenburg (34 against 35), Bilbao (32 against 32) and Dublin (27 against 25)
+  kind: correct
+  merged_into: within 10\,\% at Hamburg (96~Mt against 100), Le Havre--Rouen (80 against 76), Marseille (72 against 67)
+  ledger: []
+  evidence: Applied by the rewrite of the seaport sentence in the proposal for the Hamburg entry (Dublin 27.37 / 24.67 = 1.11 moves to "within a quarter"; Genoa, Gothenburg, Bilbao get PortGenoaMt 48, PortGothenburgMt 34, PortBilbaoMt 32).
+  decision: See the Hamburg entry.
+  confidence: medium
+  file: sections/si.tex
+  section: si_a
+- pending: within a third at Antwerp-Bruges (162 against 242), Amsterdam (54 against 81), Bremerhaven (30 against 39)
+  kind: correct
+  merged_into: within 10\,\% at Hamburg (96~Mt against 100), Le Havre--Rouen (80 against 76), Marseille (72 against 67)
+  ledger: []
+  evidence: Applied by the seaport rewrite of the Hamburg entry (Antwerp-Bruges 0.67 and Amsterdam 0.67 "a third below"; Bremerhaven 0.76 "within a quarter"; PortAntwerpMt 162, PortAmsterdamMt 54, PortBremerhavenMt 30).
+  decision: See the Hamburg entry.
+  confidence: medium
+  file: sections/si.tex
+  section: si_a
+- pending: Dunkirk (29 against 35), Nantes (25 against 28), Ghent (18 against 30)
+  kind: correct
+  merged_into: within 10\,\% at Hamburg (96~Mt against 100), Le Havre--Rouen (80 against 76), Marseille (72 against 67)
+  ledger: []
+  evidence: Applied by the seaport rewrite of the Hamburg entry (Dunkerque 0.81 and Nantes 0.87 "within a quarter"; Gent 0.61 = 39 % below moves to "about two fifths below"; PortDunkirkMt 29, PortNantesMt 25, PortGhentMt 18).
+  decision: See the Hamburg entry.
+  confidence: medium
+  file: sections/si.tex
+  section: si_a
+- pending: Barcelona (33 against 51) and Valencia (37 against 62)
+  kind: correct
+  merged_into: within 10\,\% at Hamburg (96~Mt against 100), Le Havre--Rouen (80 against 76), Marseille (72 against 67)
+  ledger: []
+  evidence: Applied by the seaport rewrite of the Hamburg entry (Barcelona 0.64 and Valencia 0.59, 36 and 41 % below, "about two fifths below"; PortBarcelonaMt 33, PortValenciaMt 37).
+  decision: See the Hamburg entry.
+  confidence: medium
+  file: sections/si.tex
+  section: si_a
+- pending: the preceding paragraph gives these within 10 to 25\,\% of the observations
+  kind: correct
+  old: within 10 to 25\,\% of the observations
+  new: within a third of the observations
+  ledger:
+  - kind: claims
+    text: the preceding paragraph gives these within a third of the observations
+    expr: max(abs(KaubMt/50-1), abs(KaubContMt/10-1), abs(ModalDERoad/73-1), abs(ModalDERail/21-1), abs(CargoDryRoad/53-1), abs(CargoDryRail/27-1), abs(CargoDryIww/20-1), abs(CargoLiquidRoad/28-1), abs(CargoLiquidRail/42-1), abs(CargoLiquidIww/30-1))*100
+    range:
+    - 25
+    - 33.4
+    why: 'result: the largest gap of the Kaub tonnage and composition and of the German road and rail shares (overall and by bulk class): liquid bulk by road 19 against 28 (-32 %); within a third = 25-33.4'
+  evidence: 'Gaps of the items the sentence names (Kaub tonnage and composition; rail and road alternatives): Kaub 63 against 50 +26 % (against 60 +5 %), containers 11.6 against 10 +16 %, German road 62 against 73 -15 %, rail 26 against 21 +24 %, dry bulk road -15 / rail +22 / waterway +10 %, liquid bulk road 19 against 28 -32 %, waterway 39 against 30 +30 %. "10 to 25 %" fails for the liquid bulk; "the location of the German industrial users" has no counterpart in the fit paragraph.'
+  decision: 'Which items the sentence covers is the author''s call. Proposed "within a third" (bound to Kaub and the German road/rail shares); alternative: "within a quarter, the road share of liquid bulk a third short".'
+  confidence: medium
+  file: sections/si.tex
+  section: si_a
+- pending: Rotterdam carries 131~Mt in the model against 402 handled, Antwerp-Bruges 162 against 242
+  kind: new_macro
+  old: Rotterdam carries 131~Mt in the model against 402 handled, Antwerp-Bruges 162 against 242
+  new: Rotterdam carries \PortRotterdamMt~Mt in the model against 402 handled, Antwerp-Bruges \PortAntwerpMt{} against 242
+  macros:
+  - name: PortRotterdamMt
+    value_now: '131'
+    code: '# Port loop of the proposal for ''within 10\,\% at Hamburg ...'''
+  - name: PortAntwerpMt
+    value_now: '162'
+    code: '# same loop'
+  ledger:
+  - kind: allowed
+    text: Rotterdam carries \PortRotterdamMt~Mt in the model against 402 handled, Antwerp-Bruges \PortAntwerpMt{} against 242
+    why: 'evidence: Eurostat mar_go_aa 2023, gross weight handled (Rotterdam 401.6, Antwerp-Bruges 242.2 Mt; Table tab:ports)'
+  evidence: 'ports.csv NL_0NLRTM 131.21 / 401.6, BE_0BE003 162.17 / 242.24: the literals match.'
+  decision: 'Seaport lists: macros (proposed) or names only with Table tab:ports carrying the figures (see the Hamburg entry).'
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: Trieste 6 against 51, Sines 11 against 40, Wilhelmshaven 2 against 30, Zeeland 6 against 37
+  kind: new_macro
+  old: Trieste 6 against 51, Sines 11 against 40, Wilhelmshaven 2 against 30, Zeeland 6 against 37
+  new: Trieste \PortTriesteMt{} against 51, Sines \PortSinesMt{} against 40, Wilhelmshaven \PortWilhelmshavenMt{} against 30, Zeeland \PortZeelandMt{} against 37
+  macros:
+  - name: PortTriesteMt
+    value_now: '6'
+    code: '# Port loop of the proposal for ''within 10\,\% at Hamburg ...'''
+  - name: PortSinesMt
+    value_now: '11'
+    code: '# same loop'
+  - name: PortWilhelmshavenMt
+    value_now: '2'
+    code: '# same loop'
+  - name: PortZeelandMt
+    value_now: '6'
+    code: '# same loop'
+  ledger:
+  - kind: allowed
+    text: Trieste \PortTriesteMt{} against 51, Sines \PortSinesMt{} against 40, Wilhelmshaven \PortWilhelmshavenMt{} against 30, Zeeland \PortZeelandMt{} against 37
+    why: 'evidence: Eurostat mar_go_aa 2023, gross weight handled (51.2, 39.8, 29.8, 36.5 Mt; Table tab:ports)'
+  evidence: 'ports.csv: Trieste 5.84, Sines 10.94, Wilhelmshaven 1.66, Zeeland Seaports 6.22: the literals match.'
+  decision: See the Rotterdam entry.
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: and the Rhine at the Dutch border, 106 against 118, shows
+  kind: new_macro
+  old: the Dutch border, 106 against 118, shows
+  new: the Dutch border, \RhineEmmerichMt{} against 118, shows
+  macros:
+  - name: RhineEmmerichMt
+    value_now: '106'
+    code: '# Rhine loop of the proposal for ''Koblenz 66 against 55--60 ...'''
+  ledger:
+  - kind: allowed
+    text: against 118, shows that
+    why: 'evidence: ccnr2023 (Emmerich cross-section 117.9 Mt in 2023)'
+  evidence: 'rhine.csv rhine_emmerich 105.69 (basins.csv Rhine DE busiest section 105.71): the literal matches.'
+  decision: ''
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: Algeciras 7 against 79, Piraeus 8 against 45, Gioia Tauro 11 against 35
+  kind: new_macro
+  old: Algeciras 7 against 79, Piraeus 8 against 45, Gioia Tauro 11 against 35
+  new: Algeciras \PortAlgecirasMt{} against 79, Piraeus \PortPiraeusMt{} against 45, Gioia Tauro \PortGioiaTauroMt{} against 35
+  macros:
+  - name: PortAlgecirasMt
+    value_now: '7'
+    code: '# Port loop of the proposal for ''within 10\,\% at Hamburg ...'''
+  - name: PortPiraeusMt
+    value_now: '8'
+    code: '# same loop'
+  - name: PortGioiaTauroMt
+    value_now: '11'
+    code: '# same loop'
+  ledger:
+  - kind: allowed
+    text: Algeciras \PortAlgecirasMt{} against 79, Piraeus \PortPiraeusMt{} against 45, Gioia Tauro \PortGioiaTauroMt{} against 35
+    why: 'evidence: Eurostat mar_go_aa 2023, gross weight handled (79.5, 45.2, 35.4 Mt; Table tab:ports)'
+  evidence: 'ports.csv: Algeciras 7.1, Piraeus 8.03, Gioia Tauro 10.83: the literals match.'
+  decision: See the Rotterdam entry.
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: the ladder of fees sent 140~Mt back to the large ports
+  kind: keep
+  old: the ladder of fees sent 140~Mt back to the large ports
+  new: the ladder of fees took 197~Mt off the ports outside the top forty
+  ledger:
+  - kind: allowed
+    text: the ladder of fees took 197~Mt off the ports outside the top forty
+    why: 'history: calibration round 6 against round 5 on the current gazetteer: the 98 ports outside the top forty carry 983 Mt in r5_g04_north (flow_score.py --retag, rerun 5 Nov 2026) and 786 in r6_h01_feeder3; the forty largest gain 51'
+  evidence: 'KEPT PENDING on review (5 Nov 2026): the proposed 197 Mt comes from a rescoring of the round-5 run that exists only in the session scratchpad (flow_score.py --retag on a copy of r5_g04_north); the project rule is that nothing the paper depends on stays in scratch. Make the rescoring reproducible (a script in the repo, its output in additional_data) first. Agent''s evidence: No reading gives 140. On the same 98-port gazetteer (r5_g04_north rescored with --retag in scratch; the base rescored with --retag reproduces its ports.csv byte for byte): ports outside the top forty 983 -> 786 Mt (-197), the forty largest 1,236 -> 1,287 (+51), all tagged ports 2,219 -> 2,073 (-146). On the 79 secondary ports of the time (calibration_log.md 29 Oct): 816 -> 685 (-131). So 140 is stale, and "back to the large ports" is not supported: about a quarter of what left the small ports reached the forty largest.'
+  decision: 'Proposed 197 Mt on the gazetteer the next sentence uses (98 ports, 786 Mt); alternatives: 131 Mt on the 79 ports then counted, or "cut these landings by a fifth" (983 -> 786). Reproduce with: flow_score.py EU --run <copy of r5_g04_north> --retag.'
+  confidence: medium
+  file: sections/si.tex
+  section: si_a
+- pending: (Venice, Chioggia, Monfalcone and Porto Nogaro together 205~Mt against 28), at Szczecin (95 against 12
+  kind: new_macro
+  old: (Venice, Chioggia, Monfalcone and Porto Nogaro together 205~Mt against 28), at Szczecin (95 against 12
+  new: (Venice, Chioggia, Monfalcone and Porto Nogaro together \PortLagoonMt~Mt against 28), at Szczecin (\PortSzczecinMt{} against 12
+  macros:
+  - name: PortLagoonMt
+    value_now: '205'
+    code: '# Port block of the proposal for ''within 10\,\% at Hamburg ...'' (sum of IT_0ITVCE, IT_0ITCHI, IT_0ITMNF, IT_0ITPNG)'
+  - name: PortSzczecinMt
+    value_now: '95'
+    code: '# same loop'
+  ledger:
+  - kind: allowed
+    text: (Venice, Chioggia, Monfalcone and Porto Nogaro together \PortLagoonMt~Mt against 28), at Szczecin (\PortSzczecinMt{} against 12
+    why: 'evidence: Eurostat mar_go_aa 2023 (Venice 22.5 + Chioggia 0.9 + Monfalcone 3.8 + Porto Nogaro 0.9 = 28.1; Szczecin 11.8 Mt)'
+  evidence: 'ports.csv: 125.74 + 0.00 + 73.34 + 6.07 = 205.15 against 28.09; Szczecin 95.24 against 11.82: the literals match.'
+  decision: See the Rotterdam entry.
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: with Gda\'nsk at 33 against 80 as the other side of the same coin), Burgas (47 against 17)
+  kind: new_macro
+  old: with Gda\'nsk at 33 against 80 as the other side of the same coin), Burgas (47 against 17)
+  new: with Gda\'nsk at \PortGdanskMt{} against 80 as the other side of the same coin), Burgas (\PortBurgasMt{} against 17)
+  macros:
+  - name: PortGdanskMt
+    value_now: '33'
+    code: '# Port loop of the proposal for ''within 10\,\% at Hamburg ...'''
+  - name: PortBurgasMt
+    value_now: '47'
+    code: '# same loop'
+  ledger:
+  - kind: allowed
+    text: with Gda\'nsk at \PortGdanskMt{} against 80 as the other side of the same coin), Burgas (\PortBurgasMt{} against 17)
+    why: 'evidence: Eurostat mar_go_aa 2023 (Gdansk 79.8, Burgas 17.0 Mt)'
+  evidence: 'ports.csv: Gdansk 32.51, Burgas 46.82: the literals match.'
+  decision: See the Rotterdam entry.
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: Oslo (29 against 5), M\'alaga (26 against 2)
+  kind: new_macro
+  old: Oslo (29 against 5), M\'alaga (26 against 2)
+  new: Oslo (\PortOsloMt{} against 5), M\'alaga (\PortMalagaMt{} against 2)
+  macros:
+  - name: PortOsloMt
+    value_now: '29'
+    code: '# Port loop of the proposal for ''within 10\,\% at Hamburg ...'''
+  - name: PortMalagaMt
+    value_now: '26'
+    code: '# same loop'
+  ledger:
+  - kind: allowed
+    text: Oslo (\PortOsloMt{} against 5), M\'alaga (\PortMalagaMt{} against 2)
+    why: 'evidence: Eurostat mar_go_aa 2023 (Oslo 5.3, Malaga 2.1 Mt)'
+  evidence: 'ports.csv: Oslo 29.22, Malaga 25.91: the literals match.'
+  decision: See the Rotterdam entry.
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: the 98 ports outside the top forty carry 786~Mt against 634
+  kind: new_macro
+  old: the 98 ports outside the top forty carry 786~Mt against 634
+  new: the \SecPortsN{} ports outside the top forty carry \SecPortsMt~Mt against \SecPortsObsMt
+  macros:
+  - name: SecPortsN
+    value_now: '98'
+    code: '# Port block of the proposal for ''within 10\,\% at Hamburg ...'' (ports.csv rows not scored and with a connector)'
+  - name: SecPortsMt
+    value_now: '786'
+    code: '# same block'
+  - name: SecPortsObsMt
+    value_now: '634'
+    code: '# same block'
+  ledger:
+  - kind: allowed
+    text: ports outside the top forty carry
+    why: 'design: the scored port set of flow_score.py (top 40 Eurostat ports)'
+  evidence: 'ports.csv: 98 rows outside the top forty with a connector, model 785.7 Mt, Eurostat 634 Mt; flow_score summary.csv "98 gazetteer ports outside the top-40 with connectors: model 786 Mt vs Eurostat 634 Mt". Literals match.'
+  decision: ''
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: where the model is within 10 to 35\,\% of the counts once crude and transhipment are set aside
+  kind: correct
+  old: where the model is within 10 to 35\,\% of the counts once crude and transhipment are set aside
+  new: where the model is within a third of the counts except at Rotterdam, whose gap is crude and transhipment (above)
+  ledger:
+  - kind: claims
+    text: where the model is within a third of the counts except at Rotterdam
+    expr: max(abs(PortHamburgMt/99.6-1), abs(PortBremerhavenMt/39.19-1), abs(PortAmsterdamMt/80.76-1), abs(PortAntwerpMt/242.24-1))*100
+    range:
+    - 25
+    - 33.4
+    why: 'result: Hamburg -4, Bremerhaven -24, Amsterdam -33, Antwerp-Bruges -33 % against Eurostat 2023 gross weight; within a third = up to 33.4'
+  evidence: 'ports.csv: Hamburg 0.96, Bremerhaven 0.76, Amsterdam 0.67, Antwerp-Bruges 0.67 of the gross weight handled, crude and transhipment included; Rotterdam 0.33. Rotterdam net of crude and transhipment is computed nowhere (calibration_log: its liquid bulk 28 against about 200; even net of that, 103 against about 200), so "within 10 to 35 % once crude and transhipment are set aside" cannot be checked for Rotterdam and the 10 has no counterpart (Hamburg is within 4 %).'
+  decision: 'Changes the claim: four ports within a third of the gross counts, Rotterdam set apart (proposed). Alternative: compute Rotterdam and Antwerp net of crude, liquid bulk and transhipment from the Eurostat cargo split (mar_go_qm by cargo type) and keep a numeric band.'
+  confidence: medium
+  file: sections/si.tex
+  section: si_a
+- pending: is a third of its observed tonne-kilometres (39 billion against 111) and its waterways half (21.5 against 41.6)
+  kind: new_macro
+  old: is a third of its observed tonne-kilometres (39 billion against 111) and its waterways half (21.5 against 41.6)
+  new: is a third of its observed tonne-kilometres (\NLTkmBn{} billion against 111) and its waterways half (\NLWaterTkmBn{} against 41.6)
+  macros:
+  - name: NLTkmBn
+    value_now: '39'
+    code: '# Modal block of the proposal for ''Germany 62 / 26 / 13 ...'' (country_modal_split.csv NL model_bn_tkm)'
+  - name: NLWaterTkmBn
+    value_now: '21.5'
+    code: '# Basin block of the proposal for ''The German waterways as a whole ...'' (basins.csv ALL NL bn_tkm)'
+  ledger:
+  - kind: claims
+    text: is a third of its observed tonne-kilometres
+    expr: 100*NLTkmBn/110.8
+    range:
+    - 30
+    - 37
+    why: 'result: Dutch inland tkm 39 against 110.8 bn = 35 %; a third = 30-37'
+  - kind: claims
+    text: and its waterways half
+    expr: 100*NLWaterTkmBn/41.6
+    range:
+    - 45
+    - 55
+    why: 'result: Dutch waterway tkm 21.5 against 41.6 bn = 52 %; half = 45-55'
+  - kind: allowed
+    text: billion against 111) and its waterways half (\NLWaterTkmBn{} against 41.6)
+    why: 'evidence: Eurostat 2023, Dutch inland transport 110.8 bn tkm (road 62.7 + rail 6.5 + waterway 41.6, mode_split_targets_NL_2023.csv), waterways 41.6'
+  evidence: country_modal_split.csv NL model_bn_tkm 39.18 (nst TOTAL 15.28 + 2.40 + 21.51 = 39.19) against 62.71 + 6.49 + 41.63 = 110.83; basins.csv ALL NL 21.51 against 41.6. Literals and words match.
+  decision: ''
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: carry 84 and 102~Mt against 125 and 140 for the same reason
+  kind: new_macro
+  old: carry 84 and 102~Mt against 125 and 140 for the same reason
+  new: carry \RhineTielMt{} and \RhineDordrechtRotterdamMt~Mt against 125 and 140 for the same reason
+  macros:
+  - name: RhineTielMt
+    value_now: '84'
+    code: '# Rhine loop of the proposal for ''Koblenz 66 against 55--60 ...'''
+  - name: RhineDordrechtRotterdamMt
+    value_now: '102'
+    code: '# same loop'
+  ledger:
+  - kind: allowed
+    text: against 125 and 140 for the same reason
+    why: 'evidence: ccnr2023 estimates (Tiel 125, Dordrecht-Rotterdam 140 in scenarios/rhine_capacities.csv)'
+  evidence: 'rhine.csv: rhine_tiel 83.74, rhine_dordrecht_rotterdam 101.78: the literals match.'
+  decision: ''
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: the Wesel--Datteln canal carries 3.5~Mt against 16, the Dortmund--Ems canal 4 against 15
+  kind: new_macro
+  old: the Wesel--Datteln canal carries 3.5~Mt against 16, the Dortmund--Ems canal 4 against 15
+  new: the Wesel--Datteln canal carries \BasinWeselDattelnMt~Mt against 16, the Dortmund--Ems canal \BasinDortmundEmsMt{} against 15
+  macros:
+  - name: BasinWeselDattelnMt
+    value_now: '3.5'
+    code: '# Basin loop of the proposal for ''The German waterways as a whole carry 42.8 ...'' (one decimal)'
+  - name: BasinDortmundEmsMt
+    value_now: '4'
+    code: '# same loop'
+  ledger:
+  - kind: allowed
+    text: the Wesel--Datteln canal carries \BasinWeselDattelnMt~Mt against 16, the Dortmund--Ems canal \BasinDortmundEmsMt{} against 15
+    why: 'evidence: Destatis 46321-0014 2023 (Wesel-Datteln-Kanal 16.2, Dortmund-Ems-Kanal 14.7 Mt on the busiest section)'
+  evidence: 'basins.csv DE max_mt: Wesel-Datteln-Kanal 3.46, Dortmund-Ems-Kanal 3.89: the literals match.'
+  decision: See the German-waterways entry.
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: and the Mittellandkanal 6 against 12
+  kind: new_macro
+  old: and the Mittellandkanal 6 against 12
+  new: and the Mittellandkanal \BasinMittellandMt{} against 12
+  macros:
+  - name: BasinMittellandMt
+    value_now: '6'
+    code: '# Basin loop of the proposal for ''The German waterways as a whole carry 42.8 ...'''
+  ledger:
+  - kind: allowed
+    text: and the Mittellandkanal \BasinMittellandMt{} against 12
+    why: 'evidence: Destatis 46321-0014 2023 (Mittellandkanal 12.2 Mt on the busiest section)'
+  evidence: 'basins.csv DE Mittellandkanal max_mt 6.27 against 12.15: the literal matches.'
+  decision: ''
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: The Weser and the K\"ustenkanal, on the contrary, carry 24 and 23~Mt against 3
+  kind: new_macro
+  old: carry 24 and 23~Mt against 3
+  new: carry \BasinWeserMt{} and \BasinKuestenMt~Mt against 3
+  macros:
+  - name: BasinWeserMt
+    value_now: '24'
+    code: '# Basin loop of the proposal for ''The German waterways as a whole carry 42.8 ...'''
+  - name: BasinKuestenMt
+    value_now: '23'
+    code: '# same loop (Kuestenkanal-Hunte)'
+  ledger:
+  - kind: allowed
+    text: and \BasinKuestenMt~Mt against 3
+    why: 'evidence: Destatis 46321-0014 2023 (Weser 3.0, Kuestenkanal-Hunte 3.0 Mt on the busiest section)'
+  evidence: 'basins.csv DE max_mt: Weser 23.79, Kuestenkanal-Hunte 22.83, both against 3.02: the literals match.'
+  decision: ''
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: the model carries half to two thirds of the counts (Basel 2.6 against 5.5
+  kind: new_macro
+  old: (Basel 2.6 against 5.5
+  new: (Basel \RhineBaselMt{} against 5.5
+  macros:
+  - name: RhineBaselMt
+    value_now: '2.6'
+    code: '# Rhine loop of the proposal for ''Koblenz 66 against 55--60 ...'''
+  ledger:
+  - kind: claims
+    text: the model carries half to two thirds of the counts
+    expr: RhineBaselMt/5.5
+    range:
+    - 0.45
+    - 0.55
+    why: 'result: the lower end, Basel 2.6 against 5.5 = 0.47; half = 0.45-0.55'
+  - kind: claims
+    text: the model carries half to two thirds of the counts
+    expr: max(RhineStrasbourgMt/16, RhineKarlsruheMt/22)
+    range:
+    - 0.58
+    - 0.72
+    why: 'result: the upper end, Strasbourg 10 against 16 = 0.62 (Karlsruhe 0.59); two thirds = 0.58-0.72'
+  - kind: allowed
+    text: (Basel \RhineBaselMt{} against 5.5
+    why: 'evidence: ccnr2023 (Basel 5.5 Mt, scenarios/rhine_capacities.csv)'
+  evidence: 'rhine.csv: Basel 2.59 / 5.5 = 0.47, Strasbourg 9.93 / 16 = 0.62, Karlsruhe 13.36 / 22 = 0.61: "half to two thirds" holds with Basel just under half (two claims bind the two ends).'
+  decision: ''
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: Strasbourg 10 against 16, Karlsruhe 13 against 22) while the Mannheim--Mainz reach is above them (46 against 40)
+  kind: new_macro
+  old: Strasbourg 10 against 16, Karlsruhe 13 against 22) while the Mannheim--Mainz reach is above them (46 against 40)
+  new: Strasbourg \RhineStrasbourgMt{} against 16, Karlsruhe \RhineKarlsruheMt{} against 22) while the Mannheim--Mainz reach is above them (\RhineMannheimMainzMt{} against 40)
+  macros:
+  - name: RhineStrasbourgMt
+    value_now: '10'
+    code: '# Rhine loop of the proposal for ''Koblenz 66 against 55--60 ...'''
+  - name: RhineKarlsruheMt
+    value_now: '13'
+    code: '# same loop'
+  - name: RhineMannheimMainzMt
+    value_now: '46'
+    code: '# same loop'
+  ledger:
+  - kind: allowed
+    text: Strasbourg \RhineStrasbourgMt{} against 16, Karlsruhe \RhineKarlsruheMt{} against 22) while the Mannheim--Mainz reach is above them (\RhineMannheimMainzMt{} against 40)
+    why: 'evidence: ccnr2023 estimates (Strasbourg 16, Karlsruhe 22, Mannheim-Mainz 40 Mt in scenarios/rhine_capacities.csv)'
+  - kind: claims
+    text: the Mannheim--Mainz reach is above them
+    expr: RhineMannheimMainzMt/40
+    range:
+    - 1.0
+    - 2.0
+    why: 'result: Mannheim-Mainz 46 against 40 (+16 %)'
+  evidence: 'rhine.csv: strasbourg 9.93, karlsruhe 13.36, mannheim_mainz 46.44: the literals match.'
+  decision: ''
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: the bulk through at 369 kt a week in the trough of 2018, where the fleet carries 290
+  kind: new_macro
+  old: at 369 kt a week in the trough of 2018, where the fleet carries 290
+  new: at \GateSingleKt{} kt a week in the trough of 2018, where the fleet carries \GateFleetKt
+  macros:
+  - name: GateSingleKt
+    value_now: '369'
+    code: "# the gate at Kaub in the trough of 2018 (S2, 5 Nov 2026): kt a week at the loading factor of the trough weeks (Kaub 29-32 cm\n# in late October and November 2018: the table's 0.30 at 30 cm) for the capacity of the CCNR file, a single capacity anchored\n# on the model's total and the per-class capacities (rhine_mainz_koblenz; anchor_rhine_capacities.py)\nif (HERE / \"scenarios\" / f\"rhine_capacities_anchored_{tag}.csv\").exists():\n    f18 = lfn(30.0)\n    kc = {k: pd.read_csv(HERE / \"scenarios\" / f\"rhine_capacities{k}.csv\").set_index(\"name\").loc[\"rhine_mainz_koblenz\"] for k in (\"\", \"_anchored_r6\", f\"_anchored_{tag}\")}\n    put(\"GateFleetKt\", f\"{10 * round(kc[''].tons_per_day * 7 * f18 / 1e4):.0f}\", f\"kt/week the fleet carries past Kaub at factor {f18:.2f} (CCNR file {kc[''].tons_per_day:,.0f} t/day; to the ten)\")\n    put(\"GateSingleKt\", pct(kc[\"_anchored_r6\"].tons_per_day * 7 * f18 / 1e3), f\"kt/week a single capacity anchored on the total lets through ({kc['_anchored_r6'].tons_per_day:,.0f} t/day)\")\n    kb_ = kc[f\"_anchored_{tag}\"]\n    put(\"GateBulkKt\", pct((kb_.tons_per_day_dry_bulk + kb_.tons_per_day_liquid_bulk) * 7 * f18 / 1e3), f\"kt/week the per-class capacities allow the bulk ({kb_.tons_per_day_dry_bulk:,.0f} dry + {kb_.tons_per_day_liquid_bulk:,.0f} liquid t/day)\")\n"
+    source: studies/rhine2026/scenarios/rhine_capacities.csv, rhine_capacities_anchored_r6.csv, rhine_capacities_anchored_r6_bycargo.csv (rhine_mainz_koblenz), draught_table.csv
+  - name: GateFleetKt
+    value_now: '290'
+    code: '# put by the block above (137,000 x 7 x 0.30 = 287.7 kt, to the ten as the text has it)'
+  ledger: []
+  evidence: 'Single anchoring 175,800 t/day x 7 x 0.30 = 369.2 kt; CCNR file 137,000 x 7 x 0.30 = 287.7 kt, printed to the ten (290); load factor 0.30 = draught_table at 30 cm (the 2018 trough weeks: Kaub 28.7 cm, factor 0.295, and 30.9-31.9 cm, 0.303-0.306). commit ba94dca and calibration_log 29 Oct / 1 Nov give the same 369 and 290. Literals match.'
+  decision: GateFleetKt is rounded to the ten as printed (290); with pct it would read 288.
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: per class the bulk is allowed 301
+  kind: new_macro
+  old: per class the bulk is allowed 301
+  new: per class the bulk is allowed \GateBulkKt{}
+  macros:
+  - name: GateBulkKt
+    value_now: '301'
+    code: '# put by the gate block of the proposal for ''the bulk through at 369 kt ...'''
+  ledger: []
+  evidence: 'rhine_capacities_anchored_r6_bycargo.csv rhine_mainz_koblenz: dry 62,900 + liquid 80,600 t/day = 143,500 x 7 x 0.30 = 301.4 kt: the literal matches (the batch''s own per-class capacities, also in its run_fingerprint transport_capacity_overrides).'
+  decision: ''
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: Rail keeps a higher share than observed in Austria (40 against 29\,\%) and France (12 against 9)
+  kind: new_macro
+  old: Austria (40 against 29\,\%) and France (12 against 9)
+  new: Austria (\ModalATRail{} against 29\,\%) and France (\ModalFRRail{} against 9)
+  macros:
+  - name: ModalATRail
+    value_now: '40'
+    code: '# Modal loop of the proposal for ''Germany 62 / 26 / 13 ...'''
+  - name: ModalFRRail
+    value_now: '12'
+    code: '# same loop'
+  ledger:
+  - kind: allowed
+    text: against 29\,\%) and France (\ModalFRRail{} against 9)
+    why: 'evidence: Eurostat tran_hv_frmod 2023 rail shares (Austria 29.3, France 9.2 %)'
+  - kind: claims
+    text: Rail keeps a higher share than observed in Austria
+    expr: min(ModalATRail-29, ModalFRRail-9)
+    range:
+    - 1
+    - 100
+    why: 'result: rail share above Eurostat in both (Austria +11, France +3 points)'
+  evidence: 'country_modal_split.csv AT rail 39.66 (29.3), FR rail 12.40 (9.2): the literals match.'
+  decision: ''
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: the German rail share, 26 against 21, carries the short-haul correction above
+  kind: new_macro
+  old: the German rail share, 26 against 21,
+  new: the German rail share, \ModalDERail{} against 21,
+  macros:
+  - name: ModalDERail
+    value_now: '26'
+    code: '# Modal loop of the proposal for ''Germany 62 / 26 / 13 ...'''
+  ledger:
+  - kind: allowed
+    text: against 21, carries the short-haul correction
+    why: 'evidence: Eurostat tran_hv_frmod 2023, German rail share 20.6 %'
+  evidence: 'country_modal_split.csv DE rail 25.59 against 20.6: the literal matches.'
+  decision: ''
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: The share of deep-sea shipping in the maritime tonnage is 47\,\% against 41.5 observed
+  kind: new_macro
+  old: is 47\,\% against 41.5 observed
+  new: is \DeepSeaShare\,\% against 41.5 observed
+  macros:
+  - name: DeepSeaShare
+    value_now: '47'
+    code: '# Port block of the proposal for ''within 10\,\% at Hamburg ...'' (short_sea.csv EU27_2020 model_dss_pct_from_gateways)'
+  ledger:
+  - kind: allowed
+    text: 'against 41.5 observed: intra-European'
+    why: 'evidence: Eurostat mar_sg_am_cw 2023, EU27 deep-sea share of the maritime tonnage 41.5 %'
+  - kind: claims
+    text: intra-European trade uses the sea less in the model
+    expr: DeepSeaShare-41.5
+    range:
+    - 0.5
+    - 100
+    why: 'result: the model''s deep-sea share above Eurostat''s (47 against 41.5)'
+  evidence: 'short_sea.csv EU27_2020: model_dss_pct_from_gateways 47.2, eurostat_dss_pct 41.5 (summary.csv "47.2 % vs Eurostat EU27 41.5 %"): the literal matches.'
+  decision: ''
+  confidence: high
+  file: sections/si.tex
+  section: si_a
+- pending: changes the tonnage turned away by less than 1\,\% in both years
+  file: sections/si.tex
+  kind: new_macro
+  old: changes the tonnage turned away by less than 1\,\% in both years
+  new: changes the tonnage turned away by less than 1\,\% in both years
+  macros:
+  - name: DailyLoadingDiff
+    value_now: '0.7'
+    code: "# [B] day-by-day loading against weekly means (S3 loading table): tonnage turned away in week-equivalents over the\n# profile weeks covered by the daily gauge files, on the current loading table (lfn)\ndd_ = {}\nfor yr_ in (2018, 2026):\n    pf_ = pd.read_csv(HERE / \"scenarios\" / f\"{yr_}.csv\")\n    dy_ = pd.read_csv(HERE / \"scenarios\" / f\"kaub_daily_{yr_}.csv\", parse_dates=[\"date\"]).set_index(\"date\").kaub_cm\n    wk_ = da_ = 0.0\n    for _, rr_ in pf_.iterrows():\n        days_ = [pd.Timestamp(rr_.week_start) + pd.Timedelta(days=k_) for k_ in range(7)]\n        if all(d_ in dy_.index for d_ in days_):\n            wk_ += 1 - lfn(float(rr_.kaub_cm)); da_ += float(np.mean([1 - lfn(float(dy_.loc[d_])) for d_ in days_]))\n    dd_[yr_] = 100 * (da_ / wk_ - 1)\nput(\"DailyLoadingDiff\", r1(max(abs(v_) for v_ in dd_.values())), f\"% change of the tonnage turned away when the loading share is taken day by day, largest of the two years (2018 {dd_[2018]:+.2f}, 2026 {dd_[2026]:+.2f}; weeks with daily gauges)\")\n"
+    source: studies/rhine2026/scenarios/2018.csv, 2026.csv, kaub_daily_2018.csv, kaub_daily_2026.csv, draught_table.csv
+  ledger:
+  - kind: claims
+    text: changes the tonnage turned away by less than 1\,\% in both years
+    expr: DailyLoadingDiff
+    range:
+    - 0
+    - 0.9
+    why: 'result (inputs): weekly means against day-by-day loading shares on the rebuilt table; less than 1 % = r1 value at most 0.9'
+  evidence: 'Redone on the rebuilt table (draught_table.csv of 6 Oct): 2018, 22 weeks, 9.95 week-equivalents from weekly means against 10.01 day by day (+0.69 %); 2026, the 14 fully observed weeks, 8.38 against 8.36 (-0.31 %). The same code on draught_table_v1.csv reproduces the 30 Sep check of calibration_log.md (2018: 10.18 vs 10.26, +0.73 %). The sentence holds on the current table. The same words are in main.tex (Methods, l. 225, pending in main.yaml): the same claim with file main.tex fixes that one.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: in the profile weeks of the reference run, 7--34\,\% finds another route
+  file: sections/si.tex
+  kind: new_macro
+  old: 7--34\,\% finds another route
+  new: \GateResentMin--\GateResentMax\,\% finds another route
+  macros:
+  - name: GateResentMin
+    value_now: '7'
+    code: '# family [A], see below'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base.log
+  - name: GateResentMax
+    value_now: '34'
+    code: "# [A] the gate at Kaub week by week (S3 allocation, S4 flat profile and conservation; Table si_gate): cut, re-sent\n# and withheld at the gates of the Rhine chain from the run's log, in the profile weeks and the recovery weeks\ndef gate_log(run_):\n    g_ = {}\n    for line_ in (RUNS / f\"{run_}.log\").read_text(encoding=\"utf-8\", errors=\"replace\").splitlines():\n        mt_ = re.search(r\"Capacity gate t=(\\d+):.*cut ([\\d,]+) t, re-sent ([\\d,]+) t, blocked ([\\d,]+) t\", line_)\n        if mt_ and float(mt_.group(2).replace(\",\", \"\")) > 0:\n            g_[int(mt_.group(1))] = tuple(float(mt_.group(i).replace(\",\", \"\")) for i in (2, 3, 4))\n    return g_\nn_prof26 = len(pd.read_csv(HERE / \"scenarios\" / \"2026.csv\"))\ngl26 = gate_log(B)\nw_prof = sorted(t_ for t_ in gl26 if t_ <= n_prof26); w_rec = sorted(t_ for t_ in gl26 if t_ > n_prof26)\nw_ep = [t_ for t_ in w_prof if 7 <= t_ <= 9 or 12 <= t_ <= 19]          # the August episode and the autumn trough\nrs26 = {t_: 100 * v_[1] / v_[0] for t_, v_ in gl26.items()}             # re-sent share of the week's cut, %\nfor suf_, ws_, lab_ in ((\"\", w_prof, \"the profile weeks\"), (\"First\", w_prof[:3], \"the first three profile weeks\"),\n                        (\"Last\", w_prof[-3:], \"the last three profile weeks\"), (\"Ep\", w_ep, \"the episode weeks 7-9 and 12-19\")):\n    put(f\"GateResent{suf_}Min\", pct(min(rs26[t_] for t_ in ws_)), f\"% of the week's cut at the Rhine gates that is re-sent, lowest over {lab_} ({B} log)\")\n    put(f\"GateResent{suf_}Max\", pct(max(rs26[t_] for t_ in ws_)), \"highest\")\ngsum = lambda gl_, ws_, i: sum(gl_[t_][i] for t_ in ws_) / 1e6\nput(\"GateResentRec\", pct(100 * gsum(gl26, w_rec, 1) / gsum(gl26, w_rec, 0)), \"% of the cut re-sent in the recovery weeks\")\nput(\"GateWeeks\", str(len(gl26)), \"run weeks in which the gates cut (profile + recovery)\"); put(\"GateRecWeeks\", str(len(w_rec)), \"recovery weeks in which the gates cut\")\nput(\"GateCutMt\", r1(gsum(gl26, gl26, 0)), \"Mt cut at the gates over the season (Table si_gate caption)\"); put(\"GateResentMt\", r1(gsum(gl26, gl26, 1)), \"Mt re-sent\")\nput(\"GateHeldMt\", r1(gsum(gl26, gl26, 2)), \"Mt withheld over the season\"); put(\"GateHeldProfMt\", r1(gsum(gl26, w_prof, 2)), \"Mt withheld in the profile weeks\")\nput(\"GateHeldRecMt\", r1(gsum(gl26, w_rec, 2)), \"Mt withheld in the recovery weeks\")\nglf = gate_log(f\"{wv}_flat\")\nput(\"FlatCutMt\", r1(gsum(glf, glf, 0)), f\"Mt cut at the gates under the flat profile ({wv}_flat log)\"); put(\"FlatResentMt\", r1(gsum(glf, glf, 1)), \"Mt re-sent\")\nput(\"FlatHeldMt\", r1(gsum(glf, glf, 2)), \"Mt withheld under the flat profile\")\nput(\"FlatHeldDiff\", pct(100 * (1 - gsum(glf, glf, 2) / gsum(gl26, gl26, 2))), \"% by which the flat profile withholds less tonnage than the season\")\n"
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base.log, wave_r6_bycargo_flat.log; studies/rhine2026/scenarios/2026.csv
+  ledger: []
+  evidence: 'Gate log of 2026_r6_bycargo_base: re-sent/cut per profile week from 6.7 % (week 8) to 33.8 % (week 2), i.e. 7--34 as written (= Table si_gate rows). Current.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: 20--34\,\% in the first three weeks and 13--29\,\% in the last three, 7--8\,\% in the episode weeks
+  file: sections/si.tex
+  kind: correct
+  old: 20--34\,\% in the first three weeks and 13--29\,\% in the last three, 7--8\,\% in the episode weeks
+  new: \GateResentFirstMin--\GateResentFirstMax\,\% in the first three weeks and \GateResentLastMin--\GateResentLastMax\,\% in the last three, \GateResentEpMin--\GateResentEpMax\,\% in the episode weeks
+  macros:
+  - name: GateResentFirstMin
+    value_now: '19'
+    code: '# family [A] (proposal of ''7--34 % finds another route'')'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base.log
+  - name: GateResentFirstMax
+    value_now: '34'
+    code: '# family [A]'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base.log
+  - name: GateResentLastMin
+    value_now: '13'
+    code: '# family [A]'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base.log
+  - name: GateResentLastMax
+    value_now: '29'
+    code: '# family [A]'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base.log
+  - name: GateResentEpMin
+    value_now: '7'
+    code: '# family [A] (episode weeks = 7-9 and 12-19)'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base.log
+  - name: GateResentEpMax
+    value_now: '8'
+    code: '# family [A]'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base.log
+  ledger:
+  - kind: allowed
+    text: in the first three weeks and \GateResentLastMin--\GateResentLastMax\,\% in the last three
+    why: 'design: the first and the last three profile weeks (weeks 1-3 and 21-23)'
+  evidence: 'Gate log of 2026_r6_bycargo_base (= Table si_gate): weeks 1-3 re-send 20.4, 33.8 and 18.8 % (39/191, 60/177, 52/277), so 19--34, not 20--34 (stale); weeks 21-23 13.3, 20.2, 28.9 % = 13--29 (current); the episode weeks 7-9 and 12-19 6.7 to 7.7 % = 7--8 (current; weeks 6, 11 and 20 are also 6.9-7.8, week 10 between the episodes 13.0).'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: when the cut is small, three quarters of it is re-sent
+  file: sections/si.tex
+  kind: new_macro
+  old: when the cut is small, three quarters of it is re-sent
+  new: when the cut is small, three quarters of it is re-sent
+  macros:
+  - name: GateResentRec
+    value_now: '75'
+    code: '# family [A]'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base.log
+  ledger:
+  - kind: claims
+    text: when the cut is small, three quarters of it is re-sent
+    expr: GateResentRec
+    range:
+    - 72
+    - 78
+    why: 'result: re-sent share of the cut in the 13 recovery weeks (gate log); three quarters = 72-78'
+  evidence: 'Recovery weeks 24-36 of 2026_r6_bycargo_base: cut 2.62 Mt, re-sent 1.97 = 75.2 % (74.5-79.4 % week by week, 98.6 % in the last); si_gate caption 2.6 / 2.0 Mt. Current.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: worth 22.4 billion USD in the reference run and 4.0 billion in the constraint-only run
+  file: sections/si.tex
+  kind: new_macro
+  old: 22.4 billion USD in the reference run and 4.0 billion
+  new: \ChanBulkAltBn{} billion USD in the reference run and \ChanBulkAltGateBn{} billion
+  macros:
+  - name: ChanBulkAltBn
+    value_now: '22.4'
+    code: '# family [C], see below'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base/routing_summary.csv
+  - name: ChanBulkAltGateBn
+    value_now: '4.0'
+    code: "# [C] the two channels at the routing level (S4; Table si_channels, as si_tables.channels_table): routing_summary.csv\n# totals over the 2026 run, base and each channel alone\nfor suf_, run_ in ((\"\", B), (\"Gate\", f\"2026_{tag}_gateonly\"), (\"Sur\", f\"2026_{tag}_surchargeonly\")):\n    rsm_ = pd.read_csv(RUNS / run_ / \"routing_summary.csv\")\n    bk_ = rsm_[rsm_.cargo_type.isin([\"dry_bulk\", \"liquid_bulk\"])]; ct_ = rsm_[rsm_.cargo_type == \"container\"]\n    put(f\"ChanBulkAlt{suf_}Bn\", r1(bk_.alternative_usd.sum() / 1e3), f\"{run_}: bn USD of bulk that leaves its normal route for an alternative\")\n    put(f\"ChanContAlt{suf_}Bn\", r1(ct_.alternative_usd.sum() / 1e3), f\"{run_}: bn USD of containers that leave their normal route\")\n    if suf_ != \"Sur\":\n        put(f\"ChanBulkHeld{suf_}Bn\", r1(bk_.capacity_blocked_usd.sum() / 1e3), f\"{run_}: bn USD of bulk withheld by the capacity gate\")\n"
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_gateonly/routing_summary.csv
+  ledger: []
+  evidence: 'routing_summary.csv: bulk alternative 22.40 bn (base), 3.98 bn (gateonly) = Table si_channels. Current.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: while the capacity limit withholds 10.3 and 11.7 billion of bulk
+  file: sections/si.tex
+  kind: new_macro
+  old: 10.3 and 11.7 billion of bulk
+  new: \ChanBulkHeldBn{} and \ChanBulkHeldGateBn{} billion of bulk
+  macros:
+  - name: ChanBulkHeldBn
+    value_now: '10.3'
+    code: '# family [C]'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base/routing_summary.csv
+  - name: ChanBulkHeldGateBn
+    value_now: '11.7'
+    code: '# family [C]'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_gateonly/routing_summary.csv
+  ledger: []
+  evidence: 'routing_summary.csv capacity_blocked_usd of bulk: 10.30 bn (base), 11.69 bn (gateonly) = Table si_channels. Current.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: 45.4 billion of them over the season, 45.2 under the surcharge alone and 13.4 when only the gate acts
+  file: sections/si.tex
+  kind: new_macro
+  old: 45.4 billion of them over the season, 45.2 under the surcharge alone and 13.4 when only the gate acts
+  new: \ChanContAltBn{} billion of them over the season, \ChanContAltSurBn{} under the surcharge alone and \ChanContAltGateBn{} when only the gate acts
+  macros:
+  - name: ChanContAltBn
+    value_now: '45.4'
+    code: '# family [C]'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base/routing_summary.csv
+  - name: ChanContAltSurBn
+    value_now: '45.2'
+    code: '# family [C]'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_surchargeonly/routing_summary.csv
+  - name: ChanContAltGateBn
+    value_now: '13.4'
+    code: '# family [C]'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_gateonly/routing_summary.csv
+  ledger: []
+  evidence: 'routing_summary.csv container alternative_usd: 45.36 (base), 45.15 (surchargeonly), 13.40 (gateonly); container capacity_blocked 0 in all three ("none is withheld" holds). Current.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: reroutes 26.7 billion of bulk and withholds nothing
+  file: sections/si.tex
+  kind: new_macro
+  old: reroutes 26.7 billion of bulk
+  new: reroutes \ChanBulkAltSurBn{} billion of bulk
+  macros:
+  - name: ChanBulkAltSurBn
+    value_now: '26.7'
+    code: '# family [C]'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_surchargeonly/routing_summary.csv
+  ledger: []
+  evidence: 'routing_summary.csv of 2026_r6_bycargo_surchargeonly: bulk alternative 26.71 bn, capacity_blocked 0.0 ("withholds nothing" holds). Current.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: The capacity limits withhold 10.8~Mt over the 36 gated weeks of the season as it happened
+  file: sections/si.tex
+  kind: new_macro
+  old: 10.8~Mt over the 36 gated weeks
+  new: \GateHeldMt~Mt over the \GateWeeks{} gated weeks
+  macros:
+  - name: GateHeldMt
+    value_now: '10.8'
+    code: '# family [A]'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base.log
+  - name: GateWeeks
+    value_now: '36'
+    code: '# family [A]'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base.log
+  ledger: []
+  evidence: 'Gate log of 2026_r6_bycargo_base: 36 weeks with a cut, withheld 10.78 Mt (si_gate caption 10.8). Current.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: (the 23 profile weeks of Table~\ref{tab:gate}, 10.1~Mt, and the 13 recovery weeks
+  file: sections/si.tex
+  kind: new_macro
+  old: tab:gate}, 10.1~Mt, and the 13 recovery weeks
+  new: tab:gate}, \GateHeldProfMt~Mt, and the \GateRecWeeks{} recovery weeks
+  macros:
+  - name: GateHeldProfMt
+    value_now: '10.1'
+    code: '# family [A]'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base.log
+  - name: GateRecWeeks
+    value_now: '13'
+    code: '# family [A]'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base.log
+  ledger:
+  - kind: allowed
+    text: (the 23 profile weeks of Table~\ref{tab:gate}
+    why: 'data: length of the 2026 profile of 30 Sep (scenarios/2026.csv, 23 weeks)'
+  evidence: 'Gate log: withheld 10.13 Mt in the 23 profile weeks, 13 recovery weeks (24-36) with a cut (si_gate caption). Current.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: exceeds the reopened capacity, 0.7~Mt) and 10.2~Mt under the flat profile
+  file: sections/si.tex
+  kind: new_macro
+  old: 0.7~Mt) and 10.2~Mt under
+  new: \GateHeldRecMt~Mt) and \FlatHeldMt~Mt under
+  macros:
+  - name: GateHeldRecMt
+    value_now: '0.7'
+    code: '# family [A]'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base.log
+  - name: FlatHeldMt
+    value_now: '10.2'
+    code: '# family [A]'
+    source: C:/dsc_runs/rhine2026/wave_r6_bycargo_flat.log
+  ledger: []
+  evidence: 'Gate logs: recovery weeks of the base withhold 0.65 Mt; wave_r6_bycargo_flat withholds 10.22 Mt over its 36 gated weeks. Current.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: '(cut 13.8 and 12.4~Mt, re-sent 3.1 and 2.2~Mt): the realised tonnage withheld differs by 6\,\%'
+  file: sections/si.tex
+  kind: correct
+  old: '(cut 13.8 and 12.4~Mt, re-sent 3.1 and 2.2~Mt): the realised tonnage withheld differs by 6\,\%'
+  new: '(cut \GateCutMt{} and \FlatCutMt~Mt, re-sent \GateResentMt{} and \FlatResentMt~Mt): the realised tonnage withheld differs by \FlatHeldDiff\,\%'
+  macros:
+  - name: GateCutMt
+    value_now: '13.8'
+    code: '# family [A]'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base.log
+  - name: FlatCutMt
+    value_now: '12.4'
+    code: '# family [A]'
+    source: C:/dsc_runs/rhine2026/wave_r6_bycargo_flat.log
+  - name: GateResentMt
+    value_now: '3.1'
+    code: '# family [A]'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base.log
+  - name: FlatResentMt
+    value_now: '2.2'
+    code: '# family [A]'
+    source: C:/dsc_runs/rhine2026/wave_r6_bycargo_flat.log
+  - name: FlatHeldDiff
+    value_now: '5'
+    code: '# family [A]'
+    source: gate logs of 2026_r6_bycargo_base and wave_r6_bycargo_flat
+  ledger: []
+  evidence: 'Gate logs: cut 13.84 / 12.45 Mt, re-sent 3.05 / 2.23, withheld 10.78 / 10.22 Mt: the flat profile withholds 5.2 % less than the season (5.5 % of the flat value), so 5 %, not 6 (the 6 came from the rounded 10.8 / 10.2 = 5.9 %). The other four figures are current.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: 48 German buyer region--sectors with at least one supplier pair cut at Kaub in the August episode (weeks 7--9)
+  file: sections/si.tex
+  kind: new_macro
+  old: the 48 German buyer region--sectors
+  new: the \SupWeightBuyers{} German buyer region--sectors
+  macros:
+  - name: SupWeightBuyers
+    value_now: '48'
+    code: "# [D] supplier weights of the Kaub-served German buyers through the season (S4; revision_diagnostics.supplier_weights)\n# on the link-level run: buyers with a supplier pair cut at Kaub in the August episode (weeks 7-9), share of their offered\n# deliveries from those pairs at the start (t=0), the end of the first wave (t=10), the second episode (t=19), after (t=40)\nkw_ = lf[lf.buyer_region == \"DEU\"].copy()\nkkey_ = [\"seller_region\", \"seller_sector\", \"buyer_region\", \"buyer_sector\"]\nkdep_ = kw_[kw_.time_step.isin([7, 8, 9]) & (kw_.capacity_blocked > 0)].groupby(kkey_).size().index\nkw_[\"kaub\"] = kw_.set_index(kkey_).index.isin(kdep_)\nkbuy_ = kw_[kw_.kaub].groupby([\"buyer_region\", \"buyer_sector\"]).size().index\nkw_ = kw_[kw_.set_index([\"buyer_region\", \"buyer_sector\"]).index.isin(kbuy_)]\nput(\"SupWeightBuyers\", str(len(kbuy_)), f\"German buyer region-sectors with a supplier pair cut at Kaub in weeks 7-9 (2026_{tag}_full)\")\nfor suf_, st_ in ((\"Start\", 0), (\"WaveEnd\", 10), (\"Second\", 19), (\"After\", 40)):\n    x_ = kw_[kw_.time_step == st_]\n    put(f\"SupWeight{suf_}\", r1(100 * x_[x_.kaub].delivery_offered.sum() / x_.delivery_offered.sum()), f\"% of their offered deliveries from those pairs, week {st_}\")\n"
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_full/link_flows_disrupted.csv.gz
+  ledger:
+  - kind: allowed
+    text: cut at Kaub in the August episode (weeks 7--9)
+    why: 'design: the August episode, run weeks 7-9 (3-23 August 2026)'
+  evidence: 'revision_diagnostics.supplier_weights rerun on 2026_r6_bycargo_full: 48 region-sectors (322 supplier pairs; the first version 2026_s07_full also 48, 326 pairs). Same count, now from the per-class run.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: keep 13.4\,\% of their offered deliveries with those pairs at the start of the season, 14.2\,\%
+  file: sections/si.tex
+  kind: correct
+  old: keep 13.4\,\% of their offered deliveries with those pairs at the start of the season, 14.2\,\%
+  new: keep \SupWeightStart\,\% of their offered deliveries with those pairs at the start of the season, \SupWeightWaveEnd\,\%
+  macros:
+  - name: SupWeightStart
+    value_now: '12.7'
+    code: '# family [D]'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_full/link_flows_disrupted.csv.gz
+  - name: SupWeightWaveEnd
+    value_now: '13.4'
+    code: '# family [D]'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_full/link_flows_disrupted.csv.gz
+  ledger: []
+  evidence: 'First version (2026_s07_full, revision_20261006_diagnostics.txt section 6): t=0 13.4, t=10 14.2. Per-class link-level run 2026_r6_bycargo_full: t=0 12.72, t=10 13.41 (stale: 13.4 -> 12.7, 14.2 -> 13.4). The reading (the first wave does not move orders away from the river''s suppliers) still holds: the share rises from 12.7 to 13.4.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: 14.6\,\% in the second episode and 13.4\,\% after the recovery
+  file: sections/si.tex
+  kind: correct
+  old: 14.6\,\% in the second episode and 13.4\,\% after the recovery
+  new: \SupWeightSecond\,\% in the second episode and \SupWeightAfter\,\% after the recovery
+  macros:
+  - name: SupWeightSecond
+    value_now: '13.8'
+    code: '# family [D]'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_full/link_flows_disrupted.csv.gz
+  - name: SupWeightAfter
+    value_now: '12.7'
+    code: '# family [D]'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_full/link_flows_disrupted.csv.gz
+  ledger:
+  - kind: claims
+    text: the first wave does not move orders away from the river's suppliers
+    expr: SupWeightWaveEnd - SupWeightStart
+    range:
+    - 0
+    - 100
+    why: 'result: the Kaub pairs'' share of the offered deliveries does not fall from the start of the season to the end of the first wave'
+  evidence: 'First version: t=19 14.6, t=40 13.4. 2026_r6_bycargo_full: t=19 13.82, t=40 12.72 (stale: 14.6 -> 13.8, 13.4 -> 12.7); the share peaks at 14.6 in week 18 and returns to its start value after the recovery, as the text says.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: the season's totals of the text add the 13 recovery weeks in which the gate still cuts
+  file: sections/si.tex
+  kind: new_macro
+  old: add the 13 recovery weeks in which
+  new: add the \GateRecWeeks{} recovery weeks in which
+  macros:
+  - name: GateRecWeeks
+    value_now: '13'
+    code: '# family [A] (also used by the flat-profile proposal)'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_base.log
+  ledger: []
+  evidence: 'Gate log of 2026_r6_bycargo_base: cuts in weeks 24-36, 13 recovery weeks (si_gate caption). Current.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: total production stays within $10^{-6}$ of its initial value
+  file: sections/si.tex
+  kind: new_macro
+  old: $10^{-6}$ of its initial value in every week
+  new: $10^{-6}$ of its initial value in every week
+  macros:
+  - name: StatTotalDevPpm
+    value_now: '0.65'
+    code: '# [E] stationarity of the undisturbed baseline (S4, S10; stationarity_check.py): six weeks at 250 cm, constraint off.
+
+      # STAT_RUN is the check run of 5 Oct 2026 (inputs before the per-class calibration) until it is rerun on the r6 inputs
+
+      STAT_RUN = RUNS / "stationarity6w"
+
+      sd_ = pd.read_csv(STAT_RUN / "firm_data.csv", usecols=["time_step", "firm", "production", "production_target", "input_stock"])
+
+      s0_ = sd_[sd_.time_step == 0].set_index("firm"); mat_ = s0_.index[s0_.production > 0.01]          # > 10,000 USD a week
+
+      tmax_ = int(sd_.time_step.max()); sT_ = sd_[sd_.time_step == tmax_].set_index("firm")
+
+      tdev_ = max(abs(sd_[sd_.time_step == t_].production.sum() / s0_.production.sum() - 1) for t_ in range(1, tmax_ + 1))
+
+      gap_ = (sT_.production_target - sT_.production) / sT_.production_target.clip(lower=1e-12)
+
+      ism_ = sT_.index.isin(mat_)
+
+      rel_ = sT_.production / s0_.production
+
+      stk_ = (sT_.input_stock / s0_.input_stock).replace([np.inf, -np.inf], np.nan)
+
+      put("StatFirms", f"{len(mat_):,}".replace(",", "{,}"), f"firms producing more than 10,000 USD a week at t=0 ({STAT_RUN.name})")
+
+      put("StatTotalDevPpm", r2(1e6 * tdev_), "largest deviation of total production from its initial value over the run, parts per million")
+
+      put("StatBelow", WORDS[int((gap_[ism_] > 1e-6).sum())], f"of those firms, below their production target in week {tmax_}")
+
+      put("StatBelowPct", pct(100 * (1 - rel_[ism_].min())), "% below its initial production, the lowest of those firms")
+
+      put("StatStockLow", f"{100 * (stk_[ism_].min() - 1):+.1f}".replace("-", "$-$"), f"% deviation of the input inventories from t=0, lowest, week {tmax_}")
+
+      put("StatStockHigh", f"{100 * (stk_[ism_].max() - 1):+.1f}".replace("-", "$-$"), "highest")
+
+      put("StatDrift", str(int((gap_[~ism_] > 1e-6).sum())), f"smaller agents below target in week {tmax_} (the drift at the numerical floor)")
+
+      '
+    source: C:/dsc_runs/rhine2026/stationarity6w/firm_data.csv
+  ledger:
+  - kind: claims
+    text: total production stays within $10^{-6}$ of its initial value
+    expr: StatTotalDevPpm
+    range:
+    - 0
+    - 1
+    why: 'result (check run stationarity6w): largest deviation of total production in parts per million; covers S4 and S10'
+  evidence: 'stationarity6w (5 Oct): largest deviation of total production 6.5e-7 (week 6) = within 10^-6, as both S4 and S10 say. The run predates the per-class calibration (r6cal inputs, code of November); the macros make the text follow a rerun.'
+  decision: 'The stationarity check (8 entries) rests on the run of 5 Oct, before the per-class calibration. Options: (a) rerun stationarity6w on the r6_bycargo inputs (flags of jobs_20261102_norail.txt with --profile flat6w --constraint-mode off --no-early-stop, cache r6cal), point STAT_RUN at it and regenerate; (b) keep the 5 Oct check and say so (''a check run of 5 October 2026, on the inputs of the first version''). The macros serve both.'
+  confidence: medium
+  section: si_b
+- pending: of the 12,429 firms producing more than 10,000 USD a week, one is below its target (by 2\,\%, from the first week
+  file: sections/si.tex
+  kind: new_macro
+  old: of the 12,429 firms producing more than 10,000 USD a week, one is below its target (by 2\,\%
+  new: of the \StatFirms{} firms producing more than 10,000 USD a week, one is below its target (by \StatBelowPct\,\%
+  macros:
+  - name: StatFirms
+    value_now: 12{,}429
+    code: '# family [E]'
+    source: C:/dsc_runs/rhine2026/stationarity6w/firm_data.csv
+  - name: StatBelowPct
+    value_now: '2'
+    code: '# family [E]'
+    source: C:/dsc_runs/rhine2026/stationarity6w/firm_data.csv
+  - name: StatBelow
+    value_now: one
+    code: '# family [E]'
+    source: C:/dsc_runs/rhine2026/stationarity6w/firm_data.csv
+  ledger:
+  - kind: allowed
+    text: firms producing more than 10,000 USD a week
+    why: 'design: materiality threshold of stationarity_check.py (0.01 mUSD a week at t = 0)'
+  - kind: claims
+    text: USD a week, one is below its target
+    expr: StatBelow
+    range:
+    - 1
+    - 1
+    why: 'result (stationarity6w): firms above the threshold below their target in the last week'
+  evidence: 'stationarity6w: 12,429 of 12,719 firms above 0.01 mUSD a week; one of them below target in every week; its production is 0.979 of its initial value from week 1 (2.1 %, constant). Same as the text.'
+  decision: 'Wording: the 2 % is relative to the firm''s initial production; relative to its production target (stationarity_check gap) it is 0.4-0.6 %. Keep, or write ''one produces 2 % below its initial value''.'
+  confidence: medium
+  section: si_b
+- pending: their input inventories stay within $-0.1$ to $+0.3$\,\% of their targets by week six
+  file: sections/si.tex
+  kind: new_macro
+  old: $-0.1$ to $+0.3$\,\% of their targets
+  new: \StatStockLow{} to \StatStockHigh\,\% of their targets
+  macros:
+  - name: StatStockLow
+    value_now: $-$0.1
+    code: '# family [E]'
+    source: C:/dsc_runs/rhine2026/stationarity6w/firm_data.csv
+  - name: StatStockHigh
+    value_now: '+0.3'
+    code: '# family [E]'
+    source: C:/dsc_runs/rhine2026/stationarity6w/firm_data.csv
+  ledger:
+  - kind: allowed
+    text: of their targets by week six
+    why: 'design: the last week of the six-week run stationarity6w'
+  evidence: 'stationarity6w week 6, firms above the threshold: input stock / t0 from 0.99880 to 1.00290 = -0.1 to +0.3 %. Same as the text (5 Oct run, see the decision of the 10^-6 proposal).'
+  decision: ''
+  confidence: medium
+  section: si_b
+- pending: Some twenty agents with orders of tens of dollars a week drift
+  file: sections/si.tex
+  kind: new_macro
+  old: Some twenty agents with orders of tens of dollars a week drift
+  new: Some twenty agents with orders of tens of dollars a week drift
+  macros:
+  - name: StatDrift
+    value_now: '19'
+    code: '# family [E]'
+    source: C:/dsc_runs/rhine2026/stationarity6w/firm_data.csv
+  ledger:
+  - kind: claims
+    text: Some twenty agents with orders of tens of dollars a week drift
+    expr: StatDrift
+    range:
+    - 15
+    - 25
+    why: 'result (stationarity6w): smaller agents below target in the last week; some twenty = 15-25'
+  evidence: 'stationarity6w week 6: 20 firms below target, 19 of them below the threshold (median weekly production 12 USD, mean 285, max 2,398). Same as the text.'
+  decision: ''
+  confidence: medium
+  section: si_b
+- pending: every firm producing more than 10,000 USD a week but one (2\,\% below target, from the first week)
+  file: sections/si.tex
+  kind: new_macro
+  old: but one (2\,\% below target
+  new: but one (\StatBelowPct\,\% below target
+  macros:
+  - name: StatBelowPct
+    value_now: '2'
+    code: '# family [E]'
+    source: C:/dsc_runs/rhine2026/stationarity6w/firm_data.csv
+  ledger:
+  - kind: allowed
+    text: every firm producing more than 10,000 USD a week
+    why: 'design: materiality threshold of stationarity_check.py (0.01 mUSD a week at t = 0)'
+  - kind: claims
+    text: USD a week but one
+    expr: StatBelow
+    range:
+    - 1
+    - 1
+    why: 'result (stationarity6w): firms above the threshold below their target in the last week'
+  evidence: 'S10 repeats S4: one firm above the threshold 2.1 % below its initial production from week 1 (stationarity6w).'
+  decision: 'As in S4: 2 % is relative to the initial production (0.4-0.6 % relative to the production target).'
+  confidence: medium
+  section: si_b
+- pending: the inventories of these firms stay within $-0.1$ to $+0.3$\,\% of theirs
+  file: sections/si.tex
+  kind: new_macro
+  old: $-0.1$ to $+0.3$\,\% of theirs
+  new: \StatStockLow{} to \StatStockHigh\,\% of theirs
+  macros:
+  - name: StatStockLow
+    value_now: $-$0.1
+    code: '# family [E]'
+    source: C:/dsc_runs/rhine2026/stationarity6w/firm_data.csv
+  - name: StatStockHigh
+    value_now: '+0.3'
+    code: '# family [E]'
+    source: C:/dsc_runs/rhine2026/stationarity6w/firm_data.csv
+  ledger: []
+  evidence: 'S10 repeats S4: 0.99880 to 1.00290 in week 6 (stationarity6w).'
+  decision: ''
+  confidence: medium
+  section: si_b
+- pending: the drifts are confined to some twenty agents
+  file: sections/si.tex
+  kind: new_macro
+  old: the drifts are confined to some twenty agents
+  new: the drifts are confined to some twenty agents
+  macros:
+  - name: StatDrift
+    value_now: '19'
+    code: '# family [E]'
+    source: C:/dsc_runs/rhine2026/stationarity6w/firm_data.csv
+  ledger:
+  - kind: claims
+    text: the drifts are confined to some twenty agents
+    expr: StatDrift
+    range:
+    - 15
+    - 25
+    why: 'result (stationarity6w): smaller agents below target in the last week; some twenty = 15-25'
+  evidence: 'S10 repeats S4: 19 agents below the threshold drift (stationarity6w week 6).'
+  decision: ''
+  confidence: medium
+  section: si_b
+- pending: the cut bulk that finds a rail route is 100 to 650 kt a week
+  file: sections/si.tex
+  kind: correct
+  old: is 100 to 650 kt a week
+  new: is \RailOfferedMin{} to \RailOfferedMax{} kt a week
+  macros:
+  - name: RailOfferedMin
+    value_now: '40'
+    code: '# family [F], see RailOfferedMax'
+    source: C:/dsc_runs/rhine2026/2018_r6_bycargo_rail50.log
+  - name: RailOfferedMax
+    value_now: '590'
+    code: "# [F] the bounded substitution by rail (S4, S8; Table si_rail_weeks): the cut bulk that found an eligible rail route in\n# the profile weeks of the two 50 kt runs, rounded to 10 kt\noffr_ = []\nfor yr_, run_ in ((2026, f\"2026_{REV}_rail50\"), (2018, f\"2018_{REV}_rail50\")):\n    np_ = len(pd.read_csv(HERE / \"scenarios\" / f\"{yr_}.csv\"))\n    for line_ in (RUNS / f\"{run_}.log\").read_text(encoding=\"utf-8\", errors=\"replace\").splitlines():\n        mt_ = re.search(r\"Capacity gate t=(\\d+):.*relief ([\\d,]+) t of ([\\d,]+) t offered\", line_)\n        if mt_ and int(mt_.group(1)) <= np_ and float(mt_.group(3).replace(\",\", \"\")) > 0:\n            offr_.append(float(mt_.group(3).replace(\",\", \"\")) / 1e3)\nput(\"RailOfferedMin\", f\"{10 * np.floor(min(offr_) / 10 + 0.5):.0f}\", f\"kt a week: the least cut bulk offered to rail in a profile week of the 50 kt runs ({min(offr_):.1f}, rounded to 10 kt)\")\nput(\"RailOfferedMax\", f\"{10 * np.floor(max(offr_) / 10 + 0.5):.0f}\", f\"the most ({max(offr_):.1f})\")\n"
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_rail50.log
+  ledger: []
+  evidence: 'Table si_rail_weeks / the logs of the 50 kt runs: offered 76-586 kt in the 23 profile weeks of 2026 and 40-416 kt in the 22 of 2018, i.e. 40.2 to 586.0 kt = 40 to 590 at 10 kt, as S8 says; 100 to 650 is from an earlier batch (stale). At 140 kt the range is 28-568.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: gives the two crossed experiments of 9 October 2026
+  file: sections/si.tex
+  kind: correct
+  old: crossed experiments of 9 October 2026
+  new: crossed experiments of 2 November 2026
+  ledger:
+  - kind: allowed
+    text: gives the two crossed experiments of
+    why: 'count: the levers under the 50 kt rail ceiling and the waves at a 15-day refill time'
+  evidence: 'Table si_cross caption: ''Batch of 2 November 2026 (jobs_20261102_cross.txt)''; the Cross* / Wave*Rest macros come from compare_runs_batch_jobs_20261102_cross.csv. 9 October is the first version''s cross list (jobs_20261009_cross.txt).'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: each single lever removes a slightly larger share of a smaller loss than under the paper's rule
+  file: sections/si.tex
+  kind: correct
+  old: removes a slightly larger share of a smaller loss
+  new: removes a larger share of a smaller loss
+  ledger:
+  - kind: claims
+    text: each single lever removes a larger share of a smaller loss than under the paper's rule
+    expr: min(CrossStockRail - LevStock, CrossDeepRail - LevDeep, CrossStockTRail - LevStockT, CrossFleetRail - LevFleet)
+    range:
+    - 1
+    - 100
+    why: 'result: every single lever avoids a larger share of the rail-50 base than of the reference base'
+  evidence: 'Table si_cross: stocks 53 vs 49 (+4 points), fairway 49 vs 48 (+1), targeted stocks 36 vs 28 (+8, +29 % relative), fleet 29 vs 24 (+5): larger in every case, but not ''slightly'' for the targeted stocks and the fleet.'
+  decision: 'Drop ''slightly'' (proposed), or quantify: ''a larger share, by one point (fairway) to eight (targeted inventories)''. main.tex says the same, ''each of the four levers removes a slightly larger share of a smaller loss'', bound by a main.yaml claim (smallest gain in [0, 15]) in the approved patch of 5 Nov: change both or neither (to keep ''slightly'' here, use old == new and that claim''s expression).'
+  confidence: medium
+  section: si_b
+- pending: 5,746 commercial links cross Kaub on their normal route, 1.04~Mt a week
+  file: sections/si.tex
+  kind: correct
+  old: 5,746 commercial links cross Kaub on their normal route, 1.04~Mt a week
+  new: \KaubLinks{} commercial links cross Kaub on their normal route, \KaubWeekMt~Mt a week
+  macros:
+  - name: KaubLinks
+    value_now: 8{,}176
+    code: '# [G] what crosses Kaub (S5): the Kaub-crossing links of the link-level run at the baseline (v0: validation_outputs.csv,
+
+      # group kaub, t=0, indexed by cargo class)
+
+      put("KaubLinks", f"{int(v0.n.sum()):,}".replace(",", "{,}"), f"commercial links whose baseline route crosses Kaub (2026_{tag}_full)")
+
+      put("KaubWeekMt", r2(v0.delivered_tons.sum() / 1e6), "Mt a week that they carry at the baseline")
+
+      '
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_full/validation_outputs.csv
+  - name: KaubWeekMt
+    value_now: '1.21'
+    code: '# with KaubLinks'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_full/validation_outputs.csv
+  ledger: []
+  evidence: 'Stale first-version figures: 5,746 links (3,583 dry, 2,124 liquid, 39 container) and 1,035,522 t a week are the Kaub list of 5 Oct (2026_s07_full/validation_outputs.csv; kaub_links_check_oldlinks.txt). The list of the per-class runs (cache r6cal, kaub_links_check.txt of 2026_r6_bycargo_full) has 8,176 links (3,562 dry, 2,160 liquid, 2,454 container) carrying 1,209,618 t a week = 1.21 Mt (= the si_gate caption''s 1,210 kt and \KaubMt/52). The worst-week shares that follow (\KaubDeliveredDry, \KaubDeliveredWet) already come from this list.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: of which about half is withheld at the river and half rationed by refineries
+  file: sections/si.tex
+  kind: correct
+  old: of which about half is withheld at the river and half rationed by refineries
+  new: of which \FuelWithheldShare\,\% is withheld at the river and the rest rationed by refineries
+  macros:
+  - name: FuelWithheldShare
+    value_now: '35'
+    code: "# [G] the services' missing refined fuel (S5): C19 deliveries to German H49, H52, D, H50 over the run (dl: German\n# buyers, t >= 1); the part withheld at the river is capped at each link-week's shortfall, so that withheld + rationed = missed\nfu_ = dl[dl.buyer_sector.isin([\"H49\", \"H52\", \"D\", \"H50\"]) & (dl.seller_sector == \"C19\")]\nfs_ = (fu_.base_realized - fu_.realized_delivery).clip(lower=0)\nput(\"FuelWithheldShare\", pct(100 * np.minimum(fu_.withheld_by_transport, fs_).sum() / fs_.sum()),\n    \"% of the refined fuel that German hauliers, logistics, power and shipping miss which is withheld at the river (withheld capped at the week's shortfall; uncapped as TransportWithheldShare: \"\n    f\"{100 * fu_.withheld_by_transport.sum() / fs_.sum():.0f})\")\n"
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_full/link_flows_disrupted.csv.gz
+  ledger: []
+  evidence: 'Refined fuel (C19) missed by German H49/H52/D/H50, 2026_r6_bycargo_full: 659 mUSD. Withheld capped at each link-week''s shortfall: 35 % (first version 2026_s07_full: 56 %, the ''about half'' of the text, so the words are stale); uncapped withheld/missed, the definition of \TransportWithheldShare: 57 % (first version 89 %). Also: in the per-class run refined fuel is the largest missing input only for shipping (H50 239 mUSD); hauliers miss more logistics services (H52 211 vs C19 195), logistics operators and power plants miss most from their own sector (H52 600, D 567), and power plants then imports (172) before C19 (151).'
+  decision: 'Definition: capped (35 %, proposed: withheld + rationed add up to what is missed; reproduces the first version''s ''about half'') or uncapped as \TransportWithheldShare (57 %: ''more than half''; counts withholding in catch-up weeks where the buyer misses nothing, the same issue makes \TransportWithheldShare 29 % against 17 % capped). Separately: ''the largest missing input is refined fuel'' no longer holds for hauliers, logistics operators and power plants unless it says ''the largest missing goods input'' (and for power plants imports come first).'
+  confidence: medium
+  section: si_b
+- pending: withheld at the river (0.5~billion), and German inputs (1.2~billion)
+  file: sections/si.tex
+  kind: correct
+  old: (0.5~billion), and German inputs (1.2~billion)
+  new: (\FRAFarmWithheldBn~billion), and German inputs (\FRAfromDEUBn~billion)
+  macros:
+  - name: FRAFarmWithheldBn
+    value_now: '0.6'
+    code: '# [G] the French buyers (S5), link-level run, t >= 1
+
+      fr_ = lf[(lf.buyer_region == "FRA") & (lf.time_step >= 1)]
+
+      put("FRAFarmWithheldBn", r1(fr_[(fr_.seller_sector == "A01") & (fr_.buyer_sector == "C10T12")].withheld_by_transport.sum() / 1e3), "bn USD of farm products to the French food industry withheld at the river")
+
+      frd_ = fr_[fr_.seller_region == "DEU"]
+
+      put("FRAfromDEUBn", r1((frd_.base_realized - frd_.realized_delivery).clip(lower=0).sum() / 1e3), "bn USD of deliveries from German suppliers that French buyers miss")
+
+      '
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_full/link_flows_disrupted.csv.gz
+  - name: FRAfromDEUBn
+    value_now: '1.0'
+    code: '# with FRAFarmWithheldBn'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_full/link_flows_disrupted.csv.gz
+  ledger: []
+  evidence: 'The same definitions reproduce the first version (2026_s07_full: A01->C10T12 withheld 494 mUSD = 0.5; missed deliveries from German suppliers 1,233 = 1.2). Per-class run 2026_r6_bycargo_full: 562 mUSD = 0.6 and 959 = 1.0 (both stale). Note: by missed value the largest French chains are the food industry''s own deliveries (C10T12 to households 1,281, to C10T12 727), then A01->C10T12 (421 missed, 562 withheld), as in the first version.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: and below it at twice the inventories (0.6)
+  file: sections/si.tex
+  kind: new_macro
+  old: at twice the inventories (0.6)
+  new: at twice the inventories (\PricedNovC)
+  macros:
+  - name: PricedNovC
+    value_now: '0.6'
+    code: '# [H] the priced river with closures (S6, S9): November at twice the inventories, December at the balance-sheet value
+
+      # (pr and priced as defined above for PricedInt)
+
+      prC_ = model_path(RUNS / priced[2.0], 2018)
+
+      put("PricedNovC", r1(prC_["ind_Nov"]), f"priced river with closures, x2, November ({priced[2.0]})")
+
+      put("PricedDec", r1(pr["ind_Dec"]), f"priced river with closures, x1, December ({priced[1.0]})")
+
+      put("PricedDecShare", pct(100 * pr["ind_Dec"] / pr["ind_Nov"]), "December over November of the priced river, x1, %")
+
+      '
+    source: C:/dsc_runs/rhine2026/2018_r6_bycargo_priced_inv200 (matched_estimand_2018.model_path)
+  ledger:
+  - kind: allowed
+    text: and below it at twice the inventories (\PricedNovC)
+    why: 'design: inventory multiplier x2 (the value is the macro)'
+  evidence: 'model_path of 2018_r6_bycargo_priced_inv200: November 0.58 (Table si_representations) against \RecNov 1.55. Current.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: it keeps in December half of its November loss at the balance-sheet inventories
+  file: sections/si.tex
+  kind: new_macro
+  old: it keeps in December half of its November loss at the balance-sheet inventories
+  new: it keeps in December half of its November loss at the balance-sheet inventories
+  macros:
+  - name: PricedDecShare
+    value_now: '54'
+    code: '# family [H]'
+    source: C:/dsc_runs/rhine2026/2018_r6_bycargo_priced
+  ledger:
+  - kind: claims
+    text: it keeps in December half of its November loss at the balance-sheet inventories
+    expr: PricedDecShare
+    range:
+    - 45
+    - 55
+    why: 'result: December over November of the priced river at x1; half = 45-55'
+  evidence: 'Priced river x1 (2018_r6_bycargo_priced): December 1.20, November 2.22 = 54 %. Current.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: and with a December twice the benchmark's
+  file: sections/si.tex
+  kind: new_macro
+  old: and with a December twice the benchmark's
+  new: and with a December twice the benchmark's
+  macros:
+  - name: PricedDec
+    value_now: '1.2'
+    code: '# family [H]'
+    source: C:/dsc_runs/rhine2026/2018_r6_bycargo_priced
+  ledger:
+  - kind: claims
+    text: and with a December twice the benchmark's
+    expr: PricedDec/RecDec
+    range:
+    - 1.8
+    - 2.2
+    why: 'result: the priced river''s December at x1 against the benchmark''s; twice = 1.8-2.2'
+  evidence: 'Priced river x1 December 1.20 against \RecDec 0.56 (0.555): 2.1-2.2 times. Current.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: keep in December half of their November value at the balance-sheet inventories
+  file: sections/si.tex
+  kind: new_macro
+  old: keep in December half of their November value at the balance-sheet inventories
+  new: keep in December half of their November value at the balance-sheet inventories
+  macros:
+  - name: PricedDecShare
+    value_now: '54'
+    code: '# family [H]'
+    source: C:/dsc_runs/rhine2026/2018_r6_bycargo_priced
+  ledger:
+  - kind: claims
+    text: keep in December half of their November value at the balance-sheet inventories
+    expr: PricedDecShare
+    range:
+    - 45
+    - 55
+    why: 'result: December over November of the priced river at x1 (S9 repeats S6); half = 45-55'
+  evidence: 'S9 repeats S6: 1.20 / 2.22 = 54 %.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: nothing in August and September, a December twice the benchmark's
+  file: sections/si.tex
+  kind: new_macro
+  old: nothing in August and September, a December twice the benchmark's
+  new: nothing in August and September, a December twice the benchmark's
+  macros:
+  - name: PricedDec
+    value_now: '1.2'
+    code: '# family [H]'
+    source: C:/dsc_runs/rhine2026/2018_r6_bycargo_priced
+  ledger:
+  - kind: claims
+    text: nothing in August and September, a December twice the benchmark's
+    expr: PricedDec/RecDec
+    range:
+    - 1.8
+    - 2.2
+    why: 'result: the priced river''s December at x1 against the benchmark''s (S9 repeats S6); twice = 1.8-2.2'
+  evidence: 'S9 repeats S6: 1.20 against 0.56; August and September 0.00 in the priced run (Table si_representations).'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: gave 4.1, 2.5 and 1.4 percent-months at the three inventory levels
+  file: sections/si.tex
+  kind: allow
+  ledger:
+  - kind: allowed
+    text: gave 4.1, 2.5 and 1.4 percent-months at the three inventory levels
+    why: 'history: the first version''s priced-river runs 2018_baseline / 2018_inv150 / 2018_pipe of 22-28 Sep 2026 (model_path: 4.11, 2.48, 1.39 percent-months; the constants of the claim ''changes the sums by less than a fifth'')'
+  evidence: 'Recomputed with matched_estimand_2018.model_path on C:/dsc_runs/rhine2026/2018_baseline, 2018_inv150, 2018_pipe: 4.11, 2.48, 1.39. The sentence presents them as the first version''s runs.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: (1.7\,\% in November against the published 1.5)
+  file: sections/si.tex
+  kind: allow
+  ledger:
+  - kind: allowed
+    text: (1.7\,\% in November against the published 1.5)
+    why: 'history: the earlier version''s level-effect path, November 1.74 (benchmark_ademmer.py docstring: 1.02, 1.23, 1.38, 1.74, 0.82); evidence: the November peak of 1.5 % that ademmer2023 reports'
+  evidence: 'benchmark_ademmer.py: ''the November peak of 1.5 % that the paper reports''; the earlier construction (level = b0 LW_t + b1 LW_t-1) gave 1.74 in November. \RecNov (1.55, the rebuilt path) is not the ''published'' figure: it would print 1.55 or 1.6, so the literal 1.5 is the right one here.'
+  decision: ''
+  confidence: medium
+  section: si_b
+- pending: the tonnage past Kaub fell 81\,\% (dry bulk) and 70\,\% (liquid) in a closure week
+  file: sections/si.tex
+  kind: allow
+  ledger:
+  - kind: allowed
+    text: the tonnage past Kaub fell 81\,\% (dry bulk) and 70\,\% (liquid) in a closure week
+    why: 'history: the first version''s priced river, validation outputs of 2026_cal_base_full of 17 Sep 2026 (705 -> 135 kt dry, 608 -> 180 kt liquid a week; calibration_log.md)'
+  evidence: 'disrupt-sc-data/EU/calibration_log.md, 17 Sep: ''tonnage past Kaub -81 % dry (705 -> 135 kt/week), -70 % liquid (608 -> 180)''. The paragraph presents these as the superseded representation (''These results are superseded by the capacity limit'').'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: and 31\,\% in the tank-barge closure weeks of November 2018
+  file: sections/si.tex
+  kind: allow
+  ledger:
+  - kind: allowed
+    text: and 31\,\% in the tank-barge closure weeks of November 2018
+    why: 'history: the first version''s 2018 full-export twin (2018_inv200_full, 21-22 Sep 2026): -31 % in each of the four tank-barge weeks 5-26 Nov (calibration_log.md)'
+  evidence: 'calibration_log.md, 22 Sep: ''-31 % in each of the four tank-barge weeks 5-26 Nov ... Month means ... Nov -31 %''. History of the superseded representation.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: against 34\,\% year on year in the Destatis series
+  file: sections/si.tex
+  kind: use_macro
+  old: against 34\,\% year on year
+  new: against \DestatisNovyy\,\% year on year
+  ledger: []
+  evidence: 'numbers.tex: \DestatisNovyy{34} ''Destatis: German inland-waterway tonnage, November 2018, % year on year'' (calibration_log.md 22 Sep: Destatis Nov -34 %), defined and never used.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: and the tanker floor at 40 or 60\,cm moved the loss by a factor of two
+  file: sections/si.tex
+  kind: allow
+  ledger:
+  - kind: allowed
+    text: and the tanker floor at 40 or 60\,cm moved the loss by a factor of two
+    why: 'history: the first version''s tanker-floor band (priced river, runs of 6-15 Sep 2026: floor 40 cm about halves the loss, 60 cm raises it; calibration_log.md); 40 and 60 cm are design'
+  evidence: 'calibration_log.md, 15-16 Sep: tanker floor 40 cm 1.12 % against the base 2.16 % (''each about halving the loss''), liq60 2.70 %; 40 and 60 cm reported as the structural band. History of the superseded representation.'
+  decision: ''
+  confidence: medium
+  section: si_b
+- pending: lists the 128 runs of the batches of 2 and 3 November 2026 on the capacities per cargo class (the paper set of 36,
+  file: sections/si.tex
+  kind: new_macro
+  old: the 128 runs of the batches of 2 and 3 November 2026 on the capacities per cargo class (the paper set of 36,
+  new: the \NRuns{} runs of the batches of 2 and 3 November 2026 on the capacities per cargo class (the paper set of \NRunsMain,
+  macros:
+  - name: NRuns
+    value_now: '128'
+    code: "# [I] run counts of the batch (S7; Table si_runs, as si_tables.runs_table): the rows of the compare tables of the job lists\nalt_date = None if old_naming else \"20261103\"\nnr_ = {}\nfor suf_, f_ in ((\"Main\", f\"compare_runs_batch_jobs_{date_list}_main.csv\"), (\"Paired\", f\"compare_runs_batch_jobs_{date_list}_paired.csv\"),\n                 (\"Rev\", f\"compare_runs_batch_jobs_{date_list}_rev.csv\"), (\"Ladder\", f\"compare_runs_batch_jobs_{date_list}_ladder.csv\"),\n                 (\"Cross\", f\"compare_runs_batch_jobs_{cross_date}_cross.csv\"), (\"NoRail\", f\"compare_runs_batch_jobs_{norail_date}_norail.csv\"),\n                 (\"Alt\", f\"compare_runs_batch_jobs_{alt_date}_altriver.csv\")):\n    if (AD / f_).exists():\n        nr_[suf_] = len(table(AD / f_)); put(f\"NRuns{suf_}\", str(nr_[suf_]), f\"runs of {f_}\")\nput(\"NRuns\", str(sum(nr_.values())), \"runs of Table si_runs\")\n"
+    source: studies/rhine2026/additional_data/compare_runs_batch_jobs_20261102_*.csv, compare_runs_batch_jobs_20261103_altriver.csv
+  - name: NRunsMain
+    value_now: '36'
+    code: '# family [I]'
+    source: additional_data/compare_runs_batch_jobs_20261102_main.csv
+  ledger: []
+  evidence: 'Rows of the compare tables: main 36, paired 60, rev 16, ladder 3, cross 8, norail 2, altriver 3 = 128 (= Table si_runs). Current. The same counts are hard-coded in si_tables.py NEW_RUNS_CAPTION (the si_runs caption), which --regen checks but which will not follow a new batch by itself.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: the paired levers of 60, the sensitivities of the revision of 16, the inventory ladder of 3,
+  file: sections/si.tex
+  kind: new_macro
+  old: the paired levers of 60, the sensitivities of the revision of 16, the inventory ladder of 3,
+  new: the paired levers of \NRunsPaired, the sensitivities of the revision of \NRunsRev, the inventory ladder of \NRunsLadder,
+  macros:
+  - name: NRunsPaired
+    value_now: '60'
+    code: '# family [I]'
+    source: additional_data/compare_runs_batch_jobs_20261102_paired.csv
+  - name: NRunsRev
+    value_now: '16'
+    code: '# family [I]'
+    source: additional_data/compare_runs_batch_jobs_20261102_rev.csv
+  - name: NRunsLadder
+    value_now: '3'
+    code: '# family [I]'
+    source: additional_data/compare_runs_batch_jobs_20261102_ladder.csv
+  ledger: []
+  evidence: paired 60, rev 16, ladder 3 rows (jobs_20261102_paired.txt 60 and _rev.txt 16 jobs). Current.
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: rail ceiling and the wave-isolation profiles at a 15-day refill time, 8, the no-rail pair, 2,
+  file: sections/si.tex
+  kind: new_macro
+  old: refill time, 8, the no-rail pair, 2,
+  new: refill time, \NRunsCross, the no-rail pair, \NRunsNoRail,
+  macros:
+  - name: NRunsCross
+    value_now: '8'
+    code: '# family [I]'
+    source: additional_data/compare_runs_batch_jobs_20261102_cross.csv
+  - name: NRunsNoRail
+    value_now: '2'
+    code: '# family [I]'
+    source: additional_data/compare_runs_batch_jobs_20261102_norail.csv
+  ledger:
+  - kind: allowed
+    text: the wave-isolation profiles at a 15-day refill time
+    why: 'design: refill time 15 days'
+  evidence: cross 8, norail 2 rows (jobs_20261102_cross.txt 8, _norail.txt 2 jobs). Current.
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: and the priced river with closures at three inventory levels, 3;
+  file: sections/si.tex
+  kind: new_macro
+  old: inventory levels, 3;
+  new: inventory levels, \NRunsAlt;
+  macros:
+  - name: NRunsAlt
+    value_now: '3'
+    code: '# family [I]'
+    source: additional_data/compare_runs_batch_jobs_20261103_altriver.csv
+  ledger:
+  - kind: allowed
+    text: and the priced river with closures at three inventory levels
+    why: 'design: inventory multipliers x1, x1.5, x2 of the priced river'
+  evidence: altriver 3 rows (jobs_20261103_altriver.txt 3 jobs). Current.
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: 15\,\% of the bulk orders that cross Kaub have such a route
+  file: sections/si.tex
+  kind: correct
+  old: 15\,\% of the bulk orders that cross Kaub have such a route
+  new: in the offline classification of Table~\ref{tab:thresholds}, 15\,\% of the bulk orders that cross Kaub have such a route
+  ledger:
+  - kind: allowed
+    text: in the offline classification of Table~\ref{tab:thresholds}, 15\,\% of the bulk orders
+    why: 'data: the complement of the adopted rule''s 85 % in Table si_thresholds (offline classification of 14-15 Sep 2026 on the first version''s network; jobs_20261020_norail.txt header)'
+  evidence: The 15 % is 100 - 85 % (the adopted rule in Table si_thresholds), the classification of 14-15 Sep on the first version's network and Kaub list (2,831 pairs, 5,707 links), not redone on the r6cal routes (8,176 Kaub links, 2,454 of them containers). It also includes the pairs on a free path (about 2 % of the value under the kilometre rule).
+  decision: 'The proposed text ties the share to the dated classification. Alternatives: redo the classification on the r6cal routes (the route cache tmp/r6cal is on the cluster, not on the laptop) and add a macro; or keep the sentence as it is and accept the literal as data of Table si_thresholds.'
+  confidence: medium
+  section: si_b
+- pending: on about 6.7 Mt of rail freight a week, treated as a constant weekly capacity
+  file: sections/si.tex
+  kind: keep
+  evidence: 'No source found in the repositories (calibration_log.md, evidence/*.md, review records). 6.7 Mt is the base implied by the 140 kt ceiling: 0.07 % x 30 days x 6.7 Mt = 141 kt, i.e. about 350 Mt of rail freight a year. Destatis totals found online: 401 Mt in 2017 (press release PE18_417; 7.7 Mt a week, which would give 162 kt) and 358.8 Mt in 2022 (UIRR summary of Destatis; 6.9 Mt a week, 145 kt). Missing: the authors'' source and year for the base.'
+  decision: 'Cite the Destatis figure the base was taken from (a year of about 350 Mt) and add it to refs.bib; if the base changes (e.g. 2017: 7.7 Mt), the 140 kt ceiling changes with it (162 kt) and the rail runs no longer match the text. Or say the base is a round figure that sets the ceiling at 140 kt.'
+  confidence: low
+  section: si_b
+- pending: the cut bulk that finds a rail route is 40 to 590 kt a week
+  file: sections/si.tex
+  kind: new_macro
+  old: is 40 to 590 kt a week
+  new: is \RailOfferedMin{} to \RailOfferedMax{} kt a week
+  macros:
+  - name: RailOfferedMin
+    value_now: '40'
+    code: '# family [F] (proposal of ''100 to 650 kt'')'
+    source: C:/dsc_runs/rhine2026/2018_r6_bycargo_rail50.log
+  - name: RailOfferedMax
+    value_now: '590'
+    code: '# family [F]'
+    source: C:/dsc_runs/rhine2026/2026_r6_bycargo_rail50.log
+  ledger: []
+  evidence: 'Logs of the 50 kt runs: 40.2 kt (2018, week 22) to 586.0 kt (2026, week 15) in the profile weeks = 40 to 590 at 10 kt. Current.'
+  decision: ''
+  confidence: high
+  section: si_b
+- pending: null
+  file: main.tex
+  section: main
+  kind: correct
+  old: in the peak week (mid-October 2026)
+  new: in the peak week (the week of \finalbatch{\DEUpeakDate} 2026)
+  ledger: []
+  confidence: high
+  decision: ''
+  evidence: Fig. 5 is the reference network, whose peak is week 18 = 19-25 October (DEUpeakWeek comment; new macro DEUpeakDate); 'mid-October' was the week of 12 October of the earlier batch.
+- pending: null
+  file: sections/si.tex
+  section: si_b
+  kind: correct
+  old: run \texttt{stationarity6w}).
+  new: run \texttt{stationarity6w} of 5 October 2026, on the inputs of the first version).
+  ledger: []
+  confidence: medium
+  decision: 'The stationarity check (run stationarity6w) predates the six calibration rounds and the per-class capacities; the text now says so. Better: rerun it on the r6_bycargo inputs (flags of the batch, --profile flat6w --constraint-mode off --no-early-stop) and drop this clause; the macros then follow the new run.'
+  evidence: 'stationarity6w: run folder dated 5 Oct 2026 (si_b agent); S2: ''calibrated in six rounds in October 2026, after the first version''.'
