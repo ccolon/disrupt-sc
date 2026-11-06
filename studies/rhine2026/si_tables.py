@@ -61,7 +61,7 @@ def set_batch(tag: str, lists: str):
 set_batch(os.environ.get("RHINE_TAG", "s07"), os.environ.get("RHINE_LISTS", "20261007"))
 
 OLD_RUNS_CAPTION = r"""\textbf{Every run of the batches of 7 and 9 October 2026.} German value-added loss as a share of a quarter, its peak (share of a week's value added, run week), the EU loss and the household consumption loss (billion USD). The four job lists of 7 October 2026 (\texttt{cluster/jobs\_20261007\_*.txt}), all on the loading curve rebuilt on 6 October: the paper set (36 runs), the paired levers (60), the sensitivities of the revision (16) and the inventory ladder (3). Names: \texttt{2026\_s07\_*} and \texttt{2018\_s07\_*} the two events on the reference network and their variants (\texttt{s07} for the batch of 7 October; the batch of 30 September on the earlier table carried \texttt{s30}); \texttt{seedN} the further networks; \texttt{wave07\_*} the wave-isolation profiles; \texttt{seedN\_<lever>} a lever paired with the base of the same draw; \texttt{rev\_*} the sensitivities of the revision; \texttt{s07\_invNNN} the inventory ladder; \texttt{rev\_rail50\_<lever>} a lever under the 50 kt rail ceiling and \texttt{wave09\_*\_rest15} the wave-isolation profiles at a 15-day refill time (the batch of 9 October, \texttt{jobs\_20261009\_cross.txt})."""
-NEW_RUNS_CAPTION = r"""\textbf{Every run of the batches of 2 and 3 November 2026.} German value-added loss as a share of a quarter, its peak (share of a week's value added, run week), the EU loss and the household consumption loss (billion USD). The job lists of 2 November 2026 (\texttt{cluster/jobs\_20261102\_*.txt}) and the alternative-river list of 3 November (\texttt{jobs\_20261103\_altriver.txt}), all on the capacities per cargo class anchored on 1 November (Supplementary Section~S2): the main table (@MAIN@ runs: the @REF@ reference runs, the @SEEDS@ further 2018 networks of 1 November and the @SET@ runs of the paper set), the paired levers (@PAIRED@), the sensitivities of the revision (@REV@), the inventory ladder (@LADDER@), the levers under the 50 kt rail ceiling with the waves at a 15-day refill time (@CROSS@), the no-rail pair (@NORAIL@) and the priced river with closures on the 2018 benchmark at three inventory levels (@ALT@). Names: \texttt{2026\_r6\_bycargo\_*} and \texttt{2018\_r6\_bycargo\_*} the two events on the reference network and their variants (\texttt{r6\_bycargo}: the round-6 calibration with the capacities per cargo class); \texttt{seedN} the further networks; \texttt{wave\_r6\_bycargo\_*} the wave-isolation profiles; \texttt{seedN\_<lever>} a lever paired with the base of the same draw; \texttt{invNNN} the inventory ladder; \texttt{rail50\_<lever>} a lever under the 50 kt rail ceiling and \texttt{*\_rest15} the wave-isolation profiles at a 15-day refill time; \texttt{priced}, \texttt{priced\_inv150} and \texttt{priced\_inv200} the alternative representation of the river (Supplementary Section~S6) at inventories $\times$1, $\times$1.5 and $\times$2."""
+NEW_RUNS_CAPTION = r"""\textbf{Every run of the batches of 2 and 3 November 2026.} German value-added loss as a share of a quarter, its peak (share of a week's value added, run week), the EU loss and the household consumption loss (billion USD). The job lists of 2 November 2026 (\texttt{cluster/jobs\_20261102\_*.txt}) and the alternative-river list of 3 November (\texttt{jobs\_20261103\_altriver.txt}), all on the capacities per cargo class anchored on 1 November (Supplementary Section~S2): the main table (@MAIN@ runs: the @REF@ reference runs, the @SEEDS@ further 2018 networks of 1 November and the @SET@ runs of the paper set), the paired levers (@PAIRED@), the sensitivities of the revision (@REV@), the inventory ladder (@LADDER@@INV075NOTE@), the levers under the 50 kt rail ceiling with the waves at a 15-day refill time (@CROSS@), the no-rail pair (@NORAIL@) and the priced river with closures on the 2018 benchmark at three inventory levels (@ALT@). Names: \texttt{2026\_r6\_bycargo\_*} and \texttt{2018\_r6\_bycargo\_*} the two events on the reference network and their variants (\texttt{r6\_bycargo}: the round-6 calibration with the capacities per cargo class); \texttt{seedN} the further networks; \texttt{wave\_r6\_bycargo\_*} the wave-isolation profiles; \texttt{seedN\_<lever>} a lever paired with the base of the same draw; \texttt{invNNN} the inventory ladder; \texttt{rail50\_<lever>} a lever under the 50 kt rail ceiling and \texttt{*\_rest15} the wave-isolation profiles at a 15-day refill time; \texttt{priced}, \texttt{priced\_inv150} and \texttt{priced\_inv200} the alternative representation of the river (Supplementary Section~S6) at inventories $\times$1, $\times$1.5 and $\times$2."""
 
 
 def batch_text(key: str) -> str:
@@ -555,7 +555,8 @@ def runs_table(out: Path):
     p = table(AD / f"compare_runs_batch_jobs_{LISTS}_paired.csv")
     named = {"rev": f"compare_runs_batch_jobs_{LISTS}_rev.csv", "ladder": f"compare_runs_batch_jobs_{LISTS}_ladder.csv",
              "cross": f"compare_runs_batch_jobs_{CROSS}_cross.csv", "norail": f"compare_runs_batch_jobs_{NORAIL}_norail.csv",
-             "alt": f"compare_runs_batch_jobs_{ALT}_altriver.csv"}
+             "alt": f"compare_runs_batch_jobs_{ALT}_altriver.csv",
+             "inv075": "compare_runs_batch_jobs_20261106_inv075.csv"}     # the rung at x0.75 of 6 Nov 2026 (the author's review)
     extra = {k: table(AD / f) for k, f in named.items() if (AD / f).exists()}
     t = pd.concat([m, p] + list(extra.values()))
     # the counts of the caption, from the tables themselves (5 Nov 2026: they were typed in and go stale with a batch)
@@ -565,10 +566,14 @@ def runs_table(out: Path):
     counts = {"@MAIN@": str(len(m)), "@REF@": words.get(ref, str(ref)), "@SEEDS@": words.get(seeds, str(seeds)),
               "@SET@": str(len(m) - ref - seeds), "@PAIRED@": str(len(p))}
     counts.update({f"@{k.upper()}@": str(len(extra[k])) if k in extra else "0" for k in named})
+    # 6 Nov 2026: the rung at x0.75 counts with the ladder (its own job list, jobs_20261106_inv075.txt)
+    counts["@LADDER@"] = str(len(extra.get("ladder", ())) + len(extra.get("inv075", ())))
+    counts["@INV075NOTE@"] = (r"; the rung at $\times$0.75 is the run of 6 November 2026, \texttt{jobs\_20261106\_inv075.txt}"
+                              if "inv075" in extra else "")
     caption = batch_text("runs")
     for k, v in counts.items():
         caption = caption.replace(k, v)
-    print(f"  runs table: {len(t)} runs ({', '.join(f'{k.strip(chr(64)).lower()} {v}' for k, v in counts.items())})")
+    print(f"  runs table: {len(t)} runs ({', '.join(f'{k.strip(chr(64)).lower()} {v}' for k, v in counts.items() if v.isdigit())})")
     cols = ["DEU_%quarter", "DEU_peak_%week", "DEU_peak_week", "EU_cum_mUSD", "cons_loss_cum_mUSD"]
     rows = "\n".join(f"{tex(r)} & {v['DEU_%quarter']:.2f} & {v['DEU_peak_%week']:.2f} & {int(v['DEU_peak_week'])} & {v['EU_cum_mUSD'] / 1e3:.1f} & {v['cons_loss_cum_mUSD'] / 1e3:.1f} \\\\"
                      for r, v in t[cols].iterrows())
@@ -614,7 +619,8 @@ def representations_table(out: Path):
         priced = [("2018_baseline", "priced river with closures, $\\times$1"), ("2018_inv150", "priced river with closures, $\\times$1.5"),
                   ("2018_pipe", "priced river with closures, $\\times$2")]
     else:
-        gate = [(f"2018_{TAG}_base", "capacity limit, stocks $\\times$1"), (f"2018_{TAG}_inv125", "capacity limit, $\\times$1.25"),
+        gate = [(f"2018_{TAG}_inv075", "capacity limit, stocks $\\times$0.75"),       # the rung of 6 Nov 2026, when its row is there
+                (f"2018_{TAG}_base", "capacity limit, stocks $\\times$1"), (f"2018_{TAG}_inv125", "capacity limit, $\\times$1.25"),
                 (f"2018_{TAG}_inv150", "capacity limit, $\\times$1.5"), (f"2018_{TAG}_inv200", "capacity limit, $\\times$2")]
         priced = [(f"2018_{TAG}_priced", "priced river with closures, $\\times$1"), (f"2018_{TAG}_priced_inv150", "priced river with closures, $\\times$1.5"),
                   (f"2018_{TAG}_priced_inv200", "priced river with closures, $\\times$2")]
@@ -622,7 +628,9 @@ def representations_table(out: Path):
             priced = [("2018_baseline", "priced river with closures, $\\times$1 (first version)"), ("2018_inv150", "priced river with closures, $\\times$1.5 (first version)"),
                       ("2018_pipe", "priced river with closures, $\\times$2 (first version)")]
     order = gate + priced
-    priced_new = order[4][0] != "2018_baseline"
+    priced_new = priced[0][0] != "2018_baseline"
+    n_gate = {3: "three", 4: "four", 5: "five", 6: "six"}[sum(k in lines for k, _ in gate)]
+    inv075_note = ", the rung at $\\times$0.75 run on 6 November" if f"2018_{TAG}_inv075" in lines else ""
     print(f"  representations: {[k for k, _ in order]}")
     from benchmark_ademmer import record, EVENT_MONTHS
     t, s = record(2018, 1)
@@ -639,7 +647,7 @@ def representations_table(out: Path):
             rows.append(f"{lab} & " + " & ".join(v[:5]) + f" & {v[5]} \\\\")
     (out / "si_representations.tex").write_text(r"""\begin{table}[tbp]
 \centering\footnotesize\setlength{\tabcolsep}{4pt}
-\caption{\textbf{Two representations of the river on the 2018 benchmark.} Monthly shortfall of German industrial production (\%; the production-index measure, each sector's shortfall rate weighted by its German value added, sections B--D), August to December 2018, and its integral (percent-months, the plain sum of the months). The benchmark is the production path implied by the published regression (ref.~\citep{ademmer2023}; Table~2, column 1, of the working paper) on the low-water days of the daily gauge record, with the 16--84\,\% band of a Monte Carlo over its coefficients and, for comparison, the contemporaneous-only specification (column 3). The model rows are the capacity limit with the surcharge at four inventory levels and the priced river with closures at three; """ + ("runs of 2 and 3 November 2026 on the reference network and the per-class calibration (the capacity limit from the batch of 2 November, the priced river rerun on 3 November with the same flows, loading curve and inventories)" if priced_new else ("runs of 22--28 September 2026 on the reference network, the industrial path unchanged by the later treatment of construction as a non-storable input" if TAG == "s07" else "the capacity-limit rows from the batch of 2 November 2026 on the per-class calibration, the priced-river rows from the first version's runs of 22--28 September 2026 on the earlier calibration")) + r""". Each month of a model row is the mean of its days, every day carrying the value of the model week it belongs to.}
+\caption{\textbf{Two representations of the river on the 2018 benchmark.} Monthly shortfall of German industrial production (\%; the production-index measure, each sector's shortfall rate weighted by its German value added, sections B--D), August to December 2018, and its integral (percent-months, the plain sum of the months). The benchmark is the production path implied by the published regression (ref.~\citep{ademmer2023}; Table~2, column 1, of the working paper) on the low-water days of the daily gauge record, with the 16--84\,\% band of a Monte Carlo over its coefficients and, for comparison, the contemporaneous-only specification (column 3). The model rows are the capacity limit with the surcharge at """ + n_gate + r""" inventory levels and the priced river with closures at three; """ + ("runs of 2 and 3 November 2026 on the reference network and the per-class calibration (the capacity limit from the batch of 2 November" + inv075_note + ", the priced river rerun on 3 November with the same flows, loading curve and inventories)" if priced_new else ("runs of 22--28 September 2026 on the reference network, the industrial path unchanged by the later treatment of construction as a non-storable input" if TAG == "s07" else "the capacity-limit rows from the batch of 2 November 2026 on the per-class calibration, the priced-river rows from the first version's runs of 22--28 September 2026 on the earlier calibration")) + r""". Each month of a model row is the mean of its days, every day carrying the value of the model week it belongs to.}
 \label{tab:representations}
 \begin{tabular}{L{50mm}rrrrrr}
 \toprule

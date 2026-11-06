@@ -716,9 +716,13 @@ def main(tag: str, overleaf: Path, date_list: str):
         for suf_, f_ in (("Main", f"compare_runs_batch_jobs_{date_list}_main.csv"), ("Paired", f"compare_runs_batch_jobs_{date_list}_paired.csv"),
                          ("Rev", f"compare_runs_batch_jobs_{date_list}_rev.csv"), ("Ladder", f"compare_runs_batch_jobs_{date_list}_ladder.csv"),
                          ("Cross", f"compare_runs_batch_jobs_{cross_date}_cross.csv"), ("NoRail", f"compare_runs_batch_jobs_{norail_date}_norail.csv"),
-                         ("Alt", f"compare_runs_batch_jobs_{alt_date}_altriver.csv")):
+                         ("Alt", f"compare_runs_batch_jobs_{alt_date}_altriver.csv"),
+                         ("Inv075", "compare_runs_batch_jobs_20261106_inv075.csv")):
             if (AD / f_).exists():
                 nr_[suf_] = len(table(AD / f_)); put(f"NRuns{suf_}", str(nr_[suf_]), f"runs of {f_}")
+        if "Inv075" in nr_:            # 6 Nov 2026: the rung at x0.75 counts with the inventory ladder (si_tables.runs_table does the same)
+            nr_["Ladder"] = nr_.get("Ladder", 0) + nr_.pop("Inv075")
+            put("NRunsLadder", str(nr_["Ladder"]), "runs of the ladder lists of 2 and 6 Nov 2026")
         put("NRuns", str(sum(nr_.values())), "runs of Table si_runs")
     _pending_si_b()
 
