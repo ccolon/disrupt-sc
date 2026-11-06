@@ -114,7 +114,7 @@ class Country:
             link.delivery_in_tons = link.delivery * self.monetary_unit_factor / self.usd_per_ton if self.usd_per_ton > 0 else 0.0
             link.reset_transport_tracking()
 
-            if link.delivery < EPSILON:
+            if link.delivery <= 0.0:          # KI-53: every positive order is served (see Firm.deliver)
                 continue
 
             if link.product_type in tp.sectors_no_transport:
