@@ -21,7 +21,7 @@ from disruptsc.run_pipeline.disruption import (
 )
 from disruptsc.run_pipeline.export import (
     collect_firm_data, collect_household_data, collect_country_data,
-    AgentWriters,
+    AgentWriters, slim_household_record,
 )
 
 
@@ -578,9 +578,15 @@ def _run_one_time_step(time_step, sc_network, transport_network,
 def _accumulate_and_write(all_data, firms, households, countries, time_step,
                           flow_data, writers: AgentWriters | None,
                           collect_flows=True, sc_network=None):
-    """Accumulate in-memory data AND write CSV rows if writers are open."""
-    all_data["firm"].extend(collect_firm_data(firms, time_step))
-    all_data["household"].extend(collect_household_data(households, time_step))
+    """Accumulate in-memory data AND write CSV rows if writers are open.
+
+    Memory (KI-54, 6 Nov 2026): what is kept in memory is what the post-run summaries read. Firm rows are not kept
+    (nothing reads ``all_data["firm"]`` after a run; the per-step rows go to firm_data.csv), and household rows keep
+    the loss fields only (``slim_household_record``): on Cambodia (20,860 firms, 1,623 final-demand agents, daily
+    steps) the full rows grew a run by 40-60 MB a simulated day, ~10 GB over 180 days.
+    """
+    all_data["household"].extend(slim_household_record(r)
+                                 for r in collect_household_data(households, time_step))
     all_data["country"].extend(collect_country_data(countries, time_step))
     if collect_flows and flow_data:
         all_data["transport_flow"].extend(flow_data)
