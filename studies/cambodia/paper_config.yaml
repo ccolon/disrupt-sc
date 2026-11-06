@@ -17,9 +17,10 @@
 #     (baseline_capacity_check.csv).
 #   - inventory_restoration_time: the old code's default was 4 days, v2's is 30 (Q13: 30 as base, 4 in
 #     robustness).
-#   - use_route_cache false: cached detours are cleared neither when closures change nor between runs on one
-#     build (KI-50); the study's successive closures are exactly that case. Cambodia has 2,201 edges, so the
-#     searches are cheap (Q12).
+#   - use_route_cache true (the default; 6 Nov 2026): cached detours are cleared neither when closures change nor
+#     between runs on one build (KI-50), the study's successive closures being exactly that case - but with the
+#     cache off a flood run takes hours (every rerouted link searches a path every day). Q12: the candidate fix
+#     (branch fix/route-cache-closures) clears them at each closure change and in the reset.
 #   - removed keys (ignored by v2): monetary_units_inputed, logistics.nb_cost_profiles, basic_cost_random,
 #     border_crossing_fees.pipelines, simulation_name, time_lag, the roads_edges filepath (v2 loads
 #     Transport/transport.gpkg).
@@ -94,7 +95,7 @@ transport_capacity_overrides:  # tons per day, by edge name (all four exist in T
   pp_main_port: 15000
   bavet_border_crossing: 9000
 
-use_route_cache: false
+use_route_cache: true
 
 simulation_type: disruption
 mc_repetitions: 0
