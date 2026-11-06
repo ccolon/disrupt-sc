@@ -29,7 +29,10 @@ PYTHON_ENV="/projects/disruptsc/miniforge3/envs/dsc"
 DATA_PATH="/projects/disruptsc/disrupt-sc-data"
 OUTPUT_DIR="/projects/disruptsc/runs/cambodia"
 SLURM_LOG_DIR="${SCRIPT_DIR}/slurm_logs/cambodia"
-TIME_RUN="08:00:00"; MEM_RUN="8G"           # 180 daily steps at ~20-35 s (laptop, 5 Nov), ~3 GB RAM
+# Cluster pilot (6 Nov 2026): ~50 s to load, 22-23 s a day undisturbed, 28-31 s a flooded day (~75 min a 180-day
+# run); MaxRSS 2.3-2.7 GB at day 15; outputs stream to disk and the summary reads in chunks. 5 GB since 6 Nov (the
+# user's choice): the cluster is memory-bound, 8 GB held runs back. Check the pilot's MaxRSS (sacct) before the grid.
+TIME_RUN="08:00:00"; MEM_RUN="5G"
 TIME_SETUP="01:00:00"; MEM_SETUP="8G"
 # Either partition, whichever starts the job first (6 Nov 2026, the user's choice): generic_plus = the generic
 # nodes + compute9, same limits, open to all groups.
