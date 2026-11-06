@@ -6,6 +6,8 @@ import csv
 import json
 import logging
 import os
+from array import array
+from collections.abc import Mapping
 from pathlib import Path
 
 import pandas as pd
@@ -289,6 +291,50 @@ def collect_household_data(households: dict, time_step: int) -> list[dict]:
     return [hh.collect_data(time_step) for hh in households.values()]
 
 
+# Per-sector fields of a household row that no post-run summary reads (export_summary reads the two loss dicts,
+# summarize_criticality_losses the scalars); the CSV writers collect their own full rows.
+_UNREAD_HOUSEHOLD_FIELDS = ("consumption_per_sector", "spending_per_sector")
+_COMPACT_HOUSEHOLD_FIELDS = ("consumption_loss_per_sector", "extra_spending_per_sector")
+
+
+class SectorValues(Mapping):
+    """Read-only {sector: float} kept compact (KI-54): the key tuple and its index are shared by every row with the
+    same sectors, the values are one array of doubles. A 60-sector dict is ~4.7 KB plus 60 float objects; this is
+    ~0.6 KB. Values are stored as float64, so reading them back gives the dict's values."""
+    __slots__ = ("_keys", "_index", "_values")
+    _shared: dict = {}
+
+    def __init__(self, values: dict):
+        keys = tuple(values)
+        shared = SectorValues._shared.get(keys)
+        if shared is None:
+            shared = SectorValues._shared[keys] = (keys, {k: i for i, k in enumerate(keys)})
+        self._keys, self._index = shared
+        self._values = array("d", values.values())
+
+    def __getitem__(self, key):
+        return self._values[self._index[key]]
+
+    def __iter__(self):
+        return iter(self._keys)
+
+    def __len__(self):
+        return len(self._keys)
+
+    def __repr__(self):
+        return f"SectorValues({dict(self)})"
+
+
+def slim_household_record(record: dict) -> dict:
+    """A household row as kept in memory during a run (KI-54): without the per-sector consumption and spending, and
+    with the two per-sector loss dicts stored as SectorValues."""
+    out = {k: v for k, v in record.items() if k not in _UNREAD_HOUSEHOLD_FIELDS}
+    for k in _COMPACT_HOUSEHOLD_FIELDS:
+        if isinstance(out.get(k), dict):
+            out[k] = SectorValues(out[k])
+    return out
+
+
 def collect_country_data(countries: dict, time_step: int) -> list[dict]:
     return [c.collect_data(time_step) for c in countries.values()]
 
@@ -381,51 +427,57 @@ def export_transport_flows(transport_flow_data: list,
 def export_summary(household_data: list, country_data: list,
                    household_table: pd.DataFrame | None = None,
                    monetary_units: str = "mUSD", export_folder: Path | None = None):
-    """Compute and export loss summary CSVs."""
-    hh_df = pd.DataFrame(household_data)
-    if hh_df.empty:
+    """Compute and export loss summary CSVs.
+
+    The (agent, time step, sector) losses are summed as they are read (KI-54, 6 Nov 2026): the former version built
+    one dict per (agent, time step, sector) first - 17.6 million on Cambodia over 180 days, several GB at the end of
+    a run. Same outputs, up to the order of floating-point additions.
+    """
+    if not household_data:
         return {"household_loss": 0.0, "country_loss": 0.0}
 
-    loss_rows = []
-    for _, grp in hh_df.groupby("household"):
-        for _, row in grp.iterrows():
-            es = row.get("extra_spending_per_sector", {})
-            cl = row.get("consumption_loss_per_sector", {})
-            atype = row.get("agent_type", "household")
-            for sector in set(list(es.keys()) + list(cl.keys())):
-                loss_rows.append({
-                    "household": row["household"],
-                    "agent_type": atype,
-                    "time_step": row["time_step"],
-                    "sector": sector,
-                    "loss": es.get(sector, 0) + cl.get(sector, 0),
-                })
+    region_of = None
+    if household_table is not None and "id" in household_table.columns:
+        region_of = dict(zip("hh_" + household_table["id"].astype(str), household_table["region"]))
 
-    loss_df_all = pd.DataFrame(loss_rows)
     # Only households are welfare. Government + investment are single national accounting
     # agents (see GovernmentDemand / InvestmentDemand): their unmet demand is a separate
     # public-service-disruption / investment-shortfall metric, NOT household welfare.
-    def _agent_loss(atype: str) -> float:
-        if loss_df_all.empty or "agent_type" not in loss_df_all.columns:
-            return 0.0
-        return float(loss_df_all.loc[loss_df_all["agent_type"] == atype, "loss"].sum())
+    totals: dict = {}
+    by_key: dict = {}            # household-only loss by (region,) sector, time step
+    n_household_rows = 0
+    for rec in household_data:
+        es = rec.get("extra_spending_per_sector", {})
+        cl = rec.get("consumption_loss_per_sector", {})
+        atype = rec.get("agent_type", "household")
+        for sector in set(es) | set(cl):
+            loss = es.get(sector, 0) + cl.get(sector, 0)
+            totals[atype] = totals.get(atype, 0.0) + loss
+            if atype != "household":
+                continue
+            n_household_rows += 1
+            if region_of is None:
+                key = (sector, rec["time_step"])
+            else:
+                region = region_of.get(rec["household"])
+                if region is None or (isinstance(region, float) and region != region):
+                    continue                      # unmapped household: dropped by the groupby as before
+                key = (region, sector, rec["time_step"])
+            by_key[key] = by_key.get(key, 0.0) + loss
 
-    household_loss = _agent_loss("household")
-    government_loss = _agent_loss("government")
-    investment_loss = _agent_loss("investment")
+    household_loss = float(totals.get("household", 0.0))
+    government_loss = float(totals.get("government", 0.0))
+    investment_loss = float(totals.get("investment", 0.0))
 
     # Household-only loss by region/sector/time (feeds the welfare distribution/choropleth).
-    if not loss_df_all.empty and "agent_type" in loss_df_all.columns:
-        loss_df = loss_df_all[loss_df_all["agent_type"] == "household"].drop(columns=["agent_type"])
+    if not totals:
+        loss_df = pd.DataFrame()
     else:
-        loss_df = loss_df_all
-    if household_table is not None and "id" in household_table.columns and not loss_df.empty:
-        ht = household_table.copy()
-        ht["id"] = "hh_" + ht["id"].astype(str)
-        loss_df["region"] = loss_df["household"].map(ht.set_index("id")["region"])
-    groupby_cols = [c for c in ["region", "sector", "time_step"] if c in loss_df.columns]
-    if groupby_cols:
-        loss_df = loss_df.groupby(groupby_cols, as_index=False)["loss"].sum()
+        cols = (["region"] if region_of is not None and n_household_rows else []) + ["sector", "time_step"]
+        loss_df = pd.DataFrame([(*k, v) for k, v in by_key.items()], columns=cols + ["loss"])
+        if not loss_df.empty:
+            loss_df["time_step"] = loss_df["time_step"].astype("int64")
+            loss_df = loss_df.sort_values(cols, kind="mergesort").reset_index(drop=True)
 
     # Country losses
     c_df = pd.DataFrame(country_data)
