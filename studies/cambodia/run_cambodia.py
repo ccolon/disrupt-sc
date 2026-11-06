@@ -80,7 +80,14 @@ def git_state() -> dict:
             return subprocess.run(["git", *a], cwd=ROOT, capture_output=True, text=True, timeout=30).stdout.strip()
         except Exception:                                   # noqa: BLE001 - provenance is best effort
             return ""
-    return {"sha": run("rev-parse", "HEAD"), "dirty_files": run("status", "--porcelain", "--", "src", "studies/cambodia")}
+    sha = run("rev-parse", "HEAD")
+    if sha:
+        return {"sha": sha, "dirty_files": run("status", "--porcelain", "--", "src", "studies/cambodia"),
+                "sha_source": "git"}
+    # The cluster's compute nodes have no git (6 Nov 2026): the launcher records the checkout's state at submit
+    # time in the environment (and in the batch folder's CODE_VERSION.txt).
+    return {"sha": os.environ.get("CAMBODIA_GIT_SHA", ""), "dirty_files": os.environ.get("CAMBODIA_GIT_DIRTY", ""),
+            "sha_source": "launcher (submit time)" if os.environ.get("CAMBODIA_GIT_SHA") else "unknown"}
 
 
 def config_hash(config: dict) -> str:

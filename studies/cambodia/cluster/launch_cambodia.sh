@@ -45,10 +45,30 @@ done
 [[ -f "$JOBS_FILE" && -n "$BATCH" ]] || { echo "usage: $0 --jobs FILE --batch NAME [--dry-run]" >&2; exit 2; }
 
 ACTIVATE="source $(dirname "$(dirname "${PYTHON_ENV}")")/bin/activate ${PYTHON_ENV}"
-EXPORTS="export DISRUPT_SC_DATA_PATH=${DATA_PATH} && export PYTHONHASHSEED=0 && export PYTHONIOENCODING=utf-8 && cd ${SCRIPT_DIR}"
+# The compute nodes have no git (6 Nov 2026): the checkout's state is taken here, at submit time, passed to every
+# job (run_cambodia.py records it in study_run.json) and written to the batch folder. The checkout must not move
+# until the batch has run - jobs read the code when they start, not when they are submitted.
+GIT_SHA=$(git -C "${SCRIPT_DIR}" rev-parse HEAD 2>/dev/null || echo unknown)
+GIT_DIRTY=$(git -C "${SCRIPT_DIR}" status --porcelain --untracked-files=no -- src studies/cambodia 2>/dev/null | wc -l)
+[[ "$GIT_DIRTY" == "0" ]] || echo "WARNING: ${SCRIPT_DIR} has ${GIT_DIRTY} modified tracked file(s) in src/ or studies/cambodia/" >&2
+EXPORTS="export DISRUPT_SC_DATA_PATH=${DATA_PATH} && export PYTHONHASHSEED=0 && export PYTHONIOENCODING=utf-8 && export CAMBODIA_GIT_SHA=${GIT_SHA} && export CAMBODIA_GIT_DIRTY=${GIT_DIRTY} && cd ${SCRIPT_DIR}"
 RUNNER="python studies/cambodia/run_cambodia.py"
 DEST="${OUTPUT_DIR}/${BATCH}"
-$DRY_RUN || mkdir -p "$DEST" "$SLURM_LOG_DIR"
+if ! $DRY_RUN; then
+    mkdir -p "$DEST" "$SLURM_LOG_DIR"
+    {
+        echo "# batch ${BATCH}, submitted $(date -u +%FT%TZ) by launch_cambodia.sh"
+        echo "code_worktree: ${SCRIPT_DIR}"
+        echo "code_sha: ${GIT_SHA}"
+        echo "code_modified_tracked_files: ${GIT_DIRTY}"
+        echo "data_path: ${DATA_PATH} (repo HEAD $(git -C "${DATA_PATH}" rev-parse HEAD 2>/dev/null))"
+        (cd "${DATA_PATH}" && sha256sum Cambodia/Transport/transport.gpkg Cambodia/Transport/multimodal.gpkg \
+            Cambodia/Transport/flood_v3_edges.csv Cambodia/Economic/mrio.csv Cambodia/Spatial/firms.geojson \
+            Cambodia/Spatial/households.geojson 2>&1)
+        echo "job_list: ${JOBS_FILE}"
+    } > "${DEST}/CODE_VERSION.txt"
+    cp "$JOBS_FILE" "$DEST/"
+fi
 
 submit() {   # name time mem dependency payload -> job id
     local job=$1 timelimit=$2 mem=$3 dep=$4 payload=$5
