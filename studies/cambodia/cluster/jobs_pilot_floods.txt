@@ -1,0 +1,74 @@
+# Cambodia paper, cluster pilot R_pilot - the 70 flood runs of jobs_pilot.txt, resubmitted after KI-54 (6 Nov 2026):
+# the first submission (batch pilot_20261106) was cancelled at days 20-50, every 180-day run would have run out
+# of memory; its five 40-day undisturbed runs completed and stay in that batch (stationary). Same runs otherwise.
+# Usage: bash studies/cambodia/cluster/launch_cambodia.sh --jobs studies/cambodia/cluster/jobs_pilot_floods.txt --batch pilot_20261106b
+1 single_saigon 12
+1 single_mekong 12
+1 single_tonle 12
+1 simul 12
+1 lag0 12
+1 lag6 12
+1 lag11 12
+1 lag12 12
+1 lag13 12
+1 lag18 12
+1 lag24 12
+1 lag36 12
+1 lag12 12 --set inventory_restoration_time=4
+1 lag13 12 --set inventory_restoration_time=4
+2 single_saigon 12
+2 single_mekong 12
+2 single_tonle 12
+2 simul 12
+2 lag0 12
+2 lag6 12
+2 lag11 12
+2 lag12 12
+2 lag13 12
+2 lag18 12
+2 lag24 12
+2 lag36 12
+2 lag12 12 --set inventory_restoration_time=4
+2 lag13 12 --set inventory_restoration_time=4
+3 single_saigon 12
+3 single_mekong 12
+3 single_tonle 12
+3 simul 12
+3 lag0 12
+3 lag6 12
+3 lag11 12
+3 lag12 12
+3 lag13 12
+3 lag18 12
+3 lag24 12
+3 lag36 12
+3 lag12 12 --set inventory_restoration_time=4
+3 lag13 12 --set inventory_restoration_time=4
+4 single_saigon 12
+4 single_mekong 12
+4 single_tonle 12
+4 simul 12
+4 lag0 12
+4 lag6 12
+4 lag11 12
+4 lag12 12
+4 lag13 12
+4 lag18 12
+4 lag24 12
+4 lag36 12
+4 lag12 12 --set inventory_restoration_time=4
+4 lag13 12 --set inventory_restoration_time=4
+5 single_saigon 12
+5 single_mekong 12
+5 single_tonle 12
+5 simul 12
+5 lag0 12
+5 lag6 12
+5 lag11 12
+5 lag12 12
+5 lag13 12
+5 lag18 12
+5 lag24 12
+5 lag36 12
+5 lag12 12 --set inventory_restoration_time=4
+5 lag13 12 --set inventory_restoration_time=4
