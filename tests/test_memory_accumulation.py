@@ -11,7 +11,7 @@ import pandas as pd
 import pytest
 
 from disruptsc.run_pipeline import simulate
-from disruptsc.run_pipeline.export import export_summary, slim_household_record
+from disruptsc.run_pipeline.export import SectorValues, export_summary, slim_household_record
 
 
 def _export_summary_reference(household_data, country_data, household_table=None):
@@ -121,5 +121,25 @@ def test_accumulate_keeps_no_firm_rows_and_slim_households():
     assert all_data["firm"] == []
     assert len(all_data["household"]) == 2
     assert "consumption_per_sector" not in all_data["household"][0]
-    assert all_data["household"][0]["consumption_loss_per_sector"] == {"A": 0.0}
+    assert dict(all_data["household"][0]["consumption_loss_per_sector"]) == {"A": 0.0}
     assert slim_household_record({"a": 1, "spending_per_sector": {}}) == {"a": 1}
+
+
+def test_sector_values_reads_back_the_dict():
+    d = {"S1": 0.1, "S2": 0.0, "S3": 1e-17, "S4": 123456.789}
+    sv = SectorValues(d)
+    assert dict(sv) == d and list(sv) == list(d) and len(sv) == 4
+    assert sv.get("S4") == d["S4"] and sv.get("missing", 0) == 0 and "S1" in sv
+    assert SectorValues(dict(d))._index is sv._index          # key index shared between rows with the same sectors
+
+
+@pytest.mark.parametrize("seed", [3, 4])
+def test_export_summary_same_with_slim_records(tmp_path, seed):
+    data, countries, table = _synthetic(seed)
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    full = export_summary(data, countries, table, export_folder=tmp_path / "a")
+    slim = export_summary([slim_household_record(r) for r in data], countries, table, export_folder=tmp_path / "b")
+    assert full == slim
+    assert (tmp_path / "a" / "loss_per_region_sector_time.csv").read_bytes() == \
+        (tmp_path / "b" / "loss_per_region_sector_time.csv").read_bytes()

@@ -6,6 +6,8 @@ import csv
 import json
 import logging
 import os
+from array import array
+from collections.abc import Mapping
 from pathlib import Path
 
 import pandas as pd
@@ -292,11 +294,45 @@ def collect_household_data(households: dict, time_step: int) -> list[dict]:
 # Per-sector fields of a household row that no post-run summary reads (export_summary reads the two loss dicts,
 # summarize_criticality_losses the scalars); the CSV writers collect their own full rows.
 _UNREAD_HOUSEHOLD_FIELDS = ("consumption_per_sector", "spending_per_sector")
+_COMPACT_HOUSEHOLD_FIELDS = ("consumption_loss_per_sector", "extra_spending_per_sector")
+
+
+class SectorValues(Mapping):
+    """Read-only {sector: float} kept compact (KI-54): the key tuple and its index are shared by every row with the
+    same sectors, the values are one array of doubles. A 60-sector dict is ~4.7 KB plus 60 float objects; this is
+    ~0.6 KB. Values are stored as float64, so reading them back gives the dict's values."""
+    __slots__ = ("_keys", "_index", "_values")
+    _shared: dict = {}
+
+    def __init__(self, values: dict):
+        keys = tuple(values)
+        shared = SectorValues._shared.get(keys)
+        if shared is None:
+            shared = SectorValues._shared[keys] = (keys, {k: i for i, k in enumerate(keys)})
+        self._keys, self._index = shared
+        self._values = array("d", values.values())
+
+    def __getitem__(self, key):
+        return self._values[self._index[key]]
+
+    def __iter__(self):
+        return iter(self._keys)
+
+    def __len__(self):
+        return len(self._keys)
+
+    def __repr__(self):
+        return f"SectorValues({dict(self)})"
 
 
 def slim_household_record(record: dict) -> dict:
-    """A household row as kept in memory during a run (KI-54): without the per-sector consumption and spending."""
-    return {k: v for k, v in record.items() if k not in _UNREAD_HOUSEHOLD_FIELDS}
+    """A household row as kept in memory during a run (KI-54): without the per-sector consumption and spending, and
+    with the two per-sector loss dicts stored as SectorValues."""
+    out = {k: v for k, v in record.items() if k not in _UNREAD_HOUSEHOLD_FIELDS}
+    for k in _COMPACT_HOUSEHOLD_FIELDS:
+        if isinstance(out.get(k), dict):
+            out[k] = SectorValues(out[k])
+    return out
 
 
 def collect_country_data(countries: dict, time_step: int) -> list[dict]:
