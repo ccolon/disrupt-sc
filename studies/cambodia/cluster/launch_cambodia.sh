@@ -31,6 +31,9 @@ OUTPUT_DIR="/projects/disruptsc/runs/cambodia"
 SLURM_LOG_DIR="${SCRIPT_DIR}/slurm_logs/cambodia"
 TIME_RUN="08:00:00"; MEM_RUN="8G"           # 180 daily steps at ~20-35 s (laptop, 5 Nov), ~3 GB RAM
 TIME_SETUP="01:00:00"; MEM_SETUP="8G"
+# Either partition, whichever starts the job first (6 Nov 2026, the user's choice): generic_plus = the generic
+# nodes + compute9, same limits, open to all groups.
+PARTITION="${CAMBODIA_PARTITION:-generic,generic_plus}"
 # ===========================================================================
 
 JOBS_FILE=""; BATCH=""; DRY_RUN=false
@@ -74,7 +77,7 @@ submit() {   # name time mem dependency payload -> job id
     local job=$1 timelimit=$2 mem=$3 dep=$4 payload=$5
     local depflag=""; [[ -n "$dep" ]] && depflag="--dependency=afterok:${dep}"
     if $DRY_RUN; then echo "DRYRUN[$job]${dep:+ (afterok:$dep)}: ${payload}" >&2; echo "000${RANDOM}"; return; fi
-    sbatch --parsable --nodes=1 --ntasks=1 --cpus-per-task=1 --time="${timelimit}" --mem="${mem}" ${depflag} \
+    sbatch --parsable --partition="${PARTITION}" --nodes=1 --ntasks=1 --cpus-per-task=1 --time="${timelimit}" --mem="${mem}" ${depflag} \
         --job-name="${job}" --output="${SLURM_LOG_DIR}/${job}.%j.out" \
         --wrap="bash -c '${EXPORTS} && ${ACTIVATE} && ${payload}'"
 }
