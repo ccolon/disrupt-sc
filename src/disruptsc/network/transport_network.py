@@ -431,20 +431,24 @@ class TransportNetwork(nx.Graph):
             d = self._node[node_id]
             if d["disruption_duration"] > 0:
                 d["disruption_duration"] -= 1
+        closures_changed = False
         for u, v in self.edges:
             d = self[u][v]
             if d["disruption_duration"] > 0:
                 if math.isinf(d["disruption_duration"]):
                     continue
+                was_closed = bool(d.get("closed", False))
                 d["disruption_duration"] = max(d["disruption_duration"] - 1, 0)
                 d["disruption_elapsed"] = d.get("disruption_elapsed", 0) + 1
                 if d["disruption_duration"] <= 0:
                     self.clear_edge_disruption(d)
                 else:
                     self._refresh_edge_disruption_state(d)
+                closures_changed |= was_closed != bool(d.get("closed", False))
         # Cost shocks expire the same way; cached alternatives are stale once
-        # any shock ends.
-        expired = False
+        # any shock ends - and once a closed edge reopens (KI-50: the detours
+        # cached while it was closed avoid it needlessly).
+        expired = closures_changed
         for u, v in self.edges:
             d = self[u][v]
             if d.get("cost_shock_duration", 0) > 0:
@@ -471,8 +475,11 @@ class TransportNetwork(nx.Graph):
                 shocked = True
             d["shipments"] = {}
         self.capacity_gate_stats = {}
-        if shocked:
-            self.invalidate_alternative_routes()
+        # KI-50: always (was: only after a cost shock) - the reset restores the build's fixed point, and detours
+        # cached in a previous run on this build would otherwise carry into the next one. `shocked` is kept for
+        # readability of the loop above.
+        _ = shocked
+        self.invalidate_alternative_routes()
 
     # ------------------------------------------------------------------
     # Shipment placement

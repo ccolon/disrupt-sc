@@ -17,10 +17,10 @@
 #     (baseline_capacity_check.csv).
 #   - inventory_restoration_time: the old code's default was 4 days, v2's is 30 (Q13: 30 as base, 4 in
 #     robustness).
-#   - use_route_cache true (the default; 6 Nov 2026): cached detours are cleared neither when closures change nor
-#     between runs on one build (KI-50), the study's successive closures being exactly that case - but with the
-#     cache off a flood run takes hours (every rerouted link searches a path every day). Q12: the candidate fix
-#     (branch fix/route-cache-closures) clears them at each closure change and in the reset.
+#   - use_route_cache true (the default; 6 Nov 2026): with the cache off a flood run takes hours (every rerouted
+#     link searches a path every day). Cached detours are cleared at every closure change and in the reset since
+#     the KI-50 fix (merged 6 Nov 2026, Q12), so the study's successive and overlapping closures never reuse a
+#     detour found under another set of closed roads.
 #   - removed keys (ignored by v2): monetary_units_inputed, logistics.nb_cost_profiles, basic_cost_random,
 #     border_crossing_fees.pipelines, simulation_name, time_lag, the roads_edges filepath (v2 loads
 #     Transport/transport.gpkg).
