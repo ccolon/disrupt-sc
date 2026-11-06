@@ -128,37 +128,37 @@ def main(runs: Path, out: Path):
     ax.set_title("(a) German industrial production, 2018", loc="left", fontsize=9.5, color=INK)
 
     # (b) cumulated shortfall: stocks, loading table, suppliers
+    # 6 Nov 2026 (the author's review): no value labels; the benchmark in the legend as in (a) instead of an annotation;
+    # the eleven networks as a shaded range and interquartile range at x1 instead of points (the points are in (d));
+    # the loading-curve bar in blue (green was the benchmark's colour); a rung at x0.75 (2018_<TAG>_inv075) when its
+    # run is there (the author's question of 6 Nov: the ladder below the balance-sheet level, not a new baseline)
     ax = axes[0, 1]; style(ax)
-    ax.axhspan(rec_s["p16"], rec_s["p84"], color=GREEN, alpha=0.2, linewidth=0)
-    ax.axhline(rec_s["integral"], color=GREEN, linewidth=1.2)
-    ax.text(2.08, rec_s["integral"] + 0.12, f"benchmark {rec_s['integral']:.1f} (±1 s.d. band {rec_s['p16']:.1f}–{rec_s['p84']:.1f})",
-            color=GREEN, fontsize=7.5, ha="right", va="bottom")
+    h_bband = ax.axhspan(rec_s["p16"], rec_s["p84"], color=GREEN, alpha=0.2, linewidth=0)
+    h_bline = ax.axhline(rec_s["integral"], color=GREEN, linewidth=1.2)
     gate = {1.0: ref["integral"], **INT_GATE}
-    ax.plot(list(gate), list(gate.values()), color=INK, linewidth=1.8, marker="o", markersize=5, label="model")
-    ax.plot(list(INT_PRICED), list(INT_PRICED.values()), color=ORANGE, linewidth=1.3, linestyle="--", marker="o", markersize=4, label="alternative river")
-    for mm, v in gate.items():
-        ax.annotate(f"{v:.1f}", (mm, v), textcoords="offset points", xytext=(5, 5), fontsize=7.5, color=INK)
-    ints = [s["integral"] for s in seeds]
-    ints = ints + [ref["integral"]]
-    ax.scatter(0.93 + np.random.default_rng(5).uniform(-0.035, 0.035, len(ints)), ints, color=BLUE, s=14, alpha=0.7, zorder=3, label="eleven networks, ×1")
-    ax.plot([1.0, 1.0], [high["integral"], low["integral"]], color=GREEN, linewidth=2.5, alpha=0.8, solid_capstyle="round", zorder=2)
-    ax.scatter([1.0], [sup2["integral"]], color=INK, marker="x", s=40, zorder=4)
-    # the labels of the x1 column: short, on a white ground (the alternative river's line passes behind the upper one),
-    # the two lower ones kept apart (per-class batch of 2 Nov 2026: 1.1 and 0.6)
-    y_sup, y_hi = sup2["integral"], high["integral"]
-    if abs(y_hi - y_sup) < 0.62:
-        y_hi = y_sup + 0.62 if y_hi >= y_sup else y_sup - 0.62
-    box = dict(facecolor="white", alpha=0.85, edgecolor="none", pad=1.0)
-    ax.text(1.03, low["integral"], f"loading curve ×1.15: {low['integral']:.1f}", fontsize=7, color=GREEN, va="center", bbox=box, zorder=5)
-    ax.text(1.03, y_hi, f"×0.85: {high['integral']:.1f}", fontsize=7, color=GREEN, va="center", bbox=box, zorder=5)
-    ax.text(1.03, y_sup, f"two suppliers: {sup2['integral']:.1f}", fontsize=7, color=INK, va="center", bbox=box, zorder=5)
-    ax.set_xticks([1.0, 1.25, 1.5, 2.0]); ax.set_xticklabels(["×1\n(statistics)", "×1.25", "×1.5", "×2"], fontsize=8)
-    ax.set_xlim(0.8, 2.1)
+    if (runs / f"2018_{TAG}_inv075" / "firm_data.csv").exists():
+        gate[0.75] = matched(runs / f"2018_{TAG}_inv075")["integral"]
+    gate = dict(sorted(gate.items()))
+    h_model, = ax.plot(list(gate), list(gate.values()), color=INK, linewidth=1.8, marker="o", markersize=5)
+    h_alt, = ax.plot(list(INT_PRICED), list(INT_PRICED.values()), color=ORANGE, linewidth=1.3, linestyle="--", marker="o", markersize=4)
+    ints = np.array([s["integral"] for s in seeds] + [ref["integral"]])
+    xl, xr = 0.90, 0.96                                     # the eleven networks' integrals at x1, drawn beside the rung
+    h_nrng = ax.fill_between([xl, xr], ints.min(), ints.max(), color=GREY, alpha=0.35, linewidth=0)
+    h_niqr = ax.fill_between([xl, xr], np.quantile(ints, 0.25), np.quantile(ints, 0.75), color=GREY, alpha=0.6, linewidth=0)
+    h_curve, = ax.plot([1.0, 1.0], [high["integral"], low["integral"]], color=BLUE, linewidth=2.5, alpha=0.8, solid_capstyle="round", zorder=2)
+    h_sup = ax.scatter([1.0], [sup2["integral"]], color=INK, marker="x", s=40, zorder=4)
+    ticks = sorted(set(gate) | {1.0, 1.25, 1.5, 2.0})
+    ax.set_xticks(ticks); ax.set_xticklabels([("×1\n(statistics)" if t == 1.0 else f"×{t:g}") for t in ticks], fontsize=8)
+    ax.set_xlim(min(ticks) - 0.2, 2.1)
     ax.set_xlabel("inventory multiplier", color=MUTED, fontsize=8)
     ax.set_ylabel("industrial shortfall, Aug–Dec 2018 (percent-months)", color=MUTED, fontsize=8)
-    ax.set_ylim(0, 9.2)                                   # room above the band for the legend
-    ax.legend(frameon=True, framealpha=0.9, edgecolor="none", fontsize=7, loc="upper left")
+    ax.set_ylim(0, 12.5)                                  # room above the band (3.6-7.1) for the six-line legend
+    ax.legend([h_model, h_alt, (h_bband, h_bline), (h_nrng, h_niqr), h_curve, h_sup],
+              ["model (reference network)", "alternative river (surcharge, closures)", "statistical benchmark (±1 s.d. band)",
+               "eleven networks at ×1 (interquartile range, range)", "loading curve, shortfall ×1.15 and ×0.85", "two suppliers per input"],
+              handler_map={tuple: HandlerTuple(ndivide=1)}, frameon=True, framealpha=0.9, edgecolor="none", fontsize=7, loc="upper left")
     ax.set_title("(b) Cumulated shortfall: inventories, loading curve, suppliers", loc="left", fontsize=9.5, color=INK)
+    print("ladder (inventory multiplier -> percent-months): " + ", ".join(f"x{k:g} {v:.2f}" for k, v in gate.items()))
 
     # (c) weekly 2018 loss with the band
     ax = axes[1, 0]; style(ax)

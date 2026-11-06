@@ -323,7 +323,7 @@ allowed:
     text: 'it loads more at every gauge between 15 and 55\,cm'
     why: 'design: the fleet lever'
   - file: sections/si.tex
-    text: 'interpolated linearly to zero at the neighbouring anchors, 10 and 78\,cm'
+    text: 'interpolated linearly to zero at the neighboring anchors, 10 and 78\,cm'
     why: 'design: the fleet lever (draught_table_lowwater.csv)'
   - file: sections/si.tex
     text: 'at 100\,cm the same vessel loads 2,300 tonnes'
@@ -333,7 +333,7 @@ allowed:
     why: 'design: fleet-wide variant (draught_table_lowwater_wide.csv against draught_table.csv)'
   - file: sections/si.tex
     text: '(5,100 tonnes for the vessel cited)'
-    why: 'evidence: Stolt Ludwigshafen full-draught payload (BASF press release 2023, loading-table source)'
+    why: 'evidence: Stolt Ludwigshafen full-draft payload (BASF press release 2023, loading-table source)'
 
   # 5 Nov 2026 pending fix (patch_pending_20261105.py); literals the fixed text keeps
   - file: sections/si.tex

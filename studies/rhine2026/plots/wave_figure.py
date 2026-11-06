@@ -98,6 +98,9 @@ def main(out: Path):
     s = t.loc[f"{WV}_A", "DEU_%quarter"] + t.loc[f"{WV}_B", "DEU_%quarter"]
     ax.axhline(s, color=MUTED, linewidth=1.3, linestyle="--")
     ax.text(0.1, s - 0.012, "the two episodes alone, summed", color=MUTED, fontsize=7.5, ha="left", va="top")
+    # 6 Nov 2026 (the author's review): the season as it happened, the comparison point of every other value of the panel
+    ax.axhline(L[0], color=INK, linewidth=0.9, linestyle="-.", alpha=0.7)
+    ax.text(8.0, L[0] - 0.012, "season as it happened (no gap)", color=INK, fontsize=7.5, ha="right", va="top")
     ax.plot(gaps, L, color=INK, linewidth=1.8, marker="o", markersize=5, label="in sequence, 30-day refill time")
     cx = AD / f"compare_runs_batch_jobs_{CROSS}_cross.csv"; rv = AD / f"compare_runs_batch_jobs_{LISTS}_rev.csv"
     L15 = []

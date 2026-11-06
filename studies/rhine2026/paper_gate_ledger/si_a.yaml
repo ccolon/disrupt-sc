@@ -17,7 +17,7 @@ allowed:
     text: 'Eleven sectors use facility data'
     why: 'count: the facility sectors listed in the sentence (A01, B05, B06, B07, C17-18, C19, C20, C23, C24A, C24B, D)'
   - file: sections/si.tex
-    text: 'pulp and paper mills (C17--18) and aluminium smelters'
+    text: 'pulp and paper mills (C17--18) and aluminum smelters'
     why: 'convention: ICIO sector code C17--18'
   - file: sections/si.tex
     text: 'Households are one agent per NUTS2 region (251)'
@@ -74,7 +74,7 @@ allowed:
     text: 'Four settings changed. The waterway rate'
     why: 'count: the four changes listed in the paragraph'
   - file: sections/si.tex
-    text: '(0.010 USD per tonne-kilometre for dry bulk, 0.038 for liquid bulk, 0.022 for containers)'
+    text: '(0.010 USD per tonne-kilometer for dry bulk, 0.038 for liquid bulk, 0.022 for containers)'
     why: 'data: Rhine rates of calibration/round5/water_by_waterway_v5.yaml'
   - file: sections/si.tex
     text: 'the Albert canal and the Meuse pay 1.2 times it'
@@ -192,7 +192,7 @@ allowed:
     text: 'a quarter less than observed on the Lower Rhine and a tenth of the Waal''s tonnage'
     why: '5 Nov 2026 pending fix (patch_pending_20261105.py); history: the first version''s baseline (2026_s07_flows/flow_score/rhine.csv): the Lower Rhine sections from Bonn to Emmerich at 0.64-0.86 of the counts, mean 0.73, the border 87 against 118 (0.74); Tiel 12 against 125 (0.10)'
   - file: sections/si.tex
-    text: 'tonne-kilometres against 41.5 observed'
+    text: 'tonne-kilometers against 41.5 observed'
     why: '5 Nov 2026 pending fix (patch_pending_20261105.py); evidence: Eurostat iww_go_atygo 2023, German waterways 41.5 bn tkm (mode_split_targets_DE_2023.csv TOTAL)'
   - file: sections/si.tex
     text: 'the Rhine at the border \BasinRhineMt{} against 118~Mt, the Main \BasinMainMt{} against 12, the Neckar \BasinNeckarMt{} against 4'
@@ -345,7 +345,7 @@ claims:
     range: [25, 33.4]
     why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: Hamburg -4, Bremerhaven -24, Amsterdam -33, Antwerp-Bruges -33 % against Eurostat 2023 gross weight; within a third = up to 33.4'
   - file: sections/si.tex
-    text: 'is a third of its observed tonne-kilometres'
+    text: 'is a third of its observed tonne-kilometers'
     expr: '100*NLTkmBn/110.8'
     range: [30, 37]
     why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: Dutch inland tkm 39 against 110.8 bn = 35 %; a third = 30-37'
@@ -385,7 +385,7 @@ pending:
   # ---------------------------------------------------------------- S2 the fit: modal split
   # ---------------------------------------------------------------- S2 the fit: Rhine
   # ---------------------------------------------------------------- S2 the fit: seaports
-  # ---------------------------------------------------------------- S2 gaps: crude, gas and transhipment
+  # ---------------------------------------------------------------- S2 gaps: crude, gas and transshipment
   # ---------------------------------------------------------------- S2 gaps: nearest-coast landing
   - file: sections/si.tex
     text: 'the ladder of fees sent 140~Mt back to the large ports'

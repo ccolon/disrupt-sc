@@ -57,7 +57,9 @@ def main(tag: str, overleaf: Path, date_list: str):
     r = table(rv) if rv.exists() else pd.DataFrame()
     lv = AD / f"compare_runs_batch_jobs_{date_list}_ladder.csv"
     ld = table(lv) if lv.exists() else pd.DataFrame()
-    t = pd.concat([m, p] + ([r] if len(r) else []) + ([ld] if len(ld) else []))
+    zv = AD / "compare_runs_batch_jobs_20261106_inv075.csv"           # the rung at x0.75 of 6 Nov 2026 (jobs_20261106_inv075.txt)
+    zt = table(zv) if zv.exists() else pd.DataFrame()
+    t = pd.concat([m, p] + ([r] if len(r) else []) + ([ld] if len(ld) else []) + ([zt] if len(zt) else []))
     B, B18 = f"2026_{tag}_base", f"2018_{tag}_base"
     q26 = m.loc[B, "DEU_cum_mUSD"] / m.loc[B, "DEU_%quarter"]
     q18 = m.loc[B18, "DEU_cum_mUSD"] / m.loc[B18, "DEU_%quarter"]
@@ -88,6 +90,11 @@ def main(tag: str, overleaf: Path, date_list: str):
     put("EnsMeanBn", r1(np.mean(e26) * q26 / 1e3), "bn USD, the ensemble mean of the German loss (22 Oct 2026: the headline is the mean over the eleven networks)")
     eu26 = [p.loc[f"2026_{tag}_seed{s}_base", "EU_cum_mUSD"] for s in range(1, 11)] + [b.EU_cum_mUSD]
     put("EUlossEnsBn", r1(np.mean(eu26) / 1e3), "bn USD, the 28 economies, mean over the eleven networks")
+    # 6 Nov 2026 (the author's review, 'show average results'): the household and non-German parts over the eleven networks
+    cons26 = [p.loc[f"2026_{tag}_seed{s}_base", "cons_loss_cum_mUSD"] for s in range(1, 11)] + [b.cons_loss_cum_mUSD]
+    put("ConsLossEnsBn", r1(np.mean(cons26) / 1e3), "bn USD, household consumption loss, mean over the eleven networks")
+    de26 = [p.loc[f"2026_{tag}_seed{s}_base", "DEU_cum_mUSD"] for s in range(1, 11)] + [b.DEU_cum_mUSD]
+    put("NonDEshareEns", pct(np.mean([100 * (1 - d / e) for d, e in zip(de26, eu26)])), "% of the loss of the 28 economies outside Germany, mean of the eleven networks' shares")
     put("DEUnetBn", r1(b.DEU_net_mUSD / 1e3), "bn USD, German net loss (backlog left at the end of the run + the perishable sectors), reference network")
     put("CorridorFirmsBelow", r1(b["firms<99%_peak_%"]), "% of firms below 99 % of baseline output at the peak")
     rec = de[de.sector.str[:1].isin(list("ABCF"))].loss.sum()
@@ -141,6 +148,7 @@ def main(tag: str, overleaf: Path, date_list: str):
     put("RecordIntLow", r1(rs["p16"])); put("RecordIntHigh", r1(rs["p84"])); put("RecordIntLowW", r1(rs["p2_5"])); put("RecordIntHighW", r1(rs["p97_5"]))
     _, s3 = record(2018, 3, draws=1); put("RecordIntNoLag", r1(s3["integral"]), "contemporaneous-only specification (column 3)")
     put("RecordQ", r2(rs["integral"] * 0.25 / 3), "the record's industry channel in % of a quarter"); put("RecordQLow", r2(rs["p16"] * 0.25 / 3)); put("RecordQHigh", r2(rs["p84"] * 0.25 / 3))
+    put("RecordQSd", r2((rs["p84"] - rs["p16"]) / 2 * 0.25 / 3), "half the one-standard-deviation band of the record's industry channel, % of a quarter (6 Nov 2026: the text writes RecordQ +- RecordQSd)")
     put("ExPostLow", "0.3"); put("ExPostHigh", "0.4")
     # ---- the stock ladder: the rebuilt-table runs if they exist, else the ladder of 28 Sep (earlier table)
     lad = {1.25: f"2018_{tag}_inv125", 1.5: f"2018_{tag}_inv150", 2.0: f"2018_{tag}_inv200"}
@@ -154,6 +162,13 @@ def main(tag: str, overleaf: Path, date_list: str):
         li = {k: model_path(RUNS / v, 2018)["ind_integrated_pct_months"] for k, v in {1.25: "2018_gs_inv125", 1.5: "2018_gs_inv150", 2.0: "2018_gs"}.items()}
     put("LadderA", r2(lq[1.25]), f"x1.25, all sectors, % of a quarter ({src})"); put("LadderB", r2(lq[1.5])); put("LadderD", r2(lq[2.0]))
     put("LadderIntA", r1(li[1.25]), "x1.25, industrial shortfall, percent-months"); put("LadderIntB", r1(li[1.5])); put("LadderIntD", r1(li[2.0]))
+    # 6 Nov 2026 (the author's review): the rung below the balance-sheet level, 2018_<tag>_inv075 (jobs_20261106_inv075.txt),
+    # a sensitivity point and not a new baseline, when its run is there
+    z = f"2018_{tag}_inv075"
+    if (RUNS / z / "firm_data.csv").exists():
+        put("LadderIntZ", r1(model_path(RUNS / z, 2018)["ind_integrated_pct_months"]), "x0.75, industrial shortfall, percent-months (run of 6 Nov 2026)")
+        if z in t.index:
+            put("LadderZ", r2(t.loc[z, "DEU_%quarter"]), "x0.75, all sectors, % of a quarter")
     # the alternative river (the priced river with closures): the rerun of 3 Nov 2026 on the per-class calibration when its
     # runs carry firm data (2018_<tag>_priced, _priced_inv150, _priced_inv200), else the first version's runs of 22-28 Sep
     priced = {1.0: f"2018_{tag}_priced", 1.5: f"2018_{tag}_priced_inv150", 2.0: f"2018_{tag}_priced_inv200"}

@@ -4,7 +4,7 @@ Writes to the Overleaf repository's tables/ folder:
   si_rates.tex              the transport cost parameters of the runs against the rate evidence (S1)
   si_stocks.tex             the stock targets by buying industry and the input-specific overrides, with their basis (S1)
   si_criticality.tex        the survey industry of each ICIO sector and the criticality counts (S1)
-  si_loading_table.tex      the draught table with its anchors (review NS2)
+  si_loading_table.tex      the draft table with its anchors (review NS2)
   si_forecast.tex           the 2026 profile: outlook of 7 September against the observations (review NS1)
   si_thresholds.tex         the modal-switch rule: offline classification and threshold sensitivity (S4)
   si_representations.tex    the 2018 monthly industrial path under both representations and stock levels (S6)
@@ -122,6 +122,63 @@ SECTOR = {
 }
 
 
+# 6 Nov 2026: the author switched the manuscript to American spelling; the generated tables follow at write time
+# (the evidence files and the ledger CSV they read keep their spelling). \texttt{...} spans and words joined to a
+# file or macro name by _ or \_ are left alone. The same map as the manuscript pass of 6 Nov 2026.
+_US = [(r"fertilis(er|ers|ation)", r"fertiliz\1"), (r"kilometre(s?)", r"kilometer\1"), (r"modell(ed|ing)", r"model\1"),
+       (r"centre(s?)", r"center\1"), (r"transhipment(s?)", r"transshipment\1"), (r"haulier(s?)", r"hauler\1"),
+       (r"neighbour(s|ing|hood)?", r"neighbor\1"), (r"grey", r"gray"), (r"aluminium", r"aluminum"),
+       (r"judgement(s?)", r"judgment\1"), (r"tyre(s?)", r"tire\1"), (r"draught(s?)", r"draft\1"),
+       (r"realis(e|ed|es|ing|ation)", r"realiz\1"), (r"containeris(e|ed|es|ing|ation)", r"containeriz\1"),
+       (r"reparameteris(e|ed|es|ing|ation)", r"reparameteriz\1"), (r"parameteris(e|ed|es|ing|ation)", r"parameteriz\1"),
+       (r"standardis(e|ed|es|ing|ation)", r"standardiz\1"), (r"specialis(e|ed|es|ing|ation)", r"specializ\1"),
+       (r"optimis(e|ed|es|ing|ation)", r"optimiz\1"), (r"minimis(e|ed|es|ing|ation)", r"minimiz\1"),
+       (r"maximis(e|ed|es|ing|ation)", r"maximiz\1"), (r"normalis(e|ed|es|ing|ation)", r"normaliz\1"),
+       (r"characteris(e|ed|es|ing|ation)", r"characteriz\1"), (r"summaris(e|ed|es|ing|ation)", r"summariz\1"),
+       (r"recognis(e|ed|es|ing|ation)", r"recogniz\1"), (r"organis(e|ed|es|ing|ation)", r"organiz\1"),
+       (r"analys(e|ed|es|ing)", r"analyz\1"), (r"harbour(s?)", r"harbor\1"), (r"behaviour(s?)", r"behavior\1"),
+       (r"colour(s|ed)?", r"color\1"), (r"labour", r"labor"), (r"favour(s|ed|able)?", r"favor\1"),
+       (r"programme(s?)", r"program\1"), (r"catalogue(s?)", r"catalog\1"), (r"travell(ed|ing|er|ers)", r"travel\1"),
+       (r"cancell(ed|ing)", r"cancel\1"), (r"labell(ed|ing)", r"label\1"), (r"fuell(ed|ing)", r"fuel\1"),
+       (r"totall(ed|ing)", r"total\1"), (r"levell(ed|ing)", r"level\1"), (r"channell(ed|ing)", r"channel\1"),
+       (r"signall(ed|ing)", r"signal\1"), (r"whilst", r"while"), (r"amongst", r"among"), (r"artefact(s?)", r"artifact\1"),
+       (r"sulphur", r"sulfur"), (r"ageing", r"aging"), (r"focuss(ed|ing|es)", r"focus\1"), (r"fulfil", r"fulfill"),
+       (r"instalment(s?)", r"installment\1"), (r"sceptic(al|ism)?", r"skeptic\1"), (r"centimetre(s?)", r"centimeter\1"),
+       (r"metre(s?)", r"meter\1"), (r"litre(s?)", r"liter\1")]
+_US_PAT = re.compile(r"\b(" + "|".join(a for a, _ in _US) + r")\b", re.I)
+_TT = re.compile(r"\\texttt\{[^}]*\}")
+
+
+def _us_word(word: str) -> str:
+    low = word.lower()
+    for a, b in _US:
+        if re.fullmatch(a, low):
+            new = re.sub(a, b, low)
+            return new[0].upper() + new[1:] if word[0].isupper() else new
+    return word
+
+
+def american(text: str) -> str:
+    out = []
+    for line in text.split("\n"):
+        spans = [(m.start(), m.end()) for m in _TT.finditer(line)]
+
+        def _sub(m):
+            a, b = m.start(), m.end()
+            if any(x <= a < y for x, y in spans) or (a > 0 and line[a - 1] in "_\\") or (b < len(line) and line[b] == "_") \
+                    or line[b:b + 2] == "\\_" or (a > 0 and line[a - 1].isalpha()):
+                return m.group(0)
+            return _us_word(m.group(0))
+        out.append(_US_PAT.sub(_sub, line))
+    return "\n".join(out)
+
+
+def _signed(v) -> str:
+    """One decimal with a minus sign in math mode (a value within 0.05 of zero prints as 0.0, not -0.0)."""
+    v = 0.0 if abs(v) < 0.05 else float(v)
+    return f"{v:.1f}".replace("-", "$-$")
+
+
 def tex(s) -> str:
     return (str(s).replace("%", r"\%").replace("&", r"\&").replace("_", r"\_").replace("#", r"\#")
             .replace("~", r"$\sim$"))
@@ -227,12 +284,12 @@ def rates_table(out: Path):
                          f"of the large ones. \\\\")
 
     rows = [
-        r"\multicolumn{3}{l}{\emph{Line haul, USD per tonne-kilometre}} \\",
-        f"road, containers and dry bulk & {bc['roads']['default']:.3f} & A full-load long-haul rate. No rate series was collected; the Panteia comparison for 2018 gives 0.115 EUR per tonne-kilometre for a tractor-semitrailer at fleet average, empty legs included. Road is never a line-haul mode for bulk (Methods). Calibrated. \\\\",
+        r"\multicolumn{3}{l}{\emph{Line haul, USD per tonne-kilometer}} \\",
+        f"road, containers and dry bulk & {bc['roads']['default']:.3f} & A full-load long-haul rate. No rate series was collected; the Panteia comparison for 2018 gives 0.115 EUR per tonne-kilometer for a tractor-semitrailer at fleet average, empty legs included. Road is never a line-haul mode for bulk (Methods). Calibrated. \\\\",
         f"road, liquid bulk & {bc['roads']['liquid_bulk']:.3f} & Road tankers: dedicated equipment and cleaning. No rate evidence; set with the rail value so that the German liquid-bulk split by mode matches Eurostat 2023 (28 / 42 / 30 road / rail / waterway). Calibrated. \\\\",
         f"rail, containers and dry bulk & {rail_cell(bc, 'default')} & Within the range of block-train and intermodal rates in Europe (0.02--0.04); lowered from 0.044 in the calibration of the modal split (Fig.~S2). Calibrated.{rail_note} \\\\",
         f"rail, liquid bulk & {rail_cell(bc, 'liquid_bulk')} & Tank cars: as the road tankers. Calibrated. \\\\",
-        f"inland waterway, dry bulk & {water_cell(bc, 'dry_bulk')} & Push-convoy cost 0.008--0.012 EUR per tonne-kilometre (ores 0.009, coal 0.008; Panteia for KiM 2023, 2021 prices); the published coal rate Rotterdam--Basel of 2015, 10.5 EUR per tonne (0.013; INFRAS for the Swiss Federal Statistical Office). Single motor vessels cost 0.018 (CEMT Va) to 0.036 (Kempenaar), so grain-type flows in single vessels are under-priced in the model.{water_note} \\\\",
+        f"inland waterway, dry bulk & {water_cell(bc, 'dry_bulk')} & Push-convoy cost 0.008--0.012 EUR per tonne-kilometer (ores 0.009, coal 0.008; Panteia for KiM 2023, 2021 prices); the published coal rate Rotterdam--Basel of 2015, 10.5 EUR per tonne (0.013; INFRAS for the Swiss Federal Statistical Office). Single motor vessels cost 0.018 (CEMT Va) to 0.036 (Kempenaar), so grain-type flows in single vessels are under-priced in the model.{water_note} \\\\",
         f"inland waterway, liquid bulk & {water_cell(bc, 'liquid_bulk')} & Tanker spot rates: ARA--Karlsruhe 27--29 EUR per tonne in June--July 2025 (0.042--0.045; Riverlake via OPIS) and about 20 in June 2022 (0.031; Handelsblatt), ARA--Cologne 15--17 (0.047--0.053), ARA--Basel 42 in November 2023 (0.051; Refinitiv series in the CCNR price-formation report); operator cost 0.029 (Panteia for KiM). \\\\",
         f"inland waterway, containers & {water_cell(bc, 'container')} & Operator cost 0.025 (Panteia for KiM); Rotterdam--Basel 162--178 EUR per TEU upstream (INFRAS 2015 worked example); Middle Rhine tariffs 125--140 EUR per TEU (Konings 2009), 12--18 EUR per tonne all-in at 10 tonnes per TEU. {container_note} \\\\",
         f"sea & {bc['maritime']:.4f} & The prior of the scope; sea lanes are unconstrained in this study. \\\\",
@@ -248,21 +305,25 @@ def rates_table(out: Path):
         f"road-- or rail--sea & {transfer('roads-maritime')} & Port handling; the sea leg is unconstrained in this study. \\\\",
     ] + port_rows + [
         r"\midrule",
-        r"\multicolumn{3}{l}{\emph{Speed, kilometres per hour}} \\",
+        r"\multicolumn{3}{l}{\emph{Speed, kilometers per hour}} \\",
         f"road / rail / inland waterway / sea & {num(sp['roads'])} / {num(sp['railways'])} / {num(sp['waterways'])} / {num(sp['maritime'])} & Motorway line haul; freight trains; Rhine barges (about 10 upstream, 15 downstream); short sea. \\\\",
     ]
-    (out / "si_rates.tex").write_text(r"""\begin{table}[tbp]
-\centering\footnotesize
+    (out / "si_rates.tex").write_text(r"""\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{longtable}{L{27mm}L{30mm}L{91mm}}
 \caption{\textbf{Transport cost parameters and the rate evidence.} The values used by every run of this paper (the configuration of the batches of 30 September and 7 October 2026, identical but for the loading curve) and the evidence behind them. Operator costs are the Panteia cost figures for the Netherlands Institute for Transport Policy Analysis (KiM, 2023; price level 2021), fleet averages that include empty legs and waiting; the rates are spot quotes and published tariffs as cited in the evidence dossier of the code repository; USD and EUR are treated as equal. No public source prints a full normal-water rate table by vessel class (the CCNR publishes indices), so the waterway values rest on operator costs and the quoted lanes; the rail and road values are calibrated on the modal split (Fig.~S2). ARA: Amsterdam--Rotterdam--Antwerp.}
-\label{tab:rates}
-\begin{tabular}{lp{34mm}p{82mm}}
+\label{tab:rates} \\
 \toprule
 mode, cargo class & value & evidence \\
 \midrule
+\endfirsthead
+\toprule
+mode, cargo class & value & evidence \\
+\midrule
+\endhead
 """ + "\n".join(rows) + r"""
 \bottomrule
-\end{tabular}
-\end{table}
+\end{longtable}
+\endgroup
 """, encoding="utf-8")
     if from_run:        # the caption names where the values come from (5 Nov 2026)
         f_ = out / "si_rates.tex"
@@ -314,7 +375,7 @@ OVERRIDES = [
     ("C23", "B05", "cement plants: coal", "C",
      "Externally supplied fuels 21--30 days (vendor and engineering sources); clinker 7--14 days."),
     ("C23", "C19", "cement plants: petroleum coke", "C", "As coal."),
-    ("H49", "C19", "hauliers: fuel", "B", "Bundesbank H raw-material stock 7.3 days (fuel, tyres, spares)."),
+    ("H49", "C19", "haulers: fuel", "B", "Bundesbank H raw-material stock 7.3 days (fuel, tires, spares)."),
 ]
 
 
@@ -342,9 +403,9 @@ def stocks_table(out: Path):
         rows.append(f"{tex(buyer if buyer != '*' else 'any')}: {tex(inp)} & {tex(label)} & {num(v)} & -- & {grade} & {basis} \\\\")
     st = ", ".join(inv["service_types"])
     rows.append(f"any: F, G--T & services and construction & {num(inv['service_days'])} & -- & -- & Non-storable inputs (types {tex(st)}): the buyer copes for {num(inv['service_days'])} days without a stock, the model's coping duration. Construction joined the list on 30 September 2026: its buyers had held goods-stock days of it (real estate 10 days, builders 10 days of subcontracting), which cost real estate 2.0 billion USD and doubled the construction loss; the 2026 loss moved from 1.58 to 1.24\\,\\% of a quarter, every other sector and the 2018 industrial path unchanged. \\\\")
-    (out / "si_stocks.tex").write_text(r"""\begingroup\footnotesize
-\begin{longtable}{llrrlp{68mm}}
-\caption{\textbf{Stock targets by buying industry.} Days of consumption of purchased goods inputs that each buying industry holds at the baseline (the model's value) and the evidence: the lean value of 2019 where the series exists, the grade (A: balance-sheet data for the industry itself; B: data for a group of industries, or physical stock data; C: indirect; D: assumed) and the basis. RHB: raw materials, consumables and supplies over material costs, times 365, from the extrapolated corporate balance sheets of the Bundesbank (2023; the lean column 2019); ratio series: the Bundesbank ratio statistics by division (non-finished stock over material costs, which includes work in progress); FIBEN: the Banque de France sector sheets (median stocks over turnover); Census: the US Census M3 materials-and-supplies inventories over the cost of materials; EKBG: the German reserve-plant act of 2022. The lower block gives the input-specific targets that override the industry value, with the modelling reason where the model departs from the physical figure.}
+    (out / "si_stocks.tex").write_text(r"""\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{longtable}{L{16mm}L{36mm}rrcL{64mm}}
+\caption{\textbf{Stock targets by buying industry.} Days of consumption of purchased goods inputs that each buying industry holds at the baseline (the model's value) and the evidence: the lean value of 2019 where the series exists, the grade (A: balance-sheet data for the industry itself; B: data for a group of industries, or physical stock data; C: indirect; D: assumed) and the basis. RHB: raw materials, consumables and supplies over material costs, times 365, from the extrapolated corporate balance sheets of the Bundesbank (2023; the lean column 2019); ratio series: the Bundesbank ratio statistics by division (non-finished stock over material costs, which includes work in progress); FIBEN: the Banque de France sector sheets (median stocks over turnover); Census: the US Census M3 materials-and-supplies inventories over the cost of materials; EKBG: the German reserve-plant act of 2022. The lower block gives the input-specific targets that override the industry value, with the modeling reason where the model departs from the physical figure.}
 \label{tab:stocks} \\
 \toprule
 industry & & days & lean & grade & basis \\
@@ -379,20 +440,24 @@ def criticality_table(out: Path):
     rows = []
     for s in sectors:
         col, row = crit[s], crit.loc[s]
-        rows.append(f"{tex(s)} & {tex(SECTOR[s])} & {tex(ICIO_TO_WIOD[s])} & {tex(NOTE.get(s, ''))} & "
+        rows.append(f"{tex(s)} {tex(SECTOR[s])} & {tex(ICIO_TO_WIOD[s])} & {tex(NOTE.get(s, ''))} & "
                     f"{int((col >= 1).sum())} & {int(((col >= 0.5) & (col < 1)).sum())} & {int((col < 0.5).sum())} & {int((row >= 1).sum())} \\\\")
     vals = crit.values.ravel()
     c, i, n = (100 * (vals >= 1).mean(), 100 * ((vals >= 0.5) & (vals < 1)).mean(), 100 * (vals < 0.5).mean())
-    (out / "si_criticality.tex").write_text(r"""\begingroup\footnotesize
-\begin{longtable}{llcp{34mm}rrrr}
-\caption{\textbf{The criticality survey mapped to the 50 sectors.} Each sector of the input--output table (OECD ICIO, 2025 edition) is matched to one industry of the survey used by ref.~\citep{pichler2022} (55 industries of the World Input--Output Database, NACE Rev.~2); the note gives the judgement where the match is not one to one. The counts are, for the sector as a buyer, how many of its 50 input sectors the survey rates critical (output limited by the input), important (a depleted input halves output) and non-critical, and, for the sector as an input, how many buyers rate it critical. Imports carry the sector of the exporting bloc, so an imported chemical is as critical as a domestic one; an unrated pair is treated as critical; in the model an input also has to exceed 2\,\% of the buyer's input costs to bind (Methods). Over the 2,500 cells: """ + f"{c:.0f}\\,\\% critical, {i:.0f}\\,\\% important, {n:.0f}\\,\\% non-critical." + r"""}
+    (out / "si_criticality.tex").write_text(r"""\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{longtable}{L{46mm}lL{32mm}rrrr}
+\caption{\textbf{The criticality survey mapped to the 50 sectors.} Each sector of the input--output table (OECD ICIO, 2025 edition) is matched to one industry of the survey used by ref.~\citep{pichler2022} (55 industries of the World Input--Output Database, NACE Rev.~2); the note gives the judgment where the match is not one to one. The counts are, for the sector as a buyer, how many of its 50 input sectors the survey rates critical (output limited by the input), important (a depleted input halves output) and non-critical (other), and, for the sector as an input, how many buyers rate it critical (critical for). Imports carry the sector of the exporting bloc, so an imported chemical is as critical as a domestic one; an unrated pair is treated as critical; in the model an input also has to exceed 2\,\% of the buyer's input costs to bind (Methods). Over the 2,500 cells: """ + f"{c:.0f}\\,\\% critical, {i:.0f}\\,\\% important, {n:.0f}\\,\\% non-critical." + r"""}
 \label{tab:criticality} \\
 \toprule
-sector & & survey & note & critical & important & non-critical & critical for \\
+sector & survey & note & \multicolumn{3}{c}{inputs rated} & critical \\
+\cmidrule(lr){4-6}
+ & & & critical & important & other & for \\
 \midrule
 \endfirsthead
 \toprule
-sector & & survey & note & critical & important & non-critical & critical for \\
+sector & survey & note & \multicolumn{3}{c}{inputs rated} & critical \\
+\cmidrule(lr){4-6}
+ & & & critical & important & other & for \\
 \midrule
 \endhead
 """ + "\n".join(rows) + r"""
@@ -408,7 +473,7 @@ def thresholds_table(out: Path):
     offline classification of the Kaub-crossing bulk pairs on the week-6 network of lrcheck_base_lh and the share of
     the week's Kaub bulk orders (by value) that gives up under each setting of the rule."""
     rows = [
-        "kilometre rule alone: access allowance 50\\,km, line-haul threshold 100\\,km & 67 \\\\",
+        "kilometer rule alone: access allowance 50\\,km, line-haul threshold 100\\,km & 67 \\\\",
         "access allowance 90--100\\,km & 5 \\\\",
         "line-haul threshold 200\\,km & 86 \\\\",
         "line-haul threshold 500\\,km & 97 \\\\",
@@ -417,12 +482,12 @@ def thresholds_table(out: Path):
         "the previous search, not penalty-aware & 81 \\\\",
     ]
     (out / "si_thresholds.tex").write_text(r"""\begin{table}[tbp]
-\centering\small
-\caption{\textbf{The modal-switch rule: classification of the Kaub-crossing bulk pairs and threshold sensitivity.} Offline classification of the 2,831 Kaub-crossing bulk origin--destination pairs (5,707 links) on the network of the first closure week of a ten-week run on the 2026 profile (14--15 September 2026; the priced-river representation with the Kaub reach closed to bulk, and the same search that a cut share runs under the capacity limit): under the kilometre rule 1,553 pairs give up (833 million USD of the week's orders), 1,224 deliver on their own modes (385 million) and 54 on the free path (24 million); the run reproduced the classification link by link. The table gives the share of the week's Kaub bulk orders that gives up under each setting of the rule. The access allowance decides the outcome: for nine tenths of the pairs that give up the alternative is barge to Koblenz, 88\,km of truck around the reach and barge again at a median surcharge of 49\,\% on the freight, rejected because 88\,km exceeds the allowance; the pairs whose normal route already has 100\,km or more of road (35\,\%) lengthen that road leg instead, which is what the adopted rule forbids.}
+\centering\footnotesize
+\caption{\textbf{The modal-switch rule: classification of the Kaub-crossing bulk pairs and threshold sensitivity.} Offline classification of the 2,831 Kaub-crossing bulk origin--destination pairs (5,707 links) on the network of the first closure week of a ten-week run on the 2026 profile (14--15 September 2026; the priced-river representation with the Kaub reach closed to bulk, and the same search that a cut share runs under the capacity limit): under the kilometer rule 1,553 pairs give up (833 million USD of the week's orders), 1,224 deliver on their own modes (385 million) and 54 on the free path (24 million); the run reproduced the classification link by link. The table gives the share of the week's Kaub bulk orders that gives up under each setting of the rule. The access allowance decides the outcome: for nine tenths of the pairs that give up the alternative is barge to Koblenz, 88\,km of truck around the reach and barge again at a median surcharge of 49\,\% on the freight, rejected because 88\,km exceeds the allowance; the pairs whose normal route already has 100\,km or more of road (35\,\%) lengthen that road leg instead, which is what the adopted rule forbids.}
 \label{tab:thresholds}
-\begin{tabular}{p{118mm}r}
+\begin{tabular}{L{122mm}r}
 \toprule
-setting of the rule & gives up (\% of the week's Kaub bulk orders) \\
+setting of the rule & gives up (\%) \\
 \midrule
 """ + "\n".join(rows) + r"""
 \bottomrule
@@ -442,8 +507,8 @@ def loading_table(out: Path):
         assert abs(led.fleet[int(cm)] - r.load_factor) < 1e-9, (cm, led.fleet[int(cm)], r.load_factor)
     rows = "\n".join(f"{int(cm)} & {led.fleet[int(cm)]:.2f} & {led.vessel[int(cm)]:.2f} & {tex(led.nature[int(cm)])} & {tex(led.source[int(cm)])} & {tex(led.measures[int(cm)])} & {tex(led.transformation[int(cm)])} \\\\"
                      for cm in d.kaub_cm)
-    (out / "si_loading_table.tex").write_text(r"""\begingroup\footnotesize
-\begin{longtable}{rrrp{15mm}p{38mm}p{34mm}p{40mm}}
+    (out / "si_loading_table.tex").write_text(r"""\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{longtable}{rrrL{18mm}L{33mm}L{29mm}L{36mm}}
 \caption{\textbf{The loading curve as a source ledger.} Share of the normal tonnage that the Kaub reach can pass at a weekly mean gauge (fleet, the column the model uses) and the loading share of a single large vessel (for comparison), with, for each anchor, its nature (measured, a convention, interpolated or assumed), its source and date, what the source measures (reach, cargo class, period, denominator) and the transformation to the fleet value. Linear between anchors; below 5\,cm the fleet value is held at 0.08. The anchors mix single-vessel payloads, an association's weekly count, a national monthly response and operators' thresholds; they do not measure one quantity, and the table is the authors' reading of them. The table was rebuilt on this ledger on 6 October 2026 (the low end lifted to the weekly count and the single-vessel loads times the fleet's redeployment; unchanged from 55\,cm up); the band of $\pm$15\,\% on the shortfall and the sensitivity on the floor below 5\,cm (Section~S4) bound the result on either side.}
 \label{tab:loading} \\
 \toprule
@@ -507,20 +572,24 @@ def runs_table(out: Path):
     cols = ["DEU_%quarter", "DEU_peak_%week", "DEU_peak_week", "EU_cum_mUSD", "cons_loss_cum_mUSD"]
     rows = "\n".join(f"{tex(r)} & {v['DEU_%quarter']:.2f} & {v['DEU_peak_%week']:.2f} & {int(v['DEU_peak_week'])} & {v['EU_cum_mUSD'] / 1e3:.1f} & {v['cons_loss_cum_mUSD'] / 1e3:.1f} \\\\"
                      for r, v in t[cols].iterrows())
-    (out / "si_runs.tex").write_text(r"""\begin{longtable}{lrrrrr}
+    (out / "si_runs.tex").write_text(r"""\begingroup\footnotesize
+\begin{longtable}{lrrrrr}
 \caption{""" + caption + r"""}
 \label{tab:runs} \\
 \toprule
-run & DEU (\% of a quarter) & peak (\% of a week) & peak week & EU (bn) & consumption (bn) \\
+run & DEU loss & peak loss & peak & EU loss & consumption \\
+ & (\% of a quarter) & (\% of a week) & week & (bn USD) & (bn USD) \\
 \midrule
 \endfirsthead
 \toprule
-run & DEU (\% of a quarter) & peak (\% of a week) & peak week & EU (bn) & consumption (bn) \\
+run & DEU loss & peak loss & peak & EU loss & consumption \\
+ & (\% of a quarter) & (\% of a week) & week & (bn USD) & (bn USD) \\
 \midrule
 \endhead
 """ + rows + r"""
 \bottomrule
 \end{longtable}
+\endgroup
 """, encoding="utf-8")
 
 
@@ -569,10 +638,10 @@ def representations_table(out: Path):
             v = lines[key]
             rows.append(f"{lab} & " + " & ".join(v[:5]) + f" & {v[5]} \\\\")
     (out / "si_representations.tex").write_text(r"""\begin{table}[tbp]
-\centering\small
+\centering\footnotesize\setlength{\tabcolsep}{4pt}
 \caption{\textbf{Two representations of the river on the 2018 benchmark.} Monthly shortfall of German industrial production (\%; the production-index measure, each sector's shortfall rate weighted by its German value added, sections B--D), August to December 2018, and its integral (percent-months, the plain sum of the months). The benchmark is the production path implied by the published regression (ref.~\citep{ademmer2023}; Table~2, column 1, of the working paper) on the low-water days of the daily gauge record, with the 16--84\,\% band of a Monte Carlo over its coefficients and, for comparison, the contemporaneous-only specification (column 3). The model rows are the capacity limit with the surcharge at four inventory levels and the priced river with closures at three; """ + ("runs of 2 and 3 November 2026 on the reference network and the per-class calibration (the capacity limit from the batch of 2 November, the priced river rerun on 3 November with the same flows, loading curve and inventories)" if priced_new else ("runs of 22--28 September 2026 on the reference network, the industrial path unchanged by the later treatment of construction as a non-storable input" if TAG == "s07" else "the capacity-limit rows from the batch of 2 November 2026 on the per-class calibration, the priced-river rows from the first version's runs of 22--28 September 2026 on the earlier calibration")) + r""". Each month of a model row is the mean of its days, every day carrying the value of the model week it belongs to.}
 \label{tab:representations}
-\begin{tabular}{lrrrrrr}
+\begin{tabular}{L{50mm}rrrrrr}
 \toprule
  & Aug & Sep & Oct & Nov & Dec & integral \\
 \midrule
@@ -597,12 +666,14 @@ def channels_table(out: Path):
         b = s[s.cargo_type.isin(["dry_bulk", "liquid_bulk"])]; c = s[s.cargo_type == "container"]
         rows.append(f"{lab} & {b.alternative_usd.sum() / 1e3:.1f} & {b.capacity_blocked_usd.sum() / 1e3:.1f} & {c.alternative_usd.sum() / 1e3:.1f} & {c.capacity_blocked_usd.sum() / 1e3:.1f} \\\\")
     (out / "si_channels.tex").write_text(r"""\begin{table}[tbp]
-\centering\small
+\centering\footnotesize
 \caption{\textbf{The two channels at the routing level.} Value (billion USD, summed over the 43 weeks of the 2026 run) that leaves its normal route for an alternative, and value that the capacity gate withholds, by cargo class, in the reference run and with each channel alone. """ + batch_text("channels") + r"""}
 \label{tab:channels}
 \begin{tabular}{lrrrr}
 \toprule
- & bulk, alternative & bulk, withheld & containers, alternative & containers, withheld \\
+ & \multicolumn{2}{c}{bulk} & \multicolumn{2}{c}{containers} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+ & alternative & withheld & alternative & withheld \\
 \midrule
 """ + "\n".join(rows) + r"""
 \bottomrule
@@ -663,8 +734,20 @@ def prospective_table(out: Path):
     d = model_path(RUNS / B26, 2026)
     t, s = record(2026, 1)
     ev = t[t.month.isin(EVENT_MONTHS[2026])]
-    rows = [f"model, reference network, index measure ({batch_text('issued')}) & " + " & ".join(f"{d[f'ind_{m}']:.1f}" for m in labs) + f" & {d['ind_integrated_pct_months']:.1f} \\\\",
-            "model, reference network, production-weighted B--E (the measure of the earlier version) & " + " & ".join(f"{d[f'indprod_{m}']:.1f}" for m in labs) + f" & {d['indprod_integrated_pct_months']:.1f} \\\\"]
+
+    # 6 Nov 2026 (the author's review: 'too wide, make it readable'): a wrapped label column, \footnotesize, 4 pt column
+    # separation, the eleven networks' range as two rows of single numbers (the 'a to b' ranges of negative months were
+    # the widest cells), a minus sign in math mode, and the vintage of the reference run in the caption (main.tex)
+    # instead of the first row's label
+    def cell(v) -> str:
+        v = 0.0 if abs(v) < 0.05 else float(v)
+        return f"{v:.1f}".replace("-", "$-$")
+
+    def rng(a, b) -> str:
+        return f"{cell(a)}--{cell(b)}" if a >= 0 and b >= 0 else f"{cell(a)} to {cell(b)}"
+
+    rows = ["model, reference network, index measure & " + " & ".join(cell(d[f"ind_{m}"]) for m in labs) + f" & {cell(d['ind_integrated_pct_months'])} \\\\",
+            "model, reference network, production-weighted B--E (the earlier version's measure) & " + " & ".join(cell(d[f"indprod_{m}"]) for m in labs) + f" & {cell(d['indprod_integrated_pct_months'])} \\\\"]
     seeds = [RUNS / B26] + [RUNS / f"2026_{TAG}_seed{s}_base" for s in range(1, 11)]
     band = AD / ("prospective_band_2026.csv" if TAG == "s07" else f"prospective_band_2026_{TAG}.csv")   # the 7 Oct file was written by read_batch_20261007_rev.py
     if all((r_ / "firm_data.csv").exists() for r_ in seeds):
@@ -673,21 +756,24 @@ def prospective_table(out: Path):
         pd.DataFrame({"month": labs, "min": a.min(axis=0), "max": a.max(axis=0), "mean": a.mean(axis=0)}).to_csv(band, index=False)
     if band.exists():
         bd = pd.read_csv(band)
-        rows.append("model, range of the eleven networks & " + " & ".join((f"{a:.1f} to {b:.1f}" if b < 0 else f"{a:.1f}--{b:.1f}") for a, b in zip(bd["min"], bd["max"])) + " & \\\\")
-    for run, lab in ((f"2026_{TAG}_tablelow", "model, loading curve with the shortfall $\\times$1.15"), (f"2026_{TAG}_tablehigh", "model, loading curve with the shortfall $\\times$0.85")):
+        rows.append("model, lowest of the eleven networks & " + " & ".join(cell(v) for v in bd["min"]) + " & \\\\")
+        rows.append("model, highest of the eleven networks & " + " & ".join(cell(v) for v in bd["max"]) + " & \\\\")
+    for run, lab in ((f"2026_{TAG}_tablelow", "model, loading curve, shortfall $\\times$1.15"), (f"2026_{TAG}_tablehigh", "model, loading curve, shortfall $\\times$0.85")):
         if (RUNS / run / "firm_data.csv").exists():
             dd = model_path(RUNS / run, 2026)
-            rows.append(f"{lab} & " + " & ".join(f"{dd[f'ind_{m}']:.1f}" for m in labs) + f" & {dd['ind_integrated_pct_months']:.1f} \\\\")
-    rows += ["published specification on the same low-water days & " + " & ".join(f"{v:.1f}" for v in ev.central) + f" & {s['integral']:.1f} \\\\",
-            "its 16--84\\,\\% band & " + " & ".join(f"{a:.1f}--{b:.1f}" for a, b in zip(ev.p16, ev.p84)) + f" & {s['p16']:.1f}--{s['p84']:.1f} \\\\",
+            rows.append(f"{lab} & " + " & ".join(cell(dd[f"ind_{m}"]) for m in labs) + f" & {cell(dd['ind_integrated_pct_months'])} \\\\")
+    rows += ["published specification, same low-water days & " + " & ".join(cell(v) for v in ev.central) + f" & {cell(s['integral'])} \\\\",
+            "its 16--84\\,\\% band & " + " & ".join(rng(a, b) for a, b in zip(ev.p16, ev.p84)) + f" & {rng(s['p16'], s['p84'])} \\\\",
             "low-water days (observed to 29 September, then the profile) & " + " & ".join(str(int(v)) for v in ev.low_water_days) + " & \\\\"]
-    (out / "prospective.tex").write_text(r"""\begin{tabular}{lrrrrrrr}
+    (out / "prospective.tex").write_text(r"""\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}L{4.6cm}rrrrrrr@{}}
 \toprule
  & Jul & Aug & Sep & Oct & Nov & Dec & Jul--Dec \\
 \midrule
 """ + "\n".join(rows) + r"""
 \bottomrule
 \end{tabular}
+\endgroup
 """, encoding="utf-8")
 
 
@@ -714,12 +800,12 @@ def prospective_sectors_table(out: Path):
                 continue
             s = 100 * (sub.base - sub.production).groupby(sub.time_step).sum() / sub.base.groupby(sub.time_step).sum()
         mo, _ = monthly_from_weekly(s, FIRST[2026], months)
-        rows.append(f"{lab} & " + " & ".join(f"{mo[m]:.1f}" for m in months) + f" & {sum(mo.values()):.1f} \\\\")
+        rows.append(f"{lab} & " + " & ".join(_signed(mo[m]) for m in months) + f" & {_signed(sum(mo.values()))} \\\\")
     (out / "si_prospective_sectors.tex").write_text(r"""\begin{table}[tbp]
-\centering\small
+\centering\footnotesize\setlength{\tabcolsep}{4pt}
 \caption{\textbf{Sectoral signatures of the 2026 forecast.} Monthly shortfall of production (\%, production-weighted within the sector; negative values are production above the no-event baseline) of the German sectors on the river and of the transport operators, reference network, """ + batch_text("issued") + r"""; the last column is the plain sum of the months (percent-months). Pre-specified for the prospective test of the main text: the production index gives the industrial rows by month, the turnover index of transport and storage the operators' rows.}
 \label{tab:prospective_sectors}
-\begin{tabular}{lrrrrrrr}
+\begin{tabular}{L{52mm}rrrrrrr}
 \toprule
  & Jul & Aug & Sep & Oct & Nov & Dec & Jul--Dec \\
 \midrule
@@ -837,40 +923,41 @@ def revision_table(out: Path):
         r = pd.concat([r, table(nr)])
     rows = []
     for run, lab, base in (
-        (f"2026_{REV}_rail50", "bounded substitution by rail, 50 kt a week (review OR2)", B26),
+        (f"2026_{REV}_rail50", "bounded substitution by rail, 50 kt a week", B26),
         (f"2026_{REV}_rail140", "bounded substitution by rail, 140 kt a week", B26),
         (f"2018_{REV}_rail50", "2018: bounded substitution, 50 kt a week", B18),
         (f"2018_{REV}_rail140", "2018: bounded substitution, 140 kt a week", B18),
-        (f"2026_{REV}_head10", "headroom of the capacity at normal water 10\\,\\% (OR1)", B26),
+        (f"2026_{REV}_head10", "headroom of the capacity at normal water 10\\,\\%", B26),
         (f"2026_{REV}_head25", "headroom 25\\,\\%", B26),
-        (f"2026_{REV}_rest15", "refill time of a stock gap 15 days (OR4)", B26),
+        (f"2026_{REV}_rest15", "refill time of a stock gap 15 days", B26),
         (f"2026_{REV}_rest60", "refill time 60 days", B26),
-        (f"2026_{REV}_floor04", "loading-table floor below 5\\,cm at 0.04 (NS1)", B26),
+        (f"2026_{REV}_floor04", "loading-curve floor below 5\\,cm at 0.04", B26),
         (f"2026_{REV}_floor16", "floor at 0.16", B26),
-        (f"2026_{REV}_deeplocal", "fairway +20\\,cm on the Kaub reach alone (NS3)", B26),
-        (f"2026_{REV}_fleetwide", "low-water fleet with its gain carried to 100\\,cm (NS2)", B26),
-        (f"2026_{REV}_dfuel0", "power sector's fuel-oil input non-critical (E4)", B26),
-        (f"2026_{REV}_serv45", "45-day coping duration for the non-storable inputs (E4)", B26),
-        (f"2026_{REV}_q25", "outlook's 25th percentile path (NS4)", B26),
+        (f"2026_{REV}_deeplocal", "fairway +20\\,cm on the Kaub reach alone", B26),
+        (f"2026_{REV}_fleetwide", "low-water fleet with its gain carried to 100\\,cm", B26),
+        (f"2026_{REV}_dfuel0", "power sector's fuel-oil input non-critical", B26),
+        (f"2026_{REV}_serv45", "45-day coping duration for the non-storable inputs", B26),
+        (f"2026_{REV}_q25", "outlook's 25th percentile path", B26),
         (f"2026_{REV}_q75", "outlook's 75th percentile path", B26),
-        (f"2026_{REV}_norail", "no rail alternative for any bulk shipment (line-haul threshold 500\\,km; 20 Oct)", B26),
+        (f"2026_{REV}_norail", "no rail alternative for any bulk shipment (line-haul threshold 500\\,km)", B26),
         (f"2018_{REV}_norail", "2018: no rail alternative for any bulk shipment", B18),
     ):
         if run not in r.index:
             continue
         v, b = r.loc[run], m.loc[base]
-        rows.append(f"{lab} & {v['DEU_%quarter']:.2f} & {100 * (v['DEU_%quarter'] / b['DEU_%quarter'] - 1):+.0f} & {v['DEU_peak_%week']:.2f} & {int(v['DEU_peak_week'])} & {v['EU_cum_mUSD'] / 1e3:.1f} \\\\".replace("+", "$+$").replace("-", "$-$", 1) if False else
-                    f"{lab} & {v['DEU_%quarter']:.2f} & {100 * (v['DEU_%quarter'] / b['DEU_%quarter'] - 1):+.0f} & {v['DEU_peak_%week']:.2f} & {int(v['DEU_peak_week'])} & {v['EU_cum_mUSD'] / 1e3:.1f} \\\\")
+        change = f"{100 * (v['DEU_%quarter'] / b['DEU_%quarter'] - 1):+.0f}".replace("+", "$+$").replace("-", "$-$")
+        rows.append(f"{lab} & {v['DEU_%quarter']:.2f} & {change} & {v['DEU_peak_%week']:.2f} & {int(v['DEU_peak_week'])} & {v['EU_cum_mUSD'] / 1e3:.1f} \\\\")
     b26, b18 = m.loc[B26], m.loc[B18]
     head = [f"reference run 2026 & {b26['DEU_%quarter']:.2f} & & {b26['DEU_peak_%week']:.2f} & {int(b26.DEU_peak_week)} & {b26.EU_cum_mUSD / 1e3:.1f} \\\\",
             f"reference run 2018 & {b18['DEU_%quarter']:.2f} & & {b18['DEU_peak_%week']:.2f} & {int(b18.DEU_peak_week)} & {b18.EU_cum_mUSD / 1e3:.1f} \\\\", r"\midrule"]
     (out / "si_revision.tex").write_text(r"""\begin{table}[tbp]
-\centering\small
+\centering\footnotesize\setlength{\tabcolsep}{4pt}
 \caption{\textbf{The sensitivities of the revision.} German value-added loss as a share of a quarter, its change against the reference run of the same event, the peak week (share of a week's value added, run week) and the loss of the 28 economies (billion USD), """ + batch_text("revision") + r""". The rail ceilings are 50 kt a week (the 400 wagons that the national rail freight operator could add at short notice in August 2026, at two rotations a week) and 140 kt (the rail response of past low waters, +0.07\,\% of rail tonnage per low-water day over a full low-water month).}
 \label{tab:revision}
-\begin{tabular}{lrrrrr}
+\begin{tabular}{L{58mm}rrrrr}
 \toprule
- & DEU (\% of a quarter) & change (\%) & peak (\% of a week) & peak week & 28 economies (bn) \\
+ & DEU loss & change & peak loss & peak & 28 economies \\
+ & (\% of a quarter) & (\%) & (\% of a week) & week & (bn USD) \\
 \midrule
 """ + "\n".join(head + rows) + r"""
 \bottomrule
@@ -882,17 +969,17 @@ def revision_table(out: Path):
 # ------------------------------------------------------------------------------------------------ S2: seaports
 # the mechanism behind each gap of the calibrated baseline (1 Nov 2026, the read of the recalibration rounds):
 # "crude ..." = tonnage the statistics count that is not a transport flow of the model (crude and gas are pipelined
-# by the rule, sea-to-sea transhipment does not exist); "transhipment hub" = the same at its extreme; "nearest-coast
+# by the rule, sea-to-sea transshipment does not exist); "transshipment hub" = the same at its extreme; "nearest-coast
 # landing" = an import landed at the coastal node nearest its buyer under the uniform sea tariff; "landings at X" =
 # the tonnage of this port landed at a nearby node instead.
 PORT_NOTES = {
-    "Rotterdam": "crude and products, transhipment", "Antwerp-Bruges": "crude and products, transhipment",
-    "Amsterdam": "coal and oil products; fee 0.75", "Gdansk": "landings at Szczecin", "Algeciras": "transhipment hub",
-    "Constanta": "crude; grain exports and Ukraine transit", "Valencia": "transhipment", "Trieste": "crude terminal (TAL pipeline)",
-    "Piraeus": "transhipment hub", "Sines": "crude, gas, transhipment", "Cartagena": "crude terminal",
-    "Zeeland Seaports": "crude, chemicals", "Gioia Tauro": "transhipment hub", "Tarragona": "crude terminal",
+    "Rotterdam": "crude and products, transshipment", "Antwerp-Bruges": "crude and products, transshipment",
+    "Amsterdam": "coal and oil products; fee 0.75", "Gdansk": "landings at Szczecin", "Algeciras": "transshipment hub",
+    "Constanta": "crude; grain exports and Ukraine transit", "Valencia": "transshipment", "Trieste": "crude terminal (TAL pipeline)",
+    "Piraeus": "transshipment hub", "Sines": "crude, gas, transshipment", "Cartagena": "crude terminal",
+    "Zeeland Seaports": "crude, chemicals", "Gioia Tauro": "transshipment hub", "Tarragona": "crude terminal",
     "Wilhelmshaven": "crude terminal", "Livorno": "ro-ro ferries", "Huelva": "crude terminal",
-    "Klaipeda": "oil products, fertilisers", "Augusta": "crude terminal", "Gdynia": "landings at Szczecin",
+    "Klaipeda": "oil products, fertilizers", "Augusta": "crude terminal", "Gdynia": "landings at Szczecin",
     "Porto Foxi": "crude terminal", "Agioi Theodoroi": "crude terminal", "Rostock": "ferries; landings at Szczecin",
     "Venezia": "nearest-coast landing (the lagoon)", "Koper": "landings at the lagoon",
     "Monfalcone": "nearest-coast landing (the lagoon)", "Szczecin": "nearest-coast landing", "Burgas": "nearest-coast landing",
@@ -915,9 +1002,9 @@ def ports_table(out: Path, run: str = "r6_h01_feeder3"):
         return (f"{tex(r['label'])} & {r['cc']} & {r['eurostat_mt']:.0f} & {r['model_mt']:.0f} & {r['ratio']:.2f} & "
                 f"{tex(PORT_NOTES.get(r['label'], ''))} \\\\")
     rows = [row(r) for _, r in top.iterrows()] + [r"\midrule"] + [row(r) for _, r in rest.iterrows()]
-    (out / "si_ports.tex").write_text(r"""\begingroup\footnotesize
+    (out / "si_ports.tex").write_text(r"""\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
 \begin{longtable}{llrrrl}
-\caption{\textbf{The seaports of the calibrated baseline.} The forty largest seaports by gross weight of goods handled (Eurostat 2023, Mt) and the model's tonnage through their connectors; below the line, the ports outside the forty where the model lands 20~Mt or more. The note names the mechanism of a gap: crude, gas and sea-to-sea transhipment are counted by the statistics but are not transport flows of the model (crude and gas are pipelined by construction, a cargo lands once); a transhipment hub has no hinterland flow; a nearest-coast landing is an import landed at the coastal node nearest its buyer under the uniform sea tariff. Two of the forty (Sk\"oldvik, Las Palmas) have no connector in the network and are not shown.}
+\caption{\textbf{The seaports of the calibrated baseline.} The forty largest seaports by gross weight of goods handled (Eurostat 2023, Mt) and the model's tonnage through their connectors; below the line, the ports outside the forty where the model lands 20~Mt or more. The note names the mechanism of a gap: crude, gas and sea-to-sea transshipment are counted by the statistics but are not transport flows of the model (crude and gas are pipelined by construction, a cargo lands once); a transshipment hub has no hinterland flow; a nearest-coast landing is an import landed at the coastal node nearest its buyer under the uniform sea tariff. Two of the forty (Sk\"oldvik, Las Palmas) have no connector in the network and are not shown.}
 \label{tab:ports} \\
 \toprule
 port & & observed & model & ratio & note \\
@@ -934,6 +1021,46 @@ port & & observed & model & ratio & note \\
 """, encoding="utf-8")
 
 
+GEN_END = "% <<< generated table {name}"
+
+
+def splice(overleaf: Path, out: Path) -> list[str]:
+    """6 Nov 2026 (the author's review: the SI in one file). A document of the Overleaf copy (main.tex, sections/*.tex)
+    that carries the markers '% >>> generated table <name> ...' and '% <<< generated table <name>' receives the table
+    <name>.tex written to `out` between them, and the file is removed from `out`; a table without markers stays a file
+    for \\input. paper_gate.py --regen compares the blocks with the regenerated tables. Returns what was spliced."""
+    docs = [overleaf / "main.tex"] + sorted((overleaf / "sections").glob("*.tex")) if (overleaf / "sections").exists() else [overleaf / "main.tex"]
+    spliced = []
+    for p in sorted(out.glob("*.tex")):
+        pat = re.compile(r"^% >>> generated table " + re.escape(p.stem) + r"\b[^\n]*\n.*?^% <<< generated table " + re.escape(p.stem) + r"[ \t]*$",
+                         re.MULTILINE | re.DOTALL)
+        for d in docs:
+            if not d.exists():
+                continue
+            raw = d.read_bytes().decode("utf-8")
+            crlf = "\r\n" in raw
+            text = raw.replace("\r\n", "\n")
+            m = pat.search(text)
+            if not m:
+                continue
+            body = p.read_text(encoding="utf-8")
+            if not body.endswith("\n"):
+                body += "\n"
+            first = text[m.start():m.end()].split("\n", 1)[0]
+            new = text[:m.start()] + first + "\n" + body + GEN_END.format(name=p.stem) + text[m.end():]
+            if new != text:
+                d.write_bytes((new.replace("\n", "\r\n") if crlf else new).encode("utf-8"))
+            p.unlink()
+            spliced.append(f"{p.stem} -> {d.relative_to(overleaf).as_posix()}")
+            break
+    if out.exists() and not any(out.iterdir()):
+        try:
+            out.rmdir()
+        except OSError:                      # OneDrive holds the folder for a moment; an empty folder is harmless
+            pass
+    return spliced
+
+
 def main(overleaf: Path, tag: str = None, lists: str = None):
     if tag or lists:
         set_batch(tag or TAG, lists or LISTS)
@@ -945,7 +1072,10 @@ def main(overleaf: Path, tag: str = None, lists: str = None):
             fn(out)
         except FileNotFoundError as e:      # a table whose runs are not extracted yet keeps its previous version
             print(f"  {fn.__name__}: skipped, missing input {Path(str(e).split(': ')[-1].strip(chr(39))).name}")
-    print("tables written to", out)
+    for p in out.glob("*.tex"):                        # 6 Nov 2026: American spelling, as the manuscript
+        p.write_text(american(p.read_text(encoding="utf-8")), encoding="utf-8")
+    spliced = splice(overleaf, out)
+    print(f"{len(spliced)} tables spliced into the documents" + (": " + ", ".join(spliced) if spliced else "") + f"; the others written to {out}")
 
 
 if __name__ == "__main__":

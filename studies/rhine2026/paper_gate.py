@@ -167,11 +167,28 @@ def numeric(v: str):
         return None                 # ranges ('13--33') and text stay out of the expressions
 
 
+GEN_BLOCK = re.compile(r"^% >>> generated table (\S+)\b[^\n]*\n.*?^% <<< generated table \1[ \t]*$", re.MULTILINE | re.DOTALL)
+
+
+def blank_generated(raw: str) -> str:
+    """6 Nov 2026 (the author's review: the SI in one file): si_tables.py writes the generated tables into the documents
+    between '% >>> generated table <name> ...' and '% <<< generated table <name>' markers. Those blocks are checked
+    against the regenerated tables by --regen, not by the prose scans: blanked here, line count kept."""
+    return GEN_BLOCK.sub(lambda m: re.sub(r"[^\n]", " ", m.group(0)), raw)
+
+
+def generated_block(raw: str, name: str) -> str | None:
+    """The lines between the markers of the generated table <name> in a document, or None."""
+    m = re.search(r"^% >>> generated table " + re.escape(name) + r"\b[^\n]*\n(.*?)^% <<< generated table " + re.escape(name) + r"[ \t]*$",
+                  raw, re.MULTILINE | re.DOTALL)
+    return m.group(1) if m else None
+
+
 def documents(repo: Path):
-    """The prose files the scans read: main.tex from \\begin{document}, every sections/*.tex."""
+    """The prose files the scans read: main.tex from \\begin{document}, every sections/*.tex (the generated-table blocks blanked)."""
     out = {}
     for p in [repo / "main.tex"] + sorted((repo / "sections").glob("*.tex")):
-        raw = p.read_text(encoding="utf-8")
+        raw = blank_generated(p.read_text(encoding="utf-8"))
         t = strip_comments(raw)
         i = t.find("\\begin{document}")
         if i >= 0:
@@ -360,13 +377,22 @@ def check_fresh(repo, values, ck: Check):
         for k in sorted(set(values) | set(new)):
             if values.get(k) != new.get(k):
                 ck.fail(f"\\{k}: Overleaf {values.get(k)!r}, batch {new.get(k)!r}")
+        # a table lives either in a generated-table block of a document (6 Nov 2026, the SI in one file) or in tables/
+        docs_raw = {q: q.read_text(encoding="utf-8") for q in [repo / "main.tex"] + sorted((repo / "sections").glob("*.tex"))}
         for p in sorted((tmp / "tables").glob("*.tex")):
-            old = repo / "tables" / p.name
-            a = old.read_text(encoding="utf-8").splitlines() if old.exists() else []
             b = p.read_text(encoding="utf-8").splitlines()
+            a, where = None, f"tables/{p.name}"
+            for q, raw in docs_raw.items():
+                block = generated_block(raw, p.stem)
+                if block is not None:
+                    a, where = block.splitlines(), f"{q.relative_to(repo).as_posix()}, block '{p.stem}'"
+                    break
+            if a is None:
+                old = repo / "tables" / p.name
+                a = old.read_text(encoding="utf-8").splitlines() if old.exists() else []
             if a != b:
                 i = next((i for i, (x, y) in enumerate(zip(a, b)) if x != y), min(len(a), len(b)))
-                ck.fail(f"tables/{p.name} differs from the regenerated table from line {i + 1}: "
+                ck.fail(f"{where} differs from the regenerated table from line {i + 1}: "
                         f"{(a[i] if i < len(a) else '<end>')[:80]!r} vs {(b[i] if i < len(b) else '<end>')[:80]!r}")
         ck.info(f"{len(new)} macros and {len(list((tmp / 'tables').glob('*.tex')))} tables regenerated")
 
