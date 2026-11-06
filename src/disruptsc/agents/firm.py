@@ -377,7 +377,10 @@ class Firm:
         for _, client, data in sc_network.out_edges(self, data=True):
             link: CommercialLink = data["object"]
             link.reset_transport_tracking()
-            if link.delivery < EPSILON:
+            # KI-53: every positive quantity is delivered. A threshold of EPSILON model units (1 USD a day in
+            # mUSD at daily resolution) left small orders unserved for ever while the buyer kept using the
+            # input, until its stock ran out and strict Leontief stopped it.
+            if link.delivery <= 0.0:
                 continue
 
             # Check if this link needs the transport network
