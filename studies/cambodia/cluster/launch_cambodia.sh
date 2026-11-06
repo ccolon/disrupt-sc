@@ -22,7 +22,9 @@
 set -e
 
 # ========================= EDIT FOR YOUR CLUSTER ===========================
-SCRIPT_DIR="/projects/disruptsc/disrupt-sc"
+# The paper's own checkout (a git worktree of the cluster repo at the paper's commit), not the shared
+# /projects/disruptsc/disrupt-sc that other studies' jobs run from: moving that one would change their code.
+SCRIPT_DIR="${CAMBODIA_CODE_DIR:-/projects/disruptsc/disrupt-sc-cambodia}"
 PYTHON_ENV="/projects/disruptsc/miniforge3/envs/dsc"
 DATA_PATH="/projects/disruptsc/disrupt-sc-data"
 OUTPUT_DIR="/projects/disruptsc/runs/cambodia"

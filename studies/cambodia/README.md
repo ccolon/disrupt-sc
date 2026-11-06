@@ -17,11 +17,14 @@ decided to port the study to v2. This folder holds the v2 runs.
 | `cluster/launch_cambodia.sh` | one Slurm job per job-list line; one setup job per seed and cache |
 
 Before any paper run:
-1. KI-53 must be fixed (branch `fix/micro-deliveries`). Without the fix the undisturbed baseline collapses
-   on day 30.
-2. The v3 footprint must be in the network (`add_flood_v3.py`).
-3. The network files must be on the cluster: `transport.gpkg` and `multimodal.gpkg` are untracked in the
-   data repository.
+1. The KI-53 fix (merged into main on 6 Nov 2026). Without it the undisturbed baseline collapses on day 30.
+2. The v3 footprint in the network: `add_flood_v3.py` writes the road attribute `flood_v3` into
+   `Transport/transport.gpkg` from `Transport/flood_v3_edges.csv` (the 36 closed edges, extracted on 6 Nov
+   2026 from the cluster's v3 geojson, with a hash that ties the file's 2,145 edges to the gpkg's).
+3. The network files in the data repository (committed 6 Nov 2026: `transport.gpkg` with `flood_v3`,
+   `multimodal.gpkg`, `flood_v3_edges.csv`).
+4. On the cluster, the paper runs from its own worktree, `/projects/disruptsc/disrupt-sc-cambodia`, so that
+   the shared checkout of the other studies does not move (`CAMBODIA_CODE_DIR` overrides the path).
 
 Example:
 
