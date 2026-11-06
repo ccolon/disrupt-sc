@@ -25,7 +25,14 @@
 #     Transport/transport.gpkg).
 
 transport_modes: [roads, maritime, waterways, railways]
-monetary_units_in_model: mUSD
+# USD in the model (6 Nov 2026): the model's value thresholds are EPSILON = 1e-6 model units (Firm.produce skips
+# a production target below it, the deliveries below it were skipped before KI-53). In mUSD at daily resolution
+# that is 1 USD a day, and the v2 Cambodia economy holds 553 firms below it (9,994 firms, 1.2 % of output, below
+# the 2025 config's 100 kUSD-a-year cutoff, which v2 no longer has): their clients never got those inputs and
+# strict Leontief stopped them when the stocks ran out (undisturbed run: production -36 % by day 33). In USD the
+# thresholds are a micro-dollar a day, below every firm. With the KI-53 fix, an undisturbed 40-day run has zero
+# household loss every day; without it, the sub-gram shipments still vanish.
+monetary_units_in_model: USD
 monetary_units_in_data: mUSD
 time_resolution: day
 
