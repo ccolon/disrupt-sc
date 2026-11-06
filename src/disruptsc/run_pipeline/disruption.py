@@ -56,6 +56,7 @@ class TransportDisruption:
         duration = self.recovery.duration if self.recovery else float("inf")
         recovery_shape = self.recovery.shape if self.recovery else "threshold"
         recovery_rate = self.recovery.rate if self.recovery else 1.0
+        started = False
         for edge in transport_network.edges:
             edata = transport_network[edge[0]][edge[1]]
             eid = edata["id"]
@@ -67,7 +68,12 @@ class TransportDisruption:
                     recovery_rate=recovery_rate,
                 )
                 edata["closure_substitution_share"] = float(self.substitution_share)
+                started = True
                 logging.debug(f"Disrupted edge {eid}: {reduction:.0%} capacity loss for {duration} steps")
+        if started:
+            # KI-50: detours cached under the previous closure set are reused while open (KI-42) even when they
+            # are no longer the cheapest - successive closures would reuse the first event's detours.
+            transport_network.invalidate_alternative_routes()
 
     def log_info(self):
         rec = f"{self.recovery.shape} recovery over {self.recovery.duration}" if self.recovery else "no recovery"
