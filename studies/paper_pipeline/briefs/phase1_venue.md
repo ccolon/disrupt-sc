@@ -9,7 +9,8 @@ Write `<project>/gap/venue.md`:
 1. **Target venue facts.** Scope (verbatim key sentences), article types, length limits, abstract length,
    highlights, keywords/JEL codes, structure, data/code availability, AI-use policy, competing-interest and
    special-issue editor policies, review model, typical time to first decision and to publication, impact factor,
-   CiteScore, APC/open access. Each fact with its source URL and the date read.
+   CiteScore, APC/open access. Each fact with its source URL, the date read, and the sentence that states it, quoted
+   verbatim (the orchestrator checks the facts that decide gate A against their source).
 2. **Fit.** Point by point against the scope: what the material already matches, what is missing, and what a
    referee of this venue will expect that a referee of the field venue would not (e.g. economic mechanisms,
    welfare measures, identification, macro relevance, literature from economics).
@@ -19,5 +20,5 @@ Write `<project>/gap/venue.md`:
    format work needed from the current draft. A table, then a one-paragraph recommendation on prestige vs speed.
 
 Write `<project>/journal/requirements.yaml`: the checkable rules of the target venue as a list
-`{id, rule, check, source}` where `check` is how to verify it (e.g. `words(main) <= 8000`, `section: Data
-availability`), so the submission package (phase 6) can test them.
+`{id, rule, check, source, quote}` where `check` is how to verify it (e.g. `words(main) <= 8000`, `section: Data
+availability`), so the submission package (phase 6) can test them, and `quote` is the source's sentence, verbatim.

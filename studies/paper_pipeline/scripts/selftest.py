@@ -109,10 +109,33 @@ def test_cite():
     ok("unknown author fails", cc.judge(dict(e, first_author="smith"), m) != [])
 
 
+def test_cost():
+    import json
+    import agent_cost as ac
+    a = {"input_tokens": 10, "cache_creation_input_tokens": 1000, "cache_read_input_tokens": 100_000,
+         "output_tokens": 2000}
+    b = {"input_tokens": 0, "cache_creation_input_tokens": 1000, "cache_read_input_tokens": 0, "output_tokens": 0,
+         "cache_creation": {"ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 1000}}
+    lines = [{"type": "user", "message": {"role": "user", "content": "brief"}},
+             {"type": "assistant", "message": {"id": "m1", "model": "claude-opus-5-5", "usage": a}},
+             {"type": "assistant", "message": {"id": "m1", "model": "claude-opus-5-5", "usage": a}},
+             {"type": "assistant", "message": {"id": "m2", "model": "claude-opus-5-5", "usage": b}}]
+    with tempfile.TemporaryDirectory() as td:
+        p = Path(td) / "agent-x.jsonl"
+        p.write_text("\n".join(json.dumps(x) for x in lines), encoding="utf-8")
+        s = ac.summarize(p)
+    ok("cost: one response written twice is counted once", s["n"] == 2 and s["cr"] == 100_000)
+    # opus: 10*4 + 1000*1.25*4 + 100000*0.2 + 2000*20 = 65040; 1h write 1000*2*4 = 8000 -> $0.07304
+    ok("cost: opus rates and 1-hour cache write", abs(s["cost"]["opus-5.5"] - 0.07304) < 1e-9)
+    # haiku, prompt 101010 > 100K: 10*0.5 + 1000*1.25*0.5 + 100000*0.05 + 2000*2.5 = 10630; m2 short: 1000*2*0.1 = 200
+    ok("cost: haiku long-prompt rate", abs(s["cost"]["haiku-5.5"] - 0.01083) < 1e-9)
+
+
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     test_pp()
     test_cite()
+    test_cost()
     for n, c in RESULTS:
         print(f"{'PASS' if c else 'FAIL'}  {n}")
     bad = sum(1 for _, c in RESULTS if not c)

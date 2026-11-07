@@ -20,3 +20,7 @@ Write `<project>/lit/review.md`:
 5. **Must-cite list.** The 10-15 references a referee would expect to see, with why.
 
 Check that the draft's existing bibliography covers the must-cite list; list what is missing.
+
+Before finishing, run the citation gate on your file (`python studies/paper_pipeline/scripts/cite_check.py
+<project>/lit/refs.yaml`), fix or drop every `mismatch` and `not_found`, keep `unverified` entries marked as such, and
+give the counts in your summary. This gate is what lets this role run on a cheaper model (RUNBOOK, Model tiers).

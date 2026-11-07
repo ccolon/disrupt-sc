@@ -35,6 +35,9 @@ family.
 - **Trust is measured**: a backtest on a version that received a real review gives the panel's recall, overall and on
   the points the authors confirmed. Instructions written after reading the reference review leak into the test; the
   backtest records say which.
+- **Model**: referees and editor run on the orchestrator's model (`model: inherit`). Whether the referees can run on a
+  cheaper one is measured by a backtest with the referee model as the only difference, not assumed: proposal in
+  `studies/paper_pipeline/model_tiers_20261107.md`.
 
 ## Running
 
