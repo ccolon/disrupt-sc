@@ -1,0 +1,74 @@
+# Cambodia paper, R_pilot rerun after the sea gateways (Q17, A_flows; 7 Nov 2026): the 70 flood runs of
+# jobs_pilot_floods.txt, unchanged, on new build caches cam_sea_s<seed> (country_attachment any, sea_gateways.py
+# network, calibrated route costs; the old caches cam_s<seed> stay for batch pilot_20261106b). Budget: Q18.
+# Usage: bash studies/cambodia/cluster/launch_cambodia.sh --jobs studies/cambodia/cluster/jobs_pilot_sea.txt --batch pilot_sea_20261107
+1 single_saigon 12 --cache-dir cam_sea_s1
+1 single_mekong 12 --cache-dir cam_sea_s1
+1 single_tonle 12 --cache-dir cam_sea_s1
+1 simul 12 --cache-dir cam_sea_s1
+1 lag0 12 --cache-dir cam_sea_s1
+1 lag6 12 --cache-dir cam_sea_s1
+1 lag11 12 --cache-dir cam_sea_s1
+1 lag12 12 --cache-dir cam_sea_s1
+1 lag13 12 --cache-dir cam_sea_s1
+1 lag18 12 --cache-dir cam_sea_s1
+1 lag24 12 --cache-dir cam_sea_s1
+1 lag36 12 --cache-dir cam_sea_s1
+1 lag12 12 --set inventory_restoration_time=4 --cache-dir cam_sea_s1
+1 lag13 12 --set inventory_restoration_time=4 --cache-dir cam_sea_s1
+2 single_saigon 12 --cache-dir cam_sea_s2
+2 single_mekong 12 --cache-dir cam_sea_s2
+2 single_tonle 12 --cache-dir cam_sea_s2
+2 simul 12 --cache-dir cam_sea_s2
+2 lag0 12 --cache-dir cam_sea_s2
+2 lag6 12 --cache-dir cam_sea_s2
+2 lag11 12 --cache-dir cam_sea_s2
+2 lag12 12 --cache-dir cam_sea_s2
+2 lag13 12 --cache-dir cam_sea_s2
+2 lag18 12 --cache-dir cam_sea_s2
+2 lag24 12 --cache-dir cam_sea_s2
+2 lag36 12 --cache-dir cam_sea_s2
+2 lag12 12 --set inventory_restoration_time=4 --cache-dir cam_sea_s2
+2 lag13 12 --set inventory_restoration_time=4 --cache-dir cam_sea_s2
+3 single_saigon 12 --cache-dir cam_sea_s3
+3 single_mekong 12 --cache-dir cam_sea_s3
+3 single_tonle 12 --cache-dir cam_sea_s3
+3 simul 12 --cache-dir cam_sea_s3
+3 lag0 12 --cache-dir cam_sea_s3
+3 lag6 12 --cache-dir cam_sea_s3
+3 lag11 12 --cache-dir cam_sea_s3
+3 lag12 12 --cache-dir cam_sea_s3
+3 lag13 12 --cache-dir cam_sea_s3
+3 lag18 12 --cache-dir cam_sea_s3
+3 lag24 12 --cache-dir cam_sea_s3
+3 lag36 12 --cache-dir cam_sea_s3
+3 lag12 12 --set inventory_restoration_time=4 --cache-dir cam_sea_s3
+3 lag13 12 --set inventory_restoration_time=4 --cache-dir cam_sea_s3
+4 single_saigon 12 --cache-dir cam_sea_s4
+4 single_mekong 12 --cache-dir cam_sea_s4
+4 single_tonle 12 --cache-dir cam_sea_s4
+4 simul 12 --cache-dir cam_sea_s4
+4 lag0 12 --cache-dir cam_sea_s4
+4 lag6 12 --cache-dir cam_sea_s4
+4 lag11 12 --cache-dir cam_sea_s4
+4 lag12 12 --cache-dir cam_sea_s4
+4 lag13 12 --cache-dir cam_sea_s4
+4 lag18 12 --cache-dir cam_sea_s4
+4 lag24 12 --cache-dir cam_sea_s4
+4 lag36 12 --cache-dir cam_sea_s4
+4 lag12 12 --set inventory_restoration_time=4 --cache-dir cam_sea_s4
+4 lag13 12 --set inventory_restoration_time=4 --cache-dir cam_sea_s4
+5 single_saigon 12 --cache-dir cam_sea_s5
+5 single_mekong 12 --cache-dir cam_sea_s5
+5 single_tonle 12 --cache-dir cam_sea_s5
+5 simul 12 --cache-dir cam_sea_s5
+5 lag0 12 --cache-dir cam_sea_s5
+5 lag6 12 --cache-dir cam_sea_s5
+5 lag11 12 --cache-dir cam_sea_s5
+5 lag12 12 --cache-dir cam_sea_s5
+5 lag13 12 --cache-dir cam_sea_s5
+5 lag18 12 --cache-dir cam_sea_s5
+5 lag24 12 --cache-dir cam_sea_s5
+5 lag36 12 --cache-dir cam_sea_s5
+5 lag12 12 --set inventory_restoration_time=4 --cache-dir cam_sea_s5
+5 lag13 12 --set inventory_restoration_time=4 --cache-dir cam_sea_s5

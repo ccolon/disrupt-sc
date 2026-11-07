@@ -1,0 +1,43 @@
+# Cambodia paper, R_settle d = 8 (7 Nov 2026, Q18): 5 networks x {3 singles, simultaneous, lags 0, d, d + 1, 2d}
+# to t = 180 (the d = 12 part is in jobs_pilot_sea.txt), on the sea-gateway caches cam_sea_s<seed>.
+# Usage: bash studies/cambodia/cluster/launch_cambodia.sh --jobs studies/cambodia/cluster/jobs_settle_d8_sea.txt --batch settle_d8_sea_20261107
+1 single_saigon 8 --cache-dir cam_sea_s1
+1 single_mekong 8 --cache-dir cam_sea_s1
+1 single_tonle 8 --cache-dir cam_sea_s1
+1 simul 8 --cache-dir cam_sea_s1
+1 lag0 8 --cache-dir cam_sea_s1
+1 lag8 8 --cache-dir cam_sea_s1
+1 lag9 8 --cache-dir cam_sea_s1
+1 lag16 8 --cache-dir cam_sea_s1
+2 single_saigon 8 --cache-dir cam_sea_s2
+2 single_mekong 8 --cache-dir cam_sea_s2
+2 single_tonle 8 --cache-dir cam_sea_s2
+2 simul 8 --cache-dir cam_sea_s2
+2 lag0 8 --cache-dir cam_sea_s2
+2 lag8 8 --cache-dir cam_sea_s2
+2 lag9 8 --cache-dir cam_sea_s2
+2 lag16 8 --cache-dir cam_sea_s2
+3 single_saigon 8 --cache-dir cam_sea_s3
+3 single_mekong 8 --cache-dir cam_sea_s3
+3 single_tonle 8 --cache-dir cam_sea_s3
+3 simul 8 --cache-dir cam_sea_s3
+3 lag0 8 --cache-dir cam_sea_s3
+3 lag8 8 --cache-dir cam_sea_s3
+3 lag9 8 --cache-dir cam_sea_s3
+3 lag16 8 --cache-dir cam_sea_s3
+4 single_saigon 8 --cache-dir cam_sea_s4
+4 single_mekong 8 --cache-dir cam_sea_s4
+4 single_tonle 8 --cache-dir cam_sea_s4
+4 simul 8 --cache-dir cam_sea_s4
+4 lag0 8 --cache-dir cam_sea_s4
+4 lag8 8 --cache-dir cam_sea_s4
+4 lag9 8 --cache-dir cam_sea_s4
+4 lag16 8 --cache-dir cam_sea_s4
+5 single_saigon 8 --cache-dir cam_sea_s5
+5 single_mekong 8 --cache-dir cam_sea_s5
+5 single_tonle 8 --cache-dir cam_sea_s5
+5 simul 8 --cache-dir cam_sea_s5
+5 lag0 8 --cache-dir cam_sea_s5
+5 lag8 8 --cache-dir cam_sea_s5
+5 lag9 8 --cache-dir cam_sea_s5
+5 lag16 8 --cache-dir cam_sea_s5
