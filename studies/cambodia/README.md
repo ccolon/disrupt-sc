@@ -14,6 +14,8 @@ decided to port the study to v2. This folder holds the v2 runs.
 | `scenarios.py` | single, simultaneous and successive basin closures; footprint by attribute (`flood_v3` = the paper's, `flood_disruption` = v4) with its edge counts checked |
 | `run_cambodia.py` | one run through `run.py execute` (not `build.py`: KI-51); one named build cache per seed, so every scenario of a seed runs on the same supply network; `study_run.json` records the git SHA and config hash |
 | `add_flood_v3.py` | adds the v3 footprint to `Transport/transport.gpkg` (the v3 file is on the cluster) |
+| `sea_gateways.py` | overseas partners at sea, Sihanoukville - Singapore lane, named crossings, port tags, 21 false `border` stubs untagged (Q17, 7 Nov 2026) |
+| `route_calibration.py` | re-routes one seed's cached supply chain with the paper config and overrides (~25 s) and prints the gateway split against the 2015 anchors |
 | `cluster/launch_cambodia.sh` | one Slurm job per job-list line; one setup job per seed and cache |
 
 Before any paper run:
@@ -23,7 +25,11 @@ Before any paper run:
    2026 from the cluster's v3 geojson, with a hash that ties the file's 2,145 edges to the gpkg's).
 3. The network files in the data repository (committed 6 Nov 2026: `transport.gpkg` with `flood_v3`,
    `multimodal.gpkg`, `flood_v3_edges.csv`).
-4. On the cluster, the paper runs from its own worktree, `/projects/disruptsc/disrupt-sc-cambodia`, so that
+4. The sea gateways (7 Nov 2026): `sea_gateways.py --write` applied to the data repository, with
+   `country_attachment: any` and the calibrated route costs in `paper_config.yaml`. Validation and calibration:
+   `../Paper_Cambodia/pipeline/reports/05_flow_validation.md`. Runs made before this (batch pilot_20261106b) used
+   the old gateways.
+5. On the cluster, the paper runs from its own worktree, `/projects/disruptsc/disrupt-sc-cambodia`, so that
    the shared checkout of the other studies does not move (`CAMBODIA_CODE_DIR` overrides the path).
 
 Example:

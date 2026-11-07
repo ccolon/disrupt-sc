@@ -53,40 +53,67 @@ inventory_duration_targets:
   unit: day
 inventory_restoration_time: 30
 
+# Route costs calibrated 7 Nov 2026 (Q17; studies/cambodia/route_calibration.py, report
+# Paper_Cambodia/pipeline/reports/05_flow_validation.md). Money and time per route from the JICA 2016 brochure
+# "Logistics situation and challenges in Cambodia" (pp. 4-7, 11; 2015 charges per 20-ft container, converted at
+# 10 t per container, the conversion behind the network's barge capacities):
+#   Phnom Penh - Sihanoukville truck 220 km, 5 h, forwarding $230 + transport $200; rail 250 km, 11 h, $230 + $200;
+#   Phnom Penh - Cai Mep barge 340 km, 40 h, $330 + $250, plus the local leg to the river port $230 + $150;
+#   Phnom Penh - Bavet - Ho Chi Minh City road: forwarding $640-690 + $250, transport $300 + $200;
+#   Phnom Penh - Poipet - Bangkok road: forwarding $640-690 + $200, transport $600 + $700;
+#   LO/LO charges (chart reading, p. 11): Sihanoukville ~$70 import / ~$24 export, Phnom Penh port ~$47.
+# One parameter is fitted, not observed: the container surcharge at Sihanoukville (44 USD/t on top of its LO/LO),
+# the unobserved disadvantage of a feeder port against Cai Mep's direct deep-sea services. With it, the container
+# split among Sihanoukville, Mekong barge and Bavet is 59.3 / 22.5 / 18.3 % (2015: 59.3 / 21.4 / 19.3 % of laden
+# TEU) on seeds 1-3 alike. Steep: 43.5 gives 63 / 3 / 15 (with Poipet), 44.8 gives 37 / 28 / 15.
+# The previous values (ported from the 2025 config) are in git history: roads 0.073, railways 0.025, waterways 0.01
+# USD/tkm; loading fees 5-7 USD/t; border 8-10 h and 5 USD/t on every mode.
 logistics:
   basic_cost:  # USD per ton-km
-    roads: 0.073
-    railways: 0.025
-    waterways: 0.01
+    roads: 0.087       # $200 / 230 km / 10 t
+    railways: 0.074    # $200 / 270 km / 10 t
+    waterways: 0.0735  # $250 / 340 km / 10 t
   speeds:  # km/hour
     roads: 50
     railways: 20
-    waterways: 10
-  dwell_times:  # hours
+    waterways: 10      # 375 km Phnom Penh - Cai Mep in ~38 h (brochure: 40 h with the border)
+  dwell_times:  # hours (port time at the three sea gateways alike; brochure route times exclude it)
     roads-railways: 5
     roads-maritime: 12
-    roads-waterways: 12
-    railways-maritime: 24
-    waterways-maritime: 24
+    roads-waterways: 2.5      # local leg to the river port: 2.5-3 h
+    railways-maritime: 12
+    waterways-maritime: 12
   loading_fees:  # USD/ton
     roads-railways: 6
-    roads-maritime: 7
-    roads-waterways: 5
-    railways-maritime: 7
-    waterways-maritime: 6
+    roads-maritime: 23        # forwarding $230
+    roads-waterways: 36       # local leg $230 + $150, less its road line-haul
+    railways-maritime: 17     # with roads-railways: forwarding $230
+    waterways-maritime: 28    # barge forwarding $330, less the Mekong border fee
+    by_port:                  # port extras on the connectors' port_name (studies/cambodia/sea_gateways.py)
+      Sihanoukville: {container: 48.7, default: 4.7}   # LO/LO ~4.7 + fitted container surcharge 44
+      PhnomPenh: 4.7                                   # LO/LO
   border_crossing_times:  # hours
-    roads: 8
+    roads: 12        # 1-2 h at the border plus queues (Bavet route 52.8 h door to door incl. 16 h at Cat Lai)
     railways: 8
-    maritime: 10
-    waterways: 10
+    maritime: 0      # customs at the sea gateways is in their forwarding fees
+    waterways: 2.5   # 40 h barge trip less 37.5 h sailing
     multimodal: 10
   border_crossing_fees:  # USD/ton
-    roads: 5
-    maritime: 5
+    roads: 68.5      # cross-border forwarding: $640-690 + $250 on the Vietnam side, less the domestic $230
+    maritime: 0
     railways: 5
     waterways: 5
+  name-specific:  # USD/ton on the named edge: cross-border trucking above the road line-haul
+    bavet_border_crossing: 26.2     # $300 + $200 for ~274 km against 0.087 USD/tkm
+    poipet_border_crossing: 91.6    # $600 + $700 + forwarding $200 on the Thai side, for ~648 km
 
 countries_to_include: ['AFR', 'AME', 'ASI', 'EUR', 'OCE', 'THA', 'VNM']
+# Overseas partners at sea (7 Nov 2026, Q17: the user chose "at sea"): with `any`, a bloc attaches to the nearest node of
+# any mode, and studies/cambodia/sea_gateways.py places AFR, AME, ASI, EUR, OCE on the end node of their sea lane, so
+# that routing chooses the port of entry (Sihanoukville, or Cai Mep / Ho Chi Minh City by Mekong barge or by road via
+# Bavet). THA and LAO stay land partners (Bangkok, Vientiane), VNM sits on the Ho Chi Minh City road node. With `roads`
+# (the default) the blocs entered by road at Bangkok, Vientiane and Ho Chi Minh City and Sihanoukville carried nothing.
+country_attachment: any
 
 capacity_constraint: true
 transport_capacity_overrides:  # tons per day, by edge name (all four exist in Transport/transport.gpkg)
@@ -94,6 +121,10 @@ transport_capacity_overrides:  # tons per day, by edge name (all four exist in T
   pp_city_port: 4500
   pp_main_port: 15000
   bavet_border_crossing: 9000
+  # Mekong barge fleet (brochure p. 6: 832 calls, 82,004 TEU a year each way; x 2 x 10 t / 365), on the border edge
+  # that every barge crosses (7 Nov 2026; pp_city_port's 4500 is the same number, but barges loading at the main
+  # port do not cross that edge). Baseline load ~920 t/day (20 %).
+  mekong_border: 4493
 
 use_route_cache: true
 
