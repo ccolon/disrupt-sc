@@ -116,8 +116,17 @@ allowed:
     text: 'its sum over the five months comes nearer the benchmark'
     why: 'convention: the benchmark window August-December 2018 (five months)'
   - file: main.tex
-    text: 'among the four levels tried (multiplied by 1.25, 1.5 and 2 they give'
-    why: 'design: inventory multipliers of the ladder (x1, 1.25, 1.5, 2)'
+    text: 'multiplied by 1.25, 1.5 and 2 they give'
+    why: 'design: inventory multipliers of the ladder (x1, 1.25, 1.5, 2; the rung at x0.75 of 6 Nov 2026 is a sensitivity point, not a baseline)'
+  - file: main.tex
+    text: 'the alternative at $\times$1, 1.5 and 2, rerun on the same flows'
+    why: 'design: inventory multipliers of the priced-river rerun of 3 Nov 2026 (x1, 1.5, 2), F9 (b) caption'
+  - file: main.tex
+    text: 'from three quarters of the balance-sheet value to twice it'
+    why: 'design: the ladder''s multipliers, x0.75 (the rung of 6 Nov 2026, a sensitivity point) to x2; F9 (b) caption'
+  - file: main.tex
+    text: 'at three quarters of the balance-sheet value \LadderIntZ'
+    why: 'design: the rung at x0.75 of the inventory ladder (2018_r6_bycargo_inv075), whose shortfall is \LadderIntZ'
   - file: main.tex
     text: 'one supplier per input is kept over two'
     why: 'design: suppliers per input (one or two)'

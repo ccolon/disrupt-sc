@@ -280,8 +280,14 @@ allowed:
     text: 'With the inventory targets multiplied by 1.25, 1.5 and 2 the industrial shortfall'
     why: 'design: the inventory ladder'
   - file: sections/si.tex
-    text: 'the balance-sheet value is the closest of the four to the benchmark'
-    why: 'design: the four inventory levels (x1, 1.25, 1.5, 2)'
+    text: 'at three quarters of the balance-sheet value (run of 6 November 2026)'
+    why: 'record: the rung at x0.75 of the inventory ladder, 2018_r6_bycargo_inv075 (jobs_20261106_inv075.txt, job 3210061), a sensitivity point asked at the review of 6 Nov 2026, not a new baseline'
+  - file: sections/si.tex
+    text: 'runs of the batches of 2, 3 and 6 November 2026'
+    why: 'record: the batch days of Table si_runs (2 and 3 Nov lists, the x0.75 rung of 6 Nov)'
+  - file: sections/si.tex
+    text: 'three rungs of 2 November and the rung at $\times$0.75 run on 6 November'
+    why: 'record: the ladder lists jobs_20261102_ladder.txt (x1.25, 1.5, 2) and jobs_20261106_inv075.txt (x0.75)'
   - file: sections/si.tex
     text: 'below the benchmark''s one-standard-deviation band and inside its 95\,\% band'
     why: 'convention: the 2.5-97.5 % band'

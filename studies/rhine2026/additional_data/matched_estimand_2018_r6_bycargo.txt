@@ -10,6 +10,7 @@ Model, Germany, monthly shortfall of INDUSTRIAL production on the production-ind
                                ind_Aug  ind_Sep  ind_Oct  ind_Nov  ind_Dec  ind_integrated_pct_months peak_month_ind  ind_share_of_total_va_loss_pct
 run                                                                                                                                                 
 2018_r6_bycargo_base              0.12     0.16     0.67     1.15     0.01                       2.10            Nov                            41.0
+2018_r6_bycargo_inv075            0.45     0.45     0.83     1.40     0.10                       3.23            Nov                            40.0
 2018_r6_bycargo_inv125            0.06     0.07     0.37     0.94     0.02                       1.47            Nov                            40.0
 2018_r6_bycargo_inv150            0.04     0.05     0.24     0.59     0.04                       0.96            Nov                            37.0
 2018_r6_bycargo_inv200            0.04     0.02     0.12     0.31    -0.05                       0.43            Nov                            38.0
@@ -21,6 +22,7 @@ Model, Germany, monthly shortfall of TOTAL value added (all sectors, %):
                                va_Aug  va_Sep  va_Oct  va_Nov  va_Dec
 run                                                                  
 2018_r6_bycargo_base             0.10    0.12    0.27    0.44   -0.25
+2018_r6_bycargo_inv075           0.26    0.21    0.27    0.62   -0.14
 2018_r6_bycargo_inv125           0.06    0.03    0.20    0.42   -0.21
 2018_r6_bycargo_inv150           0.03    0.02    0.09    0.33   -0.14
 2018_r6_bycargo_inv200           0.01    0.01    0.06    0.10   -0.06
@@ -32,6 +34,7 @@ Days of each month covered by the run:
                                days_Aug  days_Sep  days_Oct  days_Nov  days_Dec
 run                                                                            
 2018_r6_bycargo_base                 31        30        31        30        31
+2018_r6_bycargo_inv075               31        30        31        30        31
 2018_r6_bycargo_inv125               31        30        31        30        31
 2018_r6_bycargo_inv150               31        30        31        30        31
 2018_r6_bycargo_inv200               31        30        31        30        31

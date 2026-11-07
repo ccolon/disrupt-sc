@@ -571,6 +571,8 @@ def runs_table(out: Path):
     counts["@INV075NOTE@"] = (r"; the rung at $\times$0.75 is the run of 6 November 2026, \texttt{jobs\_20261106\_inv075.txt}"
                               if "inv075" in extra else "")
     caption = batch_text("runs")
+    if "inv075" in extra:
+        caption = caption.replace("Every run of the batches of 2 and 3 November 2026.}", "Every run of the batches of 2, 3 and 6 November 2026.}")
     for k, v in counts.items():
         caption = caption.replace(k, v)
     print(f"  runs table: {len(t)} runs ({', '.join(f'{k.strip(chr(64)).lower()} {v}' for k, v in counts.items() if v.isdigit())})")
@@ -644,10 +646,11 @@ def representations_table(out: Path):
     for key, lab in order:
         if key in lines:
             v = lines[key]
-            rows.append(f"{lab} & " + " & ".join(v[:5]) + f" & {v[5]} \\\\")
+            cells = [("$-$" + x[1:]) if x.startswith("-") else x for x in v[:6]]          # math minus, as in the other tables
+            rows.append(f"{lab} & " + " & ".join(cells[:5]) + f" & {cells[5]} \\\\")
     (out / "si_representations.tex").write_text(r"""\begin{table}[tbp]
 \centering\footnotesize\setlength{\tabcolsep}{4pt}
-\caption{\textbf{Two representations of the river on the 2018 benchmark.} Monthly shortfall of German industrial production (\%; the production-index measure, each sector's shortfall rate weighted by its German value added, sections B--D), August to December 2018, and its integral (percent-months, the plain sum of the months). The benchmark is the production path implied by the published regression (ref.~\citep{ademmer2023}; Table~2, column 1, of the working paper) on the low-water days of the daily gauge record, with the 16--84\,\% band of a Monte Carlo over its coefficients and, for comparison, the contemporaneous-only specification (column 3). The model rows are the capacity limit with the surcharge at """ + n_gate + r""" inventory levels and the priced river with closures at three; """ + ("runs of 2 and 3 November 2026 on the reference network and the per-class calibration (the capacity limit from the batch of 2 November" + inv075_note + ", the priced river rerun on 3 November with the same flows, loading curve and inventories)" if priced_new else ("runs of 22--28 September 2026 on the reference network, the industrial path unchanged by the later treatment of construction as a non-storable input" if TAG == "s07" else "the capacity-limit rows from the batch of 2 November 2026 on the per-class calibration, the priced-river rows from the first version's runs of 22--28 September 2026 on the earlier calibration")) + r""". Each month of a model row is the mean of its days, every day carrying the value of the model week it belongs to.}
+\caption{\textbf{Two representations of the river on the 2018 benchmark.} Monthly shortfall of German industrial production (\%; the production-index measure, each sector's shortfall rate weighted by its German value added, sections B--D), August to December 2018, and its integral (percent-months, the plain sum of the months). The benchmark is the production path implied by the published regression (ref.~\citep{ademmer2023}; Table~2, column 1, of the working paper) on the low-water days of the daily gauge record, with the 16--84\,\% band of a Monte Carlo over its coefficients and, for comparison, the contemporaneous-only specification (column 3). The model rows are the capacity limit with the surcharge at """ + n_gate + r""" inventory levels and the priced river with closures at three; """ + (("runs of 2, 3 and 6 November 2026" if inv075_note else "runs of 2 and 3 November 2026") + " on the reference network and the per-class calibration (the capacity limit from the batch of 2 November" + inv075_note + ", the priced river rerun on 3 November with the same flows, loading curve and inventories)" if priced_new else ("runs of 22--28 September 2026 on the reference network, the industrial path unchanged by the later treatment of construction as a non-storable input" if TAG == "s07" else "the capacity-limit rows from the batch of 2 November 2026 on the per-class calibration, the priced-river rows from the first version's runs of 22--28 September 2026 on the earlier calibration")) + r""". Each month of a model row is the mean of its days, every day carrying the value of the model week it belongs to.}
 \label{tab:representations}
 \begin{tabular}{L{50mm}rrrrrr}
 \toprule
