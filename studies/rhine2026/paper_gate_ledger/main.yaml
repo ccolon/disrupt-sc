@@ -7,9 +7,6 @@ allowed:
     text: 'and those two regions receive the goods by rail'
     why: 'design: Switzerland and Alsace, the two regions beyond Mannheim whose barges end in the Rhine--Neckar region in the model (comment 1 of 6 Nov 2026)'
   - file: main.tex
-    text: 'of value added, means over the eleven networks'
-    why: 'design: the eleven networks (comment 8 of 6 Nov 2026: the household and economy-wide losses as means over the networks)'
-  - file: main.tex
     text: 'How fast inventories recover between two episodes'
     why: 'count: the two episodes of 2026 (comment 12 of 6 Nov 2026)'
   - file: main.tex
