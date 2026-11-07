@@ -635,9 +635,6 @@ allowed:
   - file: main.tex
     text: 'A run of 42 or 43 weeks takes about three hours on one core of a cluster node with 20\,GB of memory'
     why: 'count: computation facts of the paper (run length, runtime, memory)'
-  - file: main.tex
-    text: 'The paper is based on 128 runs'
-    why: 'count: runs of tab:runs (36 + 60 + 16 + 3 + 8 + 2 + 3 = 128, checked 5 Nov against the caption of tables/si_runs.tex)'
   # ---------------------------------------------------------------- methods: prospective test (l. 245)
   - file: main.tex
     text: '19, 31, 30, 31 and 15 days from July to November'
