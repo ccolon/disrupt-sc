@@ -42,8 +42,8 @@ allowed:
     text: 'put the cost at about 1\,\% of German industrial production for each month of low water'
     why: 'evidence: ademmer2023 (published regression)'
   - file: main.tex
-    text: 'which left GDP 0.2--0.3\,\% below its path in the quarters of the episode'
-    why: 'evidence: jannsen2026lowwater (the Kiel authors'' restatement of 2018: GDP -0.2 % in Q3 and -0.3 % in Q4 2018), ademmer2023; changed 7 Nov 2026 from 0.3-0.4 (the 0.4 is IW''s reading of an older Kiel statement, dossier D section 4)'
+    text: 'which left GDP about 0.4\,\% below its path at the trough of the episode and 0.2--0.3\,\% over its two quarters'
+    why: 'evidence: ademmer2023 (about 0.4 % of GDP at the trough, a lower bound; dossier B flag 1), jannsen2026lowwater (GDP -0.2 % in Q3 and -0.3 % in Q4 2018); the former 0.3-0.4 mixed the ING and Coface 0.3 with Ademmer''s 0.4 (7 Nov 2026)'
   - file: main.tex
     text: 'set a new one on 4 August and fell to 5\,cm on 17 August; the tonnage passing the stretch fell by three quarters'
     why: 'evidence: pegelonline2026 (gauge), reuters2026/schuttevaer2026 (tonnage; the KBN count of the week to 13 Aug, 22 % of normal, in the loading-table ledger)'

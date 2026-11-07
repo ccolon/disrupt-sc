@@ -8,7 +8,7 @@ synthesis that the manuscript edits of the same evening rest on.
 | Strand | Dossier | Status |
 |---|---|---|
 | A. Europe-wide economic models of disasters and disruptions (CGE, MRIO, dynamic IO, ABM) | `positioning_eu_econ_models_20261107.md` | done (about 55 works, 39 BibTeX entries) |
-| B. Transport models of disasters and the Rhine (network models, freight models, inland-waterway economics) | `positioning_transport_rhine_20261107.md` | pending at the time of writing; to be appended to section 2 when it lands |
+| B. Transport models of disasters and the Rhine (network models, freight models, inland-waterway economics) | `positioning_transport_rhine_20261107.md` | done (two-part synthesis, eight tables, 63 BibTeX entries; landed last, its three flags applied in a third round of edits) |
 | C. State of the art of spatial supply-chain models of disasters (the model's relatives, ranked) | `positioning_model_state_of_art_20261107.md` | done (table of about 60 works, five relatives ranked, draft paragraph) |
 | D. Scoop search 2023 to November 2026 and the analyses of the 2026 event | `positioning_scoop_recent_20261107.md` | done (verdict by claim, 2026 chronology, mischaracterisations, 59 BibTeX entries) |
 
@@ -85,8 +85,36 @@ The only European dynamic model validated on an observed path is Reissl et al. (
 
 ## 2. Transport-only work on the Rhine and inland waterways
 
-This section rests on dossiers C and D; dossier B (transport models of disasters and the Rhine) is pending and will
-be appended here.
+**European transport models were built for policy appraisal, not for hazards** (dossier B, part A). NODUS assigns
+multimodal freight on a virtual network by generalised cost (Jourquin and Beuthe 1996); TRANS-TOOLS and its
+successor TRIMODE are the Commission's EU-wide passenger and freight models with an economic module for policy
+scenarios; ETISplus is the origin-destination and network database behind them; RHOMOLO is the NUTS2 spatial CGE
+into which transport enters as a cost. None has a hazard module. The disruption uses that exist are NODUS on Rhine
+and Danube low water (Jonkeren et al. 2011; Beuthe et al. 2014: transport cost and modal shift) and the disruption
+transport model of van der Tuin and Pel (2020: user delays of infrastructure failures on a European multimodal
+network). The FP7 projects WEATHER, EWENT and ECCONET costed weather extremes for European transport by mode,
+inland waterways included, as direct damage, delay and operating cost, with no production or trade propagation. The
+climate-risk literature on European transport (Forzieri et al. 2018; Bubeck et al. 2019; van Ginkel et al. 2021,
+2022; Mulholland and Feyen 2021; the JRC reports of 2012 to 2020; Schade et al. 2024 on TEN-T adaptation; Deidda et
+al. 2026) is an exposure and direct-damage literature, and transport vulnerability analysis (Jenelius, Mattsson,
+Besinovic) ranks links by delay with no economic layer. The economy enters only through the MRIA flood studies
+(annual, no network), RHOMOLO (policy, not events) and the static port-trade dependence of the Oxford group. The
+nearest European relatives of the paper are therefore the two NODUS low-water studies (transport only) and the MRIA
+flood studies (economy only).
+
+**The 2018 benchmark in full** (dossier B, part B). Kiel Box 2018.17 (Ademmer, Jannsen, Kooths and Moesle,
+December 2018): one low-water day lowers monthly inland-waterway tonnage by 0.76 % and producing-sector growth by
+just under 0.04 percentage points; Ademmer, Jannsen and Meuchelboeck (2023): 30 low-water days cost about 1 % of
+industrial production, 2018 about 1.5 % of industrial production at the trough and about 0.4 % of GDP, a lower
+bound; Kriedel (CCNR, November 2019): 0.039 points of production growth per low-water day, EUR 4.68 billion or
+0.63 % of German industrial production over the second half of 2018; Streng, van Saase and Kuipers (Erasmus UPT,
+April 2020): about EUR 2.4 billion in Germany and 0.3 billion in the Netherlands, indirect effects explicitly not
+quantified. The Bundesbank published no 2018 box (the "-0.2 pp Q3 2018" of an earlier dossier stays untraceable), no
+ECB box exists for 2018 or 2022, and no ex-post estimate of 2022 exists at all. The 2026 ex-ante estimates cluster
+tightly and all apply the Kiel elasticity to an assumed duration: ING (4 August) at least 0.3 points of 2026
+growth, IW (4 August) 0.4, KfW (12 August) 0.2, Kiel (3 September) 0.3 ceteris paribus and 0.2 adopted,
+Gemeinschaftsdiagnose (17 September) 0.7 to 1.2 % of producing-sector output per 30 low-water days, Bundesbank
+(21 October) stagnation, ECB (October) up to 0.2 points. None is sectoral, regional or cross-border.
 
 **Inland-waterway economics of the Rhine.** The welfare cost of low water and the modal shift it causes were
 estimated by Jonkeren et al. (2007, 2011, 2014), Beuthe et al. (2014), Scholten and Rothstein (2014), van Dorsser
@@ -201,9 +229,11 @@ against the statistics."
 
 ## 5. What changed in the manuscript (Overleaf commit of 7 November 2026, evening)
 
-1. Introduction, 2018 paragraph: GDP "0.2--0.3 % below its path in the quarters of the episode" (was 0.3--0.4 % at
-   the trough; the 0.4 is IW's reading of an older Kiel statement), cited to Ademmer et al. 2023 and Jannsen and
-   Meuchelboeck 2026.
+1. Introduction, 2018 paragraph: GDP "about 0.4 % below its path at the trough of the episode and 0.2--0.3 % over
+   its two quarters", each number at its source (Ademmer et al. 2023: about 0.4 %, a lower bound; Jannsen and
+   Meuchelboeck 2026: 0.2 % in the third and 0.3 % in the fourth quarter of 2018). The former "0.3--0.4 % at the
+   trough" mixed the ING and Coface 0.3 with Ademmer's 0.4 (dossiers B and D disagreed on the fix; the sentence
+   now carries both sources' numbers).
 2. Introduction, 2026 paragraph: the ex-ante range split by source: 0.1--0.2 points (Kiel, 28 July) and up to 0.35
    points if the closure lasted into September (Commerzbank, Bloomberg of 11 August, new entry
    `bloomberg2026commerzbank`). The 0.35 had been attributed to the Kiel Institute.
@@ -227,6 +257,11 @@ against the statistics."
     quantified rail result for a low water.
 11. Discussion, limitations: the persistent modal shift of 2018 (Meuchelboeck 2025) as a lasting adjustment the
     model does not represent.
+12. Introduction, Kaub sentence: the loading citation is now the ten-year Rhine fleet study (`vinke2023`, Climate
+    Risk Management 2024) instead of the Lower Rhine container cascade (`vinke2022`), which is not a Kaub study
+    (dossier B, flag 2).
+13. Introduction, transport-economics sentence: "freight prices, loading restrictions and the shift between rail
+    and road", which covers the five works cited (dossier B, flag 3).
 
 References: 24 entries added to refs.bib (61 to 85; 69 cited of the journal's guide of 70), all DOIs verified by
 `studies/paper_pipeline/scripts/cite_check.py` (Crossref; DataCite for the Zenodo record, support added today); the
@@ -254,5 +289,18 @@ PDFs were rebuilt (main text 33 pages, SI 38 pages). Counts after the edits: mai
   the ECB's "up to 0.2 percentage points" (26 October); the Kiel Institute's adopted -0.2 % of Q3 GDP; the detailed
   Q3 accounts due 25 November and the Sachverstaendigenrat report due 11 November. The aggregate GDP print is not a
   test of a sector-level mechanism; the production index and the services turnover indices are.
-- **Dossier B** (transport models and the Rhine): append to section 2 and check whether it changes any Introduction
-  sentence on transport economics or the Prognos characterisation.
+- **Two more independent ex-post numbers for 2018** (dossier B): Kriedel (CCNR, 2019; EUR 4.68 billion, 0.63 % of
+  industrial production over the second half of 2018) and Streng et al. (2020; EUR 2.4 billion in Germany, 0.3
+  billion in the Netherlands, indirect effects not quantified). Neither is in the paper; both are usable as the
+  ex-post band next to Ademmer et al. (BibTeX in dossier B: `kriedel2019lowwater`, `streng2020laagwater`). Not added
+  today to keep the cited references at 69.
+- **`scholten2014`** (Climatic Change 2014: the vulnerability of the bulk-cargo firms along the Rhine to low water,
+  their stockholding and mode-switching options) is in the bibliography and uncited; it is the one published study
+  that frames the firm-level inventory question. A sentence in the Discussion's first paragraph would carry it;
+  not added today because its abstract could not be fetched to confirm the exact finding.
+- **What the model does not cover, per dossier B, for the Discussion if a referee asks:** no 2022 benchmark exists
+  (the Bundesbank's qualitative note only); no Dutch, Belgian or Swiss ex-post estimate beyond Streng et al., so the
+  cross-border shares cannot be validated against data; the welfare loss of transport economics and the output loss
+  of this paper are different objects; the climate projections of low-water frequency (Nilson 2014; Christodoulou
+  2020; van Tiel 2023) are not coupled, so the paper says nothing about return periods.
+- **`ademmer2020`** (Kiel Working Paper 2155) duplicates `ademmer2023` and is uncited; keep one.
