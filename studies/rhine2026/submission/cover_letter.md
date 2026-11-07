@@ -28,9 +28,11 @@ an event costs German industry, but not how the loss is generated, where it land
 manuscript answers those questions with a model that follows every shipment of the European economy over the
 continent's roads, railways, waterways and sea lanes: [NFirms] firm agents in the twenty-seven member states and
 Switzerland, [NLinks] million supplier–buyer links, a weekly clock, inventories at the levels the corporate accounts
-report, and a river whose weekly carrying capacity follows the Kaub gauge. It is, to our knowledge, the first
-continent-wide supply-chain model with an explicit multimodal transport network on which firms reroute, switch mode,
-wait or stop.
+report, and a river whose weekly carrying capacity follows the Kaub gauge. To our knowledge no supply-chain model of
+this scope exists: firm-level models of production networks are national and carry no transport layer, the disaster
+models that represent transport resolve regions, countries and sectors, and the economics of the Rhine itself is
+statistical. Here every shipment of a continental economy is routed on a shared multimodal network, and the agents
+that reroute, switch mode, wait or stop are firms.
 
 Three results should interest readers well beyond transport economics. First, the cost of a low river is set by
 stock-outs, not by freight bills: higher freight rates alone cause no loss of production, while one more week of
@@ -46,7 +48,8 @@ estimate, which it reproduces within the estimate's uncertainty band, and its 20
 2026, before the production statistics of the autumn, with a pre-specified scoring protocol against the monthly
 production index; the hydrological information, code versions and issue dates are recorded in a public manifest.
 The code is open (GPL-3.0, github.com/ccolon/disrupt-sc) and every number in the text is generated from the run
-outputs.
+outputs. The estimates of the 2026 event made during the summer extrapolated the 2018 statistics or ran a regional
+model of the Rhine corridor; this is the first from a model of supply-chain propagation.
 
 We believe the paper suits Nature Communications because it joins three communities the journal serves, climate
 impacts, complex networks and economics, around a question that policy-makers in Europe are asking now, with a

@@ -5,8 +5,8 @@
 refs.yaml: a list (or {refs: [...]}) of entries with key, doi, title, first_author, year.
 .bib: parsed with a small BibTeX reader (title, author, year, doi).
 
-For an entry with a DOI: Crossref (then OpenAlex) metadata; title similarity, year (+-1) and first author's family
-name are compared. Without a DOI: a Crossref bibliographic search proposes the best match. Status per entry:
+For an entry with a DOI: Crossref (then DataCite for Zenodo and other data/software DOIs, then OpenAlex) metadata;
+title similarity, year (+-1) and first author's family name are compared. Without a DOI: a Crossref bibliographic search proposes the best match. Status per entry:
   ok         DOI resolves and title/year/author agree
   mismatch   DOI resolves to a different work (or year/author disagree): the reference is wrong
   not_found  DOI does not resolve anywhere
@@ -41,6 +41,7 @@ TITLE_OK = 0.90
 def norm(s: str) -> str:
     s = html.unescape(html.unescape(s or ""))         # Crossref titles carry &amp;quot; etc.
     s = re.sub(r"<[^>]+>", " ", s)                    # JATS/HTML tags in titles
+    s = re.sub(r"\\[\"'`^~=.]\s*\{?\\([ij])\}?", r"\1", s)   # accents on dotless i/j: {\'\i}, \'\j
     s = re.sub(r"\\[\"'`^~=.]\s*\{?([a-zA-Z])\}?", r"\1", s)   # LaTeX accents: \"u, \'{e}
     s = re.sub(r"\\[cvuHkr]\s*\{([a-zA-Z])\}", r"\1", s)        # \c{c}, \v{s}
     s = re.sub(r"\\(ss|ae|oe|aa|o|l)(?![a-zA-Z])", r"\1", s)    # \ss, \o, \l
@@ -189,10 +190,23 @@ def openalex_meta(w: dict) -> dict:
             "doi": (w.get("doi") or "").replace("https://doi.org/", "")}
 
 
+def datacite_meta(a: dict) -> dict:
+    t = ((a.get("titles") or [{}])[0]).get("title", "")
+    y = a.get("publicationYear")
+    au = a.get("creators") or []
+    fam = norm(au[0].get("familyName") or au[0].get("name", "")) if au else ""
+    names = " ".join(norm(f"{x.get('givenName', '')} {x.get('familyName', '')} {x.get('name', '')}") for x in au[:3])
+    return {"title": t, "year": y, "years": [y] if y else [], "family": fam, "names": names,
+            "venue": a.get("publisher", ""), "doi": a.get("doi", "")}
+
+
 def lookup_doi(cache: Cache, doi: str) -> dict | None:
     j = cache.get("https://api.crossref.org/works/" + urllib.parse.quote(doi, safe="/"))
     if j and j.get("message"):
         return crossref_meta(j["message"])
+    j = cache.get("https://api.datacite.org/dois/" + urllib.parse.quote(doi, safe="/"))
+    if j and (j.get("data") or {}).get("attributes"):
+        return datacite_meta(j["data"]["attributes"])
     j = cache.get("https://api.openalex.org/works/doi:" + urllib.parse.quote(doi, safe="/"))
     if j and j.get("id"):
         return openalex_meta(j)
@@ -239,7 +253,7 @@ def check_one(cache: Cache, e: dict) -> dict:
     if e.get("doi"):
         m = lookup_doi(cache, e["doi"])
         if m is None:
-            r["status"], r["note"] = "not_found", "DOI resolves neither in Crossref nor in OpenAlex"
+            r["status"], r["note"] = "not_found", "DOI resolves in none of Crossref, DataCite and OpenAlex"
             return r
         probs = judge(e, m)
         r["status"] = "mismatch" if probs else "ok"

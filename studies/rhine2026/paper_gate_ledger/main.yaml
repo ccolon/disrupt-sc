@@ -42,8 +42,8 @@ allowed:
     text: 'put the cost at about 1\,\% of German industrial production for each month of low water'
     why: 'evidence: ademmer2023 (published regression)'
   - file: main.tex
-    text: 'which left GDP about 0.3--0.4\,\% below its path at the trough of the episode'
-    why: 'evidence: ademmer2019 (the same figure as the constants \ExPostLow--\ExPostHigh used on l. 76)'
+    text: 'which left GDP 0.2--0.3\,\% below its path in the quarters of the episode'
+    why: 'evidence: jannsen2026lowwater (the Kiel authors'' restatement of 2018: GDP -0.2 % in Q3 and -0.3 % in Q4 2018), ademmer2023; changed 7 Nov 2026 from 0.3-0.4 (the 0.4 is IW''s reading of an older Kiel statement, dossier D section 4)'
   - file: main.tex
     text: 'set a new one on 4 August and fell to 5\,cm on 17 August; the tonnage passing the stretch fell by three quarters'
     why: 'evidence: pegelonline2026 (gauge), reuters2026/schuttevaer2026 (tonnage; the KBN count of the week to 13 Aug, 22 % of normal, in the loading-table ledger)'
@@ -54,8 +54,8 @@ allowed:
     text: 'the gauge fell below 15\,cm again in mid-September'
     why: 'evidence: bfg2026, pegelonline2026 (daily gauge, scenarios/kaub_daily_2026.csv)'
   - file: main.tex
-    text: 'put the cost to Germany at 0.1--0.35 percentage points of third-quarter GDP'
-    why: 'evidence: ifw2026'
+    text: 'put the cost to Germany at 0.1--0.2 percentage points of third-quarter GDP, and up to 0.35 points if the closure lasted into September'
+    why: 'evidence: ifw2026 (Kiel, 28 July 2026: 0.1-0.2 points), bloomberg2026commerzbank (Commerzbank, 11 August 2026: 0.35 points if critically low levels persist to mid-September)'
   - file: main.tex
     text: 'calibrated on 28 European economies (the EU-27 and Switzerland)'
     why: 'design: scope of 28 economies'
@@ -162,8 +162,8 @@ allowed:
     text: 'industrial loss over the five weeks of the August episode'
     why: 'convention: the August trough = run weeks 7-11 (make_numbers.py, AugWaveIndQ)'
   - file: main.tex
-    text: 'with other estimates made in August of 0.2--0.35 points'
-    why: 'evidence: ifw2026, dihk2026'
+    text: 'with other estimates made in August and September of 0.2--0.35 points'
+    why: 'evidence: bloomberg2026commerzbank (Commerzbank 0.35, 11 Aug), kiel2026autumn (0.2 adopted, 0.3 ceteris paribus, 3 Sept), jannsen2026lowwater (the same, Wirtschaftsdienst 106(9))'
   - file: main.tex
     text: '33\,\% of the surveyed Rhine-corridor firms reported production restrictions and 6\,\% a stop'
     why: 'evidence: dihk2026 (survey of 29 July - 4 August)'

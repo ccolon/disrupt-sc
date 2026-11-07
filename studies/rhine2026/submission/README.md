@@ -37,6 +37,15 @@ file for the trimming options). Statements added to the manuscript: Code availab
 contributions, Competing interests, Funding (placeholder), Acknowledgements (placeholder), the affiliation line, and
 an AI-use paragraph in Methods for the author to confirm.
 
+Positioning review (same day, evening): the dossiers `../evidence/positioning_eu_econ_models_20261107.md` (EU-wide
+economic models), `positioning_model_state_of_art_20261107.md` (the model's relatives), `positioning_scoop_recent_20261107.md`
+(scoop search and the 2026 analyses) and, when it lands, `positioning_transport_rhine_20261107.md` (transport models
+and the Rhine), with the synthesis `positioning_synthesis_20261107.md`. The manuscript took the edits the same evening
+(Overleaf): the Introduction's state-of-the-art paragraph and novelty claim, the ex-ante estimates of 2026 (Kiel,
+Commerzbank, Prognos), the 2018 GDP figure (0.2 to 0.3 % after Jannsen and Meuchelboeck 2026) and five Discussion
+sentences; the bibliography grew from 61 to 85 entries (69 cited, DOIs verified on Crossref or DataCite). The main
+text is now 7,181 words (Introduction 1,323), which adds to the length decision above.
+
 Open before upload (the author): funding and acknowledgements, the e-mail, the AI-use wording, the length decision,
 the release tag and the Zenodo DOIs for code and data, the November batch on the observed season (daggers and todos
 removed), the reviewer list with contact details, the preprint decision, the APC arrangement. Details and the order
