@@ -19,6 +19,8 @@ decided to port the study to v2. This folder holds the v2 runs.
 | `read_batch.py` | reads a batch into analysis/runs.csv and daily.csv; d and lags from the batch; prints the pilot's checks (determinism, settling, H1, lag curve) |
 | `compare_horizons.py` | checks day by day that a run's path does not depend on its horizon (116- vs 180-day runs) |
 | `excess_by_source.py` | a successive-flood run against its singles shifted to each event's start: the excess by period and sector |
+| `mech_firms.py` | the same comparison firm by firm (runs with `--keep-firm-data` and `export_inventory_data=true`): sectors and firms with the largest excess production shortfall, and the inputs whose stock ran out |
+| `read_pairs.py` | reads a two-flood batch (`pair_<a>_<b>_tau<T>` runs) into `analysis/runs.csv` and `daily.csv` |
 | `cluster/launch_cambodia.sh` | one Slurm job per job-list line; one setup job per seed and cache |
 
 Before any paper run:
