@@ -17,8 +17,14 @@ in place of the 20,860-firm firm_data.csv.
 
 Usage:
     python studies/cambodia/run_cambodia.py --scenario lag12 --duration 12 --seed 1 --t-final 180 \
-        --out C:/dsc_runs/cambodia/test_lag12_s1 [--footprint v3] [--set inventory_restoration_time=4]
+        --out C:/dsc_runs/cambodia/test_lag12_s1 [--footprint v3] [--set inventory_restoration_time=4] \
+        [--inventory-scale 2]
     python studies/cambodia/run_cambodia.py --setup --seed 1        # build the seed's cache only
+
+--inventory-scale X multiplies every inventory duration target of paper_config (inventory_duration_targets.values:
+utility 3, agriculture 15, ... days) by X: the robustness runs' x0.5 and x2 (R_rob, Q21, 8 Nov 2026). One switch
+instead of eight --set items, whose run-name tag would pass the 255-byte limit of a folder name. The targets are
+re-applied on every cache load (fingerprint.py), so the variant reuses the seed's cache.
 """
 from __future__ import annotations
 
@@ -136,6 +142,8 @@ def main():
     ap.add_argument("--cache-dir", default=None, help="named build cache (default cam_s<seed>)")
     ap.add_argument("--out", type=Path, default=None)
     ap.add_argument("--setup", action="store_true", help="build (or check) the seed's cache and stop")
+    ap.add_argument("--inventory-scale", type=float, default=None, metavar="X",
+                    help="multiply every inventory duration target (inventory_duration_targets.values) by X")
     ap.add_argument("--keep-firm-data", action="store_true")
     ap.add_argument("--dry-run", action="store_true", help="print the run's record and stop")
     args = ap.parse_args()
@@ -144,6 +152,11 @@ def main():
     config = load_paper_config()
     for item in args.set:
         apply_set(config, item)
+    if args.inventory_scale is not None:
+        if args.inventory_scale <= 0:
+            raise SystemExit(f"--inventory-scale must be positive, got {args.inventory_scale}")
+        targets = config["inventory_duration_targets"]
+        targets["values"] = {k: v * args.inventory_scale for k, v in targets["values"].items()}
     config["seed"] = args.seed
     gpkg = Path(config["filepaths"]["transport"]) if config.get("filepaths", {}).get("transport") else \
         paths.get_data_path(SCOPE) / "Transport" / "transport.gpkg"
@@ -159,7 +172,10 @@ def main():
     cache_dir = args.cache_dir or f"cam_s{args.seed}"
     record = {"scope": SCOPE, "scenario": args.scenario, "duration": args.duration, "seed": args.seed,
               "t_final": config["t_final"], "footprint": args.footprint, "edges_per_basin": edges,
-              "overrides": args.set, "cache_dir": cache_dir, "config_hash": config_hash(config), **git_state(),
+              "overrides": args.set, "inventory_scale": args.inventory_scale,
+              "inventory_duration_targets": config["inventory_duration_targets"]["values"],
+              "inventory_restoration_time": config["inventory_restoration_time"],
+              "cache_dir": cache_dir, "config_hash": config_hash(config), **git_state(),
               "disruptions": config["disruptions"]}
     print(json.dumps(record, indent=1, default=str))
     if args.dry_run:

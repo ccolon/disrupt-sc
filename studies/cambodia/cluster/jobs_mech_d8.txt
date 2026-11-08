@@ -1,0 +1,8 @@
+# Cambodia paper, A_mech check at d = 8 (Q21, 8 Nov 2026): does the 2d-against-15-day-stock explanation hold?
+# Network 17, back-to-back at d = 8 (Saigon days 1-8, Mekong 9-16, Tonle Sap 17-24: the routes that cross both the
+# Mekong and Tonle Sap areas are cut 16 days in a row against 15-day agricultural stocks) and the three singles, with
+# the per-firm and per-input stock files (as jobs_mech.txt). Read with mech_firms.py --d 8 --lag 8. ~3 CPU-h.
+17 lag8 8 --cache-dir cam_sea_s17 --t-final 116 --keep-firm-data --set export_inventory_data=true
+17 single_saigon 8 --cache-dir cam_sea_s17 --t-final 116 --keep-firm-data --set export_inventory_data=true
+17 single_mekong 8 --cache-dir cam_sea_s17 --t-final 116 --keep-firm-data --set export_inventory_data=true
+17 single_tonle 8 --cache-dir cam_sea_s17 --t-final 116 --keep-firm-data --set export_inventory_data=true
