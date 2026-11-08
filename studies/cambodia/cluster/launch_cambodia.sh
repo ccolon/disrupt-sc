@@ -8,6 +8,7 @@
 # e.g.  3 lag13 12
 #       3 lag13 12 --set inventory_restoration_time=4
 #       3 simul 12 --cache-dir cam_fc07_s3 --set flow_coverage=0.7
+#       3 lag13 12 --t-final 116          (run name lag13_d12_s3_t116)
 # A line whose options change the BUILD (flow_coverage, nb_suppliers_per_input, use_route_cache, logistics
 # costs, capacities, ...) must name its own --cache-dir: the launcher submits one setup job per distinct
 # (seed, cache dir), with that pair's first line's options, and every run of the pair waits for it (afterok),
@@ -96,7 +97,8 @@ while read -r seed scenario duration opts; do
         SETUP_ID[$key]=$(submit "cam_setup_${cache}" "$TIME_SETUP" "$MEM_SETUP" "" \
             "${RUNNER} --setup --seed ${seed} --cache-dir ${cache} ${opts}")
     fi
-    tag=$(sed -e 's/--cache-dir[ =][^ ]*//' -e 's/--set //g' -e 's/[^A-Za-z0-9.=_-]\+/_/g' -e 's/^_//;s/_$//' <<< "$opts")
+    tag=$(sed -e 's/--cache-dir[ =][^ ]*//' -e 's/--t-final[ =]\([0-9]*\)/t\1/' -e 's/--set //g' \
+        -e 's/[^A-Za-z0-9.=_-]\+/_/g' -e 's/^_//;s/_$//' <<< "$opts")
     name="${scenario}_d${duration}_s${seed}${tag:+_${tag}}"
     payload="out=\${TMPDIR:-/tmp}/${name} && mkdir -p \$out && ${RUNNER} --seed ${seed} --scenario ${scenario} --duration ${duration} --cache-dir ${cache} ${opts} --out \$out; rc=\$?; for i in \$(seq 20); do cp -r \$out ${DEST}/ && break; sleep 90; done; exit \$rc"
     submit "cam_${name}" "$TIME_RUN" "$MEM_RUN" "${SETUP_ID[$key]}" "$payload" > /dev/null

@@ -1,0 +1,425 @@
+# Cambodia paper, main grid R_grid, d = 12 (gate B, Q19 approved by the user 8 Nov 2026; reports/06_pilot_sea.md).
+# 20 networks x (3 singles + lags 0..13 in 1-day steps, 1.5d, 2d at 116 days + lags 3d, 4d at 180 days),
+# restoration 30 days, sea-gateway caches cam_sea_s<seed> (seeds 1-5 built for pilot_sea_20261107).
+# Horizon 116 days = A_settle rule (latest settling day 96 x 1.2); lags above 2d settle later, so they run to 180.
+# Usage: bash studies/cambodia/cluster/launch_cambodia.sh --jobs studies/cambodia/cluster/jobs_grid_d12.txt --batch grid_d12_20261108
+1 single_saigon 12 --cache-dir cam_sea_s1 --t-final 116
+1 single_mekong 12 --cache-dir cam_sea_s1 --t-final 116
+1 single_tonle 12 --cache-dir cam_sea_s1 --t-final 116
+1 lag0 12 --cache-dir cam_sea_s1 --t-final 116
+1 lag1 12 --cache-dir cam_sea_s1 --t-final 116
+1 lag2 12 --cache-dir cam_sea_s1 --t-final 116
+1 lag3 12 --cache-dir cam_sea_s1 --t-final 116
+1 lag4 12 --cache-dir cam_sea_s1 --t-final 116
+1 lag5 12 --cache-dir cam_sea_s1 --t-final 116
+1 lag6 12 --cache-dir cam_sea_s1 --t-final 116
+1 lag7 12 --cache-dir cam_sea_s1 --t-final 116
+1 lag8 12 --cache-dir cam_sea_s1 --t-final 116
+1 lag9 12 --cache-dir cam_sea_s1 --t-final 116
+1 lag10 12 --cache-dir cam_sea_s1 --t-final 116
+1 lag11 12 --cache-dir cam_sea_s1 --t-final 116
+1 lag12 12 --cache-dir cam_sea_s1 --t-final 116
+1 lag13 12 --cache-dir cam_sea_s1 --t-final 116
+1 lag18 12 --cache-dir cam_sea_s1 --t-final 116
+1 lag24 12 --cache-dir cam_sea_s1 --t-final 116
+1 lag36 12 --cache-dir cam_sea_s1
+1 lag48 12 --cache-dir cam_sea_s1
+2 single_saigon 12 --cache-dir cam_sea_s2 --t-final 116
+2 single_mekong 12 --cache-dir cam_sea_s2 --t-final 116
+2 single_tonle 12 --cache-dir cam_sea_s2 --t-final 116
+2 lag0 12 --cache-dir cam_sea_s2 --t-final 116
+2 lag1 12 --cache-dir cam_sea_s2 --t-final 116
+2 lag2 12 --cache-dir cam_sea_s2 --t-final 116
+2 lag3 12 --cache-dir cam_sea_s2 --t-final 116
+2 lag4 12 --cache-dir cam_sea_s2 --t-final 116
+2 lag5 12 --cache-dir cam_sea_s2 --t-final 116
+2 lag6 12 --cache-dir cam_sea_s2 --t-final 116
+2 lag7 12 --cache-dir cam_sea_s2 --t-final 116
+2 lag8 12 --cache-dir cam_sea_s2 --t-final 116
+2 lag9 12 --cache-dir cam_sea_s2 --t-final 116
+2 lag10 12 --cache-dir cam_sea_s2 --t-final 116
+2 lag11 12 --cache-dir cam_sea_s2 --t-final 116
+2 lag12 12 --cache-dir cam_sea_s2 --t-final 116
+2 lag13 12 --cache-dir cam_sea_s2 --t-final 116
+2 lag18 12 --cache-dir cam_sea_s2 --t-final 116
+2 lag24 12 --cache-dir cam_sea_s2 --t-final 116
+2 lag36 12 --cache-dir cam_sea_s2
+2 lag48 12 --cache-dir cam_sea_s2
+3 single_saigon 12 --cache-dir cam_sea_s3 --t-final 116
+3 single_mekong 12 --cache-dir cam_sea_s3 --t-final 116
+3 single_tonle 12 --cache-dir cam_sea_s3 --t-final 116
+3 lag0 12 --cache-dir cam_sea_s3 --t-final 116
+3 lag1 12 --cache-dir cam_sea_s3 --t-final 116
+3 lag2 12 --cache-dir cam_sea_s3 --t-final 116
+3 lag3 12 --cache-dir cam_sea_s3 --t-final 116
+3 lag4 12 --cache-dir cam_sea_s3 --t-final 116
+3 lag5 12 --cache-dir cam_sea_s3 --t-final 116
+3 lag6 12 --cache-dir cam_sea_s3 --t-final 116
+3 lag7 12 --cache-dir cam_sea_s3 --t-final 116
+3 lag8 12 --cache-dir cam_sea_s3 --t-final 116
+3 lag9 12 --cache-dir cam_sea_s3 --t-final 116
+3 lag10 12 --cache-dir cam_sea_s3 --t-final 116
+3 lag11 12 --cache-dir cam_sea_s3 --t-final 116
+3 lag12 12 --cache-dir cam_sea_s3 --t-final 116
+3 lag13 12 --cache-dir cam_sea_s3 --t-final 116
+3 lag18 12 --cache-dir cam_sea_s3 --t-final 116
+3 lag24 12 --cache-dir cam_sea_s3 --t-final 116
+3 lag36 12 --cache-dir cam_sea_s3
+3 lag48 12 --cache-dir cam_sea_s3
+4 single_saigon 12 --cache-dir cam_sea_s4 --t-final 116
+4 single_mekong 12 --cache-dir cam_sea_s4 --t-final 116
+4 single_tonle 12 --cache-dir cam_sea_s4 --t-final 116
+4 lag0 12 --cache-dir cam_sea_s4 --t-final 116
+4 lag1 12 --cache-dir cam_sea_s4 --t-final 116
+4 lag2 12 --cache-dir cam_sea_s4 --t-final 116
+4 lag3 12 --cache-dir cam_sea_s4 --t-final 116
+4 lag4 12 --cache-dir cam_sea_s4 --t-final 116
+4 lag5 12 --cache-dir cam_sea_s4 --t-final 116
+4 lag6 12 --cache-dir cam_sea_s4 --t-final 116
+4 lag7 12 --cache-dir cam_sea_s4 --t-final 116
+4 lag8 12 --cache-dir cam_sea_s4 --t-final 116
+4 lag9 12 --cache-dir cam_sea_s4 --t-final 116
+4 lag10 12 --cache-dir cam_sea_s4 --t-final 116
+4 lag11 12 --cache-dir cam_sea_s4 --t-final 116
+4 lag12 12 --cache-dir cam_sea_s4 --t-final 116
+4 lag13 12 --cache-dir cam_sea_s4 --t-final 116
+4 lag18 12 --cache-dir cam_sea_s4 --t-final 116
+4 lag24 12 --cache-dir cam_sea_s4 --t-final 116
+4 lag36 12 --cache-dir cam_sea_s4
+4 lag48 12 --cache-dir cam_sea_s4
+5 single_saigon 12 --cache-dir cam_sea_s5 --t-final 116
+5 single_mekong 12 --cache-dir cam_sea_s5 --t-final 116
+5 single_tonle 12 --cache-dir cam_sea_s5 --t-final 116
+5 lag0 12 --cache-dir cam_sea_s5 --t-final 116
+5 lag1 12 --cache-dir cam_sea_s5 --t-final 116
+5 lag2 12 --cache-dir cam_sea_s5 --t-final 116
+5 lag3 12 --cache-dir cam_sea_s5 --t-final 116
+5 lag4 12 --cache-dir cam_sea_s5 --t-final 116
+5 lag5 12 --cache-dir cam_sea_s5 --t-final 116
+5 lag6 12 --cache-dir cam_sea_s5 --t-final 116
+5 lag7 12 --cache-dir cam_sea_s5 --t-final 116
+5 lag8 12 --cache-dir cam_sea_s5 --t-final 116
+5 lag9 12 --cache-dir cam_sea_s5 --t-final 116
+5 lag10 12 --cache-dir cam_sea_s5 --t-final 116
+5 lag11 12 --cache-dir cam_sea_s5 --t-final 116
+5 lag12 12 --cache-dir cam_sea_s5 --t-final 116
+5 lag13 12 --cache-dir cam_sea_s5 --t-final 116
+5 lag18 12 --cache-dir cam_sea_s5 --t-final 116
+5 lag24 12 --cache-dir cam_sea_s5 --t-final 116
+5 lag36 12 --cache-dir cam_sea_s5
+5 lag48 12 --cache-dir cam_sea_s5
+6 single_saigon 12 --cache-dir cam_sea_s6 --t-final 116
+6 single_mekong 12 --cache-dir cam_sea_s6 --t-final 116
+6 single_tonle 12 --cache-dir cam_sea_s6 --t-final 116
+6 lag0 12 --cache-dir cam_sea_s6 --t-final 116
+6 lag1 12 --cache-dir cam_sea_s6 --t-final 116
+6 lag2 12 --cache-dir cam_sea_s6 --t-final 116
+6 lag3 12 --cache-dir cam_sea_s6 --t-final 116
+6 lag4 12 --cache-dir cam_sea_s6 --t-final 116
+6 lag5 12 --cache-dir cam_sea_s6 --t-final 116
+6 lag6 12 --cache-dir cam_sea_s6 --t-final 116
+6 lag7 12 --cache-dir cam_sea_s6 --t-final 116
+6 lag8 12 --cache-dir cam_sea_s6 --t-final 116
+6 lag9 12 --cache-dir cam_sea_s6 --t-final 116
+6 lag10 12 --cache-dir cam_sea_s6 --t-final 116
+6 lag11 12 --cache-dir cam_sea_s6 --t-final 116
+6 lag12 12 --cache-dir cam_sea_s6 --t-final 116
+6 lag13 12 --cache-dir cam_sea_s6 --t-final 116
+6 lag18 12 --cache-dir cam_sea_s6 --t-final 116
+6 lag24 12 --cache-dir cam_sea_s6 --t-final 116
+6 lag36 12 --cache-dir cam_sea_s6
+6 lag48 12 --cache-dir cam_sea_s6
+7 single_saigon 12 --cache-dir cam_sea_s7 --t-final 116
+7 single_mekong 12 --cache-dir cam_sea_s7 --t-final 116
+7 single_tonle 12 --cache-dir cam_sea_s7 --t-final 116
+7 lag0 12 --cache-dir cam_sea_s7 --t-final 116
+7 lag1 12 --cache-dir cam_sea_s7 --t-final 116
+7 lag2 12 --cache-dir cam_sea_s7 --t-final 116
+7 lag3 12 --cache-dir cam_sea_s7 --t-final 116
+7 lag4 12 --cache-dir cam_sea_s7 --t-final 116
+7 lag5 12 --cache-dir cam_sea_s7 --t-final 116
+7 lag6 12 --cache-dir cam_sea_s7 --t-final 116
+7 lag7 12 --cache-dir cam_sea_s7 --t-final 116
+7 lag8 12 --cache-dir cam_sea_s7 --t-final 116
+7 lag9 12 --cache-dir cam_sea_s7 --t-final 116
+7 lag10 12 --cache-dir cam_sea_s7 --t-final 116
+7 lag11 12 --cache-dir cam_sea_s7 --t-final 116
+7 lag12 12 --cache-dir cam_sea_s7 --t-final 116
+7 lag13 12 --cache-dir cam_sea_s7 --t-final 116
+7 lag18 12 --cache-dir cam_sea_s7 --t-final 116
+7 lag24 12 --cache-dir cam_sea_s7 --t-final 116
+7 lag36 12 --cache-dir cam_sea_s7
+7 lag48 12 --cache-dir cam_sea_s7
+8 single_saigon 12 --cache-dir cam_sea_s8 --t-final 116
+8 single_mekong 12 --cache-dir cam_sea_s8 --t-final 116
+8 single_tonle 12 --cache-dir cam_sea_s8 --t-final 116
+8 lag0 12 --cache-dir cam_sea_s8 --t-final 116
+8 lag1 12 --cache-dir cam_sea_s8 --t-final 116
+8 lag2 12 --cache-dir cam_sea_s8 --t-final 116
+8 lag3 12 --cache-dir cam_sea_s8 --t-final 116
+8 lag4 12 --cache-dir cam_sea_s8 --t-final 116
+8 lag5 12 --cache-dir cam_sea_s8 --t-final 116
+8 lag6 12 --cache-dir cam_sea_s8 --t-final 116
+8 lag7 12 --cache-dir cam_sea_s8 --t-final 116
+8 lag8 12 --cache-dir cam_sea_s8 --t-final 116
+8 lag9 12 --cache-dir cam_sea_s8 --t-final 116
+8 lag10 12 --cache-dir cam_sea_s8 --t-final 116
+8 lag11 12 --cache-dir cam_sea_s8 --t-final 116
+8 lag12 12 --cache-dir cam_sea_s8 --t-final 116
+8 lag13 12 --cache-dir cam_sea_s8 --t-final 116
+8 lag18 12 --cache-dir cam_sea_s8 --t-final 116
+8 lag24 12 --cache-dir cam_sea_s8 --t-final 116
+8 lag36 12 --cache-dir cam_sea_s8
+8 lag48 12 --cache-dir cam_sea_s8
+9 single_saigon 12 --cache-dir cam_sea_s9 --t-final 116
+9 single_mekong 12 --cache-dir cam_sea_s9 --t-final 116
+9 single_tonle 12 --cache-dir cam_sea_s9 --t-final 116
+9 lag0 12 --cache-dir cam_sea_s9 --t-final 116
+9 lag1 12 --cache-dir cam_sea_s9 --t-final 116
+9 lag2 12 --cache-dir cam_sea_s9 --t-final 116
+9 lag3 12 --cache-dir cam_sea_s9 --t-final 116
+9 lag4 12 --cache-dir cam_sea_s9 --t-final 116
+9 lag5 12 --cache-dir cam_sea_s9 --t-final 116
+9 lag6 12 --cache-dir cam_sea_s9 --t-final 116
+9 lag7 12 --cache-dir cam_sea_s9 --t-final 116
+9 lag8 12 --cache-dir cam_sea_s9 --t-final 116
+9 lag9 12 --cache-dir cam_sea_s9 --t-final 116
+9 lag10 12 --cache-dir cam_sea_s9 --t-final 116
+9 lag11 12 --cache-dir cam_sea_s9 --t-final 116
+9 lag12 12 --cache-dir cam_sea_s9 --t-final 116
+9 lag13 12 --cache-dir cam_sea_s9 --t-final 116
+9 lag18 12 --cache-dir cam_sea_s9 --t-final 116
+9 lag24 12 --cache-dir cam_sea_s9 --t-final 116
+9 lag36 12 --cache-dir cam_sea_s9
+9 lag48 12 --cache-dir cam_sea_s9
+10 single_saigon 12 --cache-dir cam_sea_s10 --t-final 116
+10 single_mekong 12 --cache-dir cam_sea_s10 --t-final 116
+10 single_tonle 12 --cache-dir cam_sea_s10 --t-final 116
+10 lag0 12 --cache-dir cam_sea_s10 --t-final 116
+10 lag1 12 --cache-dir cam_sea_s10 --t-final 116
+10 lag2 12 --cache-dir cam_sea_s10 --t-final 116
+10 lag3 12 --cache-dir cam_sea_s10 --t-final 116
+10 lag4 12 --cache-dir cam_sea_s10 --t-final 116
+10 lag5 12 --cache-dir cam_sea_s10 --t-final 116
+10 lag6 12 --cache-dir cam_sea_s10 --t-final 116
+10 lag7 12 --cache-dir cam_sea_s10 --t-final 116
+10 lag8 12 --cache-dir cam_sea_s10 --t-final 116
+10 lag9 12 --cache-dir cam_sea_s10 --t-final 116
+10 lag10 12 --cache-dir cam_sea_s10 --t-final 116
+10 lag11 12 --cache-dir cam_sea_s10 --t-final 116
+10 lag12 12 --cache-dir cam_sea_s10 --t-final 116
+10 lag13 12 --cache-dir cam_sea_s10 --t-final 116
+10 lag18 12 --cache-dir cam_sea_s10 --t-final 116
+10 lag24 12 --cache-dir cam_sea_s10 --t-final 116
+10 lag36 12 --cache-dir cam_sea_s10
+10 lag48 12 --cache-dir cam_sea_s10
+11 single_saigon 12 --cache-dir cam_sea_s11 --t-final 116
+11 single_mekong 12 --cache-dir cam_sea_s11 --t-final 116
+11 single_tonle 12 --cache-dir cam_sea_s11 --t-final 116
+11 lag0 12 --cache-dir cam_sea_s11 --t-final 116
+11 lag1 12 --cache-dir cam_sea_s11 --t-final 116
+11 lag2 12 --cache-dir cam_sea_s11 --t-final 116
+11 lag3 12 --cache-dir cam_sea_s11 --t-final 116
+11 lag4 12 --cache-dir cam_sea_s11 --t-final 116
+11 lag5 12 --cache-dir cam_sea_s11 --t-final 116
+11 lag6 12 --cache-dir cam_sea_s11 --t-final 116
+11 lag7 12 --cache-dir cam_sea_s11 --t-final 116
+11 lag8 12 --cache-dir cam_sea_s11 --t-final 116
+11 lag9 12 --cache-dir cam_sea_s11 --t-final 116
+11 lag10 12 --cache-dir cam_sea_s11 --t-final 116
+11 lag11 12 --cache-dir cam_sea_s11 --t-final 116
+11 lag12 12 --cache-dir cam_sea_s11 --t-final 116
+11 lag13 12 --cache-dir cam_sea_s11 --t-final 116
+11 lag18 12 --cache-dir cam_sea_s11 --t-final 116
+11 lag24 12 --cache-dir cam_sea_s11 --t-final 116
+11 lag36 12 --cache-dir cam_sea_s11
+11 lag48 12 --cache-dir cam_sea_s11
+12 single_saigon 12 --cache-dir cam_sea_s12 --t-final 116
+12 single_mekong 12 --cache-dir cam_sea_s12 --t-final 116
+12 single_tonle 12 --cache-dir cam_sea_s12 --t-final 116
+12 lag0 12 --cache-dir cam_sea_s12 --t-final 116
+12 lag1 12 --cache-dir cam_sea_s12 --t-final 116
+12 lag2 12 --cache-dir cam_sea_s12 --t-final 116
+12 lag3 12 --cache-dir cam_sea_s12 --t-final 116
+12 lag4 12 --cache-dir cam_sea_s12 --t-final 116
+12 lag5 12 --cache-dir cam_sea_s12 --t-final 116
+12 lag6 12 --cache-dir cam_sea_s12 --t-final 116
+12 lag7 12 --cache-dir cam_sea_s12 --t-final 116
+12 lag8 12 --cache-dir cam_sea_s12 --t-final 116
+12 lag9 12 --cache-dir cam_sea_s12 --t-final 116
+12 lag10 12 --cache-dir cam_sea_s12 --t-final 116
+12 lag11 12 --cache-dir cam_sea_s12 --t-final 116
+12 lag12 12 --cache-dir cam_sea_s12 --t-final 116
+12 lag13 12 --cache-dir cam_sea_s12 --t-final 116
+12 lag18 12 --cache-dir cam_sea_s12 --t-final 116
+12 lag24 12 --cache-dir cam_sea_s12 --t-final 116
+12 lag36 12 --cache-dir cam_sea_s12
+12 lag48 12 --cache-dir cam_sea_s12
+13 single_saigon 12 --cache-dir cam_sea_s13 --t-final 116
+13 single_mekong 12 --cache-dir cam_sea_s13 --t-final 116
+13 single_tonle 12 --cache-dir cam_sea_s13 --t-final 116
+13 lag0 12 --cache-dir cam_sea_s13 --t-final 116
+13 lag1 12 --cache-dir cam_sea_s13 --t-final 116
+13 lag2 12 --cache-dir cam_sea_s13 --t-final 116
+13 lag3 12 --cache-dir cam_sea_s13 --t-final 116
+13 lag4 12 --cache-dir cam_sea_s13 --t-final 116
+13 lag5 12 --cache-dir cam_sea_s13 --t-final 116
+13 lag6 12 --cache-dir cam_sea_s13 --t-final 116
+13 lag7 12 --cache-dir cam_sea_s13 --t-final 116
+13 lag8 12 --cache-dir cam_sea_s13 --t-final 116
+13 lag9 12 --cache-dir cam_sea_s13 --t-final 116
+13 lag10 12 --cache-dir cam_sea_s13 --t-final 116
+13 lag11 12 --cache-dir cam_sea_s13 --t-final 116
+13 lag12 12 --cache-dir cam_sea_s13 --t-final 116
+13 lag13 12 --cache-dir cam_sea_s13 --t-final 116
+13 lag18 12 --cache-dir cam_sea_s13 --t-final 116
+13 lag24 12 --cache-dir cam_sea_s13 --t-final 116
+13 lag36 12 --cache-dir cam_sea_s13
+13 lag48 12 --cache-dir cam_sea_s13
+14 single_saigon 12 --cache-dir cam_sea_s14 --t-final 116
+14 single_mekong 12 --cache-dir cam_sea_s14 --t-final 116
+14 single_tonle 12 --cache-dir cam_sea_s14 --t-final 116
+14 lag0 12 --cache-dir cam_sea_s14 --t-final 116
+14 lag1 12 --cache-dir cam_sea_s14 --t-final 116
+14 lag2 12 --cache-dir cam_sea_s14 --t-final 116
+14 lag3 12 --cache-dir cam_sea_s14 --t-final 116
+14 lag4 12 --cache-dir cam_sea_s14 --t-final 116
+14 lag5 12 --cache-dir cam_sea_s14 --t-final 116
+14 lag6 12 --cache-dir cam_sea_s14 --t-final 116
+14 lag7 12 --cache-dir cam_sea_s14 --t-final 116
+14 lag8 12 --cache-dir cam_sea_s14 --t-final 116
+14 lag9 12 --cache-dir cam_sea_s14 --t-final 116
+14 lag10 12 --cache-dir cam_sea_s14 --t-final 116
+14 lag11 12 --cache-dir cam_sea_s14 --t-final 116
+14 lag12 12 --cache-dir cam_sea_s14 --t-final 116
+14 lag13 12 --cache-dir cam_sea_s14 --t-final 116
+14 lag18 12 --cache-dir cam_sea_s14 --t-final 116
+14 lag24 12 --cache-dir cam_sea_s14 --t-final 116
+14 lag36 12 --cache-dir cam_sea_s14
+14 lag48 12 --cache-dir cam_sea_s14
+15 single_saigon 12 --cache-dir cam_sea_s15 --t-final 116
+15 single_mekong 12 --cache-dir cam_sea_s15 --t-final 116
+15 single_tonle 12 --cache-dir cam_sea_s15 --t-final 116
+15 lag0 12 --cache-dir cam_sea_s15 --t-final 116
+15 lag1 12 --cache-dir cam_sea_s15 --t-final 116
+15 lag2 12 --cache-dir cam_sea_s15 --t-final 116
+15 lag3 12 --cache-dir cam_sea_s15 --t-final 116
+15 lag4 12 --cache-dir cam_sea_s15 --t-final 116
+15 lag5 12 --cache-dir cam_sea_s15 --t-final 116
+15 lag6 12 --cache-dir cam_sea_s15 --t-final 116
+15 lag7 12 --cache-dir cam_sea_s15 --t-final 116
+15 lag8 12 --cache-dir cam_sea_s15 --t-final 116
+15 lag9 12 --cache-dir cam_sea_s15 --t-final 116
+15 lag10 12 --cache-dir cam_sea_s15 --t-final 116
+15 lag11 12 --cache-dir cam_sea_s15 --t-final 116
+15 lag12 12 --cache-dir cam_sea_s15 --t-final 116
+15 lag13 12 --cache-dir cam_sea_s15 --t-final 116
+15 lag18 12 --cache-dir cam_sea_s15 --t-final 116
+15 lag24 12 --cache-dir cam_sea_s15 --t-final 116
+15 lag36 12 --cache-dir cam_sea_s15
+15 lag48 12 --cache-dir cam_sea_s15
+16 single_saigon 12 --cache-dir cam_sea_s16 --t-final 116
+16 single_mekong 12 --cache-dir cam_sea_s16 --t-final 116
+16 single_tonle 12 --cache-dir cam_sea_s16 --t-final 116
+16 lag0 12 --cache-dir cam_sea_s16 --t-final 116
+16 lag1 12 --cache-dir cam_sea_s16 --t-final 116
+16 lag2 12 --cache-dir cam_sea_s16 --t-final 116
+16 lag3 12 --cache-dir cam_sea_s16 --t-final 116
+16 lag4 12 --cache-dir cam_sea_s16 --t-final 116
+16 lag5 12 --cache-dir cam_sea_s16 --t-final 116
+16 lag6 12 --cache-dir cam_sea_s16 --t-final 116
+16 lag7 12 --cache-dir cam_sea_s16 --t-final 116
+16 lag8 12 --cache-dir cam_sea_s16 --t-final 116
+16 lag9 12 --cache-dir cam_sea_s16 --t-final 116
+16 lag10 12 --cache-dir cam_sea_s16 --t-final 116
+16 lag11 12 --cache-dir cam_sea_s16 --t-final 116
+16 lag12 12 --cache-dir cam_sea_s16 --t-final 116
+16 lag13 12 --cache-dir cam_sea_s16 --t-final 116
+16 lag18 12 --cache-dir cam_sea_s16 --t-final 116
+16 lag24 12 --cache-dir cam_sea_s16 --t-final 116
+16 lag36 12 --cache-dir cam_sea_s16
+16 lag48 12 --cache-dir cam_sea_s16
+17 single_saigon 12 --cache-dir cam_sea_s17 --t-final 116
+17 single_mekong 12 --cache-dir cam_sea_s17 --t-final 116
+17 single_tonle 12 --cache-dir cam_sea_s17 --t-final 116
+17 lag0 12 --cache-dir cam_sea_s17 --t-final 116
+17 lag1 12 --cache-dir cam_sea_s17 --t-final 116
+17 lag2 12 --cache-dir cam_sea_s17 --t-final 116
+17 lag3 12 --cache-dir cam_sea_s17 --t-final 116
+17 lag4 12 --cache-dir cam_sea_s17 --t-final 116
+17 lag5 12 --cache-dir cam_sea_s17 --t-final 116
+17 lag6 12 --cache-dir cam_sea_s17 --t-final 116
+17 lag7 12 --cache-dir cam_sea_s17 --t-final 116
+17 lag8 12 --cache-dir cam_sea_s17 --t-final 116
+17 lag9 12 --cache-dir cam_sea_s17 --t-final 116
+17 lag10 12 --cache-dir cam_sea_s17 --t-final 116
+17 lag11 12 --cache-dir cam_sea_s17 --t-final 116
+17 lag12 12 --cache-dir cam_sea_s17 --t-final 116
+17 lag13 12 --cache-dir cam_sea_s17 --t-final 116
+17 lag18 12 --cache-dir cam_sea_s17 --t-final 116
+17 lag24 12 --cache-dir cam_sea_s17 --t-final 116
+17 lag36 12 --cache-dir cam_sea_s17
+17 lag48 12 --cache-dir cam_sea_s17
+18 single_saigon 12 --cache-dir cam_sea_s18 --t-final 116
+18 single_mekong 12 --cache-dir cam_sea_s18 --t-final 116
+18 single_tonle 12 --cache-dir cam_sea_s18 --t-final 116
+18 lag0 12 --cache-dir cam_sea_s18 --t-final 116
+18 lag1 12 --cache-dir cam_sea_s18 --t-final 116
+18 lag2 12 --cache-dir cam_sea_s18 --t-final 116
+18 lag3 12 --cache-dir cam_sea_s18 --t-final 116
+18 lag4 12 --cache-dir cam_sea_s18 --t-final 116
+18 lag5 12 --cache-dir cam_sea_s18 --t-final 116
+18 lag6 12 --cache-dir cam_sea_s18 --t-final 116
+18 lag7 12 --cache-dir cam_sea_s18 --t-final 116
+18 lag8 12 --cache-dir cam_sea_s18 --t-final 116
+18 lag9 12 --cache-dir cam_sea_s18 --t-final 116
+18 lag10 12 --cache-dir cam_sea_s18 --t-final 116
+18 lag11 12 --cache-dir cam_sea_s18 --t-final 116
+18 lag12 12 --cache-dir cam_sea_s18 --t-final 116
+18 lag13 12 --cache-dir cam_sea_s18 --t-final 116
+18 lag18 12 --cache-dir cam_sea_s18 --t-final 116
+18 lag24 12 --cache-dir cam_sea_s18 --t-final 116
+18 lag36 12 --cache-dir cam_sea_s18
+18 lag48 12 --cache-dir cam_sea_s18
+19 single_saigon 12 --cache-dir cam_sea_s19 --t-final 116
+19 single_mekong 12 --cache-dir cam_sea_s19 --t-final 116
+19 single_tonle 12 --cache-dir cam_sea_s19 --t-final 116
+19 lag0 12 --cache-dir cam_sea_s19 --t-final 116
+19 lag1 12 --cache-dir cam_sea_s19 --t-final 116
+19 lag2 12 --cache-dir cam_sea_s19 --t-final 116
+19 lag3 12 --cache-dir cam_sea_s19 --t-final 116
+19 lag4 12 --cache-dir cam_sea_s19 --t-final 116
+19 lag5 12 --cache-dir cam_sea_s19 --t-final 116
+19 lag6 12 --cache-dir cam_sea_s19 --t-final 116
+19 lag7 12 --cache-dir cam_sea_s19 --t-final 116
+19 lag8 12 --cache-dir cam_sea_s19 --t-final 116
+19 lag9 12 --cache-dir cam_sea_s19 --t-final 116
+19 lag10 12 --cache-dir cam_sea_s19 --t-final 116
+19 lag11 12 --cache-dir cam_sea_s19 --t-final 116
+19 lag12 12 --cache-dir cam_sea_s19 --t-final 116
+19 lag13 12 --cache-dir cam_sea_s19 --t-final 116
+19 lag18 12 --cache-dir cam_sea_s19 --t-final 116
+19 lag24 12 --cache-dir cam_sea_s19 --t-final 116
+19 lag36 12 --cache-dir cam_sea_s19
+19 lag48 12 --cache-dir cam_sea_s19
+20 single_saigon 12 --cache-dir cam_sea_s20 --t-final 116
+20 single_mekong 12 --cache-dir cam_sea_s20 --t-final 116
+20 single_tonle 12 --cache-dir cam_sea_s20 --t-final 116
+20 lag0 12 --cache-dir cam_sea_s20 --t-final 116
+20 lag1 12 --cache-dir cam_sea_s20 --t-final 116
+20 lag2 12 --cache-dir cam_sea_s20 --t-final 116
+20 lag3 12 --cache-dir cam_sea_s20 --t-final 116
+20 lag4 12 --cache-dir cam_sea_s20 --t-final 116
+20 lag5 12 --cache-dir cam_sea_s20 --t-final 116
+20 lag6 12 --cache-dir cam_sea_s20 --t-final 116
+20 lag7 12 --cache-dir cam_sea_s20 --t-final 116
+20 lag8 12 --cache-dir cam_sea_s20 --t-final 116
+20 lag9 12 --cache-dir cam_sea_s20 --t-final 116
+20 lag10 12 --cache-dir cam_sea_s20 --t-final 116
+20 lag11 12 --cache-dir cam_sea_s20 --t-final 116
+20 lag12 12 --cache-dir cam_sea_s20 --t-final 116
+20 lag13 12 --cache-dir cam_sea_s20 --t-final 116
+20 lag18 12 --cache-dir cam_sea_s20 --t-final 116
+20 lag24 12 --cache-dir cam_sea_s20 --t-final 116
+20 lag36 12 --cache-dir cam_sea_s20
+20 lag48 12 --cache-dir cam_sea_s20
