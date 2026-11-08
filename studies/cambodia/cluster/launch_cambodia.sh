@@ -18,6 +18,10 @@
 #
 # Runs write on the node's local disk (TMPDIR) and are copied to OUTPUT_DIR/<batch>/<run name> when they end
 # (the Rhine lesson of 1 Nov 2026: writes to the project volume failed mid-run with exit status 120).
+# The copy is tried 20 times, 90 s apart. If every attempt fails, the job ends with status 75 (or the run's own
+# status if the run failed), prints a message to its log and leaves an empty COPY_FAILED file in the run folder when
+# it can: a copy cut short by a full volume (KI-56, 8 Nov 2026) otherwise ended COMPLETED with empty or partial files.
+# Check: bash studies/cambodia/cluster/check_launcher_copy.sh (bash only, no sbatch, no model).
 #
 # Usage: bash studies/cambodia/cluster/launch_cambodia.sh --jobs FILE --batch NAME [--dry-run]
 #
@@ -102,7 +106,7 @@ while read -r seed scenario duration opts; do
         -e 's/--inventory-scale[ =]\([0-9.]*\)/inv\1/' \
         -e 's/[^A-Za-z0-9.=_-]\+/_/g' -e 's/^_//;s/_$//' <<< "$opts")
     name="${scenario}_d${duration}_s${seed}${tag:+_${tag}}"
-    payload="out=\${TMPDIR:-/tmp}/${name} && mkdir -p \$out && ${RUNNER} --seed ${seed} --scenario ${scenario} --duration ${duration} --cache-dir ${cache} ${opts} --out \$out; rc=\$?; for i in \$(seq 20); do cp -r \$out ${DEST}/ && break; sleep 90; done; exit \$rc"
+    payload="out=\${TMPDIR:-/tmp}/${name} && mkdir -p \$out && ${RUNNER} --seed ${seed} --scenario ${scenario} --duration ${duration} --cache-dir ${cache} ${opts} --out \$out; rc=\$?; copied=0; for i in \$(seq 20); do if cp -r \$out ${DEST}/; then copied=1; break; fi; sleep 90; done; if [ \$copied = 0 ]; then echo \"copy of ${name} to ${DEST} failed 20 times (KI-56)\" >&2; touch ${DEST}/${name}/COPY_FAILED 2>/dev/null; [ \$rc = 0 ] && rc=75; fi; exit \$rc"
     submit "cam_${name}" "$TIME_RUN" "$MEM_RUN" "${SETUP_ID[$key]}" "$payload" > /dev/null
     n=$((n + 1))
 done < "$JOBS_FILE"

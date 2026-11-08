@@ -22,7 +22,8 @@ decided to port the study to v2. This folder holds the v2 runs.
 | `mech_firms.py` | the same comparison firm by firm (runs with `--keep-firm-data` and `export_inventory_data=true`): sectors and firms with the largest excess production shortfall, and the inputs whose stock ran out |
 | `read_pairs.py` | reads a two-flood batch (`pair_<a>_<b>_tau<T>` runs) into `analysis/runs.csv` and `daily.csv` |
 | `read_rob.py` | reads the robustness batches (variants `inv<X>` from `--inventory-scale`, `rest<N>` from the restoration time): settling by variant, two-flood ratio per variant |
-| `cluster/launch_cambodia.sh` | one Slurm job per job-list line; one setup job per seed and cache |
+| `cluster/launch_cambodia.sh` | one Slurm job per job-list line; one setup job per seed and cache; a run is written on the node's disk and copied at the end, and a job whose copy fails 20 times ends with status 75 and a `COPY_FAILED` file in the run folder (KI-56) |
+| `cluster/check_launcher_copy.sh` | checks the launcher's copy step with a fake model and destination (bash only, no sbatch) |
 
 Before any paper run:
 1. The KI-53 fix (merged into main on 6 Nov 2026). Without it the undisturbed baseline collapses on day 30.
