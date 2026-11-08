@@ -1,0 +1,16 @@
+# Cambodia paper, A_mech firm-level runs (Q20 approved by the user 8 Nov 2026; reports/07_grid.md).
+# Network 17 (residual after back-to-back +86.6 % at d = 12) and network 3 (typical, +7.3 %): back-to-back d = 12 and
+# the three singles, to day 116, with the per-firm file kept (--keep-firm-data) and the per-input inventory file
+# (export_inventory_data; streamed, ~2 GB a run). Plus lag24_d12_s11 to day 180: it settles on day 100 > 96, this
+# measures the loss its 116-day run leaves uncounted. Same caches as the grid (export switches are not in the cache
+# fingerprint).
+# Usage: bash studies/cambodia/cluster/launch_cambodia.sh --jobs studies/cambodia/cluster/jobs_mech.txt --batch mech_20261108
+17 lag12 12 --cache-dir cam_sea_s17 --t-final 116 --keep-firm-data --set export_inventory_data=true
+17 single_saigon 12 --cache-dir cam_sea_s17 --t-final 116 --keep-firm-data --set export_inventory_data=true
+17 single_mekong 12 --cache-dir cam_sea_s17 --t-final 116 --keep-firm-data --set export_inventory_data=true
+17 single_tonle 12 --cache-dir cam_sea_s17 --t-final 116 --keep-firm-data --set export_inventory_data=true
+3 lag12 12 --cache-dir cam_sea_s3 --t-final 116 --keep-firm-data --set export_inventory_data=true
+3 single_saigon 12 --cache-dir cam_sea_s3 --t-final 116 --keep-firm-data --set export_inventory_data=true
+3 single_mekong 12 --cache-dir cam_sea_s3 --t-final 116 --keep-firm-data --set export_inventory_data=true
+3 single_tonle 12 --cache-dir cam_sea_s3 --t-final 116 --keep-firm-data --set export_inventory_data=true
+11 lag24 12 --cache-dir cam_sea_s11

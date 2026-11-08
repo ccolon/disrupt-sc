@@ -1,0 +1,236 @@
+# Cambodia paper, R_pair: two-flood interaction curve (the user's order question; Q20 approved 8 Nov 2026).
+# Mekong + Tonle Sap, d = 12, tau = start(Tonle Sap) - start(Mekong): tau > 0 Mekong first, tau < 0 Tonle Sap first.
+# tau = 0, +/-2 ... +/-10 (2-day steps over the overlap), +/-11, +/-12, +/-13 (around back-to-back), +/-18, +/-24 to
+# day 116; +/-36 to day 180. Networks 1-10 on the grid's caches cam_sea_s<seed>; the grid's single_mekong and
+# single_tonle runs (grid_d12_20261108) are the additive baseline. 23 runs a network, 230 runs, ~200 CPU-h.
+# Usage: bash studies/cambodia/cluster/launch_cambodia.sh --jobs studies/cambodia/cluster/jobs_pair.txt --batch pair_d12_20261108
+1 pair_mekong_tonle_tau-24 12 --cache-dir cam_sea_s1 --t-final 116
+1 pair_mekong_tonle_tau-18 12 --cache-dir cam_sea_s1 --t-final 116
+1 pair_mekong_tonle_tau-13 12 --cache-dir cam_sea_s1 --t-final 116
+1 pair_mekong_tonle_tau-12 12 --cache-dir cam_sea_s1 --t-final 116
+1 pair_mekong_tonle_tau-11 12 --cache-dir cam_sea_s1 --t-final 116
+1 pair_mekong_tonle_tau-10 12 --cache-dir cam_sea_s1 --t-final 116
+1 pair_mekong_tonle_tau-8 12 --cache-dir cam_sea_s1 --t-final 116
+1 pair_mekong_tonle_tau-6 12 --cache-dir cam_sea_s1 --t-final 116
+1 pair_mekong_tonle_tau-4 12 --cache-dir cam_sea_s1 --t-final 116
+1 pair_mekong_tonle_tau-2 12 --cache-dir cam_sea_s1 --t-final 116
+1 pair_mekong_tonle_tau0 12 --cache-dir cam_sea_s1 --t-final 116
+1 pair_mekong_tonle_tau2 12 --cache-dir cam_sea_s1 --t-final 116
+1 pair_mekong_tonle_tau4 12 --cache-dir cam_sea_s1 --t-final 116
+1 pair_mekong_tonle_tau6 12 --cache-dir cam_sea_s1 --t-final 116
+1 pair_mekong_tonle_tau8 12 --cache-dir cam_sea_s1 --t-final 116
+1 pair_mekong_tonle_tau10 12 --cache-dir cam_sea_s1 --t-final 116
+1 pair_mekong_tonle_tau11 12 --cache-dir cam_sea_s1 --t-final 116
+1 pair_mekong_tonle_tau12 12 --cache-dir cam_sea_s1 --t-final 116
+1 pair_mekong_tonle_tau13 12 --cache-dir cam_sea_s1 --t-final 116
+1 pair_mekong_tonle_tau18 12 --cache-dir cam_sea_s1 --t-final 116
+1 pair_mekong_tonle_tau24 12 --cache-dir cam_sea_s1 --t-final 116
+1 pair_mekong_tonle_tau-36 12 --cache-dir cam_sea_s1
+1 pair_mekong_tonle_tau36 12 --cache-dir cam_sea_s1
+2 pair_mekong_tonle_tau-24 12 --cache-dir cam_sea_s2 --t-final 116
+2 pair_mekong_tonle_tau-18 12 --cache-dir cam_sea_s2 --t-final 116
+2 pair_mekong_tonle_tau-13 12 --cache-dir cam_sea_s2 --t-final 116
+2 pair_mekong_tonle_tau-12 12 --cache-dir cam_sea_s2 --t-final 116
+2 pair_mekong_tonle_tau-11 12 --cache-dir cam_sea_s2 --t-final 116
+2 pair_mekong_tonle_tau-10 12 --cache-dir cam_sea_s2 --t-final 116
+2 pair_mekong_tonle_tau-8 12 --cache-dir cam_sea_s2 --t-final 116
+2 pair_mekong_tonle_tau-6 12 --cache-dir cam_sea_s2 --t-final 116
+2 pair_mekong_tonle_tau-4 12 --cache-dir cam_sea_s2 --t-final 116
+2 pair_mekong_tonle_tau-2 12 --cache-dir cam_sea_s2 --t-final 116
+2 pair_mekong_tonle_tau0 12 --cache-dir cam_sea_s2 --t-final 116
+2 pair_mekong_tonle_tau2 12 --cache-dir cam_sea_s2 --t-final 116
+2 pair_mekong_tonle_tau4 12 --cache-dir cam_sea_s2 --t-final 116
+2 pair_mekong_tonle_tau6 12 --cache-dir cam_sea_s2 --t-final 116
+2 pair_mekong_tonle_tau8 12 --cache-dir cam_sea_s2 --t-final 116
+2 pair_mekong_tonle_tau10 12 --cache-dir cam_sea_s2 --t-final 116
+2 pair_mekong_tonle_tau11 12 --cache-dir cam_sea_s2 --t-final 116
+2 pair_mekong_tonle_tau12 12 --cache-dir cam_sea_s2 --t-final 116
+2 pair_mekong_tonle_tau13 12 --cache-dir cam_sea_s2 --t-final 116
+2 pair_mekong_tonle_tau18 12 --cache-dir cam_sea_s2 --t-final 116
+2 pair_mekong_tonle_tau24 12 --cache-dir cam_sea_s2 --t-final 116
+2 pair_mekong_tonle_tau-36 12 --cache-dir cam_sea_s2
+2 pair_mekong_tonle_tau36 12 --cache-dir cam_sea_s2
+3 pair_mekong_tonle_tau-24 12 --cache-dir cam_sea_s3 --t-final 116
+3 pair_mekong_tonle_tau-18 12 --cache-dir cam_sea_s3 --t-final 116
+3 pair_mekong_tonle_tau-13 12 --cache-dir cam_sea_s3 --t-final 116
+3 pair_mekong_tonle_tau-12 12 --cache-dir cam_sea_s3 --t-final 116
+3 pair_mekong_tonle_tau-11 12 --cache-dir cam_sea_s3 --t-final 116
+3 pair_mekong_tonle_tau-10 12 --cache-dir cam_sea_s3 --t-final 116
+3 pair_mekong_tonle_tau-8 12 --cache-dir cam_sea_s3 --t-final 116
+3 pair_mekong_tonle_tau-6 12 --cache-dir cam_sea_s3 --t-final 116
+3 pair_mekong_tonle_tau-4 12 --cache-dir cam_sea_s3 --t-final 116
+3 pair_mekong_tonle_tau-2 12 --cache-dir cam_sea_s3 --t-final 116
+3 pair_mekong_tonle_tau0 12 --cache-dir cam_sea_s3 --t-final 116
+3 pair_mekong_tonle_tau2 12 --cache-dir cam_sea_s3 --t-final 116
+3 pair_mekong_tonle_tau4 12 --cache-dir cam_sea_s3 --t-final 116
+3 pair_mekong_tonle_tau6 12 --cache-dir cam_sea_s3 --t-final 116
+3 pair_mekong_tonle_tau8 12 --cache-dir cam_sea_s3 --t-final 116
+3 pair_mekong_tonle_tau10 12 --cache-dir cam_sea_s3 --t-final 116
+3 pair_mekong_tonle_tau11 12 --cache-dir cam_sea_s3 --t-final 116
+3 pair_mekong_tonle_tau12 12 --cache-dir cam_sea_s3 --t-final 116
+3 pair_mekong_tonle_tau13 12 --cache-dir cam_sea_s3 --t-final 116
+3 pair_mekong_tonle_tau18 12 --cache-dir cam_sea_s3 --t-final 116
+3 pair_mekong_tonle_tau24 12 --cache-dir cam_sea_s3 --t-final 116
+3 pair_mekong_tonle_tau-36 12 --cache-dir cam_sea_s3
+3 pair_mekong_tonle_tau36 12 --cache-dir cam_sea_s3
+4 pair_mekong_tonle_tau-24 12 --cache-dir cam_sea_s4 --t-final 116
+4 pair_mekong_tonle_tau-18 12 --cache-dir cam_sea_s4 --t-final 116
+4 pair_mekong_tonle_tau-13 12 --cache-dir cam_sea_s4 --t-final 116
+4 pair_mekong_tonle_tau-12 12 --cache-dir cam_sea_s4 --t-final 116
+4 pair_mekong_tonle_tau-11 12 --cache-dir cam_sea_s4 --t-final 116
+4 pair_mekong_tonle_tau-10 12 --cache-dir cam_sea_s4 --t-final 116
+4 pair_mekong_tonle_tau-8 12 --cache-dir cam_sea_s4 --t-final 116
+4 pair_mekong_tonle_tau-6 12 --cache-dir cam_sea_s4 --t-final 116
+4 pair_mekong_tonle_tau-4 12 --cache-dir cam_sea_s4 --t-final 116
+4 pair_mekong_tonle_tau-2 12 --cache-dir cam_sea_s4 --t-final 116
+4 pair_mekong_tonle_tau0 12 --cache-dir cam_sea_s4 --t-final 116
+4 pair_mekong_tonle_tau2 12 --cache-dir cam_sea_s4 --t-final 116
+4 pair_mekong_tonle_tau4 12 --cache-dir cam_sea_s4 --t-final 116
+4 pair_mekong_tonle_tau6 12 --cache-dir cam_sea_s4 --t-final 116
+4 pair_mekong_tonle_tau8 12 --cache-dir cam_sea_s4 --t-final 116
+4 pair_mekong_tonle_tau10 12 --cache-dir cam_sea_s4 --t-final 116
+4 pair_mekong_tonle_tau11 12 --cache-dir cam_sea_s4 --t-final 116
+4 pair_mekong_tonle_tau12 12 --cache-dir cam_sea_s4 --t-final 116
+4 pair_mekong_tonle_tau13 12 --cache-dir cam_sea_s4 --t-final 116
+4 pair_mekong_tonle_tau18 12 --cache-dir cam_sea_s4 --t-final 116
+4 pair_mekong_tonle_tau24 12 --cache-dir cam_sea_s4 --t-final 116
+4 pair_mekong_tonle_tau-36 12 --cache-dir cam_sea_s4
+4 pair_mekong_tonle_tau36 12 --cache-dir cam_sea_s4
+5 pair_mekong_tonle_tau-24 12 --cache-dir cam_sea_s5 --t-final 116
+5 pair_mekong_tonle_tau-18 12 --cache-dir cam_sea_s5 --t-final 116
+5 pair_mekong_tonle_tau-13 12 --cache-dir cam_sea_s5 --t-final 116
+5 pair_mekong_tonle_tau-12 12 --cache-dir cam_sea_s5 --t-final 116
+5 pair_mekong_tonle_tau-11 12 --cache-dir cam_sea_s5 --t-final 116
+5 pair_mekong_tonle_tau-10 12 --cache-dir cam_sea_s5 --t-final 116
+5 pair_mekong_tonle_tau-8 12 --cache-dir cam_sea_s5 --t-final 116
+5 pair_mekong_tonle_tau-6 12 --cache-dir cam_sea_s5 --t-final 116
+5 pair_mekong_tonle_tau-4 12 --cache-dir cam_sea_s5 --t-final 116
+5 pair_mekong_tonle_tau-2 12 --cache-dir cam_sea_s5 --t-final 116
+5 pair_mekong_tonle_tau0 12 --cache-dir cam_sea_s5 --t-final 116
+5 pair_mekong_tonle_tau2 12 --cache-dir cam_sea_s5 --t-final 116
+5 pair_mekong_tonle_tau4 12 --cache-dir cam_sea_s5 --t-final 116
+5 pair_mekong_tonle_tau6 12 --cache-dir cam_sea_s5 --t-final 116
+5 pair_mekong_tonle_tau8 12 --cache-dir cam_sea_s5 --t-final 116
+5 pair_mekong_tonle_tau10 12 --cache-dir cam_sea_s5 --t-final 116
+5 pair_mekong_tonle_tau11 12 --cache-dir cam_sea_s5 --t-final 116
+5 pair_mekong_tonle_tau12 12 --cache-dir cam_sea_s5 --t-final 116
+5 pair_mekong_tonle_tau13 12 --cache-dir cam_sea_s5 --t-final 116
+5 pair_mekong_tonle_tau18 12 --cache-dir cam_sea_s5 --t-final 116
+5 pair_mekong_tonle_tau24 12 --cache-dir cam_sea_s5 --t-final 116
+5 pair_mekong_tonle_tau-36 12 --cache-dir cam_sea_s5
+5 pair_mekong_tonle_tau36 12 --cache-dir cam_sea_s5
+6 pair_mekong_tonle_tau-24 12 --cache-dir cam_sea_s6 --t-final 116
+6 pair_mekong_tonle_tau-18 12 --cache-dir cam_sea_s6 --t-final 116
+6 pair_mekong_tonle_tau-13 12 --cache-dir cam_sea_s6 --t-final 116
+6 pair_mekong_tonle_tau-12 12 --cache-dir cam_sea_s6 --t-final 116
+6 pair_mekong_tonle_tau-11 12 --cache-dir cam_sea_s6 --t-final 116
+6 pair_mekong_tonle_tau-10 12 --cache-dir cam_sea_s6 --t-final 116
+6 pair_mekong_tonle_tau-8 12 --cache-dir cam_sea_s6 --t-final 116
+6 pair_mekong_tonle_tau-6 12 --cache-dir cam_sea_s6 --t-final 116
+6 pair_mekong_tonle_tau-4 12 --cache-dir cam_sea_s6 --t-final 116
+6 pair_mekong_tonle_tau-2 12 --cache-dir cam_sea_s6 --t-final 116
+6 pair_mekong_tonle_tau0 12 --cache-dir cam_sea_s6 --t-final 116
+6 pair_mekong_tonle_tau2 12 --cache-dir cam_sea_s6 --t-final 116
+6 pair_mekong_tonle_tau4 12 --cache-dir cam_sea_s6 --t-final 116
+6 pair_mekong_tonle_tau6 12 --cache-dir cam_sea_s6 --t-final 116
+6 pair_mekong_tonle_tau8 12 --cache-dir cam_sea_s6 --t-final 116
+6 pair_mekong_tonle_tau10 12 --cache-dir cam_sea_s6 --t-final 116
+6 pair_mekong_tonle_tau11 12 --cache-dir cam_sea_s6 --t-final 116
+6 pair_mekong_tonle_tau12 12 --cache-dir cam_sea_s6 --t-final 116
+6 pair_mekong_tonle_tau13 12 --cache-dir cam_sea_s6 --t-final 116
+6 pair_mekong_tonle_tau18 12 --cache-dir cam_sea_s6 --t-final 116
+6 pair_mekong_tonle_tau24 12 --cache-dir cam_sea_s6 --t-final 116
+6 pair_mekong_tonle_tau-36 12 --cache-dir cam_sea_s6
+6 pair_mekong_tonle_tau36 12 --cache-dir cam_sea_s6
+7 pair_mekong_tonle_tau-24 12 --cache-dir cam_sea_s7 --t-final 116
+7 pair_mekong_tonle_tau-18 12 --cache-dir cam_sea_s7 --t-final 116
+7 pair_mekong_tonle_tau-13 12 --cache-dir cam_sea_s7 --t-final 116
+7 pair_mekong_tonle_tau-12 12 --cache-dir cam_sea_s7 --t-final 116
+7 pair_mekong_tonle_tau-11 12 --cache-dir cam_sea_s7 --t-final 116
+7 pair_mekong_tonle_tau-10 12 --cache-dir cam_sea_s7 --t-final 116
+7 pair_mekong_tonle_tau-8 12 --cache-dir cam_sea_s7 --t-final 116
+7 pair_mekong_tonle_tau-6 12 --cache-dir cam_sea_s7 --t-final 116
+7 pair_mekong_tonle_tau-4 12 --cache-dir cam_sea_s7 --t-final 116
+7 pair_mekong_tonle_tau-2 12 --cache-dir cam_sea_s7 --t-final 116
+7 pair_mekong_tonle_tau0 12 --cache-dir cam_sea_s7 --t-final 116
+7 pair_mekong_tonle_tau2 12 --cache-dir cam_sea_s7 --t-final 116
+7 pair_mekong_tonle_tau4 12 --cache-dir cam_sea_s7 --t-final 116
+7 pair_mekong_tonle_tau6 12 --cache-dir cam_sea_s7 --t-final 116
+7 pair_mekong_tonle_tau8 12 --cache-dir cam_sea_s7 --t-final 116
+7 pair_mekong_tonle_tau10 12 --cache-dir cam_sea_s7 --t-final 116
+7 pair_mekong_tonle_tau11 12 --cache-dir cam_sea_s7 --t-final 116
+7 pair_mekong_tonle_tau12 12 --cache-dir cam_sea_s7 --t-final 116
+7 pair_mekong_tonle_tau13 12 --cache-dir cam_sea_s7 --t-final 116
+7 pair_mekong_tonle_tau18 12 --cache-dir cam_sea_s7 --t-final 116
+7 pair_mekong_tonle_tau24 12 --cache-dir cam_sea_s7 --t-final 116
+7 pair_mekong_tonle_tau-36 12 --cache-dir cam_sea_s7
+7 pair_mekong_tonle_tau36 12 --cache-dir cam_sea_s7
+8 pair_mekong_tonle_tau-24 12 --cache-dir cam_sea_s8 --t-final 116
+8 pair_mekong_tonle_tau-18 12 --cache-dir cam_sea_s8 --t-final 116
+8 pair_mekong_tonle_tau-13 12 --cache-dir cam_sea_s8 --t-final 116
+8 pair_mekong_tonle_tau-12 12 --cache-dir cam_sea_s8 --t-final 116
+8 pair_mekong_tonle_tau-11 12 --cache-dir cam_sea_s8 --t-final 116
+8 pair_mekong_tonle_tau-10 12 --cache-dir cam_sea_s8 --t-final 116
+8 pair_mekong_tonle_tau-8 12 --cache-dir cam_sea_s8 --t-final 116
+8 pair_mekong_tonle_tau-6 12 --cache-dir cam_sea_s8 --t-final 116
+8 pair_mekong_tonle_tau-4 12 --cache-dir cam_sea_s8 --t-final 116
+8 pair_mekong_tonle_tau-2 12 --cache-dir cam_sea_s8 --t-final 116
+8 pair_mekong_tonle_tau0 12 --cache-dir cam_sea_s8 --t-final 116
+8 pair_mekong_tonle_tau2 12 --cache-dir cam_sea_s8 --t-final 116
+8 pair_mekong_tonle_tau4 12 --cache-dir cam_sea_s8 --t-final 116
+8 pair_mekong_tonle_tau6 12 --cache-dir cam_sea_s8 --t-final 116
+8 pair_mekong_tonle_tau8 12 --cache-dir cam_sea_s8 --t-final 116
+8 pair_mekong_tonle_tau10 12 --cache-dir cam_sea_s8 --t-final 116
+8 pair_mekong_tonle_tau11 12 --cache-dir cam_sea_s8 --t-final 116
+8 pair_mekong_tonle_tau12 12 --cache-dir cam_sea_s8 --t-final 116
+8 pair_mekong_tonle_tau13 12 --cache-dir cam_sea_s8 --t-final 116
+8 pair_mekong_tonle_tau18 12 --cache-dir cam_sea_s8 --t-final 116
+8 pair_mekong_tonle_tau24 12 --cache-dir cam_sea_s8 --t-final 116
+8 pair_mekong_tonle_tau-36 12 --cache-dir cam_sea_s8
+8 pair_mekong_tonle_tau36 12 --cache-dir cam_sea_s8
+9 pair_mekong_tonle_tau-24 12 --cache-dir cam_sea_s9 --t-final 116
+9 pair_mekong_tonle_tau-18 12 --cache-dir cam_sea_s9 --t-final 116
+9 pair_mekong_tonle_tau-13 12 --cache-dir cam_sea_s9 --t-final 116
+9 pair_mekong_tonle_tau-12 12 --cache-dir cam_sea_s9 --t-final 116
+9 pair_mekong_tonle_tau-11 12 --cache-dir cam_sea_s9 --t-final 116
+9 pair_mekong_tonle_tau-10 12 --cache-dir cam_sea_s9 --t-final 116
+9 pair_mekong_tonle_tau-8 12 --cache-dir cam_sea_s9 --t-final 116
+9 pair_mekong_tonle_tau-6 12 --cache-dir cam_sea_s9 --t-final 116
+9 pair_mekong_tonle_tau-4 12 --cache-dir cam_sea_s9 --t-final 116
+9 pair_mekong_tonle_tau-2 12 --cache-dir cam_sea_s9 --t-final 116
+9 pair_mekong_tonle_tau0 12 --cache-dir cam_sea_s9 --t-final 116
+9 pair_mekong_tonle_tau2 12 --cache-dir cam_sea_s9 --t-final 116
+9 pair_mekong_tonle_tau4 12 --cache-dir cam_sea_s9 --t-final 116
+9 pair_mekong_tonle_tau6 12 --cache-dir cam_sea_s9 --t-final 116
+9 pair_mekong_tonle_tau8 12 --cache-dir cam_sea_s9 --t-final 116
+9 pair_mekong_tonle_tau10 12 --cache-dir cam_sea_s9 --t-final 116
+9 pair_mekong_tonle_tau11 12 --cache-dir cam_sea_s9 --t-final 116
+9 pair_mekong_tonle_tau12 12 --cache-dir cam_sea_s9 --t-final 116
+9 pair_mekong_tonle_tau13 12 --cache-dir cam_sea_s9 --t-final 116
+9 pair_mekong_tonle_tau18 12 --cache-dir cam_sea_s9 --t-final 116
+9 pair_mekong_tonle_tau24 12 --cache-dir cam_sea_s9 --t-final 116
+9 pair_mekong_tonle_tau-36 12 --cache-dir cam_sea_s9
+9 pair_mekong_tonle_tau36 12 --cache-dir cam_sea_s9
+10 pair_mekong_tonle_tau-24 12 --cache-dir cam_sea_s10 --t-final 116
+10 pair_mekong_tonle_tau-18 12 --cache-dir cam_sea_s10 --t-final 116
+10 pair_mekong_tonle_tau-13 12 --cache-dir cam_sea_s10 --t-final 116
+10 pair_mekong_tonle_tau-12 12 --cache-dir cam_sea_s10 --t-final 116
+10 pair_mekong_tonle_tau-11 12 --cache-dir cam_sea_s10 --t-final 116
+10 pair_mekong_tonle_tau-10 12 --cache-dir cam_sea_s10 --t-final 116
+10 pair_mekong_tonle_tau-8 12 --cache-dir cam_sea_s10 --t-final 116
+10 pair_mekong_tonle_tau-6 12 --cache-dir cam_sea_s10 --t-final 116
+10 pair_mekong_tonle_tau-4 12 --cache-dir cam_sea_s10 --t-final 116
+10 pair_mekong_tonle_tau-2 12 --cache-dir cam_sea_s10 --t-final 116
+10 pair_mekong_tonle_tau0 12 --cache-dir cam_sea_s10 --t-final 116
+10 pair_mekong_tonle_tau2 12 --cache-dir cam_sea_s10 --t-final 116
+10 pair_mekong_tonle_tau4 12 --cache-dir cam_sea_s10 --t-final 116
+10 pair_mekong_tonle_tau6 12 --cache-dir cam_sea_s10 --t-final 116
+10 pair_mekong_tonle_tau8 12 --cache-dir cam_sea_s10 --t-final 116
+10 pair_mekong_tonle_tau10 12 --cache-dir cam_sea_s10 --t-final 116
+10 pair_mekong_tonle_tau11 12 --cache-dir cam_sea_s10 --t-final 116
+10 pair_mekong_tonle_tau12 12 --cache-dir cam_sea_s10 --t-final 116
+10 pair_mekong_tonle_tau13 12 --cache-dir cam_sea_s10 --t-final 116
+10 pair_mekong_tonle_tau18 12 --cache-dir cam_sea_s10 --t-final 116
+10 pair_mekong_tonle_tau24 12 --cache-dir cam_sea_s10 --t-final 116
+10 pair_mekong_tonle_tau-36 12 --cache-dir cam_sea_s10
+10 pair_mekong_tonle_tau36 12 --cache-dir cam_sea_s10

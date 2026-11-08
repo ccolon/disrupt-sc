@@ -11,11 +11,14 @@ decided to port the study to v2. This folder holds the v2 runs.
 | file | role |
 |---|---|
 | `paper_config.yaml` | base configuration of every run, on top of `config/default.yaml` only (the machine's `user_defined_Cambodia*.yaml` is ignored: KI-52) |
-| `scenarios.py` | single, simultaneous and successive basin closures; footprint by attribute (`flood_v3` = the paper's, `flood_disruption` = v4) with its edge counts checked |
+| `scenarios.py` | single, simultaneous and successive basin closures, and two-basin pairs at a lag of either sign (`pair_<a>_<b>_tau<T>`, 8 Nov 2026); footprint by attribute (`flood_v3` = the paper's, `flood_disruption` = v4) with its edge counts checked |
 | `run_cambodia.py` | one run through `run.py execute` (not `build.py`: KI-51); one named build cache per seed, so every scenario of a seed runs on the same supply network; `study_run.json` records the git SHA and config hash |
 | `add_flood_v3.py` | adds the v3 footprint to `Transport/transport.gpkg` (the v3 file is on the cluster) |
 | `sea_gateways.py` | overseas partners at sea, Sihanoukville - Singapore lane, named crossings, port tags, 21 false `border` stubs untagged (Q17, 7 Nov 2026) |
 | `route_calibration.py` | re-routes one seed's cached supply chain with the paper config and overrides (~25 s) and prints the gateway split against the 2015 anchors |
+| `read_batch.py` | reads a batch into analysis/runs.csv and daily.csv; d and lags from the batch; prints the pilot's checks (determinism, settling, H1, lag curve) |
+| `compare_horizons.py` | checks day by day that a run's path does not depend on its horizon (116- vs 180-day runs) |
+| `excess_by_source.py` | a successive-flood run against its singles shifted to each event's start: the excess by period and sector |
 | `cluster/launch_cambodia.sh` | one Slurm job per job-list line; one setup job per seed and cache |
 
 Before any paper run:

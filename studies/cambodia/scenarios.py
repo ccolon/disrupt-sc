@@ -13,6 +13,10 @@ Scenario names:
   simul                the three basins closed together from day 1
   lag<L>               succession Saigon -> Mekong -> Tonle Sap, each closed `duration` days, starts L days apart
                        (lag0 = simul; L = duration: back-to-back; L = duration + 1: one open day between events)
+  pair_<a>_<b>_tau<T>  two basins only, each closed `duration` days; T = start of b - start of a, any sign: T >= 0
+                       closes a from day 1 and b from day 1 + T, T < 0 closes b from day 1 and a from day 1 - T
+                       (e.g. pair_mekong_tonle_tau-5: Tonle Sap from day 1, Mekong from day 6; tau0: both from day 1).
+                       Added 8 Nov 2026 for the two-flood curve (R_pair, the user's order question).
 """
 from __future__ import annotations
 
@@ -51,13 +55,32 @@ def disruptions(scenario: str, duration: int, footprint: str = "v3") -> list[dic
         if lag < 0:
             raise ValueError(f"negative lag in {scenario!r}")
         return [_event(att, b, 1 + i * lag, duration) for i, b in enumerate(BASIN_ORDER)]
+    if scenario.startswith("pair_"):
+        a, b, tau = parse_pair(scenario)
+        return [_event(att, a, 1 + max(0, -tau), duration), _event(att, b, 1 + max(0, tau), duration)]
     raise ValueError(f"unknown scenario {scenario!r}")
+
+
+def parse_pair(scenario: str) -> tuple[str, str, int]:
+    """pair_<a>_<b>_tau<T> -> (a, b, T); T = start of b - start of a."""
+    parts = scenario.split("_")
+    if len(parts) != 4 or parts[0] != "pair" or not parts[3].startswith("tau"):
+        raise ValueError(f"pair scenario must read pair_<a>_<b>_tau<T>, got {scenario!r}")
+    a, b = parts[1], parts[2]
+    for basin in (a, b):
+        if basin not in BASIN_LABEL:
+            raise ValueError(f"unknown basin {basin!r} in {scenario!r}; expected one of {sorted(BASIN_LABEL)}")
+    if a == b:
+        raise ValueError(f"the two basins of {scenario!r} must differ")
+    return a, b, int(parts[3][3:])
 
 
 def last_closed_day(scenario: str, duration: int) -> int:
     """Last day on which some road of the scenario is closed (0 for none)."""
     if scenario == "none":
         return 0
+    if scenario.startswith("pair_"):
+        return abs(parse_pair(scenario)[2]) + duration   # second event: days 1 + |T| .. |T| + duration
     lag = int(scenario[3:]) if scenario.startswith("lag") else 0
     return 2 * lag + duration          # third event: days 1 + 2 lag .. 2 lag + duration
 
