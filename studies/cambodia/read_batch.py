@@ -86,14 +86,18 @@ def main():
     d = int(durations[0])
     LAGS = sorted(int(s[3:]) for s in df.scenario.unique() if s.startswith("lag"))
     print(f"closure length d = {d}; lags {LAGS}")
-
-    print("\n== Determinism: lag0 vs simul (daily series, restoration 30)")
-    for s in seeds:
-        r0 = base.loc[("lag0", s), "run"]
-        rs = base.loc[("simul", s), "run"]
-        diff = (D[r0] - D[rs]).abs().max()
-        print(f"  seed {s}: total lag0 {base.loc[('lag0', s), 'loss_households'] / m:.4f} vs simul "
-              f"{base.loc[('simul', s), 'loss_households'] / m:.4f} mUSD; max daily |diff| {diff:.3g} USD")
+    # The grid has no "simul" runs: lag0 is the same scenario (identical daily losses in every pilot network).
+    SIM = "simul" if "simul" in set(df.scenario) else "lag0"
+    if SIM == "lag0":
+        print("no simul runs in this batch: lag0 stands for the simultaneous scenario")
+    else:
+        print("\n== Determinism: lag0 vs simul (daily series, restoration 30)")
+        for s in seeds:
+            r0 = base.loc[("lag0", s), "run"]
+            rs = base.loc[("simul", s), "run"]
+            diff = (D[r0] - D[rs]).abs().max()
+            print(f"  seed {s}: total lag0 {base.loc[('lag0', s), 'loss_households'] / m:.4f} vs simul "
+                  f"{base.loc[('simul', s), 'loss_households'] / m:.4f} mUSD; max daily |diff| {diff:.3g} USD")
 
     print("\n== Settling (restoration 30): last day above 1 % of peak; daily loss on day 180 in % of peak; "
           "share of the loss after day 120")
@@ -105,17 +109,17 @@ def main():
 
     print("\n== H1: simultaneous / sum of the three singles, by horizon (restoration 30)")
     for h in ("cum_60", "cum_90", "cum_120", "loss_households"):
-        rat = [base.loc[("simul", s), h] / sum(base.loc[(x, s), h] for x in SINGLES) for s in seeds]
+        rat = [base.loc[(SIM, s), h] / sum(base.loc[(x, s), h] for x in SINGLES) for s in seeds]
         print(f"  {h:16s} per seed {np.round(rat, 3).tolist()} mean {np.mean(rat):.3f} "
               f"min {np.min(rat):.3f} max {np.max(rat):.3f}")
     for s in seeds:
         print(f"  seed {s}: singles " + ", ".join(f"{x[7:]} {base.loc[(x, s), 'loss_households'] / m:.3f}"
                                                   for x in SINGLES)
               + f"; sum {sum(base.loc[(x, s), 'loss_households'] for x in SINGLES) / m:.3f}; "
-              f"simul {base.loc[('simul', s), 'loss_households'] / m:.3f} mUSD")
+              f"{SIM} {base.loc[(SIM, s), 'loss_households'] / m:.3f} mUSD")
 
-    print("\n== H2: lag curve, total household loss to day 180 (mUSD, restoration 30); lag = days between "
-          f"event starts, d = {d} (lag {d} = back-to-back)")
+    print(f"\n== H2: lag curve, total household loss over the run (t_final {sorted(int(x) for x in df.t_final.unique())}; mUSD, "
+          f"restoration 30); lag = days between event starts, d = {d} (lag {d} = back-to-back)")
     tab = pd.DataFrame({L: [base.loc[(f"lag{L}", s), "loss_households"] / m for s in seeds] for L in LAGS},
                        index=[f"seed {s}" for s in seeds])
     tab["singles sum"] = [sum(base.loc[(x, s), "loss_households"] for x in SINGLES) / m for s in seeds]
@@ -155,13 +159,13 @@ def main():
               title="Lag curve (grey: networks)")
     ax[0].legend(fontsize=8)
     present = set(df[df.restoration == 30].scenario)
-    for sc in [x for x in ("simul", f"lag{d // 2}", f"lag{d}", f"lag{d + 1}", f"lag{2 * d}", f"lag{3 * d}")
+    for sc in [x for x in (SIM, f"lag{d // 2}", f"lag{d}", f"lag{d + 1}", f"lag{2 * d}", f"lag{3 * d}")
                if x in present]:
         cols = [base.loc[(sc, s), "run"] for s in seeds]
         ax[1].plot(D.index, D[cols].mean(axis=1) / 1e3, lw=1, label=sc)
     ax[1].set(xlabel="day", ylabel="daily household loss (kUSD, mean of networks)", title="Daily loss")
     ax[1].legend(fontsize=8)
-    for sc in [x for x in ("simul", f"lag{d}", f"lag{max(LAGS)}", "single_tonle") if x in present]:
+    for sc in [x for x in (SIM, f"lag{d}", f"lag{max(LAGS)}", "single_tonle") if x in present]:
         cols = [base.loc[(sc, s), "run"] for s in seeds]
         c = D[cols].cumsum()
         ax[2].plot(D.index, (c / c.iloc[-1]).mean(axis=1), lw=1, label=sc)
