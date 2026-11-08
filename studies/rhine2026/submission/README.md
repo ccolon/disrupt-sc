@@ -15,6 +15,7 @@ the submission needs besides the manuscript, and the scripts that build the file
 | `reporting_summary_notes.md` | drafted answers for the Nature Portfolio reporting summary, if the editor asks for it |
 | `build_submission.py` | builds `main_text.pdf` (manuscript without the SI), `supplementary_information.pdf` (the SI as its own document, own reference list) and `combined.pdf` in a temporary copy of the Overleaf folder; prints the word counts and the page counts; fails on an engine error or an unresolved reference |
 | `wordcount.py` | the counts against the journal's guide (title 15, abstract 200, main text 5,000, Methods 3,000, legends 350, references 70, display items 10), macros expanded |
+| `build_zenodo_package.py` | builds the Zenodo deposit of the EU data package (zip, README with provenance and licences, sha256 manifest, metadata draft, build report) in `C:/dsc_runs/rhine2026/zenodo/`; uploads nothing |
 
 The split build rests on three additions to the Overleaf copy (7 November 2026): `xr-hyper` in the preamble of
 `main.tex` with two `\externaldocument` lines placed after `\input{numbers}`, a `\standalonesi` / `\nosupplement`
@@ -25,6 +26,7 @@ and the one-line wrappers `maintext.tex` and `supplement.tex` (no underscores: t
 ```
 python studies/rhine2026/submission/build_submission.py              # -> C:/dsc_runs/rhine2026/submission/
 python studies/rhine2026/submission/wordcount.py                     # counts only
+python studies/rhine2026/submission/build_zenodo_package.py          # -> C:/dsc_runs/rhine2026/zenodo/ (not uploaded)
 ```
 
 ## Status on 7 November 2026
@@ -46,7 +48,20 @@ Commerzbank, Prognos), the 2018 GDP figure (about 0.4 % at the trough after Adem
 Jannsen and Meuchelboeck 2026), the Kaub and transport-economics citations, and five Discussion sentences; the bibliography grew from 61 to 85 entries (69 cited, DOIs verified on Crossref or DataCite). The main
 text is now 7,181 words (Introduction 1,323), which adds to the length decision above.
 
-Open before upload (the author): funding and acknowledgements, the e-mail, the AI-use wording, the length decision,
-the release tag and the Zenodo DOIs for code and data, the November batch on the observed season (daggers and todos
+Trim (7 November, night): the main text went from 7,190 to 5,473 words (Introduction 1,225, Results 2,750, Discussion
+1,498) and the Methods from 4,784 to 3,115, in three passes that removed the restatements between the sections and moved
+the detail to the Supplementary Information with its ledger entries: S2 the residual tonnages of the Rhine stations and
+the port tonnages; S3 the issue history of the forecast, the monthly loading shares, which reaches saturate, the full
+prospective-test protocol and the comparison with the estimates of August 2026; S5 the surcharge maximum and the French
+chain; S7 the list of sensitivity runs and crossed experiments; S8 the coverage of the rail regression; S10 the equations
+of the weekly sequence, the run horizon and the mechanics of the fleet's peak week. Same night: the funding statement
+(main.tex and the cover letter), Kriedel 2019, Streng 2020 and Scholten 2014 cited (87 entries, 72 cited), the Discussion
+sentence on the September production index (published on 6 November, after the forecast was frozen; scored at revision),
+the dbcargo2026 note corrected (about 400 wagons at short notice; the larger figures came from the trade press), and the
+Zenodo package built (`build_zenodo_package.py`). `paper_gate.py` is green except the two pending SI items it has carried
+since 5 November (the 140 Mt of the port ladder, the 6.7 Mt a week of rail freight).
+
+Open before upload (the author): acknowledgements, the e-mail, the AI-use wording, the Zenodo upload (data package ready;
+ORCID, release tag and DOIs to add) and the code release, the November batch on the observed season (daggers and todos
 removed), the reviewer list with contact details, the preprint decision, the APC arrangement. Details and the order
 of operations: `natcomms_requirements_20261107.md`, section 5.

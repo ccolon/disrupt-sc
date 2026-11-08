@@ -58,8 +58,8 @@ can follow and check.
 
 This manuscript is not under consideration elsewhere, and there is no related manuscript under consideration or in
 press. [A preprint was / was not posted on <server> on <date>.] The work was not discussed with a Nature
-Communications editor before submission. I am the sole author and declare no competing interests. [Funding
-statement, one line.] Suggested reviewers and requested exclusions are listed in the submission form [and below].
+Communications editor before submission. I am the sole author and declare no competing interests. This work was financially supported by the Jubiläumsfonds
+of the Austrian Central Bank (OeNB) as part of the FutureGVC project (2024--2028). Suggested reviewers and requested exclusions are listed in the submission form [and below].
 
 Sincerely,
 

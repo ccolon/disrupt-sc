@@ -393,6 +393,141 @@ allowed:
   - file: sections/si.tex
     text: 'over the four sectors, fuel is'
     why: '5 Nov 2026 (patch_fuel_20261105.py); count: the four fuel-fed service sectors named in the sentence (H49, H52, D, H50)'
+  # ---- moved or copied from main.yaml by the trim of 7 Nov 2026 (ledger_relocate.py)
+  - file: sections/si.tex
+    text: 'and those two regions receive the goods by rail'
+    why: 'design: Switzerland and Alsace, the two regions beyond Mannheim whose barges end in the Rhine--Neckar region in the model (comment 1 of 6 Nov 2026)'
+  - file: sections/si.tex
+    text: 'eleven versions of the supplier--buyer network'
+    why: 'design: number of supplier--buyer networks (reference + ten seeds); l. 35 and 197'
+  - file: sections/si.tex
+    text: 'range of the eleven networks'
+    why: 'design: number of networks (l. 81 and 245)'
+  - file: sections/si.tex
+    text: 'of the eleven networks fall inside the benchmark'
+    why: 'design: number of networks (the count itself is \DrawsInBand)'
+  - file: sections/si.tex
+    text: 'at a refill time of 15 days instead of 30'
+    why: 'design: restoration time variants (l. 111 and 241)'
+  - file: sections/si.tex
+    text: 'rises on \FleetPeakUpDraws{} of the ten further ones'
+    why: 'design: ten further networks'
+  - file: sections/si.tex
+    text: 'Households are one agent per NUTS2 region (251)'
+    why: 'design: 251 NUTS2 household agents'
+  - file: sections/si.tex
+    text: 'the sum of the orders its clients placed in week $t-1$'
+    why: 'convention: notation'
+  - file: sections/si.tex
+    text: 'which the firm aims to close over a restoration time $\tau$ of 30 days'
+    why: 'design: restoration time tau = 30 days'
+  - file: sections/si.tex
+    text: '\tfrac12\min\!\big(1,\,q_{ij,t-1}/o_{ij,t-1}\big)+\tfrac12\,\sigma_{ij,t-1}'
+    why: 'convention: notation of the satisfaction average'
+  - file: sections/si.tex
+    text: 'with a utilization rate $u=0.8$'
+    why: 'design: capacity utilization rate'
+  - file: sections/si.tex
+    text: '$S_{ik,t+1}=S_{ik,t}+r_{ik,t}-a_{ik}\,y_{i,t}$'
+    why: 'convention: notation of the inventory update'
+  - file: sections/si.tex
+    text: 'the supplier''s price times $1+\theta_j\,\Delta c$'
+    why: 'convention: notation of the delivered price'
+  - file: sections/si.tex
+    text: '(0 to 0.6 across agents; undefined for one sector'
+    why: 'data: transport intensity theta_j from the OECD ICIO (inputs)'
+  - file: sections/si.tex
+    text: 'and set to 0.2 there without effect'
+    why: 'design: theta default for the household-employer sector'
+  - file: sections/si.tex
+    text: 'exceeds 5, which never happens in this paper''s runs'
+    why: 'design: refusal threshold of the weighted freight-cost increase'
+  - file: sections/si.tex
+    text: 'roads (2,979 edges), railways (4,261), inland waterways (461'
+    why: 'data: edge counts of the TEN-T transport network by mode (sum 10,139 = \NEdges)'
+  - file: sections/si.tex
+    text: 'a truck carries 25 tonnes against 2,000 and more for a barge or an ore train'
+    why: 'evidence: standard payloads of a truck and of a barge or ore train (no citation key in the paragraph)'
+  - file: sections/si.tex
+    text: '(below 5\,cm the loading curve is held at its lowest value, 8\,\%, an assumption)'
+    why: 'data: floor of the loading table (scenarios/draught_table.csv)'
+  - file: sections/si.tex
+    text: 'the four single levers on top of the 50 kt rail ceiling'
+    why: 'design: crossed runs (four levers x rail 50)'
+  - file: sections/si.tex
+    text: '(each wave alone, the sequence with gaps of 0, 2 and 4 weeks)'
+    why: 'design: wave-isolation runs at 15 days'
+  - file: sections/si.tex
+    text: 'Sensitivity runs vary the inventory multiplier (1.25, 1.5 and 2, on the 2018 event)'
+    why: 'design: inventory ladder'
+  - file: sections/si.tex
+    text: 'the loading curve (shortfall $\times$0.85 and $\times$1.15, both events)'
+    why: 'design: loading-curve variants'
+  - file: sections/si.tex
+    text: 'the number of suppliers per input (two instead of one, both events)'
+    why: 'design: sup2 runs'
+  - file: sections/si.tex
+    text: 'the seed of the network draw (ten versions besides the reference'
+    why: 'design: ten further networks'
+  - file: sections/si.tex
+    text: '19, 31, 30, 31 and 15 days from July to November'
+    why: 'data: days below 78 cm, scenarios/kaub_daily_2026.csv to 29 Sep then scenarios/2026.csv (checked 5 Nov: Jul 19, Aug 31, Sep 29+1)'
+  - file: sections/si.tex
+    text: 'and of the two loading curves'
+    why: 'design: tablelow/tablehigh'
+  - file: sections/si.tex
+    text: 'The two differ in shape: the model is spiky'
+    why: 'count: model and regression paths'
+  - file: sections/si.tex
+    text: 'the mean over the eleven networks, the headline of this paper'
+    why: 'design: number of networks'
+  - file: sections/si.tex
+    text: '$s_m = 100\,(1 - I_m/\bar I)$'
+    why: 'convention: notation of the observed shortfall'
+  - file: sections/si.tex
+    text: 'the mean of $|s_m - \hat s_m|$ over the four months'
+    why: 'design: scoring months September-December'
+  - file: sections/si.tex
+    text: 'Two comparisons are made on common information'
+    why: 'count: the two comparisons of the protocol'
+  - file: sections/si.tex
+    text: 'and the fourth-quarter accounts are the closest tests'
+    why: 'convention: calendar quarter'
+  - file: sections/si.tex
+    text: 'the model''s value-added change by calendar quarter'
+    why: 'convention: calendar quarter'
+  - file: sections/si.tex
+    text: 'of the quarter''s baseline in the third quarter of 2026'
+    why: 'convention: calendar quarter'
+  - file: sections/si.tex
+    text: 'of the forty largest seaports are within 30\,\% of the Eurostat counts'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); design: the forty largest seaports by gross weight handled (Eurostat 2023, Table S-ports) and the 30 % threshold of the count'
+  - file: sections/si.tex
+    text: 'a week in week 24 to \CatchUpLastM~million in week 43'
+    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); design: week 24 is the first recovery week after the 23 weeks of the 2026 profile, week 43 the last week of the run'
+  - file: sections/si.tex
+    text: 'The run horizon, 43 weeks for 2026 and 42 for 2018'
+    why: 'design: run length (Supplementary Section S10; moved from Methods on 7 Nov 2026)'
+  - file: sections/si.tex
+    text: 'Two crossed experiments complete the set'
+    why: 'count: the crossed experiments of 2 November 2026 (Supplementary Section S7; moved from Methods on 7 Nov 2026)'
+  # ---- moved or copied from main.yaml by the trim of 7 Nov 2026 (ledger_relocate.py)
+  - file: sections/si.tex
+    text: 'industrial loss over the five weeks of the August episode'
+    why: 'convention: the August trough = run weeks 7-11 (make_numbers.py, AugWaveIndQ)'
+  - file: sections/si.tex
+    text: 'with other estimates made in August and September of 0.2--0.35 points'
+    why: 'evidence: bloomberg2026commerzbank (Commerzbank 0.35, 11 Aug), kiel2026autumn (0.2 adopted, 0.3 ceteris paribus, 3 Sept), jannsen2026lowwater (the same, Wirtschaftsdienst 106(9))'
+  - file: sections/si.tex
+    text: '33\,\% of the surveyed Rhine-corridor firms reported production restrictions and 6\,\% a stop'
+    why: 'evidence: dihk2026 (survey of 29 July - 4 August)'
+  - file: sections/si.tex
+    text: 'German firms within 50\,km of the Rhine produce below 99\,\% of their baseline'
+    why: 'design: corridor radius 50 km, threshold 99 % of baseline (make_numbers.py, CorridorFirmsBelowRhine*)'
+  # ---- moved or copied from main.yaml by the trim of 7 Nov 2026 (ledger_relocate.py)
+  - file: sections/si.tex
+    text: '\CorridorStopRhineAug\,\% below half of it'
+    why: 'design: stop threshold = half of baseline output (make_numbers.py, CorridorStopRhine*)'
 claims:
   - file: sections/si.tex
     text: 'where the benchmark keeps a third, because the closures of November'
@@ -497,6 +632,53 @@ claims:
     expr: 'PricedDec/RecDec'
     range: [1.8, 2.2]
     why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: the priced river''s December at x1 against the benchmark''s (S9 repeats S6); twice = 1.8-2.2'
+  # ---- moved or copied from main.yaml by the trim of 7 Nov 2026 (ledger_relocate.py)
+  - file: sections/si.tex
+    text: 'the refill time of inventories and the service rules by up to a third'
+    expr: 'max(RevRestFifteenAbs, RevRestSixtyAbs, RevServAbs)'
+    range: [30, 37]
+    why: 'result: largest % change of the 2026 loss among rest15, rest60 and serv45; up to a third = 30-37'
+  - file: sections/si.tex
+    text: 'sea lanes (948) and multimodal connectors at terminals and ports (1,490)'
+    expr: 'NEdges - 2979 - 4261 - 461 - 948'
+    range: [1490, 1490]
+    why: 'data check: the edge counts by mode (roads 2,979, rail 4,261, waterways 461, sea 948, connectors 1,490) sum to \NEdges'
+  - file: sections/si.tex
+    text: 'the loading curve by about a half up or down'
+    expr: '100*(TableLowQ/DEUlossQ-1)'
+    range: [40, 60]
+    why: 'result: 2026 loss with the shortfall +15 %; about a half = 40-60'
+  - file: sections/si.tex
+    text: 'the loading curve by about a half up or down'
+    expr: '100*(1-TableHighQ/DEUlossQ)'
+    range: [40, 60]
+    why: 'result: 2026 loss with the shortfall -15 %; about a half = 40-60'
+  - file: sections/si.tex
+    text: 'two suppliers per input down by nearly a half'
+    expr: '100*(1-SupTwoQ/DEUlossQ)'
+    range: [44, 50]
+    why: 'result: two suppliers per input; nearly a half = 44-50'
+  - file: sections/si.tex
+    text: 'no pooling up threefold'
+    expr: 'NoPoolQ/DEUlossQ'
+    range: [2.7, 3.3]
+    why: 'result: no pooling over the base; threefold = 2.7-3.3'
+  - file: sections/si.tex
+    text: 'no rail bypass for bulk up by three fifths'
+    expr: 'RevNoRailAbs'
+    range: [56, 64]
+    why: 'result: % rise without the rail bypass; three fifths = 56-64'
+  # ---- moved or copied from main.yaml by the trim of 7 Nov 2026 (ledger_relocate.py)
+  - file: sections/si.tex
+    text: 'inside the EUR 1--2 billion (0.1--0.2 percentage points of third-quarter GDP)'
+    expr: 'AugWaveEurBn'
+    range: [1, 2]
+    why: 'result: the model''s August industrial loss in EUR bn lies inside the ifw2026 estimate (the digits are that evidence)'
+  - file: sections/si.tex
+    text: 'inside the EUR 1--2 billion (0.1--0.2 percentage points of third-quarter GDP)'
+    expr: 'AugWaveIndQ'
+    range: [0.1, 0.2]
+    why: 'result: the same in % of a quarter of German value added against the ifw2026 0.1-0.2 points'
 pending:
   # ---- S3
   # ---- S4 the two channels

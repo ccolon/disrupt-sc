@@ -2,13 +2,6 @@
 # to the macros they paraphrase (claims) and the open findings for the author (pending). Format: paper_gate.py docstring.
 # Claim values below are those of numbers.tex of the batch of 20261102 (r6_bycargo).
 allowed:
-  # ---------------------------------------------------------------- 6 Nov 2026: answers to the author's review comments
-  - file: main.tex
-    text: 'and those two regions receive the goods by rail'
-    why: 'design: Switzerland and Alsace, the two regions beyond Mannheim whose barges end in the Rhine--Neckar region in the model (comment 1 of 6 Nov 2026)'
-  - file: main.tex
-    text: 'How fast inventories recover between two episodes'
-    why: 'count: the two episodes of 2026 (comment 12 of 6 Nov 2026)'
   - file: main.tex
     text: 'halving it cuts the loss by \RevRestFifteenAbs'
     why: 'design: the refill-time sensitivity halves the 30-day refill time (rest15); added 5 Nov after the gate learned ''halving'''
@@ -45,6 +38,9 @@ allowed:
     text: 'which left GDP about 0.4\,\% below its path at the trough of the episode and 0.2--0.3\,\% over its two quarters'
     why: 'evidence: ademmer2023 (about 0.4 % of GDP at the trough, a lower bound; dossier B flag 1), jannsen2026lowwater (GDP -0.2 % in Q3 and -0.3 % in Q4 2018); the former 0.3-0.4 mixed the ING and Coface 0.3 with Ademmer''s 0.4 (7 Nov 2026)'
   - file: main.tex
+    text: 'put the direct cost to Germany at EUR~2.4 and 4.7 billion \citep{streng2020laagwater,kriedel2019lowwater}'
+    why: 'evidence: streng2020laagwater (Erasmus UPT for CBRB and BLN-Schuttevaer, April 2020: financial impact of 2018 about EUR 2.4 bn in Germany, of which 2.1 bn lost production), kriedel2019lowwater (CCNR, 26 Nov 2019: EUR 4.68 bn in Q3-Q4 2018, 0.63 % of German industrial production); dossier B of 7 Nov 2026, read in the PDFs'
+  - file: main.tex
     text: 'set a new one on 4 August and fell to 5\,cm on 17 August; the tonnage passing the stretch fell by three quarters'
     why: 'evidence: pegelonline2026 (gauge), reuters2026/schuttevaer2026 (tonnage; the KBN count of the week to 13 Aug, 22 % of normal, in the loading-table ledger)'
   - file: main.tex
@@ -60,16 +56,13 @@ allowed:
     text: 'calibrated on 28 European economies (the EU-27 and Switzerland)'
     why: 'design: scope of 28 economies'
   - file: main.tex
-    text: 'with 251 regional household agents and with twelve external trading partners'
-    why: 'design: one household agent per NUTS2 region (251), twelve external partners'
-  - file: main.tex
-    text: 'We made three choices among a few candidates each'
+    text: 'three choices among a few candidates each (the representation of the river'
     why: 'count: the three choices made on the 2018 benchmark (river representation, inventory level, suppliers per input)'
   - file: main.tex
     text: 'Four results follow. First, on the 2018 low water'
     why: 'count: the paper describing itself'
   - file: main.tex
-    text: 'Third, the timing and profile of the event matter'
+    text: 'Third, timing and profile matter'
     why: 'count: third of the four results'
   - file: main.tex
     text: 'one more week of inventories or a fairway 20\,cm deeper'
@@ -92,9 +85,6 @@ allowed:
     text: 'the number of days per month with Kaub below 78\,cm'
     why: 'evidence: ademmer2023, ademmer2019 (low-water threshold of the benchmark regression)'
   - file: main.tex
-    text: 'percent-months (16th to 84th percentile)'
-    why: 'convention: one-standard-deviation band = 16th-84th percentile'
-  - file: main.tex
     text: 'the eleven supplier--buyer networks'
     why: 'design: number of supplier--buyer networks (l. 76, 81, 93, 100, 151, 157, 165)'
   - file: main.tex
@@ -113,19 +103,13 @@ allowed:
     text: 'its sum over the five months comes nearer the benchmark'
     why: 'convention: the benchmark window August-December 2018 (five months)'
   - file: main.tex
-    text: 'multiplied by 1.25, 1.5 and 2 they give'
-    why: 'design: inventory multipliers of the ladder (x1, 1.25, 1.5, 2; the rung at x0.75 of 6 Nov 2026 is a sensitivity point, not a baseline)'
-  - file: main.tex
     text: 'the alternative at $\times$1, 1.5 and 2, rerun on the same flows'
     why: 'design: inventory multipliers of the priced-river rerun of 3 Nov 2026 (x1, 1.5, 2), F9 (b) caption'
   - file: main.tex
     text: 'from three quarters of the balance-sheet value to twice it'
     why: 'design: the ladder''s multipliers, x0.75 (the rung of 6 Nov 2026, a sensitivity point) to x2; F9 (b) caption'
   - file: main.tex
-    text: 'at three quarters of the balance-sheet value \LadderIntZ'
-    why: 'design: the rung at x0.75 of the inventory ladder (2018_r6_bycargo_inv075), whose shortfall is \LadderIntZ'
-  - file: main.tex
-    text: 'one supplier per input is kept over two'
+    text: 'one supplier per input are kept because they are what the evidence documents'
     why: 'design: suppliers per input (one or two)'
   - file: main.tex
     text: 'ten further versions of the supplier--buyer network'
@@ -141,10 +125,10 @@ allowed:
     text: 'After the August 2026 record (11\,cm in the week of 10 August) the river recovered to 67\,cm'
     why: 'data: 2026 profile of 30 Sep (scenarios/2026.csv: week of 10 Aug 11.0 cm, week of 24 Aug 67.0 cm)'
   - file: main.tex
-    text: 'two observed days at 2\,cm, and $-3$\,cm for the rest of the week in the outlook, the six-week forecast'
+    text: 'two observed days at 2\,cm, and $-3$\,cm for the rest of the week in the six-week outlook'
     why: 'data: 2026 profile of 30 Sep (scenarios/2026.csv, week of 28 Sep: two observed days at 2 cm, five at -3 cm from the BfG outlook of 28 Sep, bfg2026)'
   - file: main.tex
-    text: 'The 28 September outlook kept Kaub below 60\,cm through the end of October'
+    text: 'kept Kaub below 60\,cm through the end of October'
     why: 'data: BfG outlook of 28 Sep in the 2026 profile (scenarios/2026.csv: 6, 24, 36, 43 cm in October)'
   - file: main.tex
     text: 'fourteen weeks observed, one partly, five from the outlook, and three assumed'
@@ -168,12 +152,6 @@ allowed:
     text: '33\,\% of the surveyed Rhine-corridor firms reported production restrictions and 6\,\% a stop'
     why: 'evidence: dihk2026 (survey of 29 July - 4 August)'
   - file: main.tex
-    text: 'German firms within 50\,km of the Rhine produce below 99\,\% of their baseline'
-    why: 'design: corridor radius 50 km, threshold 99 % of baseline (make_numbers.py, CorridorFirmsBelowRhine*)'
-  - file: main.tex
-    text: '{\CorridorStopRhineAug}\,\% below half of it'
-    why: 'design: stop threshold = half of baseline output (make_numbers.py, CorridorStopRhine*)'
-  - file: main.tex
     text: 'the six-week outlook of 28 September and the assumed recovery shaded'
     why: 'data: the BfG six-week outlook of 28 Sep used for weeks 15-20 (bfg2026, scenarios/2026.csv)'
   - file: main.tex
@@ -183,7 +161,7 @@ allowed:
     text: 'spread evenly over the twenty-three weeks costs'
     why: 'data: the 23 profile weeks of scenarios/2026.csv (flat profile scenarios/2026_waveflat.csv)'
   - file: main.tex
-    text: 'In counterfactual runs with normal water between the two episodes'
+    text: 'in counterfactual runs with normal water between the two episodes'
     why: 'count: the two episodes of the wave-isolation design'
   - file: main.tex
     text: 'The refill time sets how fast this happens: at 15 days instead of the model''s 30'
@@ -208,7 +186,7 @@ allowed:
     text: 'Low water has two direct effects'
     why: 'count: capacity and surcharge'
   - file: main.tex
-    text: 'The two can be run apart on the reference network'
+    text: 'two direct effects, run apart on the reference network'
     why: 'count: the two channels'
   - file: main.tex
     text: 'even more than the two together'
@@ -217,17 +195,11 @@ allowed:
     text: 'freight being about 5\,\% of the input bill of the median firm and a quarter to a half for transport operators'
     why: 'data: transport intensity theta_j of the agents from the OECD ICIO (inputs, Methods: 0 to 0.6 across agents), not a run output; no macro'
   - file: main.tex
-    text: 'across all deliveries in the 28 economies only'
+    text: 'Across all deliveries in the 28 economies only'
     why: 'design: scope of 28 economies'
   - file: main.tex
     text: 'of the value pays more than 1\,\% above its baseline price'
     why: 'convention: threshold of the price-share statistic (\PriceShareEconomy, make_numbers.py: > 1 %)'
-  - file: main.tex
-    text: 'at 50 kt a week, the 400 wagons that the national rail operator offered in August 2026'
-    why: 'design: rail ceiling of the sensitivity (50 kt) + evidence: dbcargo2026 (400 wagons)'
-  - file: main.tex
-    text: 'at 140 kt a week---an illustrative ceiling at the scale of the rail response'
-    why: 'design: upper rail ceiling of the sensitivity (140 kt, from ademmer2023)'
   # ---------------------------------------------------------------- who loses (l. 132-138)
   - file: main.tex
     text: 'Two supply chains carry the shock beyond industry'
@@ -246,7 +218,7 @@ allowed:
     text: 'One extra week of inventories for every buyer in the 28 economies removes'
     why: 'design: lever size (one week) and scope (28 economies)'
   - file: main.tex
-    text: 'In absolute terms, seven days of inputs for every German buyer is about 26 billion USD of goods'
+    text: 'Seven days of inputs for every German buyer is about 26 billion USD of goods'
     why: 'data: 7/365 of the annual goods-input purchases of German buyers in the baseline (model inputs, not a run output; also l. 241); no macro'
   - file: main.tex
     text: 'the barge-dependent buyers alone is 4.5 billion of inventory'
@@ -264,7 +236,7 @@ allowed:
     text: 'can still carry about 800 tonnes at a gauge of 30\,cm, against about 400 for a standard vessel'
     why: 'evidence: wiwo2026, contargo2026'
   - file: main.tex
-    text: 'which lets a further 10\,\% of the normal tonnage pass between 15 and 55\,cm'
+    text: 'lets a further 10\,\% of the normal tonnage pass between 15 and 55\,cm'
     why: 'design: fleet lever (+10 points of the loading curve between 15 and 55 cm)'
   - file: main.tex
     text: 'but below 15\,cm even a low-water vessel loads almost nothing'
@@ -273,7 +245,7 @@ allowed:
     text: 'rises on \FleetPeakUpDraws{} of the ten further ones'
     why: 'design: ten further networks'
   - file: main.tex
-    text: 'with its gain extended to 100\,cm, as the loading of the purpose-built tankers'
+    text: 'With its gain extended to 100\,cm, as the loading of the purpose-built tankers'
     why: 'design: fleetwide variant (gain up to 100 cm)'
   - file: main.tex
     text: 'The three together remove \finalbatch{\LevPackageAvg}'
@@ -310,10 +282,7 @@ allowed:
     text: 'and three choices were made on the 2018 benchmark'
     why: 'count: the three selection choices'
   - file: main.tex
-    text: 'a third of the firms surveyed along the Rhine in early August 2026 reported production restrictions and 6\,\% a stop'
-    why: 'evidence: dihk2026 (33 % restrictions, 6 % stop; cited on l. 95)'
-  - file: main.tex
-    text: 'Run apart on the reference network, the two episodes of 2026 cost'
+    text: 'Run apart, the two episodes of 2026 cost less than in sequence'
     why: 'count: the two episodes'
   - file: main.tex
     text: 'With the 30-day refill time of the model, four weeks of normal water between the episodes'
@@ -322,10 +291,7 @@ allowed:
     text: 'with 15 days it disappears'
     why: 'design: restoration-time variant of 15 days'
   - file: main.tex
-    text: 'A river that passes a tenth of its tonnage empties the stocks; instead, one at half load can keep them fed'
-    why: 'data: illustrative loading shares of the 2026 profile through the loading table (deepest weeks 8-19 %, flat profile 0.40: scenarios/2026.csv, 2026_waveflat.csv)'
-  - file: main.tex
-    text: 'the six-week outlooks of the Federal Institute of Hydrology'
+    text: 'The six-week outlooks of the Federal Institute of Hydrology'
     why: 'evidence: bfg2026 (horizon of the BfG outlook)'
   - file: main.tex
     text: 'and doubling it raises it by \RevRestSixtyRel'
@@ -334,14 +300,8 @@ allowed:
     text: 'Two modeling choices shape this picture'
     why: 'count: pooling and pipelines'
   - file: main.tex
-    text: 'because it loads more between 15 and 55\,cm'
-    why: 'design: fleet lever range'
-  - file: main.tex
     text: 'held before the season, and a fairway 20\,cm deeper'
     why: 'design: deep20 lever'
-  - file: main.tex
-    text: 'the order also survives when the railway can take on 50 kt a week'
-    why: 'design: rail ceiling 50 kt of the crossed runs'
   - file: main.tex
     text: 'The nine low-water tankers built by the chemical companies since 2018 and the seven more planned'
     why: 'evidence: wiwo2026'
@@ -349,31 +309,19 @@ allowed:
     text: 'Five limitations bound the reading'
     why: 'count: the paper describing itself'
   - file: main.tex
-    text: 'the operators'' counts of two events, mixed sources'
+    text: 'the operators'' counts of two events (Supplementary Table'
     why: 'data: sources of the loading table (2018 and 2026 counts, SI tab:loading)'
   - file: main.tex
-    text: 'Raising or lowering by 15\,\% the share of the normal tonnage that the curve keeps off the river'
+    text: 'raising or lowering by 15\,\% the share of the normal tonnage it keeps off the river'
     why: 'design: loading-curve shortfall +-15 % (tablelow, tablehigh)'
-  - file: main.tex
-    text: 'halving or doubling the floor it sets below 5\,cm'
-    why: 'design: floor of the loading table (8 % below 5 cm) tested at 4 and 16 % (floor04, floor16)'
-  - file: main.tex
-    text: 'the normal traffic at full loading scaled by the loading curve with 2\,\% of headroom'
-    why: 'design: capacity headroom 2 %'
-  - file: main.tex
-    text: 'with 10 and 25\,\% of headroom the loss falls by'
-    why: 'design: headroom variants (head10, head25)'
   - file: main.tex
     text: 'the spread across its eleven versions'
     why: 'design: number of networks'
   - file: main.tex
-    text: 'fourteen weeks observed, one partly, five on the outlook of 28 September and three assumed'
-    why: 'data: status column of scenarios/2026.csv'
-  - file: main.tex
     text: 'outlook''s 25th- and 75th-percentile paths'
     why: 'convention: quantiles of the BfG ENS outlook (q25, q75 runs; l. 182 and 223)'
   - file: main.tex
-    text: 'two stress paths rather than bounds'
+    text: '25th- and 75th-percentile stress paths give'
     why: 'design: the two quantile paths (q25, q75)'
   # ---------------------------------------------------------------- methods: model (l. 191-213)
   - file: main.tex
@@ -407,38 +355,17 @@ allowed:
     text: 'carries the 90 days of the stockholding obligation \citep{ebv2025}'
     why: 'evidence: ebv2025'
   - file: main.tex
-    text: 'Service inputs are not storable and carry a 90-day coping duration'
+    text: 'Service and construction inputs are not storable and carry a 90-day coping duration'
     why: 'design: service coping duration'
   - file: main.tex
-    text: 'it keeps producing at its baseline rate for 90 days before stopping production'
+    text: 'keeps producing at its baseline rate for 90 days'
     why: 'design: service coping duration'
-  - file: main.tex
-    text: 'buyers carry a 90-day coping duration rather than inventory'
-    why: 'design: construction coping duration'
-  - file: main.tex
-    text: 'the sum of the orders its clients placed in week $t-1$'
-    why: 'convention: notation'
   - file: main.tex
     text: 'which the firm aims to close over a restoration time $\tau$ of 30 days'
     why: 'design: restoration time tau = 30 days'
   - file: main.tex
-    text: '\tfrac12\min\!\big(1,\,q_{ij,t-1}/o_{ij,t-1}\big)+\tfrac12\,\sigma_{ij,t-1}'
-    why: 'convention: notation of the satisfaction average'
-  - file: main.tex
     text: 'with a utilization rate $u=0.8$'
     why: 'design: capacity utilization rate'
-  - file: main.tex
-    text: '$S_{ik,t+1}=S_{ik,t}+r_{ik,t}-a_{ik}\,y_{i,t}$'
-    why: 'convention: notation of the inventory update'
-  - file: main.tex
-    text: 'the supplier''s price times $1+\theta_j\,\Delta c$'
-    why: 'convention: notation of the delivered price'
-  - file: main.tex
-    text: '(0 to 0.6 across agents; undefined for one sector'
-    why: 'data: transport intensity theta_j from the OECD ICIO (inputs)'
-  - file: main.tex
-    text: 'and set to 0.2 there without effect'
-    why: 'design: theta default for the household-employer sector'
   - file: main.tex
     text: 'exceeds 5, which never happens in this paper''s runs'
     why: 'design: refusal threshold of the weighted freight-cost increase'
@@ -446,97 +373,63 @@ allowed:
     text: 'transport network (TEN-T) with \NEdges{} edges'
     why: 'convention: TEN-T is the network''s name (the gate reads TEN as the number word ten)'
   - file: main.tex
-    text: 'roads (2,979 edges), railways (4,261), inland waterways (461'
-    why: 'data: edge counts of the TEN-T transport network by mode (sum 10,139 = \NEdges)'
-  # ---------------------------------------------------------------- methods: transport, disruption (l. 217-221)
-  - file: main.tex
-    text: 'compared with 50--60 Mt in the Central Commission for the Navigation of the Rhine statistics'
-    why: 'evidence: ccnr2023'
-  - file: main.tex
-    text: 'against roughly 10~Mt and a sixth in reality'
-    why: 'evidence: ccnr2023 (containers past Kaub)'
-  - file: main.tex
-    text: 'the dry-bulk vessels are three fleets on the same river'
-    why: 'design: three cargo classes with capacities per class'
-  - file: main.tex
     text: 'from full loading above 150\,cm to a tenth at record lows'
     why: 'data: loading table (scenarios/draught_table.csv: 1.0 from 150 cm, 0.08 below 5 cm)'
   - file: main.tex
-    text: 'The loading factor acts in two ways'
+    text: 'which acts in two ways'
     why: 'count: capacity and surcharge'
   - file: main.tex
     text: 'plus a 2\,\% headroom margin'
     why: 'design: capacity headroom 2 %'
   - file: main.tex
-    text: 'The three classes are three fleets'
+    text: 'the three classes are three fleets'
     why: 'design: three cargo classes'
   - file: main.tex
     text: 'the headroom is tested at 10 and 25\,\%'
     why: 'design: headroom variants'
   - file: main.tex
-    text: 'a week at a loading share of 0.25 costs four times the normal freight'
-    why: 'design: surcharge rule (multiplier = 1 / loading share), worked example'
-  - file: main.tex
     text: 'the multiplier is reduced to one third of its excess over one'
     why: 'design: Lower Rhine surcharge reduction + evidence: contargo2026'
   - file: main.tex
-    text: 'the class''s normal tonnage on the stretch plus 2\,\%'
-    why: 'design: capacity headroom 2 %'
-  - file: main.tex
     text: 'adds more than 50\,km on a mode that was initially under 100\,km'
     why: 'design: mode-switch rule'
-  - file: main.tex
-    text: 'a truck carries 25 tonnes against 2,000 and more for a barge or an ore train'
-    why: 'evidence: standard payloads of a truck and of a barge or ore train (no citation key in the paragraph)'
   - file: main.tex
     text: 'For containers the penalty of a switch is 15\,\% of the normal freight bill'
     why: 'design: container mode-switch penalty'
   - file: main.tex
     text: 'a week at 11\,cm passes a fifth of the normal tonnage; a week below 5\,cm, 8\,\%'
     why: 'data: loading table (scenarios/draught_table.csv: 0.19 at 11 cm, floor 0.08 below 5 cm)'
-  - file: main.tex
-    text: '(40\,cm for container vessels, 50\,cm for tank barges, 30\,cm for dry-bulk vessels)'
-    why: 'design: sailing floors of the alternative (priced) representation'
   # ---------------------------------------------------------------- methods: scenarios (l. 223-225)
   - file: main.tex
-    text: 'totaling 23 weeks in all, followed by 20 weeks of recovery'
+    text: '(23 weeks, flagged in Fig.~\ref{fig:event}, followed by 20 weeks of recovery)'
     why: 'data: length of scenarios/2026.csv (23 weeks) + design: 20 recovery weeks'
   - file: main.tex
-    text: 'is used (14 observations), the week of 28 September is built from two observed days'
+    text: '(14 observations), two observed days and the outlook''s median for the week of 28 September'
     why: 'data: status column of scenarios/2026.csv'
   - file: main.tex
-    text: 'the ENS median of the six-week outlook'
+    text: 'the ensemble median of the six-week outlook'
     why: 'data: BfG outlook of 28 Sep (bfg2026, scenarios/bfg_6week_kaub_20260930.csv)'
   - file: main.tex
-    text: 'assumed values of 75, 90 and 105\,cm are taken for the three last weeks'
+    text: 'assumed values of 75, 90 and 105\,cm for the three last weeks'
     why: 'data: assumed recovery weeks of scenarios/2026.csv'
   - file: main.tex
-    text: 'that outlook put the weeks of 14 and 21 September at 12 and 22\,cm against observed means of 25 and 7'
-    why: 'data: previous (7 Sep vintage) vs observed values in scenarios/2026.csv (12.0 vs 25.2, 22.0 vs 6.6)'
-  - file: main.tex
-    text: 'and the week of 28 September at 42\,cm against $-2$'
-    why: 'data: scenarios/2026.csv (previous 42.0, now -1.7)'
-  - file: main.tex
-    text: 'are two stress paths (Supplementary Section~S4)'
+    text: 'two stress paths (Supplementary Section~S4), not bounds'
     why: 'design: the two quantile paths (q25, q75)'
   - file: main.tex
     text: 'from 16 July to 16 December 2018 (22 weeks) with twenty recovery weeks'
     why: 'data: scenarios/2018.csv (22 weeks) + design: 20 recovery weeks'
-  - file: main.tex
-    text: '(below 5\,cm the loading curve is held at its lowest value, 8\,\%, an assumption)'
-    why: 'data: floor of the loading table (scenarios/draught_table.csv)'
   # ---------------------------------------------------------------- methods: accounting, calibration (l. 227-233)
   - file: main.tex
-    text: 'losses are then expressed as a share of a quarter (13 weeks)'
+    text: 'losses are expressed as a share of a quarter (13 weeks)'
     why: 'convention: a quarter = 13 weeks'
   - file: main.tex
-    text: 'shortfall, $B_t=\max(0,B_{t-1}+s_t)$, where'
+    text: 'clients, $B_t=\max(0,B_{t-1}+s_t)$, where'
     why: 'convention: notation of the backlog'
   - file: main.tex
     text: 'The runs are 43 weeks long for 2026 and 42 for 2018, i.e., the profiles'' length plus 20 weeks of recovery'
     why: 'design: run length'
   - file: main.tex
-    text: 'Aggregates over the 28 economies in the text are sums over the modeled economies, the 27 member states'
+    text: 'Aggregates over the 28 economies are sums over the modeled economies'
     why: 'design: scope of 28 economies'
   - file: main.tex
     text: 'are two views of the same loss'
@@ -551,16 +444,7 @@ allowed:
     text: 'the number of suppliers per input (two options)'
     why: 'count: candidates of the selection'
   - file: main.tex
-    text: 'with Kaub below 78\,cm, its lag and the lagged growth'
-    why: 'evidence: ademmer2023 (regression specification)'
-  - file: main.tex
-    text: '(29, 14, 31, 30 and 3 from August to December 2018)'
-    why: 'data: days below 78 cm in scenarios/kaub_daily_2018.csv (checked 5 Nov: 29, 14, 31, 30, 3)'
-  - file: main.tex
-    text: 'the comparison for ten further supplier--buyer networks'
-    why: 'design: ten further networks'
-  - file: main.tex
-    text: 'lowered by 15\,\% and for two suppliers per input'
+    text: 'the loading-curve variants and two suppliers per input'
     why: 'design: loading-curve variants and the two-supplier run'
   # ---------------------------------------------------------------- methods: adaptation (l. 235-243)
   - file: main.tex
@@ -594,78 +478,23 @@ allowed:
     text: 'the \textit{inventories +7 days} lever is 7/365 of the buyers'
     why: 'design: one week of annual purchases'
   - file: main.tex
-    text: 'about 26 billion USD for every German buyer and 4.5 billion for the barge-dependent buyers alone'
-    why: 'data: 7/365 of the baseline goods-input purchases of the German buyers (inputs, not a run output); no macro'
-  - file: main.tex
-    text: 'reported as the mean over the eleven, with their range. Two crossed experiments complete the set'
-    why: 'design: number of networks + count: two crossed experiments'
-  - file: main.tex
-    text: 'the four single levers on top of the 50 kt rail ceiling'
-    why: 'design: crossed runs (four levers x rail 50)'
-  - file: main.tex
-    text: '(each wave alone, the sequence with gaps of 0, 2 and 4 weeks)'
-    why: 'design: wave-isolation runs at 15 days'
-  - file: main.tex
-    text: 'Sensitivity runs vary the inventory multiplier (1.25, 1.5 and 2, on the 2018 event)'
-    why: 'design: inventory ladder'
-  - file: main.tex
-    text: 'the loading curve (shortfall $\times$0.85 and $\times$1.15, both events)'
-    why: 'design: loading-curve variants'
-  - file: main.tex
-    text: 'the number of suppliers per input (two instead of one, both events)'
-    why: 'design: sup2 runs'
-  - file: main.tex
-    text: 'the seed of the network draw (ten versions besides the reference'
-    why: 'design: ten further networks'
-  - file: main.tex
     text: 'splits the 2026 profile after its tenth week (30 August)'
     why: 'design: split of the wave-isolation experiment (week 10)'
   - file: main.tex
-    text: 'the two in sequence with 1, 2, 4 and 8 weeks of normal water (200\,cm at Kaub)'
+    text: 'in sequence with 1, 2, 4 and 8 weeks of normal water (200\,cm at Kaub)'
     why: 'design: wave-isolation gaps'
   - file: main.tex
     text: 'a flat profile at the mean loading share of the season (0.40) for its twenty-three weeks'
     why: 'data: mean load factor of the 2026 profile (0.403, scenarios/2026_waveflat.csv), 23 weeks'
-  - file: main.tex
-    text: 'every run has twenty recovery weeks after its last profile week'
-    why: 'design: recovery weeks'
   - file: main.tex
     text: 'the sum of the losses of the two waves alone'
     why: 'count: two waves'
   - file: main.tex
     text: 'A run of 42 or 43 weeks takes about three hours on one core of a cluster node with 20\,GB of memory'
     why: 'count: computation facts of the paper (run length, runtime, memory)'
-  # ---------------------------------------------------------------- methods: prospective test (l. 245)
-  - file: main.tex
-    text: '19, 31, 30, 31 and 15 days from July to November'
-    why: 'data: days below 78 cm, scenarios/kaub_daily_2026.csv to 29 Sep then scenarios/2026.csv (checked 5 Nov: Jul 19, Aug 31, Sep 29+1)'
   - file: main.tex
     text: 'and of the two loading curves'
     why: 'design: tablelow/tablehigh'
-  - file: main.tex
-    text: 'The two differ in shape: the model is spiky'
-    why: 'count: model and regression paths'
-  - file: main.tex
-    text: 'the mean over the eleven networks, the headline of this paper'
-    why: 'design: number of networks'
-  - file: main.tex
-    text: '$s_m = 100\,(1 - I_m/\bar I)$'
-    why: 'convention: notation of the observed shortfall'
-  - file: main.tex
-    text: 'the mean of $|s_m - \hat s_m|$ over the four months'
-    why: 'design: scoring months September-December'
-  - file: main.tex
-    text: 'Two comparisons are made on common information'
-    why: 'count: the two comparisons of the protocol'
-  - file: main.tex
-    text: 'and the fourth-quarter accounts are the closest tests'
-    why: 'convention: calendar quarter'
-  - file: main.tex
-    text: 'the model''s value-added change by calendar quarter'
-    why: 'convention: calendar quarter'
-  - file: main.tex
-    text: 'of the quarter''s baseline in the third quarter of 2026'
-    why: 'convention: calendar quarter'
   # ---------------------------------------------------------------- data availability, layout (l. 255-266)
   - file: main.tex
     text: 'and the six-week outlooks from the Federal Institute of Hydrology'
@@ -681,30 +510,39 @@ allowed:
     why: 'convention: LaTeX layout argument (gate false positive: the setcounter pattern blanks only its first argument)'
 
   - file: main.tex
-    text: 'its variants with the shortfall raised and lowered by 15\,\% give'
+    text: 'variants with the shortfall raised and lowered by 15\,\% give'
     why: '5 Nov 2026 rewrite (patch_stale_claims_20261105.py); design: loading-curve variants with the shortfall +-15 % (tablelow / tablehigh)'
   - file: main.tex
     text: 'and the two low-water episodes of 2026 cost'
     why: '5 Nov 2026 rewrite (patch_stale_claims_20261105.py); count: the two episodes of the 2026 season (August, September-October)'
-  - file: main.tex
-    text: 'apart---four weeks of normal water in between'
-    why: '5 Nov 2026 rewrite (patch_stale_claims_20261105.py); design: the gap of four weeks of the wave-isolation runs (wave_<tag>_AB_gap4)'
   # 5 Nov 2026 pending fix (patch_pending_20261105.py); literals the fixed text keeps
   - file: main.tex
     text: 'and the fleet last in \FleetLastDraws{} of ten'
     why: '5 Nov 2026 pending fix (patch_pending_20261105.py); design: ten further networks'
   - file: main.tex
-    text: 'and the fleet last on \FleetLastDraws{} of ten'
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); design: ten further networks'
-  - file: main.tex
     text: 'missed the end-of-September episode by 15 to 44\,cm'
     why: '5 Nov 2026 pending fix (patch_pending_20261105.py); data: scenarios/2026.csv, the outlook of 7 September (previous values 22 and 42 cm) against the observed weekly means of the weeks of 21 and 28 September (6.6 and -1.7 cm); the Methods give 22 and 42 against 7 and -2'
   - file: main.tex
-    text: 'of the forty largest seaports are within 30\,\% of the Eurostat counts'
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); design: the forty largest seaports by gross weight handled (Eurostat 2023, Table S-ports) and the 30 % threshold of the count'
+    text: 'three fleets on the same river, for which the capacities below are set per class'
+    why: 'count: the three cargo classes (Methods, Transport layer; trim of 7 Nov 2026)'
   - file: main.tex
-    text: 'a week in week 24 to \CatchUpLastM~million in week 43'
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); design: week 24 is the first recovery week after the 23 weeks of the 2026 profile, week 43 the last week of the run'
+    text: 'the mean absolute error over the four months'
+    why: 'design: the months scored, September to December 2026 (Methods, Prospective test; trim of 7 Nov 2026)'
+  - file: main.tex
+    text: 'the single levers on top of the 50 kt rail ceiling; the wave profiles at a refill time of 15 days'
+    why: 'design: the crossed experiments of 2 November 2026 (Methods; trim of 7 Nov 2026, the list itself is in Supplementary Section S7)'
+  - file: main.tex
+    text: 'reported as the mean over the eleven, with their range'
+    why: 'count: the eleven supplier-buyer networks (Methods; trim of 7 Nov 2026)'
+  - file: main.tex
+    text: 'its transport purchases over its intermediate purchases, 0 to 0.6 across agents'
+    why: 'data: transport intensity of the supplying agents in the MRIO (Methods, weekly sequence summary; the equation moved to Supplementary Section S10 on 7 Nov 2026)'
+  - file: main.tex
+    text: 'and when the railway can take on 50 kt a week'
+    why: 'design: the rail ceiling of the crossed experiments (Discussion; 7 Nov 2026 trim, rewording of ''''the order also survives when the railway can take on 50 kt a week'''')'
+  - file: main.tex
+    text: 'German firms within 50\,km of the Rhine producing below 99\,\% and below half of their baseline'
+    why: 'design: the survey comparison of early August 2026, thresholds of the firm counts (Results; trim of 7 Nov 2026, the full comparison is in Supplementary Section S3)'
 claims:
   # ---------------------------------------------------------------- abstract and introduction
   - file: main.tex
@@ -744,11 +582,6 @@ claims:
     range: [0.1, 0.2]
     why: 'result: the same in % of a quarter of German value added against the ifw2026 0.1-0.2 points'
   - file: main.tex
-    text: 'the refill time of inventories and the service rules by up to a third'
-    expr: 'max(RevRestFifteenAbs, RevRestSixtyAbs, RevServAbs)'
-    range: [30, 37]
-    why: 'result: largest % change of the 2026 loss among rest15, rest60 and serv45; up to a third = 30-37'
-  - file: main.tex
     text: 'one extra week removes two fifths of the 2026 loss'
     expr: 'LevStockAvg'
     range: [36, 44]
@@ -770,27 +603,17 @@ claims:
     range: [0, 0.99]
     why: 'result: position of the model''s 2018 industrial integral (mean of the networks) between the 2.5th percentile and the center of the benchmark; 95 % = convention'
   - file: main.tex
-    text: 'a 15\,\% larger shortfall falls just short of its one-standard-deviation band'
-    expr: 'RecordIntLow - TableLowInt'
-    range: [0.01, 0.5]
-    why: 'result: gap (percent-months) between the tablelow 2018 integral and the 16th percentile of the benchmark; 15 % = design'
-  - file: main.tex
     text: 'the model''s industrial loss lies within the 95\,\% band of their estimate'
     expr: '(ModelIntEnsMean - RecordIntLowW)/(RecordInt - RecordIntLowW)'
     range: [0, 1.0]
     why: 'result: model''s 2018 industrial integral inside the benchmark''s 95 % band (lower half); 95 % = convention'
   - file: main.tex
-    text: 'against an eighth of the model''s firms near the river producing below their baseline'
-    expr: 'CorridorFirmsBelowRhineAug'
-    range: [11, 14]
-    why: 'result: % of German firms within 50 km of the Rhine below 99 % of baseline in week 7; an eighth = 11-14'
-  - file: main.tex
-    text: 'Industry carries more than a third of it'
+    text: 'industry carries more than a third of it'
     expr: 'IndustryShare'
     range: [33.4, 50]
     why: 'result: % of the German gross loss in industry (B-E); more than a third = 33.4-50'
   - file: main.tex
-    text: 'shipping companies---carries over half'
+    text: 'shipping companies, over half'
     expr: 'ShareRefining+ShareLandTransport+ShareLogistics+SharePower+ShareShipping'
     range: [50, 75]
     why: 'result: fuel chain = refining + land transport + logistics + power + water transport, % of the German gross loss; over half = 50-75'
@@ -810,16 +633,6 @@ claims:
     expr: 'NSectors'
     range: [50, 50]
     why: 'data check: the 50 ICIO sectors equal \NSectors'
-  - file: main.tex
-    text: 'The other 39 sectors are placed on NUTS3 employment'
-    expr: 'NSectors - 11'
-    range: [39, 39]
-    why: 'data check: 50 sectors minus the eleven placed on facility data (spatial disaggregation, SI S1)'
-  - file: main.tex
-    text: 'sea lanes (948) and multimodal connectors at terminals and ports (1,490)'
-    expr: 'NEdges - 2979 - 4261 - 461 - 948'
-    range: [1490, 1490]
-    why: 'data check: the edge counts by mode (roads 2,979, rail 4,261, waterways 461, sea 948, connectors 1,490) sum to \NEdges'
 
   # 5 Nov 2026 rewrite (patch_stale_claims_20261105.py); words matched to the batch of 2 Nov
   - file: main.tex
@@ -827,16 +640,6 @@ claims:
     expr: 'RatioBase'
     range: [2.5, 2.8]
     why: 'result: 2026 German loss over its industrial part; more than two and a half times = 2.5-2.8'
-  - file: main.tex
-    text: 'leave out an economy-wide loss two and a half times larger'
-    expr: '100/IndustryShareyy'
-    range: [2.3, 2.7]
-    why: 'result: 2018 loss over its industrial part (2026: RatioBase 2.6); two and a half times = 2.3-2.7'
-  - file: main.tex
-    text: 'leave out an economy-wide loss two and a half times larger'
-    expr: 'RatioBase'
-    range: [2.3, 2.7]
-    why: 'result: the 2026 ratio, which the same sentence predicts; 2.3-2.7'
   - file: main.tex
     text: 'while doubling inventories reduces the loss by almost three quarters'
     expr: '100*(1-LadderD/DEUlossQyy)'
@@ -852,11 +655,6 @@ claims:
     expr: 'WaveInterShare'
     range: [15, 18.5]
     why: 'result: interaction without a gap, % of the sum; a sixth = 15-18.5'
-  - file: main.tex
-    text: 'or a faster refilling of inventories, would largely remove'
-    expr: 'max(WaveInterFour, WaveInterRest)/WaveInterShare'
-    range: [-0.5, 0.4]
-    why: 'result: share of the interaction left with a 4-week gap or a 15-day refill; largely remove = at most 40 % left'
   - file: main.tex
     text: 'and a fleet built for low water a fifth'
     expr: 'LevFleetAvg'
@@ -878,11 +676,6 @@ claims:
     range: [0.01, 100]
     why: 'result: the larger of the two loading-curve variants (TableLowInt) is below the record''s center'
   - file: main.tex
-    text: 'the larger shortfall just short of its one-standard-deviation band'
-    expr: 'RecordIntLow - TableLowInt'
-    range: [0.01, 0.6]
-    why: 'result: the +15 % shortfall variant lies just below the 16th percentile (just short = within 0.6 percent-months)'
-  - file: main.tex
     text: 'a loss that builds from July and more than doubles in the autumn'
     expr: 'AutumnWaveQ/AugWaveQ'
     range: [2.0, 2.8]
@@ -897,31 +690,6 @@ claims:
     expr: '100*(1-FlatQ/DEUlossQ)'
     range: [35, 45]
     why: 'result: flat profile vs the season; about two fifths = 35-45'
-  - file: main.tex
-    text: 'the loading curve by about a half up or down'
-    expr: '100*(TableLowQ/DEUlossQ-1)'
-    range: [40, 60]
-    why: 'result: 2026 loss with the shortfall +15 %; about a half = 40-60'
-  - file: main.tex
-    text: 'the loading curve by about a half up or down'
-    expr: '100*(1-TableHighQ/DEUlossQ)'
-    range: [40, 60]
-    why: 'result: 2026 loss with the shortfall -15 %; about a half = 40-60'
-  - file: main.tex
-    text: 'two suppliers per input down by nearly a half'
-    expr: '100*(1-SupTwoQ/DEUlossQ)'
-    range: [44, 50]
-    why: 'result: two suppliers per input; nearly a half = 44-50'
-  - file: main.tex
-    text: 'no pooling up threefold'
-    expr: 'NoPoolQ/DEUlossQ'
-    range: [2.7, 3.3]
-    why: 'result: no pooling over the base; threefold = 2.7-3.3'
-  - file: main.tex
-    text: 'no rail bypass for bulk up by three fifths'
-    expr: 'RevNoRailAbs'
-    range: [56, 64]
-    why: 'result: % rise without the rail bypass; three fifths = 56-64'
   - file: main.tex
     text: 'are less than a third of the deliveries that German buyers miss'
     expr: 'TransportWithheldShare'
@@ -938,7 +706,7 @@ claims:
     range: [3.05, 4.5]
     why: 'result: the same, Discussion'
   - file: main.tex
-    text: 'Goods producers and construction, by contrast, work off nearly a quarter of their backlog'
+    text: 'goods producers and construction work off nearly a quarter of their backlog'
     expr: '100*(100-NetShare)/(100-PerishableShare)'
     range: [20.5, 25]
     why: 'result: backlog worked off by the catch-up sectors; nearly a quarter = 20.5-25'
@@ -948,22 +716,12 @@ claims:
     range: [2.3, 2.7]
     why: 'result: 2018 loss over its industrial part; 2.3-2.7'
   - file: main.tex
-    text: 'and one in fifty below half of it'
-    expr: 'CorridorStopRhineAug'
-    range: [1.6, 2.4]
-    why: 'result: % of the corridor firms below half of baseline in week 7; one in fifty = 1.6-2.4'
-  - file: main.tex
     text: 'and the second costs a quarter more than it would have alone'
     expr: '100*(WaveBafterAQ/WaveBQ-1)'
     range: [22, 28]
     why: 'result: second episode after the first vs alone; a quarter = 22-28'
   - file: main.tex
-    text: 'spread evenly over the season costs two fifths less'
-    expr: '100*(1-FlatQ/DEUlossQ)'
-    range: [36, 44]
-    why: 'result: flat profile vs the season; two fifths = 36-44'
-  - file: main.tex
-    text: 'cement to construction sites---a sixth'
+    text: 'and the building-materials chain a sixth'
     expr: 'ShareConstruction+ShareCement'
     range: [15, 18.5]
     why: 'result: building-materials chain, % of the German gross loss; a sixth = 15-18.5'
@@ -978,43 +736,28 @@ claims:
     range: [2.7, 3.3]
     why: 'result: no pooling over the base; by three = 2.7-3.3'
   - file: main.tex
-    text: 'A fleet built for low water removes a fifth of the loss'
+    text: 'a fleet built for low water a fifth'
     expr: 'LevFleetAvg'
     range: [17, 23]
     why: 'result: fleet lever, mean of the eleven networks; a fifth = 17-23'
   - file: main.tex
-    text: 'and a quarter with its gain extended to 100\,cm'
+    text: '(a quarter with its gain extended to 100\,cm)'
     expr: 'RevFleetWideRemoves'
     range: [22, 28]
     why: 'result: fleetwide variant; a quarter = 22-28 (100 cm = design)'
   - file: main.tex
-    text: 'Together, the three cut losses by more than four fifths'
+    text: 'the three together more than four fifths'
     expr: 'LevPackageAvg'
     range: [80.5, 90]
     why: 'result: package, mean of the eleven networks; more than four fifths = 80.5-90'
   - file: main.tex
-    text: 'they remove a quarter of the loss, at the scale of the rail response'
+    text: 'a quarter of the loss at the tonnage the operator offered in August 2026 and more than a half at the scale of the rail response'
     expr: 'RevRailFiftyAbs'
     range: [22, 28]
     why: 'result: rail 50 kt; a quarter = 22-28'
-  - file: main.tex
-    text: 'of past low waters more than a half'
-    expr: 'RevRailHundredFortyAbs'
-    range: [50.5, 75]
-    why: 'result: rail 140 kt; more than a half = 50.5-75'
-  - file: main.tex
-    text: 'removes a quarter to more than a half of the loss'
-    expr: 'RevRailFiftyAbs'
-    range: [22, 28]
-    why: 'result: rail 50 kt (lower end); a quarter = 22-28'
-  - file: main.tex
-    text: 'removes a quarter to more than a half of the loss'
-    expr: 'RevRailHundredFortyAbs'
-    range: [50.5, 75]
-    why: 'result: rail 140 kt (upper end); more than a half = 50.5-75'
   # 5 Nov 2026 pending fix (patch_pending_20261105.py); words bound to the new macros
   - file: main.tex
-    text: 'two and a half months after the benchmark'
+    text: 'starts its losses two and a half months late'
     expr: 'PricedOnsetLagMonths'
     range: [2.25, 2.75]
     why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: priced river with closures (2018_r6_bycargo_priced), first week of German loss against the first day of the benchmark''s first month of shortfall (August; the benchmark is monthly); two and a half months = 2.25-2.75'
@@ -1043,4 +786,9 @@ claims:
     expr: 'EnsMedianyy - DEUlossQyy'
     range: [0.005, 10]
     why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: 2018 reference network (\DEUlossQyy) below the median of the eleven networks'
+  - file: main.tex
+    text: 'the other 39 sectors are placed on NUTS3 employment'
+    expr: 'NSectors - 11'
+    range: [39, 39]
+    why: 'Methods (7 Nov 2026 trim, lower-case rewording of the entry of 5 Nov 2026)'
 pending:
