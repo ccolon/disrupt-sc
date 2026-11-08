@@ -4,7 +4,8 @@ Per run: the total household loss (loss_summary.csv), the daily loss (loss_per_r
 sectors), the cumulative loss at fixed horizons, the peak, the settling day (last day the daily loss is above 1 % of
 its peak, the E_settle criterion) and the share of the loss after day 120. Then the pilot's checks: lag0 == simul
 (determinism), simultaneous / sum of singles per network (H1), the lag curve per network (H2), restoration 4 vs 30
-days on lags 12 and 13.
+days on lags d and d + 1 (back-to-back and a one-day gap). The closure length d and the lags are read from the batch
+(one d per batch), so the same reader serves the d = 12 pilot and the d = 8 settling runs.
 
 Usage: python studies/cambodia/read_batch.py <batch folder> [--out <folder>] [--no-figure]
 Writes <out>/runs.csv (one row per run), <out>/daily.csv (daily loss, one column per run) and <out>/pilot_read.png;
@@ -19,7 +20,6 @@ import numpy as np
 import pandas as pd
 
 HORIZONS = (30, 60, 90, 120, 150, 180)
-LAGS = (0, 6, 11, 12, 13, 18, 24, 36)
 SINGLES = ("single_saigon", "single_mekong", "single_tonle")
 
 
@@ -80,6 +80,12 @@ def main():
 
     base = df[df.restoration == 30].set_index(["scenario", "seed"])
     seeds = sorted(df.seed.unique())
+    durations = sorted(df.duration.unique())
+    if len(durations) != 1:
+        raise SystemExit(f"one closure length per batch expected, found {durations}")
+    d = int(durations[0])
+    LAGS = sorted(int(s[3:]) for s in df.scenario.unique() if s.startswith("lag"))
+    print(f"closure length d = {d}; lags {LAGS}")
 
     print("\n== Determinism: lag0 vs simul (daily series, restoration 30)")
     for s in seeds:
@@ -109,7 +115,7 @@ def main():
               f"simul {base.loc[('simul', s), 'loss_households'] / m:.3f} mUSD")
 
     print("\n== H2: lag curve, total household loss to day 180 (mUSD, restoration 30); lag = days between "
-          "event starts, d = 12 (lag 12 = back-to-back)")
+          f"event starts, d = {d} (lag {d} = back-to-back)")
     tab = pd.DataFrame({L: [base.loc[(f"lag{L}", s), "loss_households"] / m for s in seeds] for L in LAGS},
                        index=[f"seed {s}" for s in seeds])
     tab["singles sum"] = [sum(base.loc[(x, s), "loss_households"] for x in SINGLES) / m for s in seeds]
@@ -118,18 +124,19 @@ def main():
     print("  as a ratio to the sum of singles:")
     print(norm.round(3).to_string())
     print("  mean ratio " + ", ".join(f"lag {L}: {norm[L].mean():.3f}" for L in LAGS))
-    d1213 = 100 * (tab[13] / tab[12] - 1)
-    print(f"  lag13 vs lag12 (paired, %): {np.round(d1213.values, 2).tolist()}")
+    if d in tab and d + 1 in tab:
+        gap1 = 100 * (tab[d + 1] / tab[d] - 1)
+        print(f"  lag{d + 1} vs lag{d} (paired, %): {np.round(gap1.values, 2).tolist()}")
 
-    print("\n== Restoration 4 days vs 30 days, lags 12 and 13 (mUSD)")
     r4 = df[df.restoration == 4].set_index(["scenario", "seed"])
-    for L in (12, 13):
-        print(f"  lag{L}: r30 {[round(base.loc[(f'lag{L}', s), 'loss_households'] / m, 3) for s in seeds]}"
-              f"  r4 {[round(r4.loc[(f'lag{L}', s), 'loss_households'] / m, 3) for s in seeds if (f'lag{L}', s) in r4.index]}")
     if not r4.empty:
-        d4 = [100 * (r4.loc[('lag13', s), 'loss_households'] / r4.loc[('lag12', s), 'loss_households'] - 1)
-              for s in seeds if ('lag13', s) in r4.index and ('lag12', s) in r4.index]
-        print(f"  restoration 4: lag13 vs lag12 (paired, %): {np.round(d4, 2).tolist()}")
+        print(f"\n== Restoration 4 days vs 30 days, lags {d} and {d + 1} (mUSD)")
+        for L in (d, d + 1):
+            print(f"  lag{L}: r30 {[round(float(base.loc[(f'lag{L}', s), 'loss_households']) / m, 3) for s in seeds]}"
+                  f"  r4 {[round(float(r4.loc[(f'lag{L}', s), 'loss_households']) / m, 3) for s in seeds if (f'lag{L}', s) in r4.index]}")
+        d4 = [100 * (r4.loc[(f'lag{d + 1}', s), 'loss_households'] / r4.loc[(f'lag{d}', s), 'loss_households'] - 1)
+              for s in seeds if (f'lag{d + 1}', s) in r4.index and (f'lag{d}', s) in r4.index]
+        print(f"  restoration 4: lag{d + 1} vs lag{d} (paired, %): {np.round(d4, 2).tolist()}")
         print("  restoration 4 settling: " + ", ".join(f"{r.run}: day {r.settle_day}, day-180 {r.last_day_pct_peak:.2f} % of peak"
                                                          for r in df[df.restoration == 4].itertuples()))
 
@@ -143,16 +150,18 @@ def main():
         ax[0].plot(LAGS, tab.loc[f"seed {s}", list(LAGS)], color="0.7", lw=0.8, marker="o", ms=3)
     ax[0].plot(LAGS, tab[list(LAGS)].mean(), color="C0", lw=2, marker="o", label="mean of 5 networks")
     ax[0].axhline(tab["singles sum"].mean(), color="C3", ls="--", label="sum of single-basin losses (mean)")
-    ax[0].axvline(12, color="0.5", ls=":", lw=0.8)
-    ax[0].set(xlabel="days between event starts (d = 12)", ylabel="household loss to day 180 (mUSD)",
+    ax[0].axvline(d, color="0.5", ls=":", lw=0.8)
+    ax[0].set(xlabel=f"days between event starts (d = {d})", ylabel="household loss to day 180 (mUSD)",
               title="Lag curve (grey: networks)")
     ax[0].legend(fontsize=8)
-    for sc in ("simul", "lag6", "lag12", "lag13", "lag24", "lag36"):
+    present = set(df[df.restoration == 30].scenario)
+    for sc in [x for x in ("simul", f"lag{d // 2}", f"lag{d}", f"lag{d + 1}", f"lag{2 * d}", f"lag{3 * d}")
+               if x in present]:
         cols = [base.loc[(sc, s), "run"] for s in seeds]
         ax[1].plot(D.index, D[cols].mean(axis=1) / 1e3, lw=1, label=sc)
     ax[1].set(xlabel="day", ylabel="daily household loss (kUSD, mean of networks)", title="Daily loss")
     ax[1].legend(fontsize=8)
-    for sc in ("simul", "lag12", "lag36", "single_tonle"):
+    for sc in [x for x in ("simul", f"lag{d}", f"lag{max(LAGS)}", "single_tonle") if x in present]:
         cols = [base.loc[(sc, s), "run"] for s in seeds]
         c = D[cols].cumsum()
         ax[2].plot(D.index, (c / c.iloc[-1]).mean(axis=1), lw=1, label=sc)
