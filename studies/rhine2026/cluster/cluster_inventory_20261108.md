@@ -74,4 +74,23 @@ T1–T5 free 196.7 GB and leave about 90 GB (K1 58.6 GB, G2 28.7 GB, 15 archives
 
 ## Deletion log
 
-(filled in when the approved tiers are executed)
+Executed on 8 November 2026 at 22:27 (cluster time), tiers T1-T5 as approved, by `~/claude_tmp/deletion_exec_20261108.sh`
+from the plan `~/claude_tmp/deletion_plan_20261108.tsv` (built by `deletion_plan_20261108.py` from the inventory CSV with
+three checks: T2 runs mirrored locally, T3 and T4 runs present in a kept archive, T5 derived products present; nothing was
+held). Per-item log on the cluster: `~/claude_tmp/deletion_log_20261108.txt` (316 deleted, 0 absent, 0 skipped).
+
+| Tier | Items deleted | GB |
+|---|---|---|
+| T1 archives | 38 | 9.6 |
+| T2 folders of F0, F1, F6, F9, G3, G4, with their logs | 78 | 81.7 |
+| T3 folders of F2, F3, F4, F5, F7, F8, with their logs | 100 | 27.0 |
+| T4 folders of G1, with their logs | 96 | 50.1 |
+| T5 `link_data.csv` and `inventory_data.csv` of `2026_s07_full` and `2018_s07_full` | 4 | 28.0 |
+| Total | 316 | 196.4 |
+
+`runs/rhine2026` afterwards: 90.3 GB (286.8 before) = 254 run folders (87.5 GB: the 129 r6_bycargo runs, 58.6 GB, and the
+125 runs of the 7 October reissue, 28.9 GB, the two full ones now 0.24 GB each with their small outputs and derived
+products) + the 15 kept archives (2.7 GB) + 254 logs. On hold, not deleted: T6, the bulk files of the two final full runs
+(28.0 GB), and T7, the firm files (37.0 GB). The two archives of 30 September (`rhine_batch_20260930_0730.tgz`,
+`rhine_batch_20260930_0736.tgz`) stay on the cluster and can be downloaded into the local mirror at any time.
+`/projects` stayed at 77 % (196 GB is 0.3 % of its 59 TB).
