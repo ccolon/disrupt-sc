@@ -1,0 +1,8 @@
+# Cambodia paper, the overlap interaction at firm level (Q22 follow-up, 9 Nov 2026): when both basins close together,
+# do crop and fish producers cut output because their shipments find no route, or because their own inputs do not
+# arrive? Network 3 (simultaneous ratio 1.540, closest to the mean 1.543 of networks 1-10): the pair at tau 0 and the
+# two singles, d = 12, with the per-firm and per-input stock files (as jobs_mech.txt). Read with
+# mech_firms.py --pair 0 --d 12 --seed 3. ~2 CPU-h.
+3 pair_mekong_tonle_tau0 12 --cache-dir cam_sea_s3 --t-final 116 --keep-firm-data --set export_inventory_data=true
+3 single_mekong 12 --cache-dir cam_sea_s3 --t-final 116 --keep-firm-data --set export_inventory_data=true
+3 single_tonle 12 --cache-dir cam_sea_s3 --t-final 116 --keep-firm-data --set export_inventory_data=true

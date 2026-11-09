@@ -19,7 +19,7 @@ decided to port the study to v2. This folder holds the v2 runs.
 | `read_batch.py` | reads a batch into analysis/runs.csv and daily.csv; d and lags from the batch; prints the pilot's checks (determinism, settling, H1, lag curve) |
 | `compare_horizons.py` | checks day by day that a run's path does not depend on its horizon (116- vs 180-day runs) |
 | `excess_by_source.py` | a successive-flood run against its singles shifted to each event's start: the excess by period and sector |
-| `mech_firms.py` | the same comparison firm by firm (runs with `--keep-firm-data` and `export_inventory_data=true`): sectors and firms with the largest excess production shortfall, and the inputs whose stock ran out |
+| `mech_firms.py` | the same comparison firm by firm (runs with `--keep-firm-data` and `export_inventory_data=true`): sectors and firms with the largest excess production shortfall, and the inputs whose stock ran out; `--pair TAU` reads a two-basin pair run instead of a lag run; the shortfall split into fewer orders, unsold stock, capacity and missing inputs (exact, from the production rule) |
 | `read_pairs.py` | reads a two-flood batch (`pair_<a>_<b>_tau<T>` runs) into `analysis/runs.csv` and `daily.csv` |
 | `overlap_excess.py` | the overlap interaction (Q22): a pair run at tau 0 against its two singles - household loss split into unmet consumption and extra spending by period, by sector and by province; routing outcomes (main, alternative, blocked) over the closure; production shortfall by sector |
 | `overlap_flows.py` | day-1 edge flows of the same three runs: each closure's traffic on the other closure's edges, and tonnage and ton-km on the network |
