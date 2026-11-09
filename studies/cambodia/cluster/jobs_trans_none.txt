@@ -1,0 +1,17 @@
+# Cambodia paper, transition runs R_trans (Q24 "USD 75 only, ~60 CPU-h", 9 Nov 2026; Q10: one level).
+# The IMF's ambitious 2035 carbon tax, USD 75 per tCO2e (imf_cambodia_2026), as per-mode multipliers on the domestic
+# line-haul cost logistics.basic_cost (Paper_Cambodia pipeline runs/calib_trans.py, reports/11_trans.md): roads
+# 0.087 -> 0.0913, waterways 0.0735 -> 0.0790, railways 0.074 -> 0.0778 USD per ton-km (x1.049, x1.075, x1.051);
+# maritime unchanged. logistics is a transport-network stage key: one build per network, cache cam_ct75_s<n>.
+# This list: the no-flood run of each network to day 2 - it builds the 10 caches (setup jobs) and gives the taxed day-0
+# flows for the freight-bill null. Run it first; check that each build keeps the base cache's supplier links.
+1 none 12 --set logistics.basic_cost.roads=0.0913 --set logistics.basic_cost.waterways=0.0790 --set logistics.basic_cost.railways=0.0778 --cache-dir cam_ct75_s1 --t-final 2
+2 none 12 --set logistics.basic_cost.roads=0.0913 --set logistics.basic_cost.waterways=0.0790 --set logistics.basic_cost.railways=0.0778 --cache-dir cam_ct75_s2 --t-final 2
+3 none 12 --set logistics.basic_cost.roads=0.0913 --set logistics.basic_cost.waterways=0.0790 --set logistics.basic_cost.railways=0.0778 --cache-dir cam_ct75_s3 --t-final 2
+4 none 12 --set logistics.basic_cost.roads=0.0913 --set logistics.basic_cost.waterways=0.0790 --set logistics.basic_cost.railways=0.0778 --cache-dir cam_ct75_s4 --t-final 2
+5 none 12 --set logistics.basic_cost.roads=0.0913 --set logistics.basic_cost.waterways=0.0790 --set logistics.basic_cost.railways=0.0778 --cache-dir cam_ct75_s5 --t-final 2
+6 none 12 --set logistics.basic_cost.roads=0.0913 --set logistics.basic_cost.waterways=0.0790 --set logistics.basic_cost.railways=0.0778 --cache-dir cam_ct75_s6 --t-final 2
+7 none 12 --set logistics.basic_cost.roads=0.0913 --set logistics.basic_cost.waterways=0.0790 --set logistics.basic_cost.railways=0.0778 --cache-dir cam_ct75_s7 --t-final 2
+8 none 12 --set logistics.basic_cost.roads=0.0913 --set logistics.basic_cost.waterways=0.0790 --set logistics.basic_cost.railways=0.0778 --cache-dir cam_ct75_s8 --t-final 2
+9 none 12 --set logistics.basic_cost.roads=0.0913 --set logistics.basic_cost.waterways=0.0790 --set logistics.basic_cost.railways=0.0778 --cache-dir cam_ct75_s9 --t-final 2
+10 none 12 --set logistics.basic_cost.roads=0.0913 --set logistics.basic_cost.waterways=0.0790 --set logistics.basic_cost.railways=0.0778 --cache-dir cam_ct75_s10 --t-final 2
