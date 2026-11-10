@@ -77,3 +77,56 @@ References: 19 entries added to refs.bib from two dossiers written the same day,
 the title of Destatis table 46321-0014 (the page could not be read by the search), and the June figures of the OPIS
 article (the July figures were read, the June ones follow from stated differences).
 
+## S2 Baseline calibration (Overleaf 9df097a)
+
+| Note | Answer |
+|---|---|
+| N15 | Cited: the Eurostat modal split (eurostat2023modal), the Eurostat port statistics (eurostat2022ports; the table used is mar_go_aa) and Destatis table 46321-0014 (destatis46321). The split by cargo class comes from Eurostat's road, rail and waterway statistics by commodity group (tables road_go_ta_tg, rail_go_grpgood, iww_go_atygo), named in words. |
+| N16 | Amsterdam's fee is stated: 0.75 USD per tonne for all cargo, where the formula gives 0.28 (containers) and 0.09 (other cargo) at its 80.8 Mt; the value sets the division of the North Sea traffic between Amsterdam and Rotterdam (`calibration/round6/derive_feeder_ladder.py`). |
+| N17 | Removing the sentence would remove the reason for the fee. It is rewritten in plain words: the fee stands for the feeder leg of a container landed at a small port; deep-sea lines call at a few large ports, the model's sea network serves every port at one rate, so without the fee imports land at the port nearest their buyer. |
+| N18, N20 | New table of the modal split (label tab:modal, generator `modal_table`): eight countries, model against Eurostat 2023, with the three German cargo classes under Germany. The list of 33 numbers left the text. |
+| N19 | The cause (no traffic within a region) applies everywhere, but the road share is not low everywhere: 8 to 15 points below the statistics in Germany, the Netherlands, Belgium, France and Austria, on them in Poland and Italy. The paragraph now says both, and that the rail rate calibrated by country compensates where the split is on the statistics. |
+| N21 | First sentence rewritten on what S2 shows: the tonnage at Kaub (63 Mt against 50-60), the Rhine from Mannheim to the border within 26 % of the counts, bulk on the right modes. "Industrial users" and "alternatives" are gone. |
+| N22 | Added: the model understates the exposure of Switzerland and Alsace to Kaub and overstates that of the Rhine-Neckar region, where the tonnage is unloaded instead. |
+| N23, N24 | Seaport table: the 30 largest (the two ports without a connector rank below them), then the ports outside the forty where the model routes 50 Mt or more (two rows). The calibration statistics of the text still cover the forty. |
+
+Direct edits corrected: "the Rhine and its Dutch branches (Scheldt and the Kiel canals)" (the run parameters give the
+Rhine's rate to eight named waterways, now listed; the waterways not named pay 1.5 times it, which was missing);
+"No other parameters were adjusted to fit the logistic data" (the base road and rail rates, transfers and values of time
+had been set before on the same kinds of statistic: said); the Amsterdam sentence; "The loss estimated by the model are",
+"these flow", "nearest its buyer unless.", "yet,", a fee ladder "proportional to port throughput" (it falls with it),
+"tonnages at Kaub matches"; the sub-heading "The Upper Rhine and the rail shares" (the rail shares were deleted).
+
+Dropped: "the fee ladder sent 140 Mt back to the large ports". The number could not be traced to a pair of runs: against
+the round before the ladder the secondary ports lose 30 Mt, against round 3 138 Mt, against round 4 215 Mt. The sentence
+now says that the ladder returns part of the tonnage to the large ports and does not correct the nearest-coast landing.
+This clears one of the two findings the gate had carried since 5 November.
+
+## S3 Scenario construction (Overleaf 8812f58)
+
+| Note | Answer |
+|---|---|
+| N25 | The profile built on the outlook of 7 September is no longer described and its table (tab:forecast) is removed, in the generator too. One sentence stays on that outlook's miss (12, 22, 42 cm forecast against 25, 7, -2 observed): the Discussion cites it and it is the reason for the two stress profiles. Delete it and the Discussion clause together if it should go. In main.tex the Methods no longer point to that profile. |
+| N26 | "Under the 2026 profile". |
+| N27 | Sources named and cited: operators' surcharge tables and notices (contargo2026), the weekly count of the Dutch association (schuttevaer2026), single-vessel payloads (wiwo2026, ifw2026), the literature on 2018 (vandorsser2020, ademmer2023). |
+| N28 | One name, "loading share", in the paragraph, the header and the cells of the table. |
+| N29, N30 | Loading table without the columns "vessel" and "nature" (five columns; the generator follows). |
+| N31 | Formula: K = max(s T, 1.02 F), with F the baseline flow of the class on the reach, s its share of the reach's traffic and T the counted tonnage (`anchor_rhine_capacities.py --by-cargo --headroom 0.02`). The pointer to S2, which no longer discusses capacities, is removed. |
+| N32 | No: the loading share applies to the Kaub reach alone. The other reaches keep their normal capacity (baseline flow plus 2 %), which the catch-up traffic of the recovery weeks exceeds. The paragraph says so. |
+| N33 | The sentence claimed that Lower Rhine rates are "typically three times lower" with the Contargo notice as source, which that notice does not show. Now: the factor of one third is an assumption; operators set the surcharge by gauge and the Lower Rhine, with its own gauges, is less restricted; runs with a factor of zero and of one gave the same loss. |
+
+Found while answering N25 (important). The Gauges paragraph said the forecast was "reissued on 7 October ... at
+DEUlossQ %", but that macro is the loss of the batch of 2 November (1.11 %); the reissue of 7 October gave 1.54 %
+(forecast manifest). Every number of the manuscript comes from the rerun of 2 November (baseline calibrated in October,
+one capacity per cargo class), on the hydrological information of 30 September. S3 now states the three versions and
+that the first release for September (6 November) came after the last one. Two things remain the author's: the Methods
+still call the reissue of 7 October "the batches of this paper" and score "the series as issued on 7 October", while
+the prospective table shows the rerun's series (two notes placed in main.tex); and the forecast manifest listed only
+two issues (a row for the rerun and a dated paragraph were added, to be checked).
+
+Direct edits corrected: "We built weekly means ... from PEGELONLINE, which provide", "stay at 0.08", "comes from various
+quantity", "inSection", "is repeated until all flows are reassigned, if possible" (now: until no reach is over its
+capacity; a cut share without a route returns to the supplier's inventory), a macro without its braces before "to".
+In the loading table: the history of the 15 cm row ("the earlier version of the table took 0.12 here ... rebuilt 6 Oct")
+is removed and four sources are cited.
+

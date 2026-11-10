@@ -8,11 +8,11 @@ compare_table); --check writes nothing, --emit <name> prints a regenerated table
   si_stock_overrides.tex    the input-specific targets that replace them, with evidence and modeling reason (S1; 10 Nov 2026)
   si_criticality.tex        the survey industry of each ICIO sector and the criticality counts (S1)
   si_loading_table.tex      the draft table with its anchors (review NS2)
-  si_forecast.tex           the 2026 profile: outlook of 7 September against the observations (review NS1)
   si_thresholds.tex         the modal-switch rule: offline classification and threshold sensitivity (S4)
   si_representations.tex    the 2018 monthly industrial path under both representations and stock levels (S6)
   si_runs.tex               every run of the batch of 30 Sep: German and EU loss, peak (review S7)
   si_ports.tex              the seaports of the calibrated baseline against Eurostat 2023, with the mechanism of each gap (S2; 1 Nov 2026)
+  si_modal.tex              the inland modal split by country and, for Germany, by cargo class, against Eurostat 2023 (S2; 10 Nov 2026)
 
 The parameter values are read from config/user_defined_EU.yaml (the configuration of the batch of 30 Sep 2026); the
 stock evidence from evidence/inventory_durations_by_industry.md (sections 6.2 and 6.3); the rate evidence is quoted
@@ -537,47 +537,25 @@ def loading_table(out: Path):
     assert list(led.index) == [int(x) for x in d.kaub_cm], "ledger rows must match the table's anchors"
     for cm, r in zip(d.kaub_cm, d.itertuples()):
         assert abs(led.fleet[int(cm)] - r.load_factor) < 1e-9, (cm, led.fleet[int(cm)], r.load_factor)
-    rows = "\n".join(f"{int(cm)} & {led.fleet[int(cm)]:.2f} & {led.vessel[int(cm)]:.2f} & {tex(led.nature[int(cm)])} & {tex(led.source[int(cm)])} & {tex(led.measures[int(cm)])} & {tex(led.transformation[int(cm)])} \\\\"
+    # 10 Nov 2026 (the author's notes): the single-vessel column and the 'nature' column are no longer printed
+    rows = "\n".join(f"{int(cm)} & {led.fleet[int(cm)]:.2f} & {tex(led.source[int(cm)])} & {tex(led.measures[int(cm)])} & {tex(led.transformation[int(cm)])} \\\\"
                      for cm in d.kaub_cm)
     (out / "si_loading_table.tex").write_text(r"""\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
-\begin{longtable}{rrrL{18mm}L{33mm}L{29mm}L{36mm}}
-\caption{\textbf{The loading curve as a source ledger.} Share of the normal tonnage that the Kaub reach can pass at a weekly mean gauge (fleet, the column the model uses) and the loading share of a single large vessel (for comparison), with, for each anchor, its nature (measured, a convention, interpolated or assumed), its source and date, what the source measures (reach, cargo class, period, denominator) and the transformation to the fleet value. Linear between anchors; below 5\,cm the fleet value is held at 0.08. The anchors mix single-vessel payloads, an association's weekly count, a national monthly response and operators' thresholds; they do not measure one quantity, and the table is the authors' reading of them. The table was rebuilt on this ledger on 6 October 2026 (the low end lifted to the weekly count and the single-vessel loads times the fleet's redeployment; unchanged from 55\,cm up); the band of $\pm$15\,\% on the shortfall and the sensitivity on the floor below 5\,cm (Section~S4) bound the result on either side.}
+\begin{longtable}{rL{11mm}L{45mm}L{40mm}L{42mm}}
+\caption{\textbf{The loading curve at Kaub.} Share of the normal tonnage that the Kaub reach can pass at a weekly mean gauge, with, for each value, the data source, what it originally measures, and how it is treated.}
 \label{tab:loading} \\
 \toprule
-cm & fleet & vessel & nature & source & measures & transformation \\
+cm & loading share & source & measures & treatment \\
 \midrule
 \endfirsthead
 \toprule
-cm & fleet & vessel & nature & source & measures & transformation \\
+cm & loading share & source & measures & treatment \\
 \midrule
 \endhead
 """ + rows + r"""
 \bottomrule
 \end{longtable}
 \endgroup
-""", encoding="utf-8")
-
-
-def forecast_table(out: Path):
-    old = pd.read_csv(HERE / "scenarios" / "2026_vintage0910.csv").set_index("week_start")
-    new = pd.read_csv(HERE / "scenarios" / "2026.csv").set_index("week_start")
-    rows = []
-    for w in new.index:
-        o = old.kaub_cm.get(w, float("nan")); os_ = old.status.get(w, "")
-        n = new.kaub_cm[w]; ns = new.status[w]
-        rows.append(f"{w} & {o:.1f} & {tex(os_)} & {n:.1f} & {tex(ns)} \\\\" if pd.notna(o) else f"{w} & -- & -- & {n:.1f} & {tex(ns)} \\\\")
-    (out / "si_forecast.tex").write_text(r"""\begin{table}[tbp]
-\centering\small
-\caption{\textbf{The two vintages of the 2026 profile.} Weekly mean gauge at Kaub (cm): the vintage of 10 September (observations to 10 September, the BfG six-week outlook of 7 September, assumed values after it) against the vintage of 30 September (observations to 29 September, the outlook of 28 September, assumed recovery). The outlook of 7 September missed the end-of-September trough by 20 to 40\,cm.}
-\label{tab:forecast}
-\begin{tabular}{lrlrl}
-\toprule
-week of & vintage 10 Sep & status & vintage 30 Sep & status \\
-\midrule
-""" + "\n".join(rows) + r"""
-\bottomrule
-\end{tabular}
-\end{table}
 """, encoding="utf-8")
 
 
@@ -1015,6 +993,48 @@ def revision_table(out: Path):
 # by the rule, sea-to-sea transshipment does not exist); "transshipment hub" = the same at its extreme; "nearest-coast
 # landing" = an import landed at the coastal node nearest its buyer under the uniform sea tariff; "landings at X" =
 # the tonnage of this port landed at a nearby node instead.
+def modal_table(out: Path, run: str = "r6_h01_feeder3"):
+    """10 Nov 2026 (the author's notes on S2): the inland modal split of the calibrated baseline against Eurostat 2023,
+    by country and, for Germany, by cargo class; the same flow_score tables and the same rounding as the Modal* and
+    Cargo* macros of make_numbers.py (country_modal_split.csv, nst_modal_split.csv of the base run)."""
+    fs = RUNS / B26 / "flow_score"
+    if not fs.exists():
+        fs = RUNS / run / "flow_score"
+    cm = pd.read_csv(fs / "country_modal_split.csv").set_index("geo")
+    ns = pd.read_csv(fs / "nst_modal_split.csv")
+    ns = ns[(ns.cc == "DE") & (ns.category != "TOTAL")].copy()
+    ns["cls"] = ns.category.map({"manufacturing": "general cargo", "agriculture": "dry bulk", "mining": "dry bulk", "oil_and_gas": "liquid bulk"})
+
+    def cells(v):
+        return " & ".join(f"{x:.0f}" for x in v)
+    rows = []
+    for cc, name in (("DE", "Germany"), ("NL", "Netherlands"), ("BE", "Belgium"), ("FR", "France"), ("AT", "Austria"),
+                     ("CH", "Switzerland"), ("PL", "Poland"), ("IT", "Italy")):
+        r = cm.loc[cc]
+        rows.append(f"{name} & {cells([r.model_ROAD, r.model_RAIL, r.model_IWW])} & {cells([r.target_ROAD, r.target_RAIL, r.target_IWW])} \\\\")
+        if cc == "DE":
+            for cls in ("general cargo", "dry bulk", "liquid bulk"):
+                tk = ns[ns.cls == cls].groupby("mode")[["model_bn_tkm", "target_bn_tkm"]].sum()
+                sh = 100 * tk / tk.sum()
+                m = ("roads", "railways", "waterways")
+                rows.append(f"\\quad {cls} & {cells([sh.loc[k, 'model_bn_tkm'] for k in m])} & {cells([sh.loc[k, 'target_bn_tkm'] for k in m])} \\\\")
+    (out / "si_modal.tex").write_text(r"""\begin{table}[tbp]
+\centering\footnotesize
+\caption{\textbf{Inland modal split, model against statistics.} Shares of the tonne-kilometers moved on each country's territory by road, rail and inland waterway (\%), in the baseline and in the statistics of 2023; for Germany also by cargo class.}
+\label{tab:modal}
+\begin{tabular}{lrrrrrr}
+\toprule
+ & \multicolumn{3}{c}{model} & \multicolumn{3}{c}{Eurostat 2023} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+ & road & rail & waterway & road & rail & waterway \\
+\midrule
+""" + "\n".join(rows) + r"""
+\bottomrule
+\end{tabular}
+\end{table}
+""", encoding="utf-8")
+
+
 PORT_NOTES = {
     "Rotterdam": "crude and products, transshipment", "Antwerp-Bruges": "crude and products, transshipment",
     "Amsterdam": "coal and oil products; fee 0.75", "Gdansk": "landings at Szczecin", "Algeciras": "transshipment hub",
@@ -1031,15 +1051,17 @@ PORT_NOTES = {
 }
 
 
-def ports_table(out: Path, run: str = "r6_h01_feeder3"):
+def ports_table(out: Path, run: str = "r6_h01_feeder3", top_n: int = 30, outside_mt: float = 50):
     """The seaports of the calibrated baseline against Eurostat 2023: the ports.csv of flow_score.py on the base run
     (the forty largest ports by gross weight handled, then the ports outside the forty where the model lands 20 Mt
     or more), with the mechanism of each gap from PORT_NOTES."""
     p = pd.read_csv(RUNS / run / "flow_score" / "ports.csv")
     p = p[p["model_mt"].notna() & p["eurostat_mt"].notna()]
     scored = p["scored"].astype(str).str.lower() == "true"
-    top = p[scored].sort_values("eurostat_mt", ascending=False)
-    rest = p[~scored & (p["model_mt"] >= 20)].sort_values("model_mt", ascending=False)
+    # 10 Nov 2026 (the author's notes): the table shows the top_n largest of the forty and, of the ports outside the
+    # forty, those where the model routes outside_mt or more; the calibration statistics of the text still cover the forty
+    top = p[scored].sort_values("eurostat_mt", ascending=False).head(top_n)
+    rest = p[~scored & (p["model_mt"] >= outside_mt)].sort_values("model_mt", ascending=False)
 
     def row(r):
         return (f"{tex(r['label'])} & {r['cc']} & {r['eurostat_mt']:.0f} & {r['model_mt']:.0f} & {r['ratio']:.2f} & "
@@ -1047,7 +1069,7 @@ def ports_table(out: Path, run: str = "r6_h01_feeder3"):
     rows = [row(r) for _, r in top.iterrows()] + [r"\midrule"] + [row(r) for _, r in rest.iterrows()]
     (out / "si_ports.tex").write_text(r"""\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
 \begin{longtable}{llrrrl}
-\caption{\textbf{The seaports of the calibrated baseline.} The forty largest seaports by gross weight of goods handled (Eurostat 2023, Mt) and the model's tonnage through their connectors; below the line, the ports outside the forty where the model lands 20~Mt or more. The note names the mechanism of a gap: crude, gas and sea-to-sea transshipment are counted by the statistics but are not transport flows of the model (crude and gas are pipelined by construction, a cargo lands once); a transshipment hub has no hinterland flow; a nearest-coast landing is an import landed at the coastal node nearest its buyer under the uniform sea tariff. Two of the forty (Sk\"oldvik, Las Palmas) have no connector in the network and are not shown.}
+\caption{\textbf{The seaports of the calibrated baseline.} The 30 largest seaports by gross weight of goods handled (Eurostat 2023, Mt) and the model's tonnage through their connectors; below the line, the ports outside the 40 largest where the model routes 50~Mt or more.}
 \label{tab:ports} \\
 \toprule
 port & & observed & model & ratio & note \\
@@ -1207,8 +1229,8 @@ def main(overleaf: Path, tag: str = None, lists: str = None, check: bool = False
         set_batch(tag or TAG, lists or LISTS)
     print(f"batch: tag {TAG}, lists {LISTS}")
     out = overleaf / "tables"; out.mkdir(exist_ok=True)
-    for fn in (rates_table, stocks_table, criticality_table, thresholds_table, loading_table, forecast_table,
-               runs_table, representations_table, channels_table, gate_table, prospective_table, prospective_sectors_table, revision_table, cross_table, rail_weeks_table, ports_table):
+    for fn in (rates_table, stocks_table, criticality_table, thresholds_table, loading_table,
+               runs_table, representations_table, channels_table, gate_table, prospective_table, prospective_sectors_table, revision_table, cross_table, rail_weeks_table, ports_table, modal_table):
         if only and not any(o.strip() and o.strip() in fn.__name__ for o in only.split(",")):   # --only rates,stocks: a subset (10 Nov 2026)
             continue
         try:

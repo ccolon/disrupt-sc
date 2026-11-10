@@ -35,12 +35,21 @@ a `status` column (observed / partly observed / forecast / assumption) per week.
 |---|---|---|---|---|
 | First issue, 30 September 2026 | `f9bc2dd` (29 Sep: the lists and the profile of 30 Sep; batch read in `36fb2c0`) | `cluster/jobs_20260930_main.txt`, `cluster/jobs_20260930_paired.txt` (96 runs; results `additional_data/compare_runs_batch_jobs_20260930_*.csv`) | **1.74** (`2026_s30_base`; peak 2.84 % of a week in run week 17; 28 economies 18.9 bn USD); loading table v1 | 30 September 2026, Overleaf `10d629e` (rewrite on the batch of 30 Sep), `b34a1ef` (SI) |
 | Reissue, 7 October 2026 | `a0ca0d2` (5 Oct: the loading table rebuilt, the lists of 7 Oct), `13a8cc4` (bounded rail substitution, a sensitivity only), `0c999bc` (7 Oct: the ladder list, batch read), `d576bc1` | `cluster/jobs_20261007_{main,paired,rev,ladder}.txt` (115 runs; results `additional_data/compare_runs_batch_jobs_20261007_*.csv`) | **1.54** (`2026_s07_base`; peak 2.62 in week 17; 16.9 bn); eleven draws 1.30 ± 0.37; monthly industrial path Jul 0.5 / Aug 2.5 / Sep 1.7 / Oct 2.7 / Nov −0.3 / Dec −1.6 (`tables/prospective.tex`); sectoral signatures `tables/si_prospective_sectors.tex` | 7 October 2026, Overleaf `cc34ca7` (batch of 7 Oct written in), `d1e453e` (ladder); text revised 9 October (`17b3aa4`), numbers unchanged |
+| Rerun of the paper, 2 November 2026 | `ba94dca` (1 Nov: capacities per cargo class), `d72aa00` (2 Nov: the lists); batch read in `410ace9` and `9b17d81` | `cluster/jobs_20261102_{main,paired,rev,cross,norail}.txt`, `jobs_20261103_altriver.txt`, `jobs_20261106_inv075.txt` (129 runs; results `additional_data/compare_runs_batch_jobs_20261102_*.csv`) | **1.11** (`2026_r6_bycargo_base`; peak 2.10 in week 18; 13.1 bn); eleven draws 1.12 ± 0.41; monthly industrial path Jul 0.1 / Aug 1.5 / Sep 0.9 / Oct 2.1 / Nov −0.6 / Dec −1.1 (the prospective table of the manuscript) | 2-3 November 2026, Overleaf `67e15f8` |
 
 Both issues use the same hydrological information set (section 1) and the same economy (OECD ICIO 2025, 2022 tables).
 The difference between them is the loading table (section 2) and the cache rebuild that the fingerprint change of
 5 October (`inventory_restoration_time` moved out of the agents stage) required; the run fingerprints
 (`run_fingerprint.json` in every run folder) record every input hash. No production statistic of the 2026 season
 entered either issue.
+
+Added on 10 November 2026. The numbers printed in the manuscript are those of the rerun of 2 November, not of the
+reissue of 7 October. The rerun keeps the hydrological information set (section 1) and the loading table of the
+reissue (section 2); it differs by the calibration of the baseline flows on the freight statistics (six rounds between
+22 and 29 October, `calibration/round1` to `round6`; SI S2) and by the capacities per cargo class (1 November). The
+production index of August 2026, released on 7 October, was public when these changes were made and was not used; the
+first release for September came on 6 November 2026, after the rerun. Which series the prospective test scores, the one
+issued on 7 October or the rerun, is for the author to fix in the Methods (noted in main.tex on 10 November).
 
 ## 4. Outcome releases known at each issue (Destatis, production in industry)
 
