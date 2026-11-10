@@ -40,11 +40,13 @@ class Ledger:
                 out |= {(e.get("file"), e.get("text")) for e in d.get(k) or []}
         return out
 
-    def drop(self, *texts: str) -> None:
+    def drop(self, *texts: str, file: str | None = None) -> None:
+        """Drop the entries with these texts; with `file`, only those of that manuscript file."""
         want = set(texts)
+        hit = lambda e: isinstance(e, dict) and e.get("text") in want and (file is None or e.get("file") == file)   # noqa: E731
         for k in self.new:                                   # entries of the additions file
-            keep = [e for e in self.new[k] if e.get("text") not in want]
-            self.dropped += [e["text"] for e in self.new[k] if e.get("text") in want]
+            keep = [e for e in self.new[k] if not hit(e)]
+            self.dropped += [e["text"] for e in self.new[k] if hit(e)]
             self.new[k] = keep
         for p in sorted(self.folder.glob("*.yaml")):
             if p == self.new_path:
@@ -59,7 +61,7 @@ class Ledger:
                     while j < len(lines) and lines[j].startswith("    ") and not lines[j].lstrip().startswith("#"):
                         j += 1
                     entry = yaml.safe_load("\n".join(lines[i:j]))[0]
-                    if isinstance(entry, dict) and entry.get("text") in want:   # an 'ignore' item is a plain string
+                    if hit(entry):                                               # an 'ignore' item is a plain string
                         self.dropped.append(entry["text"])
                         changed = True
                     else:
@@ -71,6 +73,27 @@ class Ledger:
             if changed:
                 text = "\n".join(out)
                 p.write_bytes((text.replace("\n", "\r\n") if crlf else text).encode("utf-8"))
+
+    def drop_missing(self, repo: Path) -> list:
+        """Drop every entry whose text is no longer in its document, read as paper_gate.py reads it (comments stripped,
+        table bodies blanked). For the end of a revision, once every reworded sentence has its new entry; returns the
+        texts dropped."""
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+        import paper_gate
+        docs = paper_gate.documents(Path(repo))
+        dead = []                                     # (file, text): the same text may live on in the other file
+        for p in sorted(self.folder.glob("*.yaml")):
+            if p == self.new_path:
+                continue
+            d = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+            for k in ("allowed", "claims", "pending"):
+                dead += [(e["file"], e["text"]) for e in d.get(k) or [] if e.get("file") in docs and e["text"] not in docs[e["file"]]]
+        for k in self.new:
+            dead += [(e["file"], e["text"]) for e in self.new[k] if e.get("file") in docs and e["text"] not in docs[e["file"]]]
+        for f in sorted({f for f, _ in dead}):
+            self.drop(*[t for g, t in dead if g == f], file=f)
+        return [f"{f}: {t}" for f, t in dead]
 
     def _add(self, kind: str, entry: dict) -> None:
         if (entry["file"], entry["text"]) in self._texts() or any(e["text"] == entry["text"] and e["file"] == entry["file"] for e in self.new[kind]):

@@ -413,9 +413,6 @@ allowed:
     text: 'assumed values of 75, 90 and 105\,cm for the three last weeks'
     why: 'data: assumed recovery weeks of scenarios/2026.csv'
   - file: main.tex
-    text: 'two stress paths (Supplementary Section~S4), not bounds'
-    why: 'design: the two quantile paths (q25, q75)'
-  - file: main.tex
     text: 'from 16 July to 16 December 2018 (22 weeks) with twenty recovery weeks'
     why: 'data: scenarios/2018.csv (22 weeks) + design: 20 recovery weeks'
   # ---------------------------------------------------------------- methods: accounting, calibration (l. 227-233)

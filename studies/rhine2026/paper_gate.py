@@ -350,7 +350,9 @@ def check_refs(repo, docs, ck: Check):
             ck.fail(f"refs.bib: key {k} defined twice")
         seen.add(k)
         keys[k] = bool(re.search(r"^\s*(doi|url)\s*=", e, re.MULTILINE | re.IGNORECASE))
-    text = "\n".join(docs.values()) + "\n".join(
+    # 10 Nov 2026: the tables are blocks of the documents, blanked in `docs`; their cells cite too (the evidence columns),
+    # so the scan for citations reads the files whole
+    text = "\n".join(strip_comments((repo / name).read_text(encoding="utf-8")) for name in docs) + "\n".join(
         strip_comments(p.read_text(encoding="utf-8")) for p in sorted((repo / "tables").glob("*.tex")))
     cited = set()
     for c in re.findall(r"\\cite[a-zA-Z]*\*?(?:\[[^\]]*\])*\{([^}]*)\}", text):

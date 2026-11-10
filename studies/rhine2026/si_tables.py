@@ -217,11 +217,15 @@ def batch_logistics() -> tuple[dict, bool]:
     runs of the per-class batch add the job lists' overrides (--config-set: rail by country, round 2; waterway costs by
     waterway, round 5; seaport fees by port, round 6; --container-water-vot 0.32), so it printed the config's 0.35 and
     none of the regional costs. The reference run's parameters.yaml records what every run of the batch used. The 7 Oct
-    tables (TAG s07) keep reading the config."""
+    tables (TAG s07) keep reading the config. 10 Nov 2026: when the reference run is not on disk the table is skipped,
+    as the other tables that need a run folder; it used to fall back on the config without a word, so a check compared
+    the manuscript with values the batch did not use (0.35, no regional cost, no seaport fee)."""
+    if TAG == "s07":
+        return config()["logistics"], False
     p = RUNS / B26 / "parameters.yaml"
-    if TAG != "s07" and p.exists():
-        return yaml.load(p.read_text(encoding="utf-8"), _Lenient)["logistics"], True
-    return config()["logistics"], False
+    if not p.exists():
+        raise FileNotFoundError(f"the parameters of the reference run: {p}")
+    return yaml.load(p.read_text(encoding="utf-8"), _Lenient)["logistics"], True
 
 
 def regional(node, cargo: str = "default", base_key: str = "default"):

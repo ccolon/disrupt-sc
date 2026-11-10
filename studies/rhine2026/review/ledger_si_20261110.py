@@ -139,4 +139,50 @@ L.allow(SI, r"The loading share below 5\,cm, at half and twice its value, moves 
 L.allow(SI, "At 45 days the services' share of the German loss is", "design: the 45-day coping duration of the run serv45")
 L.claim(SI, "the loss of the 28 economies and the consumption loss of each", "NRegions", [28, 28], "data bound to the macro: the 28 economies of the model")
 
+# ---------------------------------------------------------------- S8 Rail
+L.allow(SI, r"a shipment whose normal route already has a leg of 100\,km or more by rail may be rerouted entirely by rail, at no penalty. About 15\,\% of the bulk orders that cross Kaub have such a route",
+        "design: the line-haul threshold of 100 km (run_rhine.py); data: 15 % of the Kaub-crossing bulk orders in the offline classification (si_tables.thresholds_table)")
+L.allow(SI, r"so we test the 100\,km threshold", "design: the line-haul threshold of the modal-switch rule")
+L.allow(SI, r"Raising the threshold from 100 to 500\,km leaves no bulk shipment a rail alternative", "design: the no-rail runs (--line-haul-km 500; jobs_20261102_norail.txt)")
+L.allow(SI, "A ceiling of 50 kt approximates the 400 wagons that the national rail freight operator said it could add at short notice in August 2026, at two rotations a week and 62.5 t per wagon",
+        "evidence: dbcargo2026 (about 400 wagons at short notice); design: two rotations a week and 62.5 t per wagon give 50 kt a week")
+L.allow(SI, "A higher ceiling of 140 kt follows the response of rail freight to past low waters", "design: the second rail ceiling (jobs_20261102_rev.txt, rail140)")
+L.allow(SI, r"that a day of low water raises rail tonnage by 0.07\,\%, that is about 2\,\% over a low-water month of 30 days. Applied to about 6.7 Mt of rail freight a week, the order of the German total (362 Mt in 2024, or 7.0 Mt a week",
+        "evidence: Kiel Working Paper 2155, Appendix B, Table B1 (+0.071 % of rail tonnage per low-water day, monthly data 2005-2019); Destatis, rail freight 362.3 Mt in 2024 (destatis2026gueterbefoerderung); 6.7 Mt a week is the base of the 140 kt ceiling (0.0007 x 30 x 6.7 Mt = 141 kt), see evidence/si_evidence_sea_vot_rail_20261110.md")
+L.allow(SI, "this gives about 140 kt a week", "design: the second rail ceiling")
+L.allow(SI, "so 140 kt for bulk alone is likely more than rail can take on", "design: the second rail ceiling")
+L.allow(SI, "The 50 kt ceiling binds (the placed tonnage reaches the ceiling) in 23 of the 23 profile weeks of 2026 and 21 of the 22 of 2018, and in 3 and 0 of the recovery weeks in which bulk is still cut; the 140 kt ceiling in 20 and 17 profile weeks and 0 and 0 recovery weeks",
+        "result: counts computed by si_tables.rail_weeks_table from the logs of the four rail runs of the batch of 2 November 2026 (the caption of Table S-railweeks as generated on 3 November)")
+
+# ---------------------------------------------------------------- S9 The 2018 event (and the two paragraphs moved to S7)
+L.drop("Choice 1: how low water limits transport")
+ADEMMER = "evidence: ademmer2023, Table 2, column 1 (the regression of monthly growth of industrial production on the change in low-water days; benchmark_ademmer.py)"
+L.allow(SI, r"(column~1 of their Table~2)", ADEMMER)
+L.allow(SI, r"on which the Kaub gauge is below 78\,cm", ADEMMER + "; 78 cm is the equivalent low water level of the Kaub gauge")
+L.allow(SI, r"y_t = a + \beta_0\,\Delta d_t + \beta_1\,\Delta d_{t-1} + \rho\,y_{t-1} + \text{controls} + \varepsilon_t", "convention: indices of the equation")
+L.allow(SI, r"with $\beta_0=-0.034$ (standard error 0.012), $\beta_1=-0.024$ (0.014) and $\rho=-0.172$ (0.119)", ADEMMER)
+L.allow(SI, r"$g_t=\beta_0\,\Delta d_t+\beta_1\,\Delta d_{t-1}+\rho\,g_{t-1}$", "convention: indices of the equation")
+L.allow(SI, r"29, 14, 31, 30 and 3 days below 78\,cm from August to December 2018", "data: days below 78 cm in the daily record of the Kaub gauge, August to December 2018 (scenarios/kaub_daily_2018.csv; benchmark_ademmer.py)")
+L.allow(SI, "Every inventory target was multiplied by 0.75, 1.25, 1.5 and 2", "design: the inventory levels of the 2018 runs (jobs_20261102_ladder.txt, jobs_20261106_inv075.txt)")
+L.claim(SI, "At three quarters of the balance-sheet values the industrial shortfall is nearer the benchmark's",
+        "min(abs(RecordInt-ModelInt), abs(RecordInt-LadderIntA), abs(RecordInt-LadderIntB), abs(RecordInt-LadderIntD)) - abs(RecordInt-LadderIntZ)", [0.01, 100],
+        "result: the level x0.75 (3.2 percent-months) is nearer the benchmark (5.3) than the four others")
+L.claim(SI, "but still below its one-standard-deviation band. The balance-sheet values are kept", "RecordIntLow - LadderIntZ", [0.01, 100],
+        "result: 3.2 percent-months at x0.75 is below the lower edge of the band (3.6)")
+
+# ---------------------------------------------------------------- reworded claims carried over; the renumbered pointer of main.tex
+L.claim(SI, "Road is below the statistics in Germany, the Netherlands, Belgium, France and Austria",
+        "max(ModalDERoad-73, ModalNLRoad-53, ModalBERoad-78, ModalFRRoad-89, ModalATRoad-69)", [-100, -1],
+        "result: the model's road share below Eurostat's in each of the five (gaps 8-15 points, the smallest France 81 against 89)")
+L.claim(SI, "Under the ceiling each lever removes a larger share of a smaller loss than under the paper's rule",
+        "min(CrossStockRail - LevStock, CrossDeepRail - LevDeep, CrossStockTRail - LevStockT, CrossFleetRail - LevFleet)", [1, 100],
+        "result: every single lever avoids a larger share of the rail-50 base than of the reference base")
+L.allow(MAIN, r"two stress paths (Supplementary Section~S7), not bounds", "design: the two quantile paths (q25, q75)")
+
+# ---------------------------------------------------------------- the entries of sentences that left the text (end of the revision)
+from si_patchlib import OVERLEAF  # noqa: E402
+dead = L.drop_missing(OVERLEAF)
+# the list of what was dropped is review/ledger_dropped_20261110.txt (written once, from git, at the end of the revision)
+print(f"{len(dead)} dead entries dropped")
+
 L.save()

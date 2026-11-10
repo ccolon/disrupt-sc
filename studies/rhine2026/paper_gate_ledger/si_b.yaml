@@ -3,96 +3,24 @@
 allowed:
   # ---- S3 Gauges
   - file: si.tex
-    text: 'raw 15-minute values, daily means in legal time'
-    why: 'data: resolution of the PEGELONLINE gauge record (pegelonline2026) behind scenarios/2026.csv'
-  - file: si.tex
-    text: 'The 2026 profile has two vintages'
-    why: 'data: the two versions of the 2026 profile (scenarios/2026_vintage0910.csv, scenarios/2026.csv of 30 Sep)'
-  - file: si.tex
-    text: 'the six-week outlook of 7 September'
-    why: 'data: horizon of the BfG outlook (bfg2026; scenarios/bfg_6week_kaub_20260907.csv)'
-  - file: si.tex
-    text: 'The outlook of 7 September put the weeks of 14, 21 and 28 September at 12, 22 and 42\,cm'
-    why: 'data: BfG outlook of 7 Sep, ENS medians of the weeks of 14/21/28 Sep (scenarios/2026_vintage0910.csv, bfg_6week_kaub_20260907.csv); 14 and 21 are dates the gate does not read as such'
-  - file: si.tex
     text: 'the observed means were 25, 7 and about $-2$ (the last from two observed days and the outlook of 28 September)'
     why: 'data: 2026 profile of 30 Sep (scenarios/2026.csv): weeks of 14/21/28 Sep at 25.2, 6.6 and -1.7 cm (two observed days, 2 and 2 cm, plus the outlook of 28 Sep)'
-  - file: si.tex
-    text: 'Two stress profiles take the outlook''s 25th and 75th percentile for the forecast weeks'
-    why: 'data: the 25-75 % quantiles of the BfG outlook of 28 Sep (scenarios/2026_q25.csv, 2026_q75.csv)'
   - file: si.tex
     text: 'are run as two stress paths of the forecast'
     why: 'design: the two quantile profiles q25 and q75'
   # ---- S3 Loading table
-  - file: si.tex
-    text: 'holds the value at 0.08 below 5\,cm'
-    why: 'data: floor of the loading table (scenarios/draught_table.csv, row 5 cm)'
-  - file: si.tex
-    text: 'the week to 13 August 2026, 22\,\% of the association''s normal at a mean gauge of about 12\,cm'
-    why: 'evidence: schuttevaer2026 (KBN count: 60 kt dry + 30 kt wet against a normal 300 + 100 kt, gauge 23 -> 6 cm)'
-  - file: si.tex
-    text: 'had been attributed to the 25\,cm row of the earlier version'
-    why: 'data: the earlier loading table (scenarios/draught_table_v1.csv, row 25 cm)'
-  - file: si.tex
-    text: '(0.05 below 5\,cm, 0.12 at 15\,cm) sat below it'
-    why: 'data: the earlier loading table (scenarios/draught_table_v1.csv, rows 5 and 15 cm)'
-  - file: si.tex
-    text: 'the rebuilt table takes 0.24 at 15\,cm, 0.28 at 25 and 0.30 at 30'
-    why: 'data: the rebuilt loading table (scenarios/draught_table.csv, rows 15, 25, 30 cm)'
-  - file: si.tex
-    text: 'and 0.08 below 5\,cm, and is unchanged from 55\,cm up'
-    why: 'data: scenarios/draught_table.csv against draught_table_v1.csv (floor 0.08; identical rows from 55 cm)'
   # ---- S3 Capacities
-  - file: si.tex
-    text: 'about 60\,\% of whose rows are estimates between the counted cross-sections'
-    why: 'data: scenarios/rhine_capacities.csv, 18 of 30 rows are estimates between the Basel, Iffezheim and Emmerich counts (ccnr2023)'
-  - file: si.tex
-    text: 'baseline flow of the class on the reach plus 2\,\%'
-    why: 'design: headroom 2 % of the capacity anchoring (anchor_rhine_capacities.py --headroom 0.02)'
-  - file: si.tex
-    text: 'at Kaub 175,900 t a day in total against 137,000 in the file'
-    why: 'data: scenarios/rhine_capacities_anchored_r6_bycargo.csv (anchored on the baseline of r6_h01_feeder3 x 1.02) and rhine_capacities.csv; refresh after a recalibration'
-  - file: si.tex
-    text: 'of which 32,400 for the container vessels, 62,900 for the dry-bulk vessels and 80,600 for the tank barges'
-    why: 'data: per-class columns of scenarios/rhine_capacities_anchored_r6_bycargo.csv, row rhine_mainz_koblenz; refresh after a recalibration'
-  - file: si.tex
-    text: 'the headroom at normal water is tested at 10 and 25\,\%'
-    why: 'design: headroom sensitivity (rhine_capacities_anchored_r6_bycargo_h10/_h25.csv)'
   # ---- S3 Surcharge
   - file: si.tex
     text: 'multiplier $1/\text{loading share}$, capped at 20, is applied on every reach from Koblenz upstream'
     why: 'design: surcharge multiplier and its cap of 20'
-  - file: si.tex
-    text: 'and at one third of its excess on the Lower Rhine reaches'
-    why: 'design: Lower Rhine factor 1/3 (an assumption, contargo2026)'
-  - file: si.tex
-    text: '(factor 0 and factor 1 gave the same loss as the base)'
-    why: 'design: the two settings of the Lower Rhine factor tested on 15 Sep'
   # ---- S4 Mechanism tests
-  - file: si.tex
-    text: 'on the Kaub-crossing bulk pairs of a ten-week run'
-    why: 'design: run length of the link-by-link check'
   - file: si.tex
     text: 'puts more than 50\,km of extra distance on a mode'
     why: 'design: access allowance of the modal-switch rule (50 km)'
-  - file: si.tex
-    text: 'The two channels at the routing level.'
-    why: 'count: paragraph title (surcharge and capacity limit)'
   # ---- S4 flat profile
-  - file: si.tex
-    text: 'holds the loading share at the season''s mean (0.40) for the twenty-three weeks'
-    why: 'data: mean loading share of the 23 weeks of the 2026 profile of 30 Sep (scenarios/2026.csv x draught_table.csv = 0.403; scenarios/2026_waveflat.csv); refresh with the profile'
   # ---- S4 Conservation and stationarity
-  - file: si.tex
-    text: 'whose rows cover the 23 profile weeks'
-    why: 'data: length of the 2026 profile of 30 Sep (scenarios/2026.csv, 23 weeks)'
-  - file: si.tex
-    text: 'In a six-week run without disruption (the profile at 250\,cm, the constraint off, the early stop off)'
-    why: 'design: the stationarity run stationarity6w (scenarios/flat6w.csv)'
   # ---- S4 Sensitivities of the revision
-  - file: si.tex
-    text: 'The bounded substitution by rail is the largest: at 50 kt a week the relief pass'
-    why: 'design: rail ceiling 50 kt a week'
   - file: si.tex
     text: '\RevRailFiftyRel\,\%; at 140 kt it delivers \ReliefBnHundredForty{} billion'
     why: 'design: rail ceiling 140 kt a week'
@@ -106,17 +34,11 @@ allowed:
     text: '\RevRestFifteenRel\,\% (15 days) and \RevRestSixtyRel\,\% (60 days)'
     why: 'design: refill time of the sensitivity (15 and 60 days)'
   - file: si.tex
-    text: 'The floor of the loading curve below 5\,cm, at half and twice its value'
-    why: 'design: floor sensitivity 0.04 and 0.16 against 0.08 (draught_table_floor04/floor16.csv)'
-  - file: si.tex
     text: 'The low-water fleet with its gain carried to 100\,cm removes'
     why: 'design: fleet-wide variant (draught_table_lowwater_wide.csv)'
   - file: si.tex
     text: 'a 45-day coping duration for the non-storable inputs, instead of 90, raises it'
     why: 'design: service coping duration 45 against 90 days (inventory_targets_service45.yaml)'
-  - file: si.tex
-    text: 'Their anatomy: at 45 days the services'' share'
-    why: 'design: the 45-day coping duration'
   - file: si.tex
     text: 'of its value at 50 kt (\ReliefLiquidShareHundredForty{} at 140)'
     why: 'design: rail ceilings 50 and 140 kt'
@@ -128,17 +50,8 @@ allowed:
     why: 'data: the quantile profiles of the BfG outlook of 28 Sep (scenarios/2026_q25.csv, 2026_q75.csv)'
   # ---- S4 levers under finite rail, memory at 15 days
   - file: si.tex
-    text: 'and the memory at a 15-day refill time'
-    why: 'design: refill time 15 days'
-  - file: si.tex
-    text: 'Under the 50 kt rail ceiling each single lever removes'
-    why: 'design: rail ceiling 50 kt'
-  - file: si.tex
     text: 'so the two together avoid \CrossStockOverlap\,\% less than the sum'
     why: 'count: the two benefits (lever and rail relief)'
-  - file: si.tex
-    text: 'At a 15-day refill time the two waves of 2026 cost'
-    why: 'design: refill time 15 days; the two wave profiles (scenarios/2026_waveA.csv, 2026_waveB.csv)'
   - file: si.tex
     text: 'where the 30-day rule gives +\WaveInterShare'
     why: 'design: the paper''s refill time of 30 days'
@@ -149,53 +62,11 @@ allowed:
     text: 'because at 15 days the buyers hit by the first wave'
     why: 'design: refill time 15 days'
   # ---- S5
-  - file: si.tex
-    text: 'pays more than 1\,\% above its baseline price'
-    why: 'convention: threshold of the price-share measure (make_numbers.py share_value_above_1pct)'
   # ---- S6 Two representations of the river
-  - file: si.tex
-    text: 'S6 Two representations of the river'
-    why: 'count: section title'
   - file: si.tex
     text: '(40\,cm for container vessels, 50 for tank barges, 30 for dry-bulk vessels)'
     why: 'design: sailing floors of the priced river (closure floors container 40 / liquid bulk 50 / dry bulk 30 cm)'
-  - file: si.tex
-    text: '(at one and a half times the inventories November and December tie)'
-    why: 'design: inventory multiplier 1.5 (the tie itself, 1.08 against 1.09, has no digits in the text)'
-  - file: si.tex
-    text: 'and the capacity limit to \ModelInt, at the lower edge of the 95\,\% band'
-    why: 'convention: the 2.5-97.5 % band of the benchmark'
-  - file: si.tex
-    text: 'at one and a half and twice the inventories the two representations give'
-    why: 'design: inventory multipliers 1.5 and 2; the two representations'
-  - file: si.tex
-    text: 'Under the priced river with twice the inventories'
-    why: 'design: inventory multiplier 2 of the first version'
-  - file: si.tex
-    text: 'against the operators'' count of 80 and 70\,\% for the week of 13 August 2026'
-    why: 'evidence: schuttevaer2026 (KBN: 60 of 300 kt dry, 30 of 100 kt wet)'
-  - file: si.tex
-    text: 'but nothing in the surcharge months against double-digit falls'
-    why: 'evidence: Destatis inland-waterway tonnage, year on year, 2018 (the series of \DestatisNovyy)'
-  - file: si.tex
-    text: 'a low-water fleet sailing to 20\,cm removed'
-    why: 'design: the first version''s fleet lever (sailing floor 20 cm)'
   # ---- S7 Sensitivity tables
-  - file: si.tex
-    text: 'the levers crossed with the 50 kt rail ceiling'
-    why: 'design: rail ceiling 50 kt'
-  - file: si.tex
-    text: 'the two events on the reference network'
-    why: 'count: 2026 and 2018'
-  - file: si.tex
-    text: 'the ten further networks of each event, the five levers on the reference network'
-    why: 'design: ten further supply-chain draws, five levers (stock7, deep20, fleet, stock7t, package)'
-  - file: si.tex
-    text: 'the two-supplier specification'
-    why: 'design: two suppliers per input (sup2)'
-  - file: si.tex
-    text: 'Earlier batches (the batches of 7 and 9 October 2026'
-    why: 'count: calendar dates of the earlier batches (the gate reads only the 9 as a date)'
   - file: si.tex
     text: 'the eleven versions of the supplier--buyer network (sampling)'
     why: 'design: reference network plus ten draws'
@@ -213,81 +84,15 @@ allowed:
     why: 'design: service coping duration'
   # ---- S8 Rail
   - file: si.tex
-    text: 'already carries a main leg by rail (100\,km or more)'
-    why: 'design: line-haul threshold 100 km of the modal-switch rule'
-  - file: si.tex
-    text: 'raises the main-leg threshold to 500\,km'
-    why: 'design: the no-rail pair (line_haul_km 500)'
-  - file: si.tex
-    text: 'Two ceilings are run. 50 kt a week is a reading of the'
-    why: 'design: the two rail ceilings, 50 kt a week'
-  - file: si.tex
     text: '400 wagons that the national rail freight operator said it could add at short notice'
     why: 'evidence: dbcargo2026 (400 extra wagons, 14 Aug 2026)'
-  - file: si.tex
-    text: 'at two rotations a week and 62.5 t a wagon'
-    why: 'design: assumptions turning 400 wagons into 50 kt a week (400 x 2 x 62.5 t)'
-  - file: si.tex
-    text: '140 kt is the contemporaneous rail response of past low waters'
-    why: 'design: rail ceiling 140 kt'
-  - file: si.tex
-    text: 'Appendix B \citep{ademmer2023}, +0.07\,\% of rail tonnage per low-water day'
-    why: 'evidence: ademmer2023, Appendix B'
-  - file: si.tex
-    text: 'over a 30-day low-water month'
-    why: 'design: the month of the 140 kt derivation'
-  - file: si.tex
-    text: 'at a switching penalty of 15\,\% of the freight bill'
-    why: 'design: switching penalty of the rail relief'
-  - file: si.tex
-    text: 'and the 50 kt ceiling binds in nearly every profile week of both events, the 140 kt ceiling in most'
-    why: 'design: the two ceilings (the counts are in the generated Table si_rail_weeks)'
   # ---- S9
-  - file: si.tex
-    text: 'Three choices of the model were made on the 2018 benchmark'
-    why: 'count: the paper describing itself (representation, inventories, networks)'
-  - file: si.tex
-    text: 'ref.~\citep{ademmer2023} (its Table~2, column~1)'
-    why: 'evidence: ademmer2023, Table 2 column 1'
-  - file: si.tex
-    text: 'number of days of the month with Kaub below 78\,cm'
-    why: 'evidence: ademmer2023 (the 78 cm low-water threshold)'
-  - file: si.tex
-    text: 'with coefficients $-0.034$ (s.e. 0.012), $-0.024$ (0.014) on its lag and $-0.172$ (0.119) on the lagged growth'
-    why: 'evidence: ademmer2023, Table 2 column 1 (benchmark_ademmer.py)'
-  - file: si.tex
-    text: '(29, 14, 31, 30 and 3 from August to December 2018, none before or after)'
-    why: 'data: days below 78 cm in the 2018 daily gauge record (scenarios/kaub_daily_2018.csv; additional_data/benchmark_ademmer_2018.txt)'
   - file: si.tex
     text: 'independent normal draws of the three coefficients'
     why: 'design: the Monte Carlo of the benchmark band'
   - file: si.tex
-    text: 'Two features of the benchmark decide it.'
-    why: 'count: the paper describing itself (onset and shape)'
-  - file: si.tex
     text: 'two months before the first week in which any vessel class stopped sailing'
     why: 'data: 2018 profile (scenarios/2018.csv) against the first version''s sailing floors: first closure in mid-October, two months after the August onset'
-  - file: si.tex
-    text: 'an overshoot that turns into an undershoot at twice the inventories'
-    why: 'design: inventory multiplier 2'
-  - file: si.tex
-    text: 'Its sum over the five months at the balance-sheet inventories'
-    why: 'convention: the integral over August to December'
-  - file: si.tex
-    text: 'within the benchmark''s 95\,\% band, the size'
-    why: 'convention: the 2.5-97.5 % band'
-  - file: si.tex
-    text: 'With the inventory targets multiplied by 1.25, 1.5 and 2 the industrial shortfall'
-    why: 'design: the inventory ladder'
-  - file: si.tex
-    text: 'at three quarters of the balance-sheet value (run of 6 November 2026)'
-    why: 'record: the rung at x0.75 of the inventory ladder, 2018_r6_bycargo_inv075 (jobs_20261106_inv075.txt, job 3210061), a sensitivity point asked at the review of 6 Nov 2026, not a new baseline'
-  - file: si.tex
-    text: 'runs of the batches of 2, 3 and 6 November 2026'
-    why: 'record: the batch days of Table si_runs (2 and 3 Nov lists, the x0.75 rung of 6 Nov)'
-  - file: si.tex
-    text: 'three rungs of 2 November and the rung at $\times$0.75 run on 6 November'
-    why: 'record: the ladder lists jobs_20261102_ladder.txt (x1.25, 1.5, 2) and jobs_20261106_inv075.txt (x0.75)'
   - file: si.tex
     text: 'below the benchmark''s one-standard-deviation band and inside its 95\,\% band'
     why: 'convention: the 2.5-97.5 % band'
@@ -307,15 +112,6 @@ allowed:
     text: 'With two suppliers per input instead of one'
     why: 'design: two suppliers per input (sup2)'
   # ---- S10
-  - file: si.tex
-    text: 'so that the trade and hospitality buyers hold seven days rather than five'
-    why: 'convention: inventory days floored at one week (five input days of trade and hospitality, inventory_targets_by_buyer.yaml)'
-  - file: si.tex
-    text: '$\tau$ is 30 days, 4.3 steps'
-    why: 'design: refill time 30 days = 4.3 weekly steps'
-  - file: si.tex
-    text: 'The baseline is stationary: in six undisturbed weeks'
-    why: 'design: length of the stationarity run stationarity6w'
   - file: si.tex
     text: 'the central table with its loading raised by 0.10 between 15 and 55\,cm'
     why: 'design: the fleet lever (scenarios/draught_table_lowwater.csv)'
@@ -342,61 +138,7 @@ allowed:
     why: 'evidence: Stolt Ludwigshafen full-draft payload (BASF press release 2023, loading-table source)'
 
   # 5 Nov 2026 pending fix (patch_pending_20261105.py); literals the fixed text keeps
-  - file: si.tex
-    text: 'in the first three weeks and \GateResentLastMin--\GateResentLastMax\,\% in the last three'
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); design: the first and the last three profile weeks (weeks 1-3 and 21-23)'
-  - file: si.tex
-    text: '(the 23 profile weeks of Table~\ref{tab:gate}'
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); data: length of the 2026 profile of 30 Sep (scenarios/2026.csv, 23 weeks)'
-  - file: si.tex
-    text: 'cut at Kaub in the August episode (weeks 7--9)'
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); design: the August episode, run weeks 7-9 (3-23 August 2026)'
-  - file: si.tex
-    text: 'firms producing more than 10,000 USD a week'
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); design: materiality threshold of stationarity_check.py (0.01 mUSD a week at t = 0)'
-  - file: si.tex
-    text: 'of their targets by week six'
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); design: the last week of the six-week run stationarity6w'
-  - file: si.tex
-    text: 'every firm producing more than 10,000 USD a week'
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); design: materiality threshold of stationarity_check.py (0.01 mUSD a week at t = 0)'
-  - file: si.tex
-    text: 'gives the two crossed experiments of'
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); count: the levers under the 50 kt rail ceiling and the waves at a 15-day refill time'
-  - file: si.tex
-    text: 'and below it at twice the inventories (\PricedNovC)'
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); design: inventory multiplier x2 (the value is the macro)'
-  - file: si.tex
-    text: 'gave 4.1, 2.5 and 1.4 percent-months at the three inventory levels'
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); history: the first version''s priced-river runs 2018_baseline / 2018_inv150 / 2018_pipe of 22-28 Sep 2026 (model_path: 4.11, 2.48, 1.39 percent-months; the constants of the claim ''changes the sums by less than a fifth'')'
-  - file: si.tex
-    text: '(1.7\,\% in November against the published 1.5)'
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); history: the earlier version''s level-effect path, November 1.74 (benchmark_ademmer.py docstring: 1.02, 1.23, 1.38, 1.74, 0.82); evidence: the November peak of 1.5 % that ademmer2023 reports'
-  - file: si.tex
-    text: 'the tonnage past Kaub fell 81\,\% (dry bulk) and 70\,\% (liquid) in a closure week'
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); history: the first version''s priced river, validation outputs of 2026_cal_base_full of 17 Sep 2026 (705 -> 135 kt dry, 608 -> 180 kt liquid a week; calibration_log.md)'
-  - file: si.tex
-    text: 'and 31\,\% in the tank-barge closure weeks of November 2018'
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); history: the first version''s 2018 full-export twin (2018_inv200_full, 21-22 Sep 2026): -31 % in each of the four tank-barge weeks 5-26 Nov (calibration_log.md)'
-  - file: si.tex
-    text: 'and the tanker floor at 40 or 60\,cm moved the loss by a factor of two'
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); history: the first version''s tanker-floor band (priced river, runs of 6-15 Sep 2026: floor 40 cm about halves the loss, 60 cm raises it; calibration_log.md); 40 and 60 cm are design'
-  - file: si.tex
-    text: 'the wave-isolation profiles at a 15-day refill time'
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); design: refill time 15 days'
-  - file: si.tex
-    text: 'and the priced river with closures at three inventory levels'
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); design: inventory multipliers x1, x1.5, x2 of the priced river'
-  - file: si.tex
-    text: 'in the offline classification of Table~\ref{tab:thresholds}, 15\,\% of the bulk orders'
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); data: the complement of the adopted rule''s 85 % in Table si_thresholds (offline classification of 14-15 Sep 2026 on the first version''s network; jobs_20261020_norail.txt header)'
-  - file: si.tex
-    text: 'over the four sectors, fuel is'
-    why: '5 Nov 2026 (patch_fuel_20261105.py); count: the four fuel-fed service sectors named in the sentence (H49, H52, D, H50)'
   # ---- moved or copied from main.yaml by the trim of 7 Nov 2026 (ledger_relocate.py)
-  - file: si.tex
-    text: 'and those two regions receive the goods by rail'
-    why: 'design: Switzerland and Alsace, the two regions beyond Mannheim whose barges end in the Rhine--Neckar region in the model (comment 1 of 6 Nov 2026)'
   - file: si.tex
     text: 'eleven versions of the supplier--buyer network'
     why: 'design: number of supplier--buyer networks (reference + ten seeds); l. 35 and 197'
@@ -406,9 +148,6 @@ allowed:
   - file: si.tex
     text: 'of the eleven networks fall inside the benchmark'
     why: 'design: number of networks (the count itself is \DrawsInBand)'
-  - file: si.tex
-    text: 'at a refill time of 15 days instead of 30'
-    why: 'design: restoration time variants (l. 111 and 241)'
   - file: si.tex
     text: 'rises on \FleetPeakUpDraws{} of the ten further ones'
     why: 'design: ten further networks'
@@ -446,29 +185,8 @@ allowed:
     text: 'roads (2,979 edges), railways (4,261), inland waterways (461'
     why: 'data: edge counts of the TEN-T transport network by mode (sum 10,139 = \NEdges)'
   - file: si.tex
-    text: 'a truck carries 25 tonnes against 2,000 and more for a barge or an ore train'
-    why: 'evidence: standard payloads of a truck and of a barge or ore train (no citation key in the paragraph)'
-  - file: si.tex
     text: '(below 5\,cm the loading curve is held at its lowest value, 8\,\%, an assumption)'
     why: 'data: floor of the loading table (scenarios/draught_table.csv)'
-  - file: si.tex
-    text: 'the four single levers on top of the 50 kt rail ceiling'
-    why: 'design: crossed runs (four levers x rail 50)'
-  - file: si.tex
-    text: '(each wave alone, the sequence with gaps of 0, 2 and 4 weeks)'
-    why: 'design: wave-isolation runs at 15 days'
-  - file: si.tex
-    text: 'Sensitivity runs vary the inventory multiplier (1.25, 1.5 and 2, on the 2018 event)'
-    why: 'design: inventory ladder'
-  - file: si.tex
-    text: 'the loading curve (shortfall $\times$0.85 and $\times$1.15, both events)'
-    why: 'design: loading-curve variants'
-  - file: si.tex
-    text: 'the number of suppliers per input (two instead of one, both events)'
-    why: 'design: sup2 runs'
-  - file: si.tex
-    text: 'the seed of the network draw (ten versions besides the reference'
-    why: 'design: ten further networks'
   - file: si.tex
     text: '19, 31, 30, 31 and 15 days from July to November'
     why: 'data: days below 78 cm, scenarios/kaub_daily_2026.csv to 29 Sep then scenarios/2026.csv (checked 5 Nov: Jul 19, Aug 31, Sep 29+1)'
@@ -500,17 +218,11 @@ allowed:
     text: 'of the quarter''s baseline in the third quarter of 2026'
     why: 'convention: calendar quarter'
   - file: si.tex
-    text: 'of the forty largest seaports are within 30\,\% of the Eurostat counts'
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); design: the forty largest seaports by gross weight handled (Eurostat 2023, Table S-ports) and the 30 % threshold of the count'
-  - file: si.tex
     text: 'a week in week 24 to \CatchUpLastM~million in week 43'
     why: '5 Nov 2026 pending fix (patch_pending_20261105.py); design: week 24 is the first recovery week after the 23 weeks of the 2026 profile, week 43 the last week of the run'
   - file: si.tex
     text: 'The run horizon, 43 weeks for 2026 and 42 for 2018'
     why: 'design: run length (Supplementary Section S10; moved from Methods on 7 Nov 2026)'
-  - file: si.tex
-    text: 'Two crossed experiments complete the set'
-    why: 'count: the crossed experiments of 2 November 2026 (Supplementary Section S7; moved from Methods on 7 Nov 2026)'
   # ---- moved or copied from main.yaml by the trim of 7 Nov 2026 (ledger_relocate.py)
   - file: si.tex
     text: 'industrial loss over the five weeks of the August episode'
@@ -529,109 +241,9 @@ allowed:
     text: '\CorridorStopRhineAug\,\% below half of it'
     why: 'design: stop threshold = half of baseline output (make_numbers.py, CorridorStopRhine*)'
 claims:
-  - file: si.tex
-    text: 'where the benchmark keeps a third, because the closures of November'
-    expr: '100*RecDec/RecNov'
-    range: [30, 37]
-    why: 'result (benchmark path): December over November of the benchmark; a third = 30-37'
-  - file: si.tex
-    text: 'at higher ones, where the benchmark keeps a third'
-    expr: '100*RecDec/RecNov'
-    range: [30, 37]
-    why: 'result (benchmark path): December over November of the benchmark; a third = 30-37'
-  - file: si.tex
-    text: 'from which the shortfall has fallen back by two thirds in December'
-    expr: '100*(1 - RecDec/RecNov)'
-    range: [63, 70]
-    why: 'result (benchmark path): fall from November to December; two thirds = 63-70'
-  - file: si.tex
-    text: 'where the benchmark has nearly a fifth of its loss in each month'
-    expr: '100*RecAug/RecordInt'
-    range: [17.6, 20]
-    why: 'result (benchmark path): August share of the integral; nearly a fifth = 17.6-20 (September in the next entry)'
-  - file: si.tex
-    text: 'nothing in August and September, where the benchmark has nearly a fifth'
-    expr: '100*RecSep/RecordInt'
-    range: [17.6, 20]
-    why: 'result (benchmark path): September share of the integral; nearly a fifth = 17.6-20'
-  - file: si.tex
-    text: 'the rerun on common inputs changes the sums by less than a fifth'
-    expr: '100*max(abs(1 - PricedInt/4.11), abs(1 - PricedIntB/2.48), abs(1 - PricedIntC/1.39))'
-    range: [0, 20]
-    why: 'result: the priced-river rerun against the first version''s sums 4.11 / 2.48 / 1.39 (review of 3 Nov, constants); less than a fifth = below 20'
 
   # 5 Nov 2026 rewrite (patch_stale_claims_20261105.py); words matched to the batch of 2 Nov
-  - file: si.tex
-    text: 'the restrictive end of a range whose other end removes more than half of the loss'
-    expr: 'min(RevRailHundredFortyAbs, RevRailHundredFortyyyAbs)'
-    range: [50.5, 100]
-    why: 'result: the 140 kt ceiling removes more than half of the 2026 and the 2018 loss'
   # 5 Nov 2026 pending fix (patch_pending_20261105.py); words bound to the new macros
-  - file: si.tex
-    text: 'changes the tonnage turned away by less than 1\,\% in both years'
-    expr: 'DailyLoadingDiff'
-    range: [0, 0.9]
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result (inputs): weekly means against day-by-day loading shares on the rebuilt table; less than 1 % = r1 value at most 0.9'
-  - file: si.tex
-    text: 'when the cut is small, three quarters of it is re-sent'
-    expr: 'GateResentRec'
-    range: [72, 78]
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: re-sent share of the cut in the 13 recovery weeks (gate log); three quarters = 72-78'
-  - file: si.tex
-    text: 'the first wave does not move orders away from the river''s suppliers'
-    expr: 'SupWeightWaveEnd - SupWeightStart'
-    range: [0, 100]
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: the Kaub pairs'' share of the offered deliveries does not fall from the start of the season to the end of the first wave'
-  - file: si.tex
-    text: 'total production stays within $10^{-6}$ of its initial value'
-    expr: 'StatTotalDevPpm'
-    range: [0, 1]
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result (check run stationarity6w): largest deviation of total production in parts per million; covers S4 and S10'
-  - file: si.tex
-    text: 'USD a week, one is below its target'
-    expr: 'StatBelow'
-    range: [1, 1]
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result (stationarity6w): firms above the threshold below their target in the last week'
-  - file: si.tex
-    text: 'Some twenty agents with orders of tens of dollars a week drift'
-    expr: 'StatDrift'
-    range: [15, 25]
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result (stationarity6w): smaller agents below target in the last week; some twenty = 15-25'
-  - file: si.tex
-    text: 'USD a week but one'
-    expr: 'StatBelow'
-    range: [1, 1]
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result (stationarity6w): firms above the threshold below their target in the last week'
-  - file: si.tex
-    text: 'the drifts are confined to some twenty agents'
-    expr: 'StatDrift'
-    range: [15, 25]
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result (stationarity6w): smaller agents below target in the last week; some twenty = 15-25'
-  - file: si.tex
-    text: 'each single lever removes a larger share of a smaller loss than under the paper''s rule'
-    expr: 'min(CrossStockRail - LevStock, CrossDeepRail - LevDeep, CrossStockTRail - LevStockT, CrossFleetRail - LevFleet)'
-    range: [1, 100]
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: every single lever avoids a larger share of the rail-50 base than of the reference base'
-  - file: si.tex
-    text: 'it keeps in December half of its November loss at the balance-sheet inventories'
-    expr: 'PricedDecShare'
-    range: [45, 55]
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: December over November of the priced river at x1; half = 45-55'
-  - file: si.tex
-    text: 'and with a December twice the benchmark''s'
-    expr: 'PricedDec/RecDec'
-    range: [1.8, 2.2]
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: the priced river''s December at x1 against the benchmark''s; twice = 1.8-2.2'
-  - file: si.tex
-    text: 'keep in December half of their November value at the balance-sheet inventories'
-    expr: 'PricedDecShare'
-    range: [45, 55]
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: December over November of the priced river at x1 (S9 repeats S6); half = 45-55'
-  - file: si.tex
-    text: 'nothing in August and September, a December twice the benchmark''s'
-    expr: 'PricedDec/RecDec'
-    range: [1.8, 2.2]
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: the priced river''s December at x1 against the benchmark''s (S9 repeats S6); twice = 1.8-2.2'
   # ---- moved or copied from main.yaml by the trim of 7 Nov 2026 (ledger_relocate.py)
   - file: si.tex
     text: 'the refill time of inventories and the service rules by up to a third'
@@ -690,6 +302,3 @@ pending:
   # ---- S6
   # ---- S7
   # ---- S8
-  - file: si.tex
-    text: 'on about 6.7 Mt of rail freight a week, treated as a constant weekly capacity'
-    note: 'unsure: source of the weekly rail tonnage not cited (German rail freight about 350 Mt a year? a model figure?); cite it or derive it'

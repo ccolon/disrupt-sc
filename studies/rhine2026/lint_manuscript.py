@@ -55,7 +55,14 @@ def main(repo: Path):
                 problems.append(f"{rel}: missing figure {g}")
         if body.count("{") != body.count("}"):
             problems.append(f"{rel}: braces {body.count('{')} open vs {body.count('}')} close")
+        in_display = False                 # 10 Nov 2026: inside \begin{equation*} ... \end{equation*} (or align, gather, multline)
         for i, line in enumerate(body.splitlines(), 1):
+            if re.search(r"\\begin\{(equation|align|gather|multline)\*?\}", line):
+                in_display = True
+            if in_display:
+                if re.search(r"\\end\{(equation|align|gather|multline)\*?\}", line):
+                    in_display = False
+                continue
             if line.count("$") % 2:
                 problems.append(f"{rel}:{i}: odd number of $")
             clean = re.sub(r"\$[^$]*\$", "", line)

@@ -3,8 +3,12 @@
 The author revised the Supplementary Information in Overleaf on 10 November 2026: `sections/si.tex` moved to `si.tex` at
 the project root, about 50 direct text edits (S1 to S10) and 61 inline notes (`\todo{...}`), numbered N01 to N61 here in
 file order (S1: N01-N14, S2: N15-N24, S3: N25-N33, S4: N34-N45, S5: N46, S6: N47, S7: N48, S8: N49-N50, S9: N51-N59,
-S10: N60-N61). The extraction (notes with context, word-level edits) is reproducible with the script kept in the session
-scratchpad (`si_notes_extract.py <overleaf> fc30932:sections/si.tex si.tex <out.md>`).
+S10: N60-N61). The extraction (each note with its context, and the word-level edits) is
+`review/si_revision_20261110_notes.md`, written from the author's version (Overleaf 675722a) by `review/si_notes_extract.py`.
+
+The blocks below carry the section numbers of the author's version, one block per version pushed to Overleaf. The
+numbers after the revision are in the table of the last block; the open points for the author and the state of the
+checks close the file.
 
 ## How the revision is handled
 
@@ -174,3 +178,118 @@ week of 22 October. Also "see able", and "Choice #1", whose unescaped "#" stoppe
 | N48 | The 129-run table is replaced by one sensitivity table (tab:revision, 33 rows: rule or parameter, reference value, alternatives tested, loss of 2026 and of 2018, change against the reference run), generated from the comparison tables by `si_tables.revision_table`. The text has four short paragraphs: the approach (one change at a time on the same network, and the three sets of runs of another kind), the reading of the table, what was not varied and why, and the count of runs by list. The list of runs is `additional_data/runs_20261102.csv` (written by `si_tables.runs_table`); it is in the code repository, which the Code availability statement archives on Zenodo. main.tex points to the file. |
 | N42 | No mention of a revision remains in the paragraph, the table or the figure caption. |
 
+## S8 Rail (Overleaf aca31c7)
+
+| Note | Answer |
+|---|---|
+| N49 | The section opened with "Rail is a bounded substitute in this study, not a lever", which the note found hard to follow and which contradicted the main text ("Rail is a lever whose size the model cannot set"). It now opens as the main text does: what limits rail is not the price of a train but the number of trains that can be added at short notice, which is not known, so rail is reported as a sensitivity and not as a sized lever. |
+| N50 | The 6.7 Mt of rail freight a week had no source. The item now gives the estimate the figure is applied to (Kiel Working Paper 2155, Appendix B: a day of low water raises rail tonnage by 0.07 %, about 2 % over a low-water month), says that 6.7 Mt a week is the order of the German total, and cites the nearest official figure (362 Mt in 2024, 7.0 Mt a week; new key destatis2026gueterbefoerderung). Where 6.7 itself came from is not documented in the study's files; it is close to the 2025 total (350.9 Mt, a figure read on a mirror of the official series and not cited). |
+
+Direct edits corrected: "eligigle", "the tonnage of bulk can be rerouted" (a sentence without "that"), percentages without their sign.
+main.tex: "The ceiling is reached in nearly every week of both events" cited the table of the crossed levers; it now cites the
+week-by-week table of the rail runs (tab:railweeks).
+
+## S9 The 2018 event (Overleaf 9751f59)
+
+| Note | Answer |
+|---|---|
+| N51 | The regression of the benchmark is written as an equation (monthly growth of the production index on the change in the number of days below 78 cm, its lag and the lagged growth), followed by the growth that low water induces and its cumulation, which is the shortfall. The three coefficients and their standard errors are those of column 1 of Table 2 of the cited study. |
+| N52 | "Why daily?": the regressor counts the days of a month on which the gauge is below 78 cm, so the daily record is needed. The sentence says so and gives the five counts (29, 14, 31, 30 and 3 days from August to December 2018). |
+| N53, N54 | The benchmark and its band are those of the validation figure of the main text: referenced. |
+| N55 | "Check it is correct": it was not. The model's counterpart is aggregated as the production index is (the shortfall rate of each sector weighted by its value added in the German input-output table, over sections B to D; a day takes the value of its model week, a month is the mean of its days, the event is the sum of the months), not "as done in" the benchmark study, and it is a weighted mean of rates, not a sum of weekly losses. Rewritten from `matched_estimand_2018.py`, which computes it. |
+| N57, N58 | The paragraph on the level of the inventories is in the sensitivity section (S7), with its values in a small table (new label tab:ladder; every cell is a macro of `numbers.tex`). |
+| N59 | The paragraph on the supplier networks, the loading curve and the number of suppliers is in S7 too. |
+
+Direct edits corrected: the numbers of low-water days were written in centimeters with a tilde accent (`29\~cm`); they are
+days. "See Table 2, column 1" pointed to this paper's Table 2 instead of the cited study's.
+The section now holds the benchmark and the one choice made on it, the representation of the river; its first sentence
+says where the two other comparisons are. main.tex: three pointers follow the moved paragraphs, and a note marks the
+sentence of the Methods that still counts three choices made on the 2018 benchmark (open point 2 below).
+Tooling: the lint skips the lines of a displayed equation (the SI has its first one); the hand-written table sits between
+table markers so that the lint and the gate read it as a table.
+
+## S10 Weekly sequence and model specifications, now S4 (Overleaf 2591144)
+
+| Note | Answer |
+|---|---|
+| N60 | The section is not a result: it moves up, after Scenario construction, and becomes S4, as the note names it. The sections after it shift by one. It could also precede S3; it follows it because S3 defines the capacities and the surcharge that the weekly sequence then uses. |
+| N61 | The paragraph on the fleet lever joins the rail section, renamed "S8 Rail and the low-water fleet". |
+
+Direct edits checked: punctuation of the two paragraphs the author wrote in this section.
+Every pointer to a section was updated to where its content now is, one by one (8 in si.tex, 15 in main.tex). The sensitivity
+runs that sat in the former S4 are in S7 (stress paths, headroom, floor of the loading curve), so a pointer to "S4" became
+S5, S7 or S8 according to what it points to.
+
+| Author's version | After the revision |
+|---|---|
+| S1 Scope and data | S1 |
+| S2 Baseline calibration | S2 |
+| S3 Scenario construction | S3 |
+| S4 Mechanism tests | S5 |
+| S5 What crosses Kaub, and at what price | S6 |
+| S6 Two representations of the river | merged into S9 |
+| S7 Sensitivity analysis | S7 |
+| S8 Rail | S8 Rail and the low-water fleet |
+| S9 Selecting the representation of the river on the 2018 low water | S9 |
+| S10 Weekly sequence and model specifications | S4 |
+
+## Open points for the author
+
+Decisions the revision could not take. The first two are marked by notes in `main.tex`.
+
+1. **Which forecast the paper reports and scores.** Every number of the manuscript comes from the rerun of 2 November 2026
+   (calibrated baseline, one capacity per cargo class). The Methods still call the reissue of 7 October "the batches of this
+   paper" and say that the scoring uses "the series as issued on 7 October". The 7 October issue gave a German loss of
+   1.54 % of a quarter; the paper prints 1.11 %. S3 now states the three versions (28 September, 7 October, 2 November) and
+   `forecast_manifest.md` has a row for the rerun. To decide: score the series issued on 7 October, with the rerun as the
+   paper's analysis, or score the rerun and say that it was produced after part of the season was observed.
+2. **"Three modeling choices were made on the 2018 benchmark"** (Methods). The SI, as revised, presents one choice made on
+   2018 (the representation of the river) and two sensitivities kept at their reference values (level of the inventories,
+   number of suppliers). The Methods sentence should follow, or the SI should go back to three choices.
+3. **Sea rate.** The author's cell said that the sea rate does "not influence the results". No run tests it, so the cell
+   says instead that sea lanes carry no capacity limit and what the rate bears on. A run with the bulk rate (0.0034 to
+   0.0051) would allow the sentence.
+4. **N40, "total flow".** Read as the sum of the flows turned away. If the tonnage that passes Kaub each week was meant, it
+   is not in the run logs and needs the link-level export of the run.
+5. **N25, the 7 September vintage.** The paragraph and the table are removed; one sentence on the outlook's miss is kept
+   because the Discussion cites it.
+6. **N46, the French chain.** Kept, shortened, because the main text points to it for the figures. To drop it, drop the
+   pointer too.
+7. **N60.** S4 follows S3; it could precede it.
+8. **Two sources to confirm by eye**: the title of the Destatis table 46321-0014 (modal split) and the OPIS figures for
+   June 2025 in the tanker-rate cell; both were read on pages that could not be opened in full.
+9. **Evidence worth knowing before a referee finds it** (S1 block): the operator cost of a liquid-bulk train is 0.018 EUR
+   per tonne-kilometer against the model's 0.085, which the cell now calls an effective cost; the sea rate matches container
+   carriers and is two to three times too low for bulk; the values of time on rail and on waterways for containers are three
+   to four times above the meta-analysis of Binsuwadan et al. (2022).
+10. **AI disclosure.** `main.tex` line 306 names one model version (Fable 5.1); this round ran on Fable 5.2. The paragraph
+    "Use of AI tools" names no version. The same line is the one overfull line of the compile (6.9 pt).
+
+## State of the checks at the end (10 November 2026, evening)
+
+- `si.tex` has no note left. `main.tex` has seven: four older ones (email, a placeholder, the AI statement to confirm, the
+  Zenodo DOI) and the three of this round (open points 1 and 2).
+- `paper_gate.py` on the version pushed last (Overleaf 2591144): PASS. No failure in the lint, the numbers, the ledger and
+  the compile. Warnings: 196 of 516 macros of `numbers.tex` are not used; 28 number words to read by eye; 14 entries of
+  `refs.bib` are not cited (none added in this round) and 28 cited entries have neither DOI nor URL (none added in this
+  round); one overfull line (open point 10). Report: `review/paper_gate_20261110.md`.
+- Ledger: the 171 entries whose sentence left the manuscript are dropped and listed in `review/ledger_dropped_20261110.txt`;
+  the reworded claims have new entries in `paper_gate_ledger/si_c.yaml` (74 allowed literals, 13 claims bound to macros).
+- Tables: `si_tables.py --check` on the final file finds the numbers of 13 tables equal to the run outputs (criticality,
+  cross, cross_waves, gate, loading, modal, ports, rail weeks, representations, sensitivity, stock overrides, stocks,
+  thresholds). Four tables cannot be recomputed on this machine any more (rates, channels, the sector table of the forecast
+  and the forecast table of the main text): they need the folders of the final runs, see below. Their cells equal the tables
+  generated from those folders at 17:20 the same day, before the folders went; the two value-of-time cells of the rates
+  table, whose form changed afterwards, were checked against the job lists (0.32 on the waterway in each of the 129 jobs of the
+  batch's lists) and the configuration. No table number was typed by hand.
+- `numbers.tex` is unchanged by the revision.
+- **The local copy of the final runs is gone.** `C:/dsc_runs/rhine2026` lost the folders of the batch of 2 November (every
+  `*_r6_bycargo*` folder, 129 runs) and of the calibration rounds at 17:54 on 10 November; their logs remain, and the
+  folders of the 7 October batch remain. No deletion was run there by this session. The cluster still holds the 129 runs
+  (`/projects/disruptsc/runs/rhine2026`), but their batch archives were deleted in the clean-up of 8 November, so a
+  restore means packing them again (`pack_results.sh`) and downloading them. Until then `make_numbers.py`, the gate's
+  `--regen` and the four tables above cannot be regenerated locally.
+- Two tool traps found and closed on the way: `si_tables.py` fell back on the scope's configuration, without a word, when
+  the reference run's `parameters.yaml` was missing, so a check compared the rates table with values the batch did not use
+  (it now skips the table, as the others that need a run folder); the gate's reference check did not read the citations
+  inside table cells and called 13 cited references "never cited".
