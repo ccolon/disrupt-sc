@@ -1,0 +1,33 @@
+# Ledger of paper_gate.py: entries added with the author's revision of the SI of 10 November 2026 (written by
+# review/ledger_si_20261110.py through review/ledger_edit.py). Format: see the docstring of paper_gate.py.
+allowed:
+- {file: main.tex, text: Anthropic Fable 5.1 was used, why: 'count: a product version in the author''s AI disclosure'}
+- {file: si.tex, text: Ten sectors use facility data. Nine keep their facilities as points, why: 'count: the ten facility sectors of the sentence (B05, B06, B07, C19, C20, C17-18, C24B, C23, C24A kept as points; D aggregated to NUTS2 capacity); crops (A01) use a gridded source and are named before'}
+- {file: si.tex, text: 'roads (2,979 edges), railways (4,261), inland waterways (461, including 30 for the Rhine from Basel to Rotterdam)', why: 'data: edge counts by mode of the TEN-T extraction of 29 August 2026; the Rhine is a chain of 30 named reaches'}
+- {file: si.tex, text: We assume that 18 commodity-like products are pooled across regions, why: 'count: the eighteen pooled products listed in the sentence (the pooled sectors of the configuration)'}
+- {file: si.tex, text: whose industries are the 55 of the World Input--Output Database (NACE Rev.~2), why: 'data: the 55 industries of the World Input-Output Database in which the survey is expressed (pichler2022); NACE revision 2'}
+- {file: si.tex, text: (a depleted input halves output), why: 'design: the rule of an important input in the production function (Methods)'}
+- {file: si.tex, text: 'an input below 2\,\% of the buyer''s input costs is considered non-critical', why: 'design: the 2 % threshold of the critical-input rule (Methods)'}
+- {file: si.tex, text: 'Over the 2,500 sector-to-sector pairs, 18\,\% of the inputs are critical, 9\,\% important and 73\,\% non-critical', why: 'data: shares of the 50 x 50 cells of additional_data/input_criticality.csv (si_tables.criticality_table computes 18 / 9 / 73)'}
+claims:
+- file: si.tex
+  text: The 39 other sectors are downscaled using NUTS3 employment
+  expr: NSectors - 11
+  range: [39, 39]
+  why: 'data bound to the macro: \NSectors less crops (A01) and the ten facility sectors'
+- file: si.tex
+  text: survey of Pichler et al.~\citep{pichler2022} mapped to the 50 sectors
+  expr: NSectors
+  range: [50, 50]
+  why: 'data bound to the macro: the literal 50 is \NSectors'
+- file: si.tex
+  text: \textbf{The criticality survey mapped to the 50 sectors.}
+  expr: NSectors
+  range: [50, 50]
+  why: 'data bound to the macro: the literal 50 is \NSectors (caption of Table S-criticality)'
+- file: si.tex
+  text: how many of its 50 input sectors the survey rates
+  expr: NSectors
+  range: [50, 50]
+  why: 'data bound to the macro: the literal 50 is \NSectors'
+pending: []

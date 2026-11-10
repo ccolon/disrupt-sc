@@ -67,7 +67,7 @@ def counts(ov: Path) -> dict:
     caps = re.findall(r"\\caption\{((?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*)\}", main_body, re.S)
     c["legends"] = [_words(_clean(x, macros)) for x in caps]
     keys = set()
-    for f in [main] + [q.read_text(encoding="utf-8") for q in sorted((ov / "sections").glob("*.tex"))]:
+    for f in [main] + [q.read_text(encoding="utf-8") for q in [q for q in [ov / "si.tex"] if q.exists()] + sorted((ov / "sections").glob("*.tex"))]:
         for grp in re.findall(r"\\cite[pt]?\{([^{}]*)\}", f):
             keys.update(k.strip() for k in grp.split(","))
     c["cited"] = len(keys)

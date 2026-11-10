@@ -27,7 +27,7 @@ def strip_comments(text: str) -> str:
 
 
 def main(repo: Path):
-    files = [repo / "main.tex", repo / "numbers.tex"] + sorted((repo / "sections").glob("*.tex")) + sorted((repo / "tables").glob("*.tex"))
+    files = [repo / "main.tex", repo / "numbers.tex"] + [q for q in [repo / "si.tex"] if q.exists()] + sorted((repo / "sections").glob("*.tex")) + sorted((repo / "tables").glob("*.tex"))
     keys = set(re.findall(r"@\w+\{([^,]+),", (repo / "refs.bib").read_text(encoding="utf-8")))
     problems, labels, refs = [], set(), set()
     # 6 Nov 2026 (the SI in one file): the generated tables sit in the documents between '% >>> generated table <name>'

@@ -1,8 +1,11 @@
 """LaTeX tables of the Supplementary Information, generated from the study's data (30 Sep 2026; extended 5 Oct 2026).
 
-Writes to the Overleaf repository's tables/ folder:
+Since 10 Nov 2026 the manuscript owns the text of a table (caption, headers, labels, notes) and this script its numbers:
+a block of si.tex / main.tex that already holds a table only has its numeric cells compared and refreshed (see
+compare_table); --check writes nothing, --emit <name> prints a regenerated table whole. The tables:
   si_rates.tex              the transport cost parameters of the runs against the rate evidence (S1)
-  si_stocks.tex             the stock targets by buying industry and the input-specific overrides, with their basis (S1)
+  si_stocks.tex             the inventory targets by buying industry, with their evidence (S1)
+  si_stock_overrides.tex    the input-specific targets that replace them, with evidence and modeling reason (S1; 10 Nov 2026)
   si_criticality.tex        the survey industry of each ICIO sector and the criticality counts (S1)
   si_loading_table.tex      the draft table with its anchors (review NS2)
   si_forecast.tex           the 2026 profile: outlook of 7 September against the observations (review NS1)
@@ -295,8 +298,8 @@ def rates_table(out: Path):
         f"sea & {bc['maritime']:.4f} & The prior of the scope; sea lanes are unconstrained in this study. \\\\",
         r"\midrule",
         r"\multicolumn{3}{l}{\emph{Value of time, USD per tonne-hour}} \\",
-        f"containers & {vot['container']['default']:.2f} & On road and rail; {vot['container']['waterways']:.2f} on the waterway and {vot['container']['maritime']:.2f} at sea. A cargo-side (inventory) value: the vessel-side cost of time is 0.02--0.07 EUR per tonne-hour at full load and 0.13--0.26 at fleet average (Panteia for KiM); 0.20 in the European Commission's charging study of 2005. \\\\",
-        f"dry and liquid bulk & {vot['dry_bulk']:.2f} & All modes. \\\\",
+        f"containers & {vot['container']['default']:.2f} (road and rail); {vot['container']['waterways']:.2f} (waterways); {vot['container']['maritime']:.2f} (sea) & A cargo-side (inventory) value: the vessel-side cost of time is 0.02--0.07 EUR per tonne-hour at full load and 0.13--0.26 at fleet average (Panteia for KiM); 0.20 in the European Commission's charging study of 2005. \\\\",
+        f"dry and liquid bulk & {vot['dry_bulk']:.2f} (all modes) & A low value: transit time hardly weighs on the routing of bulk. \\\\",
         r"\midrule",
         r"\multicolumn{3}{l}{\emph{Terminal transfer, hours of dwell time / USD per tonne}} \\",
         f"road--rail & {transfer('roads-railways')} & Intermodal terminals and bulk sidings at both ends of a rail trip; tank cars are loaded at the shipper's siding. \\\\",
@@ -380,6 +383,8 @@ OVERRIDES = [
 
 
 def stocks_table(out: Path):
+    """10 Nov 2026 (the author's notes): the 'lean' column is gone (the 2019 values are in the evidence cells) and the
+    input-specific targets are a table of their own, si_stock_overrides (buyer, input, days, grade, evidence)."""
     inv = config()["inventory_duration_targets"]
     values, overrides = inv["values"], inv["overrides"]
     rows = []
@@ -391,28 +396,47 @@ def stocks_table(out: Path):
         recommended = int(re.match(r"\d+", rec).group())
         if recommended != model:
             print(f"WARNING {label}: evidence recommends {recommended} d, the configuration has {model}")
-        lean_tex = "--" if lean == "-" else lean
         basis = basis.replace("M&S", "materials and supplies").replace("&", " and ")   # no & in a cell: the lint counts them
-        rows.append(f"{tex(codes_tex)} & {tex(name)} & {num(model)} & {lean_tex} & {grade} & {tex(basis)} \\\\")
-    rows.append(r"\midrule")
-    rows.append(r"\multicolumn{6}{l}{\emph{Input-specific targets (buyer: input), overriding the industry value}} \\")
+        rows.append(f"{tex(codes_tex)} & {tex(name)} & {num(model)} & {grade} & {tex(basis)} \\\\")
+    (out / "si_stocks.tex").write_text(r"""\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{longtable}{L{16mm}L{38mm}rcL{77mm}}
+\caption{\textbf{Inventory targets by buying industry.} Days of consumption of purchased goods inputs that each industry holds at the baseline, with the grade of the evidence and the evidence. The notes follow the table; the targets set for one input of an industry are in Table~\ref{tab:stockoverrides}.}
+\label{tab:stocks} \\
+\toprule
+industry & & days & grade & evidence \\
+\midrule
+\endfirsthead
+\toprule
+industry & & days & grade & evidence \\
+\midrule
+\endhead
+""" + "\n".join(rows) + r"""
+\bottomrule
+\end{longtable}
+\endgroup
+""", encoding="utf-8")
+    rows = []
     for buyer, inp, label, grade, basis in OVERRIDES:
         v = overrides[buyer][inp]
         if buyer == "*":
             assert overrides["*"]["E"] == v
-        rows.append(f"{tex(buyer if buyer != '*' else 'any')}: {tex(inp)} & {tex(label)} & {num(v)} & -- & {grade} & {basis} \\\\")
+        who, what = label.split(": ", 1)
+        who = who if buyer == "*" else f"{who} ({tex(buyer)})"
+        what = what if buyer == "*" else f"{what} ({tex(inp)})"
+        rows.append(f"{who} & {what} & {num(v)} & {grade} & {basis} \\\\")
     st = ", ".join(inv["service_types"])
-    rows.append(f"any: F, G--T & services and construction & {num(inv['service_days'])} & -- & -- & Non-storable inputs (types {tex(st)}): the buyer copes for {num(inv['service_days'])} days without a stock, the model's coping duration. Construction joined the list on 30 September 2026: its buyers had held goods-stock days of it (real estate 10 days, builders 10 days of subcontracting), which cost real estate 2.0 billion USD and doubled the construction loss; the 2026 loss moved from 1.58 to 1.24\\,\\% of a quarter, every other sector and the 2018 industrial path unchanged. \\\\")
-    (out / "si_stocks.tex").write_text(r"""\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
-\begin{longtable}{L{16mm}L{36mm}rrcL{64mm}}
-\caption{\textbf{Stock targets by buying industry.} Days of consumption of purchased goods inputs that each buying industry holds at the baseline (the model's value) and the evidence: the lean value of 2019 where the series exists, the grade (A: balance-sheet data for the industry itself; B: data for a group of industries, or physical stock data; C: indirect; D: assumed) and the basis. RHB: raw materials, consumables and supplies over material costs, times 365, from the extrapolated corporate balance sheets of the Bundesbank (2023; the lean column 2019); ratio series: the Bundesbank ratio statistics by division (non-finished stock over material costs, which includes work in progress); FIBEN: the Banque de France sector sheets (median stocks over turnover); Census: the US Census M3 materials-and-supplies inventories over the cost of materials; EKBG: the German reserve-plant act of 2022. The lower block gives the input-specific targets that override the industry value, with the modeling reason where the model departs from the physical figure.}
-\label{tab:stocks} \\
+    rows.append(f"any buyer & services and construction (F, G--T) & {num(inv['service_days'])} & -- & Non-storable inputs (types {tex(st)}): "
+                f"the buyer copes for {num(inv['service_days'])} days without an inventory, the model's coping duration. \\\\")
+    (out / "si_stock_overrides.tex").write_text(r"""\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{longtable}{L{30mm}L{36mm}rcL{65mm}}
+\caption{\textbf{Input-specific inventory targets.} Targets that replace the industry value of Table~\ref{tab:stocks} for one input, with the evidence and, where the model departs from the physical figure, the modeling reason. Grades as in Table~\ref{tab:stocks}.}
+\label{tab:stockoverrides} \\
 \toprule
-industry & & days & lean & grade & basis \\
+buyer & input & days & grade & evidence and modeling reason \\
 \midrule
 \endfirsthead
 \toprule
-industry & & days & lean & grade & basis \\
+buyer & input & days & grade & evidence and modeling reason \\
 \midrule
 \endhead
 """ + "\n".join(rows) + r"""
@@ -423,45 +447,53 @@ industry & & days & lean & grade & basis \\
 
 
 # ------------------------------------------------------------------------------------------------ S1: criticality
+# 10 Nov 2026 (the author's note): the judgments on a match that is not one to one are lettered notes under the table
 NOTE = {
-    "B05": "the survey's one mining industry", "B06": "as B05", "B07": "as B05", "B08": "as B05", "B09": "as B05",
-    "C17_18": "paper, the larger of the two and the one with physical inputs", "C24A": "basic metals", "C24B": "basic metals",
-    "C301": "other transport equipment", "C302T309": "other transport equipment", "C31T33": "furniture and other manufacturing",
-    "E": "water supply, the critical utility input", "G": "wholesale; trade margins are a non-critical input in the survey",
-    "J58T60": "publishing", "K": "financial services", "M": "legal, accounting and head offices",
-    "R": "arts, recreation and other services", "S": "as R",
-    "T": "not rated as a buyer in the survey (no real inputs): its inputs are non-critical",
+    "a": (["B05", "B06", "B07", "B08", "B09"], "The survey has only one mining industry."),
+    "b": (["C17_18"], "Paper, the larger of the two and the one with physical inputs."),
+    "c": (["C24A", "C24B"], "Basic metals."),
+    "d": (["C301", "C302T309"], "Other transport equipment."),
+    "e": (["C31T33"], "Furniture and other manufacturing."),
+    "f": (["E"], "Water supply, the critical utility input."),
+    "g": (["G"], "Wholesale; trade margins are a non-critical input in the survey."),
+    "h": (["J58T60"], "Publishing."),
+    "i": (["K"], "Financial services."),
+    "j": (["M"], "Legal, accounting and head offices."),
+    "k": (["R", "S"], "Arts, recreation and other services."),
+    "l": (["T"], "Not rated as a buyer in the survey (no real inputs): its inputs are non-critical."),
 }
 
 
 def criticality_table(out: Path):
     crit = pd.read_csv(AD / "input_criticality.csv", index_col=0)
     sectors = list(crit.columns)
+    mark = {s_: k for k, (codes, _) in NOTE.items() for s_ in codes}
     rows = []
     for s in sectors:
         col, row = crit[s], crit.loc[s]
-        rows.append(f"{tex(s)} {tex(SECTOR[s])} & {tex(ICIO_TO_WIOD[s])} & {tex(NOTE.get(s, ''))} & "
+        sup = f"$^{{{mark[s]}}}$" if s in mark else ""
+        rows.append(f"{tex(s)} {tex(SECTOR[s])}{sup} & {tex(ICIO_TO_WIOD[s])} & "
                     f"{int((col >= 1).sum())} & {int(((col >= 0.5) & (col < 1)).sum())} & {int((col < 0.5).sum())} & {int((row >= 1).sum())} \\\\")
-    vals = crit.values.ravel()
-    c, i, n = (100 * (vals >= 1).mean(), 100 * ((vals >= 0.5) & (vals < 1)).mean(), 100 * (vals < 0.5).mean())
+    notes = " ".join(f"$^{{{k}}}$~{text}" for k, (_, text) in NOTE.items())
     (out / "si_criticality.tex").write_text(r"""\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
-\begin{longtable}{L{46mm}lL{32mm}rrrr}
-\caption{\textbf{The criticality survey mapped to the 50 sectors.} Each sector of the input--output table (OECD ICIO, 2025 edition) is matched to one industry of the survey used by ref.~\citep{pichler2022} (55 industries of the World Input--Output Database, NACE Rev.~2); the note gives the judgment where the match is not one to one. The counts are, for the sector as a buyer, how many of its 50 input sectors the survey rates critical (output limited by the input), important (a depleted input halves output) and non-critical (other), and, for the sector as an input, how many buyers rate it critical (critical for). Imports carry the sector of the exporting bloc, so an imported chemical is as critical as a domestic one; an unrated pair is treated as critical; in the model an input also has to exceed 2\,\% of the buyer's input costs to bind (Methods). Over the 2,500 cells: """ + f"{c:.0f}\\,\\% critical, {i:.0f}\\,\\% important, {n:.0f}\\,\\% non-critical." + r"""}
+\begin{longtable}{L{62mm}lrrrr}
+\caption{\textbf{The criticality survey mapped to the 50 sectors.} Each sector of the input--output table is matched to one industry of the survey of Pichler et al.~\citep{pichler2022}; the letters refer to the notes under the table, which give the judgment where the match is not one to one.}
 \label{tab:criticality} \\
 \toprule
-sector & survey & note & \multicolumn{3}{c}{inputs rated} & critical \\
-\cmidrule(lr){4-6}
- & & & critical & important & other & for \\
+model's sector & survey's industry & \multicolumn{3}{c}{inputs rated} & critical \\
+\cmidrule(lr){3-5}
+ & & critical & important & other & for \\
 \midrule
 \endfirsthead
 \toprule
-sector & survey & note & \multicolumn{3}{c}{inputs rated} & critical \\
-\cmidrule(lr){4-6}
- & & & critical & important & other & for \\
+model's sector & survey's industry & \multicolumn{3}{c}{inputs rated} & critical \\
+\cmidrule(lr){3-5}
+ & & critical & important & other & for \\
 \midrule
 \endhead
 """ + "\n".join(rows) + r"""
 \bottomrule
+\multicolumn{6}{L{150mm}}{\emph{Notes.} """ + notes + r"""} \\
 \end{longtable}
 \endgroup
 """, encoding="utf-8")
@@ -1034,16 +1066,108 @@ port & & observed & model & ratio & note \\
 
 GEN_END = "% <<< generated table {name}"
 
+# ---- 10 Nov 2026 (the author's revision of the SI: "consider using the .tex as source of the truth"). The text of a
+# table (caption, column headers, row labels, notes, evidence cells) belongs to the manuscript; the generator owns its
+# numbers. splice() no longer overwrites a block that already holds a table: compare_table() lines up the data rows of
+# the regenerated table with those of the block, in order, compares the columns listed in CHECK_COLS (as text) or, by
+# default, every cell that is a number in the regenerated table, and refreshes only those cells. A different number of
+# data rows, or a row with another number of cells, is a structure mismatch: nothing is written and the generator has to
+# be brought in line with the block (a removed column, a table split in two) or the block with the generator.
+CHECK_COLS = {"si_rates": [1], "si_stocks": [2], "si_stock_overrides": [2], "si_loading_table": [0, 1]}
+_NUMCELL = re.compile(r"^[-+]?\d[\d,]*(?:\.\d+)?(?:--?[-+]?\d[\d,]*(?:\.\d+)?)?$")
+_RULES = re.compile(r"\\(?:toprule|midrule|bottomrule|addlinespace|hline|endfirsthead|endhead|endfoot|endlastfoot)\b"
+                    r"|\\cmidrule(?:\([^)]*\))?\{[^}]*\}")
+_AMP = re.compile(r"(?<!\\)&")
 
-def splice(overleaf: Path, out: Path) -> list[str]:
-    """6 Nov 2026 (the author's review: the SI in one file). A document of the Overleaf copy (main.tex, sections/*.tex)
-    that carries the markers '% >>> generated table <name> ...' and '% <<< generated table <name>' receives the table
-    <name>.tex written to `out` between them, and the file is removed from `out`; a table without markers stays a file
-    for \\input. paper_gate.py --regen compares the blocks with the regenerated tables. Returns what was spliced."""
-    docs = [overleaf / "main.tex"] + sorted((overleaf / "sections").glob("*.tex")) if (overleaf / "sections").exists() else [overleaf / "main.tex"]
-    spliced = []
+
+def _plain(cell: str) -> str:
+    """A cell without the LaTeX dressing of a number ($-$25 -> -25, 91.6 -> 91.6), spaces collapsed."""
+    c = cell.strip().replace("$", "").replace("\\,", "").replace("{", "").replace("}", "").replace("~", " ").replace("\u2212", "-")
+    return re.sub(r"\s+", " ", c).strip()
+
+
+def _is_number(cell: str) -> bool:
+    c = _plain(cell)
+    return bool(_NUMCELL.match(c)) or c in ("--", "---")
+
+
+def body_rows(block: str) -> list[tuple[int, list[str]]]:
+    """(line index, cells) of the rows of a table body: the lines after the header (the \\endhead of a longtable, else
+    the first \\midrule) that hold a cell separator and end with the row terminator."""
+    lines = block.split("\n")
+    start = 0
+    for i, ln in enumerate(lines):
+        if "\\endhead" in ln:
+            start = i + 1
+    if start == 0:
+        for i, ln in enumerate(lines):
+            if "\\midrule" in ln:
+                start = i + 1
+                break
+    rows = []
+    for i in range(start, len(lines)):
+        t = lines[i].strip()
+        if t.startswith("%") or not _AMP.search(t):
+            continue
+        t = _RULES.sub("", t).strip()
+        if not t.endswith("\\\\"):
+            continue
+        rows.append((i, [c.strip() for c in _AMP.split(t[:-2])]))
+    return rows
+
+
+def _set_cells(line: str, new: dict) -> str:
+    """The row line with the cells of `new` ({column: text}) replaced, its spacing and its terminator kept."""
+    parts = re.split(r"((?<!\\)&)", line)
+    cells = parts[0::2]
+    for j, val in new.items():
+        seg = cells[j]
+        if j == len(cells) - 1:
+            m = re.match(r"^(\s*)(.*?)(\s*\\\\.*)$", seg, re.S)
+        else:
+            m = re.match(r"^(\s*)(.*?)(\s*)$", seg, re.S)
+        cells[j] = m.group(1) + val + m.group(3)
+    parts[0::2] = cells
+    return "".join(parts)
+
+
+def compare_table(name: str, ref: str, block: str) -> tuple[list[str], list[str], str]:
+    """The regenerated table `ref` against the block of the manuscript: (structure problems, changed cells, the block
+    with the changed cells refreshed). With a structure problem the block is returned as it is."""
+    cols = CHECK_COLS.get(name)
+    R, B = body_rows(ref), body_rows(block)
+    if cols is None:
+        R = [r for r in R if any(_is_number(x) for x in r[1])]
+        B = [r for r in B if any(_is_number(x) for x in r[1])]
+    if len(R) != len(B):
+        return [f"{name}: {len(B)} data rows in the manuscript, {len(R)} regenerated"], [], block
+    lines = block.split("\n")
+    problems, changes = [], []
+    for k, ((_, rc), (ib, bc)) in enumerate(zip(R, B)):
+        if len(bc) != len(rc):
+            problems.append(f"{name}, data row {k + 1}: {len(bc)} cells in the manuscript, {len(rc)} regenerated ({' & '.join(bc)[:70]})")
+            continue
+        idx = cols if cols is not None else [j for j, x in enumerate(rc) if _is_number(x)]
+        new = {j: rc[j] for j in idx if _plain(bc[j]) != _plain(rc[j])}
+        for j, val in new.items():
+            changes.append(f"{name}, data row {k + 1} ({bc[0][:30]}), column {j + 1}: manuscript {bc[j]!r}, runs {val!r}")
+        if new:
+            lines[ib] = _set_cells(lines[ib], new)
+    if problems:
+        return problems, changes, block
+    return [], changes, "\n".join(lines)
+
+
+def splice(overleaf: Path, out: Path, check: bool = False) -> tuple[list[str], list[str]]:
+    """A document of the Overleaf copy (main.tex, si.tex; sections/*.tex before 10 Nov 2026) that carries the markers
+    '% >>> generated table <name> ...' and '% <<< generated table <name>' holds the table <name> between them. An empty
+    block receives the regenerated table; a block that holds a table keeps its text, and only the cells compare_table()
+    finds different are refreshed (not even those with check=True). The file is removed from `out`; a table without
+    markers stays a file for \\input. Returns (what was done, what differs)."""
+    docs = [overleaf / "main.tex", overleaf / "si.tex"] + (sorted((overleaf / "sections").glob("*.tex")) if (overleaf / "sections").exists() else [])
+    done, diffs = [], []
     for p in sorted(out.glob("*.tex")):
-        pat = re.compile(r"^% >>> generated table " + re.escape(p.stem) + r"\b[^\n]*\n.*?^% <<< generated table " + re.escape(p.stem) + r"[ \t]*$",
+        pat = re.compile(r"^(% >>> generated table " + re.escape(p.stem) + r"\b[^\n]*\n)(.*?)(^% <<< generated table " + re.escape(p.stem) + r"[ \t]*$)",
                          re.MULTILINE | re.DOTALL)
         for d in docs:
             if not d.exists():
@@ -1057,36 +1181,61 @@ def splice(overleaf: Path, out: Path) -> list[str]:
             body = p.read_text(encoding="utf-8")
             if not body.endswith("\n"):
                 body += "\n"
-            first = text[m.start():m.end()].split("\n", 1)[0]
-            new = text[:m.start()] + first + "\n" + body + GEN_END.format(name=p.stem) + text[m.end():]
-            if new != text:
+            where = d.relative_to(overleaf).as_posix()
+            if "\\begin{" not in m.group(2):
+                inner = body
+                done.append(f"{p.stem}: written into the empty block of {where}")
+            else:
+                problems, changes, inner = compare_table(p.stem, body, m.group(2))
+                diffs += problems + changes
+                done.append(f"{p.stem}: " + ("STRUCTURE differs, left as it is" if problems else f"{len(changes)} cell(s) " + ("differ" if check else "refreshed") if changes else "numbers agree"))
+            new = text[:m.start(2)] + inner + text[m.end(2):]
+            if new != text and not check:
                 d.write_bytes((new.replace("\n", "\r\n") if crlf else new).encode("utf-8"))
             p.unlink()
-            spliced.append(f"{p.stem} -> {d.relative_to(overleaf).as_posix()}")
             break
     if out.exists() and not any(out.iterdir()):
         try:
             out.rmdir()
         except OSError:                      # OneDrive holds the folder for a moment; an empty folder is harmless
             pass
-    return spliced
+    return done, diffs
 
 
-def main(overleaf: Path, tag: str = None, lists: str = None):
+def main(overleaf: Path, tag: str = None, lists: str = None, check: bool = False, emit: str = None, only: str = None):
     if tag or lists:
         set_batch(tag or TAG, lists or LISTS)
     print(f"batch: tag {TAG}, lists {LISTS}")
     out = overleaf / "tables"; out.mkdir(exist_ok=True)
     for fn in (rates_table, stocks_table, criticality_table, thresholds_table, loading_table, forecast_table,
                runs_table, representations_table, channels_table, gate_table, prospective_table, prospective_sectors_table, revision_table, cross_table, rail_weeks_table, ports_table):
+        if only and not any(o.strip() and o.strip() in fn.__name__ for o in only.split(",")):   # --only rates,stocks: a subset (10 Nov 2026)
+            continue
         try:
             fn(out)
         except FileNotFoundError as e:      # a table whose runs are not extracted yet keeps its previous version
             print(f"  {fn.__name__}: skipped, missing input {Path(str(e).split(': ')[-1].strip(chr(39))).name}")
     for p in out.glob("*.tex"):                        # 6 Nov 2026: American spelling, as the manuscript
         p.write_text(american(p.read_text(encoding="utf-8")), encoding="utf-8")
-    spliced = splice(overleaf, out)
-    print(f"{len(spliced)} tables spliced into the documents" + (": " + ", ".join(spliced) if spliced else "") + f"; the others written to {out}")
+    if emit:                                           # a regenerated table, whole, for a new block
+        q = out / f"{emit}.tex"
+        print(q.read_text(encoding="utf-8") if q.exists() else f"no table {emit}; have: {sorted(x.stem for x in out.glob('*.tex'))}")
+        for x in out.glob("*.tex"):
+            x.unlink()
+        try:
+            out.rmdir()
+        except OSError:
+            pass
+        return 0
+    done, diffs = splice(overleaf, out, check=check)
+    for line in done:
+        print("  " + line)
+    for line in diffs:
+        print("  DIFF " + line)
+    left = sorted(x.name for x in out.glob("*.tex")) if out.exists() else []
+    if left:
+        print(f"  without a block in the documents, left in {out}: {', '.join(left)}")
+    return 1 if (check and diffs) else 0
 
 
 if __name__ == "__main__":
@@ -1094,5 +1243,8 @@ if __name__ == "__main__":
     ap.add_argument("--overleaf", default=str(OVERLEAF))
     ap.add_argument("--tag", default=None, help="run-name tag of the batch (s07: the 7 Oct batch; r6_bycargo: the per-class batch of 2 Nov); default RHINE_TAG or s07")
     ap.add_argument("--lists", default=None, help="date of the job lists (compare_runs_batch_jobs_<date>_*.csv); default RHINE_LISTS or 20261007")
+    ap.add_argument("--check", action="store_true", help="compare the numbers of the blocks with the runs and write nothing (exit 1 when a cell or a structure differs)")
+    ap.add_argument("--emit", default=None, help="print one regenerated table whole (to start a new block), e.g. --emit si_gate; writes nothing")
+    ap.add_argument("--only", default=None, help="comma-separated parts of table-function names (rates,stocks,gate): only those tables")
     a = ap.parse_args()
-    main(Path(a.overleaf), a.tag, a.lists)
+    sys.exit(main(Path(a.overleaf), a.tag, a.lists, a.check, a.emit, a.only))

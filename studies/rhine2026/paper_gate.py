@@ -11,7 +11,7 @@ Checks, each PASS / WARN / FAIL / NOT RUN (exit code 1 when any check FAILS):
            Overleaf compiles with pdfLaTeX, the local compile with tectonic (XeTeX), which accepts any Unicode (FAIL)
   macros   numbers.tex: duplicate definitions, empty or nan values, uppercase commands used in the text and defined
            nowhere (FAIL); macros of numbers.tex never used (WARN)
-  bare     digits in the prose of main.tex and sections/*.tex (tables/ is generated and checked by --regen) that are not
+  bare     digits in the prose of main.tex and si.tex (the generated-table blocks are checked by --regen) that are not
            a year, a calendar date, inside a citation, reference or layout argument, or covered by a ledger entry (FAIL)
   words    fraction and multiple words (half, two fifths, nearly three times, one in twenty-five, fourfold) not covered by
            a ledger entry (FAIL); number words (eleven, fourteen) not covered (WARN)
@@ -57,6 +57,8 @@ import sys
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))   # si_tables.compare_table (10 Nov 2026)
 
 import yaml
 
@@ -174,7 +176,21 @@ def blank_generated(raw: str) -> str:
     """6 Nov 2026 (the author's review: the SI in one file): si_tables.py writes the generated tables into the documents
     between '% >>> generated table <name> ...' and '% <<< generated table <name>' markers. Those blocks are checked
     against the regenerated tables by --regen, not by the prose scans: blanked here, line count kept."""
-    return GEN_BLOCK.sub(lambda m: re.sub(r"[^\n]", " ", m.group(0)), raw)
+    def sub(m):
+        block = m.group(0)
+        out = re.sub(r"[^\n]", " ", block)
+        i = block.find("\\caption{")      # 10 Nov 2026: the caption is the author's prose and is read by the scans
+        if i >= 0:
+            k, depth = i + 9, 1
+            while k < len(block) and depth:
+                if block[k] == "\\":
+                    k += 2
+                    continue
+                depth += (block[k] == "{") - (block[k] == "}")
+                k += 1
+            out = out[:i] + block[i:k] + out[k:]
+        return out
+    return GEN_BLOCK.sub(sub, raw)
 
 
 def generated_block(raw: str, name: str) -> str | None:
@@ -185,9 +201,9 @@ def generated_block(raw: str, name: str) -> str | None:
 
 
 def documents(repo: Path):
-    """The prose files the scans read: main.tex from \\begin{document}, every sections/*.tex (the generated-table blocks blanked)."""
+    """The prose files the scans read: main.tex from \\begin{document}, si.tex at the root (sections/*.tex before 10 Nov 2026), the generated-table blocks blanked."""
     out = {}
-    for p in [repo / "main.tex"] + sorted((repo / "sections").glob("*.tex")):
+    for p in [repo / "main.tex"] + [q for q in [repo / "si.tex"] if q.exists()] + sorted((repo / "sections").glob("*.tex")):
         raw = blank_generated(p.read_text(encoding="utf-8"))
         t = strip_comments(raw)
         i = t.find("\\begin{document}")
@@ -378,7 +394,7 @@ def check_fresh(repo, values, ck: Check):
             if values.get(k) != new.get(k):
                 ck.fail(f"\\{k}: Overleaf {values.get(k)!r}, batch {new.get(k)!r}")
         # a table lives either in a generated-table block of a document (6 Nov 2026, the SI in one file) or in tables/
-        docs_raw = {q: q.read_text(encoding="utf-8") for q in [repo / "main.tex"] + sorted((repo / "sections").glob("*.tex"))}
+        docs_raw = {q: q.read_text(encoding="utf-8") for q in [repo / "main.tex"] + [q for q in [repo / "si.tex"] if q.exists()] + sorted((repo / "sections").glob("*.tex"))}
         for p in sorted((tmp / "tables").glob("*.tex")):
             b = p.read_text(encoding="utf-8").splitlines()
             a, where = None, f"tables/{p.name}"
@@ -390,6 +406,12 @@ def check_fresh(repo, values, ck: Check):
             if a is None:
                 old = repo / "tables" / p.name
                 a = old.read_text(encoding="utf-8").splitlines() if old.exists() else []
+            if where != f"tables/{p.name}":      # 10 Nov 2026: a block keeps the author's text; its numbers are compared
+                import si_tables
+                problems, changes, _ = si_tables.compare_table(p.stem, "\n".join(b), "\n".join(a))
+                for msg in problems + changes:
+                    ck.fail(f"{where}: {msg}")
+                continue
             if a != b:
                 i = next((i for i, (x, y) in enumerate(zip(a, b)) if x != y), min(len(a), len(b)))
                 ck.fail(f"{where} differs from the regenerated table from line {i + 1}: "
@@ -416,7 +438,7 @@ PDFLATEX_SAFE = set(chr(c) for c in range(0xA0, 0x100)) | set("–—‘’“�
 
 
 def check_pdflatex(repo: Path, ck: Check):
-    files = [repo / "main.tex", repo / "numbers.tex", repo / "refs.bib"] + sorted((repo / "sections").glob("*.tex")) \
+    files = [repo / "main.tex", repo / "numbers.tex", repo / "refs.bib"] + [q for q in [repo / "si.tex"] if q.exists()] + sorted((repo / "sections").glob("*.tex")) \
         + sorted((repo / "tables").glob("*.tex"))
     seen = {}
     for p in files:
