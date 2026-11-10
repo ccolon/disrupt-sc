@@ -130,3 +130,47 @@ capacity; a cut share without a route returns to the supplier's inventory), a ma
 In the loading table: the history of the 15 cm row ("the earlier version of the table took 0.12 here ... rebuilt 6 Oct")
 is removed and four sources are cited.
 
+## S4 Mechanism tests (Overleaf 3b6c165)
+
+| Note | Answer |
+|---|---|
+| N34 | An introductory sentence lists what the section checks. |
+| N35 | The caption of the modal-switch table is one sentence. Its content is a paragraph, "The modal-switch rule", which states the rule (access allowance of 50 km, line-haul threshold of 100 km, road never a main-leg mode for bulk), the reason for it (a truck carries 25 tonnes against 2,000 and more for a barge or an ore train, the sentence deleted from S3), the classification of the 2,831 pairs and the reading of the table. It says that the test dates from September 2026, on the baseline before the calibration. |
+| N36 | "Capacity and surcharge" in plain terms, with the three losses: surcharge alone, nothing blocked, no loss; capacity limit alone, 11.7 billion USD of bulk blocked, 1.60 % of a quarter; both, 10.3 billion blocked, 1.11 %. The capacity limit produces the loss and the surcharge reduces it. No mention of an earlier version. |
+| N37 | Paragraph on supplier weights removed. |
+| N38 | Heading and caption share one title, "Weekly flows turned away at Kaub" (the table holds what the limit turns away, not what passes). |
+| N39 | A header spans the three flow columns. It reads "flows turned away (kt)": the columns are tonnages from the run log, not million USD. |
+| N40 | "cut" is renamed "total" (it is the sum of rerouted and blocked). The tonnage that passes Kaub each week is not in the run log; if that is what "total flow" meant, it needs the link-level export of the run. |
+| N41 | Paragraph "Conservation and stationarity" removed. |
+| N42 | Paragraph and table moved to S7 and rewritten there. |
+| N43, N44 | Two paragraphs and two tables: the levers under a rail ceiling (tab:cross) and the two waves at two refill times (new label tab:crosswaves; main.tex updated). |
+| N45 | The reference column is named in both tables ("no rail substitution (reference)", "refill time 30 days (reference)"). |
+
+Direct edits corrected: "surchage" (twice); "blocked in the baseline" (it is the reference run); the row label "(the paper)".
+
+## S5 What crosses Kaub (Overleaf 5f5c5af)
+
+| Note | Answer |
+|---|---|
+| N46 | Checked: the main text describes the French chain in words and points to this section for the figures, which are only here. The paragraph is kept, cut to the two amounts and to where the German inputs go; the clause on the haulers' fuel, which the main text has, is removed. To remove it entirely, remove the pointer in the main text too. |
+
+Direct edit corrected: the price sentence gave the same share twice. "Constraint" reads "capacity limit".
+
+## S6 Two representations of the river (Overleaf 2283201)
+
+| Note | Answer |
+|---|---|
+| N47 | Section removed. Its message is one paragraph under "Choice 1" of the section on the 2018 event, where the note says it was repeated, rather than in S5, whose subject is prices at Kaub. The table moved there with a short caption. Everything else (the history of the representation, the first version's runs, the 2026 results of the floor representation) is gone from the SI. |
+| N56 | The paragraph stops at the onset; the two options are named as in the main text: the capacity limit and the floor representation (table rows renamed too). |
+
+Direct edit corrected: the draft read "Option (i) [binary thresholds] captures the right onset, whereas, with option (ii)
+[loading curve], losses only start mid-October". It is the reverse: the capacity limit starts in August, the floors in the
+week of 22 October. Also "see able", and "Choice #1", whose unescaped "#" stopped the compile.
+
+## S7 Sensitivity analysis (Overleaf 22088a2)
+
+| Note | Answer |
+|---|---|
+| N48 | The 129-run table is replaced by one sensitivity table (tab:revision, 33 rows: rule or parameter, reference value, alternatives tested, loss of 2026 and of 2018, change against the reference run), generated from the comparison tables by `si_tables.revision_table`. The text has four short paragraphs: the approach (one change at a time on the same network, and the three sets of runs of another kind), the reading of the table, what was not varied and why, and the count of runs by list. The list of runs is `additional_data/runs_20261102.csv` (written by `si_tables.runs_table`); it is in the code repository, which the Code availability statement archives on Zenodo. main.tex points to the file. |
+| N42 | No mention of a revision remains in the paragraph, the table or the figure caption. |
+

@@ -10,7 +10,8 @@ compare_table); --check writes nothing, --emit <name> prints a regenerated table
   si_loading_table.tex      the draft table with its anchors (review NS2)
   si_thresholds.tex         the modal-switch rule: offline classification and threshold sensitivity (S4)
   si_representations.tex    the 2018 monthly industrial path under both representations and stock levels (S6)
-  si_runs.tex               every run of the batch of 30 Sep: German and EU loss, peak (review S7)
+  (additional_data/runs_<lists>.csv: every run of the batch, German and EU loss, peak; a file since 10 Nov 2026)
+  si_revision.tex           the sensitivity runs: rule or parameter, reference, alternatives, losses of 2026 and 2018 (S7)
   si_ports.tex              the seaports of the calibrated baseline against Eurostat 2023, with the mechanism of each gap (S2; 1 Nov 2026)
   si_modal.tex              the inland modal split by country and, for Germany, by cargo class, against Eurostat 2023 (S2; 10 Nov 2026)
 
@@ -561,53 +562,27 @@ cm & loading share & source & measures & treatment \\
 
 # ------------------------------------------------------------------------------------------------ S6, S7
 def runs_table(out: Path):
-    m = table(AD / f"compare_runs_batch_jobs_{LISTS}_main.csv")
-    p = table(AD / f"compare_runs_batch_jobs_{LISTS}_paired.csv")
-    named = {"rev": f"compare_runs_batch_jobs_{LISTS}_rev.csv", "ladder": f"compare_runs_batch_jobs_{LISTS}_ladder.csv",
+    """10 Nov 2026 (the author's note on S7): the list of every run is no longer a table of the SI but a file,
+    additional_data/runs_<lists>.csv (run, job list, German loss, its peak, the loss of the 28 economies, the
+    consumption loss), written from the compare tables of the batch's job lists."""
+    named = {"main": f"compare_runs_batch_jobs_{LISTS}_main.csv", "paired": f"compare_runs_batch_jobs_{LISTS}_paired.csv",
+             "rev": f"compare_runs_batch_jobs_{LISTS}_rev.csv", "ladder": f"compare_runs_batch_jobs_{LISTS}_ladder.csv",
              "cross": f"compare_runs_batch_jobs_{CROSS}_cross.csv", "norail": f"compare_runs_batch_jobs_{NORAIL}_norail.csv",
-             "alt": f"compare_runs_batch_jobs_{ALT}_altriver.csv",
-             "inv075": "compare_runs_batch_jobs_20261106_inv075.csv"}     # the rung at x0.75 of 6 Nov 2026 (the author's review)
-    extra = {k: table(AD / f) for k, f in named.items() if (AD / f).exists()}
-    t = pd.concat([m, p] + list(extra.values()))
-    # the counts of the caption, from the tables themselves (5 Nov 2026: they were typed in and go stale with a batch)
-    words = {2: "two", 3: "three", 8: "eight", 9: "nine", 10: "ten", 11: "eleven", 12: "twelve"}
-    ref = sum(k in m.index for k in (B26, B18, f"2026_{TAG}", f"2018_{TAG}"))
-    seeds = int(m.index.str.fullmatch(rf"2018_{TAG}_seed\d+").sum())
-    counts = {"@MAIN@": str(len(m)), "@REF@": words.get(ref, str(ref)), "@SEEDS@": words.get(seeds, str(seeds)),
-              "@SET@": str(len(m) - ref - seeds), "@PAIRED@": str(len(p))}
-    counts.update({f"@{k.upper()}@": str(len(extra[k])) if k in extra else "0" for k in named})
-    # 6 Nov 2026: the rung at x0.75 counts with the ladder (its own job list, jobs_20261106_inv075.txt)
-    counts["@LADDER@"] = str(len(extra.get("ladder", ())) + len(extra.get("inv075", ())))
-    counts["@INV075NOTE@"] = (r"; the rung at $\times$0.75 is the run of 6 November 2026, \texttt{jobs\_20261106\_inv075.txt}"
-                              if "inv075" in extra else "")
-    caption = batch_text("runs")
-    if "inv075" in extra:
-        caption = caption.replace("Every run of the batches of 2 and 3 November 2026.}", "Every run of the batches of 2, 3 and 6 November 2026.}")
-    for k, v in counts.items():
-        caption = caption.replace(k, v)
-    print(f"  runs table: {len(t)} runs ({', '.join(f'{k.strip(chr(64)).lower()} {v}' for k, v in counts.items() if v.isdigit())})")
-    cols = ["DEU_%quarter", "DEU_peak_%week", "DEU_peak_week", "EU_cum_mUSD", "cons_loss_cum_mUSD"]
-    rows = "\n".join(f"{tex(r)} & {v['DEU_%quarter']:.2f} & {v['DEU_peak_%week']:.2f} & {int(v['DEU_peak_week'])} & {v['EU_cum_mUSD'] / 1e3:.1f} & {v['cons_loss_cum_mUSD'] / 1e3:.1f} \\\\"
-                     for r, v in t[cols].iterrows())
-    (out / "si_runs.tex").write_text(r"""\begingroup\footnotesize
-\begin{longtable}{lrrrrr}
-\caption{""" + caption + r"""}
-\label{tab:runs} \\
-\toprule
-run & DEU loss & peak loss & peak & EU loss & consumption \\
- & (\% of a quarter) & (\% of a week) & week & (bn USD) & (bn USD) \\
-\midrule
-\endfirsthead
-\toprule
-run & DEU loss & peak loss & peak & EU loss & consumption \\
- & (\% of a quarter) & (\% of a week) & week & (bn USD) & (bn USD) \\
-\midrule
-\endhead
-""" + rows + r"""
-\bottomrule
-\end{longtable}
-\endgroup
-""", encoding="utf-8")
+             "altriver": f"compare_runs_batch_jobs_{ALT}_altriver.csv", "inv075": "compare_runs_batch_jobs_20261106_inv075.csv"}
+    parts = []
+    for k, f_ in named.items():
+        if (AD / f_).exists():
+            t = table(AD / f_)
+            parts.append(pd.DataFrame({"run": t.index, "job_list": f_.replace("compare_runs_batch_", "").replace(".csv", ".txt"),
+                                       "DEU_loss_pct_of_a_quarter": t["DEU_%quarter"].round(3).values,
+                                       "DEU_peak_loss_pct_of_a_week": t["DEU_peak_%week"].round(3).values,
+                                       "DEU_peak_week": t["DEU_peak_week"].astype(int).values,
+                                       "loss_28_economies_bn_USD": (t["EU_cum_mUSD"] / 1e3).round(2).values,
+                                       "consumption_loss_bn_USD": (t["cons_loss_cum_mUSD"] / 1e3).round(2).values}))
+    runs = pd.concat(parts, ignore_index=True)
+    dest = AD / f"runs_{LISTS}.csv"
+    runs.to_csv(dest, index=False, lineterminator="\n")
+    print(f"  runs list: {len(runs)} runs written to {dest.relative_to(ROOT).as_posix()}")
 
 
 def representations_table(out: Path):
@@ -844,8 +819,8 @@ def cross_table(out: Path):
     c = table(AD / f"compare_runs_batch_jobs_{CROSS}_cross.csv")
     q = "DEU_%quarter"
     b0, b50 = m.loc[B26, "DEU_cum_mUSD"], r.loc[f"2026_{REV}_rail50", "DEU_cum_mUSD"]
-    rows = [f"reference run (no substitution; 50 kt a week) & {m.loc[B26, q]:.2f} & & {r.loc[f'2026_{REV}_rail50', q]:.2f} & " + BS * 2]
-    for k, lab in (("stock7", "stocks +7 days"), ("deep20", "fairway +20" + BS + ",cm"), ("stock7t", "targeted stocks +7 days"), ("fleet", "low-water fleet")):
+    rows = [f"reference run & {m.loc[B26, q]:.2f} & & {r.loc[f'2026_{REV}_rail50', q]:.2f} & " + BS * 2]
+    for k, lab in (("stock7", "inventories +7 days"), ("deep20", "fairway +20" + BS + ",cm"), ("stock7t", "targeted inventories +7 days"), ("fleet", "low-water fleet")):
         a0 = 100 * (1 - m.loc[f"2026_{TAG}_{k}", "DEU_cum_mUSD"] / b0); a50 = 100 * (1 - c.loc[f"2026_{REV}_rail50_{k}", "DEU_cum_mUSD"] / b50)
         rows.append(f"{lab} & {m.loc[f'2026_{TAG}_{k}', q]:.2f} & {a0:.0f} & {c.loc[f'2026_{REV}_rail50_{k}', q]:.2f} & {a50:.0f} " + BS * 2)
     a30, b30 = m.loc[f"{WV}_A", q], m.loc[f"{WV}_B", q]; a15, b15 = c.loc[f"{WV9}_A_rest15", q], c.loc[f"{WV9}_B_rest15", q]
@@ -855,18 +830,28 @@ def cross_table(out: Path):
              f"A + B & {a30 + b30:.2f} & & {a15 + b15:.2f} & " + BS * 2]
     for g in (0, 2, 4):
         wrows.append(f"A then B, {g} weeks of normal water between & {seq30[g]:.2f} & {100 * (seq30[g] / (a30 + b30) - 1):+.0f} & {seq15[g]:.2f} & {100 * (seq15[g] / (a15 + b15) - 1):+.0f} " + BS * 2)
+    # 10 Nov 2026 (the author's notes): two tables instead of two blocks, the reference column named
     (out / "si_cross.tex").write_text(r"""\begin{table}[tbp]
 \centering\small
-\caption{\textbf{The levers under finite rail, and the memory of the season at a 15-day refill time.} """ + batch_text("cross") + r""". Upper block: German loss (\% of a quarter) with each single lever, and the share of its base's loss it avoids (\%), under the paper's rule (no substitution for bulk) and under the 50 kt a week rail ceiling. Lower block: the two waves of 2026 alone, their sum and their sequence with 0, 2 and 4 weeks of normal water between them, at the 30-day refill time of the paper and at 15 days; the change is the sequence against the sum (\%).}
+\caption{\textbf{The levers under a rail ceiling.} German loss (\% of a quarter) with each single lever, and the share of the loss of its reference run that the lever avoids (\%), without rail substitution for bulk (the rule of the paper) and under a rail ceiling of 50 kt a week.}
 \label{tab:cross}
 \begin{tabular}{lrrrr}
 \toprule
- & \multicolumn{2}{c}{no substitution} & \multicolumn{2}{c}{rail 50 kt a week} \\
+ & \multicolumn{2}{c}{\textit{no rail substitution (reference)}} & \multicolumn{2}{c}{\textit{rail ceiling of 50 kt a week}} \\
  & loss & avoided (\%) & loss & avoided (\%) \\
 \midrule
 """ + "\n".join(rows) + r"""
-\midrule
- & \multicolumn{2}{c}{refill time 30 days} & \multicolumn{2}{c}{refill time 15 days} \\
+\bottomrule
+\end{tabular}
+\end{table}
+""", encoding="utf-8")
+    (out / "si_cross_waves.tex").write_text(r"""\begin{table}[tbp]
+\centering\small
+\caption{\textbf{The two waves of 2026 at two refill times.} German loss (\% of a quarter) of the two waves alone, of their sum, and of their sequence with 0, 2 and 4 weeks of normal water between them, at the refill time of 30 days of the paper and at 15 days; the change is the sequence against the sum (\%).}
+\label{tab:crosswaves}
+\begin{tabular}{lrrrr}
+\toprule
+ & \multicolumn{2}{c}{\textit{refill time 30 days (reference)}} & \multicolumn{2}{c}{\textit{refill time 15 days}} \\
  & loss & change (\%) & loss & change (\%) \\
 \midrule
 """ + "\n".join(wrows) + r"""
@@ -937,53 +922,85 @@ week & offered & placed & offered & placed & offered & placed & offered & placed
 
 
 def revision_table(out: Path):
-    """The sensitivities of the revision (jobs_20261007_rev.txt) against the reference runs (review of 5 Oct 2026)."""
-    m = table(AD / f"compare_runs_batch_jobs_{LISTS}_main.csv"); r = table(AD / f"compare_runs_batch_jobs_{LISTS}_rev.csv")
-    nr = AD / f"compare_runs_batch_jobs_{NORAIL}_norail.csv"
-    if nr.exists():
-        r = pd.concat([r, table(nr)])
-    rows = []
-    for run, lab, base in (
-        (f"2026_{REV}_rail50", "bounded substitution by rail, 50 kt a week", B26),
-        (f"2026_{REV}_rail140", "bounded substitution by rail, 140 kt a week", B26),
-        (f"2018_{REV}_rail50", "2018: bounded substitution, 50 kt a week", B18),
-        (f"2018_{REV}_rail140", "2018: bounded substitution, 140 kt a week", B18),
-        (f"2026_{REV}_head10", "headroom of the capacity at normal water 10\\,\\%", B26),
-        (f"2026_{REV}_head25", "headroom 25\\,\\%", B26),
-        (f"2026_{REV}_rest15", "refill time of a stock gap 15 days", B26),
-        (f"2026_{REV}_rest60", "refill time 60 days", B26),
-        (f"2026_{REV}_floor04", "loading-curve floor below 5\\,cm at 0.04", B26),
-        (f"2026_{REV}_floor16", "floor at 0.16", B26),
-        (f"2026_{REV}_deeplocal", "fairway +20\\,cm on the Kaub reach alone", B26),
-        (f"2026_{REV}_fleetwide", "low-water fleet with its gain carried to 100\\,cm", B26),
-        (f"2026_{REV}_dfuel0", "power sector's fuel-oil input non-critical", B26),
-        (f"2026_{REV}_serv45", "45-day coping duration for the non-storable inputs", B26),
-        (f"2026_{REV}_q25", "outlook's 25th percentile path", B26),
-        (f"2026_{REV}_q75", "outlook's 75th percentile path", B26),
-        (f"2026_{REV}_norail", "no rail alternative for any bulk shipment (line-haul threshold 500\\,km)", B26),
-        (f"2018_{REV}_norail", "2018: no rail alternative for any bulk shipment", B18),
-    ):
-        if run not in r.index:
-            continue
-        v, b = r.loc[run], m.loc[base]
-        change = f"{100 * (v['DEU_%quarter'] / b['DEU_%quarter'] - 1):+.0f}".replace("+", "$+$").replace("-", "$-$")
-        rows.append(f"{lab} & {v['DEU_%quarter']:.2f} & {change} & {v['DEU_peak_%week']:.2f} & {int(v['DEU_peak_week'])} & {v['EU_cum_mUSD'] / 1e3:.1f} \\\\")
-    b26, b18 = m.loc[B26], m.loc[B18]
-    head = [f"reference run 2026 & {b26['DEU_%quarter']:.2f} & & {b26['DEU_peak_%week']:.2f} & {int(b26.DEU_peak_week)} & {b26.EU_cum_mUSD / 1e3:.1f} \\\\",
-            f"reference run 2018 & {b18['DEU_%quarter']:.2f} & & {b18['DEU_peak_%week']:.2f} & {int(b18.DEU_peak_week)} & {b18.EU_cum_mUSD / 1e3:.1f} \\\\", r"\midrule"]
-    (out / "si_revision.tex").write_text(r"""\begin{table}[tbp]
-\centering\footnotesize\setlength{\tabcolsep}{4pt}
-\caption{\textbf{The sensitivities of the revision.} German value-added loss as a share of a quarter, its change against the reference run of the same event, the peak week (share of a week's value added, run week) and the loss of the 28 economies (billion USD), """ + batch_text("revision") + r""". The rail ceilings are 50 kt a week (the 400 wagons that the national rail freight operator could add at short notice in August 2026, at two rotations a week) and 140 kt (the rail response of past low waters, +0.07\,\% of rail tonnage per low-water day over a full low-water month).}
-\label{tab:revision}
-\begin{tabular}{L{58mm}rrrrr}
+    """10 Nov 2026 (the author's notes on S4 and S7): the sensitivity runs as one table, si_revision (label tab:revision,
+    which the main text cites): the rule or parameter, its reference value, the alternatives tested and the German
+    loss of each for 2026 and, where it was run, 2018, with the change against the reference run of the same event.
+    From the compare tables of the batch's job lists; replaces the table of the runs of the revision."""
+    m = table(AD / f"compare_runs_batch_jobs_{LISTS}_main.csv")
+    t = pd.concat([m] + [table(AD / f_) for f_ in (f"compare_runs_batch_jobs_{LISTS}_rev.csv", f"compare_runs_batch_jobs_{NORAIL}_norail.csv",
+                                                   f"compare_runs_batch_jobs_{LISTS}_ladder.csv", "compare_runs_batch_jobs_20261106_inv075.csv",
+                                                   f"compare_runs_batch_jobs_{LISTS}_paired.csv") if (AD / f_).exists()])
+    q = "DEU_%quarter"
+    b26, b18 = t.loc[B26, q], t.loc[B18, q]
+
+    def loss(run, base):
+        if run is None or run not in t.index:
+            return "--", ""
+        v = t.loc[run, q]
+        return f"{v:.2f}", f"{100 * (v / base - 1):+.0f}".replace("+", "$+$").replace("-", "$-$")
+
+    def row(par, ref, alt, k26=None, k18=None):
+        a_, ca = loss(f"2026_{REV}_{k26}" if k26 else None, b26)
+        b_, cb = loss(f"2018_{REV}_{k18}" if k18 else None, b18)
+        return f"{par} & {ref} & {alt} & {a_} & {ca} & {b_} & {cb} " + BS * 2
+
+    def head(title):
+        return BS + "multicolumn{7}{l}{" + BS + "emph{" + title + "}} " + BS * 2
+    pc = BS + "," + BS + "%"
+    times = "$" + BS + "times$"
+    n26 = [t.loc[k, q] for k in t.index if re.fullmatch(rf"2026_{TAG}_seed\d+_base", k)] + [b26]
+    n18 = [t.loc[k, q] for k in t.index if re.fullmatch(rf"2018_{TAG}_seed\d+", k)] + [b18]
+    rows = [f"reference run & & & {b26:.2f} & & {b18:.2f} & " + BS * 2, BS + "midrule", head("Transport"),
+            row("rail substitution for bulk", "main leg by rail only", "none", "norail", "norail"),
+            row("", "", "ceiling of 50 kt a week", "rail50", "rail50"),
+            row("", "", "ceiling of 140 kt a week", "rail140", "rail140"),
+            row("headroom of the capacity at normal water", "2" + pc, "10" + pc, "head10"),
+            row("", "", "25" + pc, "head25"),
+            row("loading curve, shortfall", "as built", "raised by 15" + pc, "tablelow", "tablelow"),
+            row("", "", "lowered by 15" + pc, "tablehigh", "tablehigh"),
+            row("loading share below 5" + BS + ",cm", "0.08", "0.04", "floor04"),
+            row("", "", "0.16", "floor16"),
+            row("mechanisms", "capacity limit and surcharge", "capacity limit alone", "gateonly"),
+            row("", "", "surcharge alone", "surchargeonly"),
+            row("gauge of the forecast weeks", "outlook's median", "25th percentile", "q25"),
+            row("", "", "75th percentile", "q75"),
+            BS + "midrule", head("Firms and inputs"),
+            row("refill time of an inventory gap", "30 days", "15 days", "rest15"),
+            row("", "", "60 days", "rest60"),
+            row("level of the inventories", "balance-sheet values", times + "0.75", None, "inv075"),
+            row("", "", times + "1.25", None, "inv125"),
+            row("", "", times + "1.5", None, "inv150"),
+            row("", "", times + "2", None, "inv200"),
+            row("suppliers per input", "one", "two", "sup2", "sup2"),
+            row("pooling of commodity inputs", "pooled", "not pooled", "nopool", "nopool"),
+            row("coping duration without non-storable inputs", "90 days", "45 days", "serv45"),
+            row("fuel oil as an input of the power sector", "critical", "non-critical", "dfuel0"),
+            f"supplier--buyer network & reference network & ten further networks, range & {min(n26):.2f}--{max(n26):.2f} & & {min(n18):.2f}--{max(n18):.2f} & " + BS * 2,
+            f" & & mean of the eleven networks & {sum(n26) / len(n26):.2f} & & {sum(n18) / len(n18):.2f} & " + BS * 2,
+            BS + "midrule", head("Variants of the levers"),
+            row("fairway +20" + BS + ",cm", "on every reach", "on the Kaub reach alone", "deeplocal"),
+            row("low-water fleet", "gain between 15 and 55" + BS + ",cm", "gain carried to 100" + BS + ",cm", "fleetwide")]
+    assert len(n26) == 11 and len(n18) == 11, (len(n26), len(n18))
+    (out / "si_revision.tex").write_text(r"""\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{longtable}{L{38mm}L{25mm}L{31mm}rrrr}
+\caption{\textbf{Sensitivity runs.} German loss (\% of a quarter) when one rule or parameter of the reference run is changed, and its change against the reference run of the same event (\%); a dash marks a combination that was not run.}
+\label{tab:revision} \\
 \toprule
- & DEU loss & change & peak loss & peak & 28 economies \\
- & (\% of a quarter) & (\%) & (\% of a week) & week & (bn USD) \\
+ & & & \multicolumn{2}{c}{2026} & \multicolumn{2}{c}{2018} \\
+\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+rule or parameter & reference & alternative & loss & change & loss & change \\
 \midrule
-""" + "\n".join(head + rows) + r"""
+\endfirsthead
+\toprule
+ & & & \multicolumn{2}{c}{2026} & \multicolumn{2}{c}{2018} \\
+\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+rule or parameter & reference & alternative & loss & change & loss & change \\
+\midrule
+\endhead
+""" + "\n".join(rows) + r"""
 \bottomrule
-\end{tabular}
-\end{table}
+\end{longtable}
+\endgroup
 """, encoding="utf-8")
 
 

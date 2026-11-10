@@ -105,4 +105,38 @@ L.allow(SI, "and one third of its excess over 1 on the Lower Rhine reaches. This
 L.allow(SI, "runs with a factor of zero and of one gave the same loss",
         "history: the runs of 15 September 2026 with the factor at 0 and at 1 (2026_fc0910_lr0, 2026_fc0910_lr1; additional_data/compare_runs_batch_20260915.csv)")
 
+# ---------------------------------------------------------------- S4 Mechanism tests
+CLASSIF = "data: the offline classification of the Kaub-crossing bulk pairs in the ten-week test run of 14-15 September 2026 (si_tables.thresholds_table; evidence/giveup_thresholds_by_cargo.md)"
+L.allow(SI, "a truck carries 25 tonnes, against 2,000 and more for a barge or an ore train", "convention: orders of magnitude of the payloads (the sentence of the earlier S3)")
+L.allow(SI, r"when it carries 100\,km or more of it (the line-haul threshold)", "design: the line-haul threshold of the modal-switch rule (run_rhine.py --line-haul-km 100)")
+L.allow(SI, "on the 2,831 origin--destination pairs (5,707 links) whose bulk crosses Kaub, in a ten-week test run", CLASSIF)
+L.allow(SI, "Under the kilometer thresholds alone, 1,553 pairs find no acceptable route (833 million USD of the week's orders), 1,224 deliver on their own modes (385 million) and 54 on a path without penalty (24 million)", CLASSIF)
+L.allow(SI, r"for nine tenths of the pairs without a route, the alternative is a barge to Koblenz, 88\,km of truck around the reach and a barge again, at a median surcharge of 49\,\% on the freight; it is refused because 88\,km exceeds the allowance", CLASSIF)
+L.allow(SI, r"already has 100\,km or more of road (35\,\%)", CLASSIF)
+L.allow(SI, "summed over the 43 weeks of the 2026 run", "design: the horizon of the 2026 run (23 profile weeks and 20 recovery weeks)")
+L.allow(SI, "stays flat at the 2026 season's mean (0.40) for the twenty-three weeks", "design: the flat profile of the wave experiment (scenarios, wave_*_flat): the mean loading share of the 23 profile weeks")
+L.allow(SI, "The table covers the 23 weeks of the profile", "count: the profile weeks of scenarios/2026.csv, the rows of Table S-gate")
+L.allow(SI, "on top of a rail ceiling of 50 kt a week", "design: the rail ceiling of the crossed runs (jobs_20261102_cross.txt)")
+L.allow(SI, "under a rail ceiling of 50 kt a week", "design: the rail ceiling of the crossed runs (jobs_20261102_cross.txt)")
+L.allow(SI, "The two waves at a 15-day refill time", "design: the refill time of the crossed wave runs (jobs_20261102_cross.txt, *_rest15)")
+L.allow(SI, "with a refill time of 15 days instead of 30. At 15 days the two waves", "design: refill times of the inventory rule, 30 days in the paper and 15 in the crossed runs")
+L.allow(SI, "and of their sequence with 0, 2 and 4 weeks of normal water between them, at the refill time of 30 days of the paper and at 15 days",
+        "design: the gaps of the wave-isolation profiles and the two refill times")
+
+# ---------------------------------------------------------------- S5 What crosses Kaub
+L.allow(SI, r"costs more than 1\,\% above its baseline price", "design: the 1 % threshold of the share PriceShareEconomy (the macro)")
+
+# ---------------------------------------------------------------- S6 Two representations (merged into the section on the 2018 event)
+L.allow(SI, "Choice 1: how low water limits transport", "count: the numbering of the choice")
+L.allow(SI, "Two representations of the river were compared on the 2018 event", "count: the two representations of the paragraph")
+L.allow(SI, "the capacity limit at five inventory levels; the floor representation at three", "count: the model rows of Table S-representations (five and three)")
+
+# ---------------------------------------------------------------- S7 Sensitivity analysis
+L.allow(SI, "A ceiling of 50 kt a week is reached in nearly every profile week of both events",
+        "design and result: the rail ceiling of 50 kt a week; it binds in 23 of 23 profile weeks of 2026 and 21 of 22 of 2018 (Table S-railweeks, si_tables.rail_weeks_table)")
+L.drop("at half and twice its value, moves it by")
+L.allow(SI, r"The loading share below 5\,cm, at half and twice its value, moves it by", "design: the loading share below 5 cm at 0.04 and 0.16 instead of 0.08 (runs floor04, floor16)")
+L.allow(SI, "At 45 days the services' share of the German loss is", "design: the 45-day coping duration of the run serv45")
+L.claim(SI, "the loss of the 28 economies and the consumption loss of each", "NRegions", [28, 28], "data bound to the macro: the 28 economies of the model")
+
 L.save()
