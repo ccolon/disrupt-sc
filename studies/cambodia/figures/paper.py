@@ -47,6 +47,10 @@ ROB = "rob_d12_20261108_runs.csv"
 TRANS, TRANS_DAILY, TRANS_NULL = ("trans_d12_20261109_runs.csv", "trans_d12_20261109_daily.csv",
                                   "trans_logs/trans_null.csv")
 OVERLAP = "overlap_logs"
+# Baseline aggregates of the d = 12 grid's networks (studies/cambodia/baseline_aggregates.py on the cluster) and the
+# parameters.yaml of one paper run (the model settings the text states)
+BASELINE = "baseline_d12_20261108.csv"
+PARAMS = "params/lag0_d12_s1_t116_parameters.yaml"
 
 
 def style():

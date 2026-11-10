@@ -30,7 +30,7 @@ import fig4_mechanism  # noqa: E402
 import fig5_transition  # noqa: E402
 import figS_robustness  # noqa: E402
 import figS_settle  # noqa: E402
-from paper import TRANS, Inputs, Numbers, num, style  # noqa: E402
+from paper import BASELINE, PARAMS, TRANS, Inputs, Numbers, count, num, style  # noqa: E402
 
 FIGURES = {"fig1": fig1_direct, "fig2": fig2_h1, "fig3": fig3_timing, "fig4": fig4_mechanism,
            "fig5": fig5_transition, "figS_settle": figS_settle, "figS_rob": figS_robustness}
@@ -50,6 +50,21 @@ def settings(I, N):
         N.put(f"Cost{name}Base", num(base[mode], 4 if mode == "waterways" else 3), f"USD per ton-km, {mode}, base")
         N.put(f"Cost{name}Tax", num(taxed[mode], 4), f"USD per ton-km, {mode}, with the tax")
         N.put(f"CostRise{name}", num(100 * (taxed[mode] / base[mode] - 1), 1), f"% rise of the {mode} cost per ton-km")
+    # the model as run: one paper run's parameters.yaml, and the networks' baseline table (baseline_aggregates.py)
+    class Loader(yaml.SafeLoader):   # parameters.yaml holds python object tags (paths); read them as nothing
+        pass
+    Loader.add_multi_constructor("tag:yaml.org,2002:python/", lambda loader, suffix, node: None)
+    prm = yaml.load(I.path(PARAMS).read_text(encoding="utf-8"), Loader=Loader)
+    inv = prm["inventory_duration_targets"]["values"]
+    for key, name in (("agriculture", "Agri"), ("manufacturing", "Manufacturing"), ("service", "Service"),
+                      ("utility", "Utility"), ("transport", "Transport")):
+        N.put(f"InvTarget{name}", str(inv[key]), f"days: firms' inventory target for inputs of type {key}")
+    N.put("HhInvTargetAgri", str(prm["household_inventory_duration_target"]["values"]["agriculture"]),
+          "days: households' inventory target for agricultural goods")
+    N.put("InvRestoration", str(prm["inventory_restoration_time"]), "days: inventory restoration time")
+    b = I.csv(BASELINE)
+    assert b.firms.nunique() == 1 and b.household_points.nunique() == 1
+    N.put("FirmCount", count(b.firms.iloc[0]), "firms in the model (firm_table of the paper runs)")
 
 
 def code_version():

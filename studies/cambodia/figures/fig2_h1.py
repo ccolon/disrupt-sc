@@ -10,8 +10,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from paper import (BASIN_COLOR, BASIN_LABEL, BASIN_WORD, BASINS, DURATIONS, INK, MUTED, WIDTH, WORD, ci, num,
-                   grid_wide, panel, save)
+from paper import (BASELINE, BASIN_COLOR, BASIN_LABEL, BASIN_WORD, BASINS, DURATIONS, INK, MUTED, WIDTH, WORD, ci,
+                   count, num, grid_wide, panel, save)
 import matplotlib.pyplot as plt
 
 
@@ -32,6 +32,20 @@ def make(I, out, N):
         for b in BASINS:
             N.put(f"LossSingle{BASIN_WORD[b]}{k}", num(w[f"single_{b}"].mean(), 2),
                   f"mUSD, household loss of the {BASIN_LABEL[b]} closure alone, d = {d}")
+    # d = 12 in macro terms: how much adding up the singles understates the joint loss, and the joint loss against the
+    # households' consumption in the model (the same in every network: baseline_aggregates.py)
+    N.ci("SumMissShare", 100 * (1 - 1 / R[12]), 0,
+         "% by which the sum of the single-basin losses understates the simultaneous loss, d = 12: 100 (1 - 1/ratio)")
+    B = I.csv(BASELINE).set_index("seed")
+    assert B.hh_consumption_day_usd.nunique() == 1 and set(W[12].index) <= set(B.index)
+    assert np.allclose(B.loc[W[12].index, "loss_households_usd"] / 1e6, W[12].lag0, rtol=1e-9), "baseline table vs grid"
+    day = B.hh_consumption_day_usd.iloc[0] / 1e6
+    N.put("ConsumptionDay", num(day, 1), "mUSD a day: households' consumption in the model on day 0 (imports included)")
+    N.put("ConsumptionYear", count(round(365 * day)), "mUSD a year: 365 days of that consumption")
+    N.ci("LossShareConsumption", 100 * W[12].lag0 / (365 * day), 2,
+         "% of a year of household consumption: the simultaneous loss, d = 12")
+    N.ci("LossDaysConsumption", W[12].lag0 / day, 2,
+         "days of household consumption: the simultaneous loss, d = 12")
     allr = pd.concat(R.values())
     N.put("RatioSimMin", num(allr.min(), 2), "lowest ratio of any network and closure length")
     N.put("RatioSimMax", num(allr.max(), 2), "highest ratio of any network and closure length")
