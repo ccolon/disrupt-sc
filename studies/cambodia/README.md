@@ -24,6 +24,7 @@ decided to port the study to v2. This folder holds the v2 runs.
 | `overlap_excess.py` | the overlap interaction (Q22): a pair run at tau 0 against its two singles - household loss split into unmet consumption and extra spending by period, by sector and by province; routing outcomes (main, alternative, blocked) over the closure; production shortfall by sector |
 | `overlap_flows.py` | day-1 edge flows of the same three runs: each closure's traffic on the other closure's edges, and tonnage and ton-km on the network |
 | `read_rob.py` | reads the robustness batches (variants `inv<X>` from `--inventory-scale`, `rest<N>` from the restoration time): settling by variant, two-flood ratio per variant |
+| `figures/make_figures.py` | the paper's figures (Fig. 1-5, SI settling and robustness) and `numbers.tex` from the run tables of the pipeline folder (`--runs <Paper_Cambodia/pipeline>/runs --data <disrupt-sc-data>/Cambodia --out <dir>`); `manifest.txt` records each input's sha256 and the code version. One module per figure (`fig*.py`, each puts the macros of the numbers it shows); shared style, palette and loaders in `figures/paper.py` |
 | `cluster/launch_cambodia.sh` | one Slurm job per job-list line; one setup job per seed and cache; a run is written on the node's disk and copied at the end, and a job whose copy fails 20 times ends with status 75 and a `COPY_FAILED` file in the run folder (KI-56) |
 | `cluster/check_launcher_copy.sh` | checks the launcher's copy step with a fake model and destination (bash only, no sbatch) |
 
