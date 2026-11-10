@@ -14,6 +14,7 @@ decided to port the study to v2. This folder holds the v2 runs.
 | `scenarios.py` | single, simultaneous and successive basin closures, and two-basin pairs at a lag of either sign (`pair_<a>_<b>_tau<T>`, 8 Nov 2026); footprint by attribute (`flood_v3` = the paper's, `flood_disruption` = v4) with its edge counts checked |
 | `run_cambodia.py` | one run through `run.py execute` (not `build.py`: KI-51); one named build cache per seed, so every scenario of a seed runs on the same supply network; `study_run.json` records the git SHA and config hash; `--inventory-scale X` multiplies every inventory target |
 | `add_flood_v3.py` | adds the v3 footprint to `Transport/transport.gpkg` (the v3 file is on the cluster) |
+| `climada_depth.py` | (cluster, `dsc` env) reads the CLIMADA hazard behind the v3 footprint (GloFAS forecast of 27 Sep 2023, Elisa's `climada-disruptsc`) without CLIMADA, re-derives the damaged edges and writes the depth grid now in `disrupt-sc-data/Cambodia/Hazard/` (10 Nov 2026; provenance and check in the README there) |
 | `sea_gateways.py` | overseas partners at sea, Sihanoukville - Singapore lane, named crossings, port tags, 21 false `border` stubs untagged (Q17, 7 Nov 2026) |
 | `route_calibration.py` | re-routes one seed's cached supply chain with the paper config and overrides (~25 s) and prints the gateway split against the 2015 anchors |
 | `read_batch.py` | reads a batch into analysis/runs.csv and daily.csv; d and lags from the batch; prints the pilot's checks (determinism, settling, H1, lag curve) |
