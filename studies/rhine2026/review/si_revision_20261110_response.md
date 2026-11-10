@@ -293,3 +293,16 @@ Decisions the revision could not take. The first two are marked by notes in `mai
   the reference run's `parameters.yaml` was missing, so a check compared the rates table with values the batch did not use
   (it now skips the table, as the others that need a run folder); the gate's reference check did not read the citations
   inside table cells and called 13 cited references "never cited".
+
+## Addendum, 10 November 2026, 20:55: the local copy of the final runs is restored
+
+On the author's request the 129 folders of the final batch were packed again on the cluster, downloaded and extracted
+into `C:/dsc_runs/rhine2026` (record: `cluster/restore_20261110/README.md`). The checks that could not run above have
+run since:
+
+- `si_tables.py --check`: the 17 tables are recomputed and agree with the manuscript, the four of the list above
+  included (rates, channels, the forecast table of the main text and its table by sector).
+- `paper_gate.py --regen`: PASS. The 516 macros of `numbers.tex` and the 17 tables regenerated from the runs equal the
+  version on Overleaf (2591144). Report: `review/paper_gate_20261110_regen.md`.
+
+No number of the manuscript changed, and nothing was pushed to Overleaf for this.
