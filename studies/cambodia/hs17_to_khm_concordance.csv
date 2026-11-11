@@ -1,0 +1,149 @@
+hs_prefix,sector,note
+01,LIV,live animals
+02,MFO,meat (processed)
+03,FIS,fish & crustaceans (fresh/live)
+04,MFO,dairy (processed)
+05,LIV,animal products nes
+06,CRO,live plants & flowers
+07,CRO,vegetables
+08,CRO,fruit & nuts
+09,CRO,"coffee, tea, spices (mostly unroasted/raw)"
+10,CRO,cereals
+11,MFO,milling products
+12,CRO,oil seeds
+13,CRO,gums & resins
+14,FOR,vegetable plaiting materials
+15,MFO,fats & oils
+16,MFO,meat/fish preparations
+17,MFO,sugars
+18,MFO,cocoa products
+19,MFO,cereal preparations
+20,MFO,vegetable/fruit preparations
+21,MFO,misc edible preparations
+22,MBE,beverages
+23,MFO,food residues & animal feed
+24,MTO,tobacco products
+25,MIN,"salt, sulphur, earths, stone"
+26,MIN,ores
+27,MCO,mineral fuels (base: refined/coke/other)
+28,MCH,inorganic chemicals
+29,MCH,organic chemicals
+30,MPH,pharmaceuticals
+31,MCH,fertilizers
+32,MCH,tanning & dyeing
+33,MCH,essential oils & cosmetics
+34,MCH,soaps & waxes
+35,MCH,albuminoids & glues
+36,MCH,explosives
+37,MCH,photographic goods
+38,MCH,misc chemicals
+39,MRU,plastics
+40,MRU,rubber
+41,MTE,leather (tanned)
+42,MTE,leather articles
+43,MTE,furskins
+44,MWO,wood products
+45,MWO,cork
+46,MWO,basketware
+47,MPA,pulp
+48,MPA,paper & paperboard
+49,MPA,printed matter
+50,MTE,silk
+51,MTE,wool
+52,MTE,cotton
+53,MTE,other vegetable fibres
+54,MTE,man-made filaments
+55,MTE,man-made staple fibres
+56,MTE,"wadding, felt, ropes"
+57,MTE,carpets
+58,MTE,special woven fabrics
+59,MTE,coated fabrics
+60,MTE,knitted fabrics
+61,MTE,apparel (knitted)
+62,MTE,apparel (woven)
+63,MTE,made-up textiles
+64,MTE,footwear
+65,MTE,headgear
+66,MAO,"umbrellas, walking sticks"
+67,MAO,feathers & artificial flowers
+68,MNM,stone & plaster articles
+69,MNM,ceramics
+70,MNM,glass
+71,MAO,"jewellery, precious stones (base)"
+72,MBA,iron & steel
+73,MFA,iron/steel articles
+74,MBA,copper
+75,MBA,nickel
+76,MBA,aluminium
+78,MBA,lead
+79,MBA,zinc
+80,MBA,tin
+81,MBA,other base metals
+82,MFA,tools & cutlery
+83,MFA,misc base-metal articles
+84,MMA,machinery (base)
+85,MEL,electrical equipment (base)
+86,MTR,railway vehicles
+87,MMA,motor vehicles
+88,MTR,aircraft
+89,MTR,ships & boats
+90,MEL,optical/medical/measuring instruments
+91,MEL,clocks & watches
+92,MAO,musical instruments
+93,MFA,arms & ammunition
+94,MFU,"furniture, bedding, prefab buildings"
+95,MAO,toys & sports
+96,MAO,misc manufactured articles
+97,MAO,works of art & antiques
+98,DROP,special provisions
+99,DROP,special provisions
+0304,MFO,fish fillets (processed)
+0305,MFO,"dried, smoked fish (processed)"
+0407,LIV,eggs in shell
+0409,LIV,natural honey
+1801,CRO,cocoa beans (raw)
+2401,CRO,unmanufactured tobacco (raw)
+2523,MNM,cement
+2701,MIN,coal
+2702,MIN,lignite
+2703,MIN,peat
+2709,MIN,crude petroleum
+2711,MIN,natural gas
+2716,DROP,electricity (utility not a manufacture)
+4101,LIV,raw hides (bovine)
+4102,LIV,raw hides (sheep)
+4103,LIV,raw hides (other)
+4401,FOR,fuel wood & chips
+4403,FOR,wood in the rough
+7106,DROP,silver unwrought
+7107,DROP,silver-clad
+7108,DROP,gold unwrought
+7109,DROP,gold-clad
+7110,DROP,platinum unwrought
+7111,DROP,platinum-clad
+7112,DROP,precious-metal waste
+8415,MEL,air conditioners (domestic appliances)
+8418,MEL,refrigerators (domestic appliances)
+8450,MEL,washing machines (domestic appliances)
+8470,MEL,calculating machines
+8471,MEL,computers
+8472,MEL,office machines
+8473,MEL,office-machine parts
+8517,MEL,telephones & network gear
+8518,MEL,"microphones, speakers"
+8519,MEL,sound recorders
+8521,MEL,video recorders
+8522,MEL,recorder parts
+8523,MEL,recorded media
+8525,MEL,transmission & cameras
+8526,MEL,radar & radio navigation
+8527,MEL,radio receivers
+8528,MEL,monitors & TV
+8529,MEL,transmission parts
+8532,MEL,capacitors
+8533,MEL,resistors
+8534,MEL,printed circuits
+8540,MEL,valves & tubes
+8541,MEL,semiconductors
+8542,MEL,integrated circuits
+9405,MEL,luminaires & lighting
