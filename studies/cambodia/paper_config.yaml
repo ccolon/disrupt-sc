@@ -26,6 +26,15 @@
 #     Transport/transport.gpkg).
 
 transport_modes: [roads, maritime, waterways, railways]
+
+# Recalibrated base (11 Nov 2026, decision Q31, Paper_Cambodia/pipeline/reports/17_recalib.md), data made by
+# studies/cambodia/make_baci_inputs.py: usd_per_ton of the 23 goods sectors from BACI 2023 (Cambodia's trade mix;
+# the earlier values ran from 11 USD/t for mining to 86,655 for refined petroleum) and MCO typed oil_and_gas (liquid
+# bulk, as C19 in the Rhine 2026 EU table); per-bloc import densities from BACI 2023 (all imports were 666 USD/t).
+filepaths:
+  sector_table: "Economic/sector_table_baci2023.csv"
+  countries_spatial: "Spatial/countries_baci2023.geojson"
+
 # USD in the model (6 Nov 2026): the model's value thresholds are EPSILON = 1e-6 model units (Firm.produce skips
 # a production target below it, the deliveries below it were skipped before KI-53). In mUSD at daily resolution
 # that is 1 USD a day, and the v2 Cambodia economy holds 553 firms below it (9,994 firms, 1.2 % of output, below
@@ -46,6 +55,7 @@ inventory_duration_targets:
     agriculture: 15
     manufacturing: 30
     service: 90
+    services: 90    # the spelling of Cambodia's sector table; the runs had it from default.yaml (11 Nov 2026, Q23 review)
     trade: 30
     construction: 30
     transport: 3
@@ -71,7 +81,13 @@ inventory_restoration_time: 30
 logistics:
   basic_cost:  # USD per ton-km
     roads: 0.087       # $200 / 230 km / 10 t
-    railways: 0.074    # $200 / 270 km / 10 t
+    # Rail fitted 11 Nov 2026 (Q31, report 17): at the brochure's $200 / 270 km / 10 t = 0.074 rail carried nothing
+    # (2015: 3,500 import + 13,500 export TEU by rail, 5.9 % of Sihanoukville's laden TEU, brochure p. 2). At 0.045
+    # rail carries 6.6-7.2 % of Sihanoukville's containers on networks 1-3, the rail link at 21-23 % of its 1,000
+    # t/day capacity on day 0; the window is 0.0425 (44-55 %, link over capacity) to 0.0475 (0 %). A World Bank
+    # Cambodia corridor study assumes 0.035 for rail against 0.073 for trucks (Paper_Cambodia/pipeline/lit/
+    # refs_dfuel.yaml). Rail is fitted by cost, not capacity: a capacity binding on day 0 is rationed from the start.
+    railways: 0.045
     waterways: 0.0735  # $250 / 340 km / 10 t
   speeds:  # km/hour
     roads: 50

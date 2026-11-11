@@ -1,0 +1,29 @@
+# Cambodia paper, pilot of two inventory assumptions on the recalibrated base R2 (Q23 review, 11 Nov 2026:
+# Paper_Cambodia/pipeline/review/q23_inventory_targets.md; reports/18_pilot_r2.md). Runtime switches: they reuse the
+# R2 caches cam_r2_s<seed> of jobs_pilot_r2.txt.
+#   - utility and transport inputs at 90 days, as Rhine 2026 treats utilities (a coping duration: no grid
+#     substitution in the model); base: 3 days. Second link of the leftover chain (report 08: 3-day electricity
+#     stocks of the customers of one electricity firm);
+#   - households hold stocks (enable_household_inventories, the default.yaml household block: agriculture 7 days,
+#     manufacturing 14, ...); base: none. 91 % of the overlap excess is unmet household consumption (report 10).
+# Networks 1-2, d = 12, to day 116: the three singles, simultaneous and back to back. 20 runs, ~17 CPU-h.
+1 single_saigon 12 --cache-dir cam_r2_s1 --t-final 116 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90
+1 single_mekong 12 --cache-dir cam_r2_s1 --t-final 116 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90
+1 single_tonle 12 --cache-dir cam_r2_s1 --t-final 116 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90
+1 lag0 12 --cache-dir cam_r2_s1 --t-final 116 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90
+1 lag12 12 --cache-dir cam_r2_s1 --t-final 116 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90
+2 single_saigon 12 --cache-dir cam_r2_s2 --t-final 116 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90
+2 single_mekong 12 --cache-dir cam_r2_s2 --t-final 116 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90
+2 single_tonle 12 --cache-dir cam_r2_s2 --t-final 116 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90
+2 lag0 12 --cache-dir cam_r2_s2 --t-final 116 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90
+2 lag12 12 --cache-dir cam_r2_s2 --t-final 116 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90
+1 single_saigon 12 --cache-dir cam_r2_s1 --t-final 116 --set enable_household_inventories=true
+1 single_mekong 12 --cache-dir cam_r2_s1 --t-final 116 --set enable_household_inventories=true
+1 single_tonle 12 --cache-dir cam_r2_s1 --t-final 116 --set enable_household_inventories=true
+1 lag0 12 --cache-dir cam_r2_s1 --t-final 116 --set enable_household_inventories=true
+1 lag12 12 --cache-dir cam_r2_s1 --t-final 116 --set enable_household_inventories=true
+2 single_saigon 12 --cache-dir cam_r2_s2 --t-final 116 --set enable_household_inventories=true
+2 single_mekong 12 --cache-dir cam_r2_s2 --t-final 116 --set enable_household_inventories=true
+2 single_tonle 12 --cache-dir cam_r2_s2 --t-final 116 --set enable_household_inventories=true
+2 lag0 12 --cache-dir cam_r2_s2 --t-final 116 --set enable_household_inventories=true
+2 lag12 12 --cache-dir cam_r2_s2 --t-final 116 --set enable_household_inventories=true

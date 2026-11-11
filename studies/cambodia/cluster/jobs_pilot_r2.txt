@@ -1,0 +1,20 @@
+# Cambodia paper, pilot of the recalibrated base R2 (Q31 "Yes, staged", 11 Nov 2026; Paper_Cambodia/pipeline/reports/
+# 17_recalib.md and 18_pilot_r2.md): BACI 2023 densities (sector_table_baci2023.csv, countries_baci2023.geojson), MCO
+# liquid bulk, rail 0.045 USD/t-km (paper_config.yaml). New builds: caches cam_r2_s<seed>.
+# Networks 1-2, d = 12, to day 116: the no-flood run (must lose 0), the three singles, simultaneous, back to back and
+# one open day. Compared with grid_d12_20261108 (old base) on the same networks. 14 runs, ~12 CPU-h + 2 setups.
+# Usage: bash studies/cambodia/cluster/launch_cambodia.sh --jobs studies/cambodia/cluster/jobs_pilot_r2.txt --batch pilot_r2_<date>
+1 none 12 --cache-dir cam_r2_s1 --t-final 116
+1 single_saigon 12 --cache-dir cam_r2_s1 --t-final 116
+1 single_mekong 12 --cache-dir cam_r2_s1 --t-final 116
+1 single_tonle 12 --cache-dir cam_r2_s1 --t-final 116
+1 lag0 12 --cache-dir cam_r2_s1 --t-final 116
+1 lag12 12 --cache-dir cam_r2_s1 --t-final 116
+1 lag13 12 --cache-dir cam_r2_s1 --t-final 116
+2 none 12 --cache-dir cam_r2_s2 --t-final 116
+2 single_saigon 12 --cache-dir cam_r2_s2 --t-final 116
+2 single_mekong 12 --cache-dir cam_r2_s2 --t-final 116
+2 single_tonle 12 --cache-dir cam_r2_s2 --t-final 116
+2 lag0 12 --cache-dir cam_r2_s2 --t-final 116
+2 lag12 12 --cache-dir cam_r2_s2 --t-final 116
+2 lag13 12 --cache-dir cam_r2_s2 --t-final 116
