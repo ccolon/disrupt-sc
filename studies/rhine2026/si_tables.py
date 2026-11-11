@@ -64,6 +64,28 @@ def set_batch(tag: str, lists: str):
 
 set_batch(os.environ.get("RHINE_TAG", "s07"), os.environ.get("RHINE_LISTS", "20261007"))
 
+
+def inv075_csv() -> str:
+    """The table of the 2018 run at 0.75 times the inventories: the repeat of 11 Nov 2026 on the model code of 2 November
+    when the batch has it, else the run of 6 November."""
+    f = f"compare_runs_batch_jobs_{LISTS}_inv075.csv"
+    return f if (AD / f).exists() else "compare_runs_batch_jobs_20261106_inv075.csv"
+
+
+def job_list(run: str, table_file: str) -> str:
+    """The job list a run was launched from. To the batch of 2 November the table of a list carried the list's name. From
+    the batch of 11 November 2026 the tables are assembled from several lists (cluster/merge_cluster_tables_20261111.py),
+    so the list is looked up: the latest cluster/jobs_*.txt that names the run (the two reference runs are named without
+    _base there)."""
+    if LISTS < "20261111":
+        return table_file.replace("compare_runs_batch_", "").replace(".csv", ".txt")
+    names = {run, run[:-5]} if run in (B26, B18) else {run}
+    for f in sorted((HERE / "cluster").glob("jobs_2026*.txt"), reverse=True):
+        for line in f.read_text(encoding="utf-8").splitlines():
+            if line.split("|")[0].strip() in names:
+                return f.name
+    raise SystemExit(f"runs list: no job list in cluster/ names {run}")
+
 OLD_RUNS_CAPTION = r"""\textbf{Every run of the batches of 7 and 9 October 2026.} German value-added loss as a share of a quarter, its peak (share of a week's value added, run week), the EU loss and the household consumption loss (billion USD). The four job lists of 7 October 2026 (\texttt{cluster/jobs\_20261007\_*.txt}), all on the loading curve rebuilt on 6 October: the paper set (36 runs), the paired levers (60), the sensitivities of the revision (16) and the inventory ladder (3). Names: \texttt{2026\_s07\_*} and \texttt{2018\_s07\_*} the two events on the reference network and their variants (\texttt{s07} for the batch of 7 October; the batch of 30 September on the earlier table carried \texttt{s30}); \texttt{seedN} the further networks; \texttt{wave07\_*} the wave-isolation profiles; \texttt{seedN\_<lever>} a lever paired with the base of the same draw; \texttt{rev\_*} the sensitivities of the revision; \texttt{s07\_invNNN} the inventory ladder; \texttt{rev\_rail50\_<lever>} a lever under the 50 kt rail ceiling and \texttt{wave09\_*\_rest15} the wave-isolation profiles at a 15-day refill time (the batch of 9 October, \texttt{jobs\_20261009\_cross.txt})."""
 NEW_RUNS_CAPTION = r"""\textbf{Every run of the batches of 2 and 3 November 2026.} German value-added loss as a share of a quarter, its peak (share of a week's value added, run week), the EU loss and the household consumption loss (billion USD). The job lists of 2 November 2026 (\texttt{cluster/jobs\_20261102\_*.txt}) and the alternative-river list of 3 November (\texttt{jobs\_20261103\_altriver.txt}), all on the capacities per cargo class anchored on 1 November (Supplementary Section~S2): the main table (@MAIN@ runs: the @REF@ reference runs, the @SEEDS@ further 2018 networks of 1 November and the @SET@ runs of the paper set), the paired levers (@PAIRED@), the sensitivities of the revision (@REV@), the inventory ladder (@LADDER@@INV075NOTE@), the levers under the 50 kt rail ceiling with the waves at a 15-day refill time (@CROSS@), the no-rail pair (@NORAIL@) and the priced river with closures on the 2018 benchmark at three inventory levels (@ALT@). Names: \texttt{2026\_r6\_bycargo\_*} and \texttt{2018\_r6\_bycargo\_*} the two events on the reference network and their variants (\texttt{r6\_bycargo}: the round-6 calibration with the capacities per cargo class); \texttt{seedN} the further networks; \texttt{wave\_r6\_bycargo\_*} the wave-isolation profiles; \texttt{seedN\_<lever>} a lever paired with the base of the same draw; \texttt{invNNN} the inventory ladder; \texttt{rail50\_<lever>} a lever under the 50 kt rail ceiling and \texttt{*\_rest15} the wave-isolation profiles at a 15-day refill time; \texttt{priced}, \texttt{priced\_inv150} and \texttt{priced\_inv200} the alternative representation of the river (Supplementary Section~S6) at inventories $\times$1, $\times$1.5 and $\times$2."""
 
@@ -572,12 +594,12 @@ def runs_table(out: Path):
     named = {"main": f"compare_runs_batch_jobs_{LISTS}_main.csv", "paired": f"compare_runs_batch_jobs_{LISTS}_paired.csv",
              "rev": f"compare_runs_batch_jobs_{LISTS}_rev.csv", "ladder": f"compare_runs_batch_jobs_{LISTS}_ladder.csv",
              "cross": f"compare_runs_batch_jobs_{CROSS}_cross.csv", "norail": f"compare_runs_batch_jobs_{NORAIL}_norail.csv",
-             "altriver": f"compare_runs_batch_jobs_{ALT}_altriver.csv", "inv075": "compare_runs_batch_jobs_20261106_inv075.csv"}
+             "altriver": f"compare_runs_batch_jobs_{ALT}_altriver.csv", "inv075": inv075_csv()}
     parts = []
     for k, f_ in named.items():
         if (AD / f_).exists():
             t = table(AD / f_)
-            parts.append(pd.DataFrame({"run": t.index, "job_list": f_.replace("compare_runs_batch_", "").replace(".csv", ".txt"),
+            parts.append(pd.DataFrame({"run": t.index, "job_list": [job_list(r_, f_) for r_ in t.index],
                                        "DEU_loss_pct_of_a_quarter": t["DEU_%quarter"].round(3).values,
                                        "DEU_peak_loss_pct_of_a_week": t["DEU_peak_%week"].round(3).values,
                                        "DEU_peak_week": t["DEU_peak_week"].astype(int).values,
@@ -747,8 +769,8 @@ def prospective_table(out: Path):
     def rng(a, b) -> str:
         return f"{cell(a)}--{cell(b)}" if a >= 0 and b >= 0 else f"{cell(a)} to {cell(b)}"
 
-    rows = ["model, reference network, index measure & " + " & ".join(cell(d[f"ind_{m}"]) for m in labs) + f" & {cell(d['ind_integrated_pct_months'])} \\\\",
-            "model, reference network, production-weighted B--E (the earlier version's measure) & " + " & ".join(cell(d[f"indprod_{m}"]) for m in labs) + f" & {cell(d['indprod_integrated_pct_months'])} \\\\"]
+    # 11 Nov 2026: one measure, the index measure (the row of the production-weighted B-E series of the earlier version is gone)
+    rows = ["model, reference network & " + " & ".join(cell(d[f"ind_{m}"]) for m in labs) + f" & {cell(d['ind_integrated_pct_months'])} \\\\"]
     seeds = [RUNS / B26] + [RUNS / f"2026_{TAG}_seed{s}_base" for s in range(1, 11)]
     band = AD / ("prospective_band_2026.csv" if TAG == "s07" else f"prospective_band_2026_{TAG}.csv")   # the 7 Oct file was written by read_batch_20261007_rev.py
     if all((r_ / "firm_data.csv").exists() for r_ in seeds):
@@ -765,7 +787,7 @@ def prospective_table(out: Path):
             rows.append(f"{lab} & " + " & ".join(cell(dd[f"ind_{m}"]) for m in labs) + f" & {cell(dd['ind_integrated_pct_months'])} \\\\")
     rows += ["published specification, same low-water days & " + " & ".join(cell(v) for v in ev.central) + f" & {cell(s['integral'])} \\\\",
             "its 16--84\\,\\% band & " + " & ".join(rng(a, b) for a, b in zip(ev.p16, ev.p84)) + f" & {rng(s['p16'], s['p84'])} \\\\",
-            "low-water days (observed to 29 September, then the profile) & " + " & ".join(str(int(v)) for v in ev.low_water_days) + " & \\\\"]
+            "low-water days (observed to 10 November, then the forecasts) & " + " & ".join(str(int(v)) for v in ev.low_water_days) + " & \\\\"]
     (out / "prospective.tex").write_text(r"""\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
 \begin{tabular}{@{}L{4.6cm}rrrrrrr@{}}
 \toprule
@@ -933,7 +955,7 @@ def revision_table(out: Path):
     From the compare tables of the batch's job lists; replaces the table of the runs of the revision."""
     m = table(AD / f"compare_runs_batch_jobs_{LISTS}_main.csv")
     t = pd.concat([m] + [table(AD / f_) for f_ in (f"compare_runs_batch_jobs_{LISTS}_rev.csv", f"compare_runs_batch_jobs_{NORAIL}_norail.csv",
-                                                   f"compare_runs_batch_jobs_{LISTS}_ladder.csv", "compare_runs_batch_jobs_20261106_inv075.csv",
+                                                   f"compare_runs_batch_jobs_{LISTS}_ladder.csv", inv075_csv(),
                                                    f"compare_runs_batch_jobs_{LISTS}_paired.csv") if (AD / f_).exists()])
     q = "DEU_%quarter"
     b26, b18 = t.loc[B26, q], t.loc[B18, q]
@@ -965,10 +987,9 @@ def revision_table(out: Path):
             row("", "", "lowered by 15" + pc, "tablehigh", "tablehigh"),
             row("loading share below 5" + BS + ",cm", "0.08", "0.04", "floor04"),
             row("", "", "0.16", "floor16"),
+            row("sea rate of bulk cargo (USD per tkm)", "0.0015, as containers", "0.0034 dry, 0.0051 liquid", "searate"),
             row("mechanisms", "capacity limit and surcharge", "capacity limit alone", "gateonly"),
             row("", "", "surcharge alone", "surchargeonly"),
-            row("gauge of the forecast weeks", "outlook's median", "25th percentile", "q25"),
-            row("", "", "75th percentile", "q75"),
             BS + "midrule", head("Firms and inputs"),
             row("refill time of an inventory gap", "30 days", "15 days", "rest15"),
             row("", "", "60 days", "rest60"),

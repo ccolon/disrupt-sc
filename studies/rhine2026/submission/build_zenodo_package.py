@@ -90,7 +90,7 @@ CONTENTS = [
     ("additional_data", "repo", "studies/rhine2026/additional_data/inventory_targets_construction_nonstorable.yaml", "the variant that treats construction as non-storable (the paper's setting)", "own"),
     ("additional_data", "repo", "studies/rhine2026/additional_data/wiod_correspondence.csv", "the sector correspondence used to map the criticality survey onto the ICIO sectors", "own"),
     ("scenarios", "repo", "studies/rhine2026/scenarios/*.csv",
-     "the weekly gauge profiles (2018, 2026 and its vintages, the stress paths q25/q75, the wave experiments), the daily Kaub records, the BfG six-week outlooks, the loading tables (draught_table*.csv with their ledger) and the Rhine capacities per cargo class", "scenarios"),
+     "the weekly gauge profiles (2018, 2026, the wave experiments), the daily Kaub records, the two BfG forecasts behind the last three weeks of the 2026 profile, the loading tables (draught_table*.csv with their ledger) and the Rhine capacities per cargo class", "scenarios"),
 ]
 
 SOURCES = {
@@ -108,12 +108,19 @@ SOURCES = {
                           "Destatis: Datenlizenz Deutschland - Namensnennung - Version 2.0 (dl-de/by-2-0); Eurostat: free re-use with acknowledgement"),
     "pichler": ("Pichler, Pangallo, del Rio-Chanona, Lafond and Farmer (2022), input criticality survey (IHS Markit), Zenodo record of the paper",
                 "CC BY 4.0 (the Zenodo record) (TO CONFIRM)"),
-    "scenarios": ("Gauge records from PEGELONLINE (German Federal Waterways and Shipping Administration, WSV); six-week outlooks from the Federal Institute of Hydrology (BfG); loading tables compiled by the author from van Dorsser et al. 2020, operators' rate schedules (Contargo 2026) and the BfG/press count of August 2026; capacities from the model's baseline",
-                  "PEGELONLINE: Datenlizenz Deutschland - Zero - Version 2.0 (TO CONFIRM); BfG outlook: TO CONFIRM the re-use terms of the ENS product (the files hold the weekly medians and the 25th/75th percentiles at Kaub only); compilations: CC BY 4.0"),
+    "scenarios": ("Gauge records from PEGELONLINE (German Federal Waterways and Shipping Administration, WSV); the 14-day forecast and the six-week outlook from the Federal Institute of Hydrology (BfG); loading tables compiled by the author from van Dorsser et al. 2020, operators' rate schedules (Contargo 2026) and the BfG/press count of August 2026; capacities from the model's baseline",
+                  "PEGELONLINE: Datenlizenz Deutschland - Zero - Version 2.0 (TO CONFIRM); BfG forecasts: TO CONFIRM the re-use terms (the files hold the forecast quantiles at Kaub only); compilations: CC BY 4.0"),
     "own": ("Built by the author for this study (onboarding scripts and study scripts of the code repository)", "CC BY 4.0 (this deposit)"),
 }
 
+# 11 Nov 2026: the 2026 profile is the river as observed; the profiles and forecasts of earlier states of the season stay out
+SCENARIOS_LEFT_OUT = {"2026_vintage0910.csv", "2026_vintage0930.csv", "2026_q25.csv", "2026_q75.csv",
+                      "bfg_6week_kaub_20260907.csv", "bfg_6week_kaub_20260907_classes.csv", "bfg_6week_kaub_20260930.csv",
+                      "bfg_14day_kaub_20260909.csv"}
+
 EXCLUDED_DEFAULT = [
+    ("scenarios/2026_vintage*.csv, 2026_q25.csv, 2026_q75.csv, bfg_6week_kaub_20260907*.csv, bfg_6week_kaub_20260930.csv, bfg_14day_kaub_20260909.csv",
+     "gauge profiles and forecasts of earlier states of the 2026 season; the paper's runs read the profile on the river as observed (scenarios/2026.csv) and none of these."),
     ("EU/Spatial/sources/NUTS_RG_20M_*.geojson, nuts2_admin.geojson, nuts3_admin*.geojson",
      "GISCO NUTS boundaries 2021 and 2024 (1:20M, EPSG:4326, levels 2 and 3) and the per-country NUTS3 files cut from them: '(c) EuroGeographics for the administrative boundaries', GISCO terms (non-commercial use), which a CC BY deposit cannot carry. Download: https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/territorial-units-statistics (NUTS_RG_20M_2024_4326_LEVL_2/3, NUTS_RG_20M_2021_4326_LEVL_2/3); nuts3_admin_<ISO3>.geojson = the level-3 polygons of each country with shapeName = NUTS code. Needed only to rebuild firms.geojson with the firm extractor, not to run the model. Re-run with --with-gisco to include them."),
     ("EU/calibration_log.md", "the calibration diary (internal working document, 230 kB). Re-run with --with-calibration-log to include it."),
@@ -189,7 +196,8 @@ def main():
     for zdir, rootkey, pattern, what, src in contents:
         root = roots[rootkey]
         matches = sorted(root.glob(pattern)) if any(c in pattern for c in "*?[") else [root / pattern]
-        matches = [m for m in matches if m.is_file() and "__pycache__" not in m.parts]
+        matches = [m for m in matches if m.is_file() and "__pycache__" not in m.parts
+                   and not (zdir == "scenarios" and m.name in SCENARIOS_LEFT_OUT)]
         if not matches:
             missing.append((rootkey, pattern))
             continue
@@ -250,8 +258,8 @@ def main():
     lines += [
         "",
         "The code repository is authoritative for the files copied from it (config, additional_data, scenarios); the data",
-        "repository for the EU folder. The versions of the code that produced each batch of runs are listed, commit by commit,",
-        "in `studies/rhine2026/forecast_manifest.md` of the code repository.",
+        "repository for the EU folder. The runs of the paper are listed in `studies/rhine2026/additional_data/runs_20261111.csv`",
+        "of the code repository; the version of the code that produced them is recorded in `studies/rhine2026/cluster/batch_20261111.md`.",
         "",
         "## How to use",
         "",

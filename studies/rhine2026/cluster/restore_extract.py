@@ -39,6 +39,9 @@ def main() -> int:
     ap.add_argument("runs")
     ap.add_argument("--target", default=str(TARGET))
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--flows-for", default=None,
+                    help="comma-separated run names: transport_edges_with_flows_0.geojson (30 MB a run) is taken for these "
+                         "runs only; the readers use the one of the reference run or of the link-level run")
     a = ap.parse_args()
     arc, target = Path(a.archive), Path(a.target)
     runs = {line.strip() for line in Path(a.runs).read_text(encoding="utf-8").splitlines() if line.strip()}
@@ -46,7 +49,8 @@ def main() -> int:
     if got != a.sha256.lower():
         print(f"{arc.name}: sha256 {got} is not the cluster's {a.sha256}: nothing extracted")
         return 2
-    written = same = 0
+    flows_for = None if a.flows_for is None else {r.strip() for r in a.flows_for.split(",") if r.strip()}
+    written = same = skipped = 0
     nbytes = 0
     left_out, differ, seen_runs = [], [], set()
     with tarfile.open(arc, "r:gz") as t:
@@ -64,6 +68,9 @@ def main() -> int:
                 left_out.append(m.name)
                 continue
             seen_runs.add(run)
+            if flows_for is not None and p.name == "transport_edges_with_flows_0.geojson" and run not in flows_for:
+                skipped += 1
+                continue
             dest = target.joinpath(*p.parts)
             if dest.exists():
                 if dest.stat().st_size == m.size:
@@ -87,7 +94,8 @@ def main() -> int:
             os.utime(dest, (m.mtime, m.mtime))
     verb = "would be written" if a.dry_run else "written"
     print(f"{arc.name}: sha256 ok; {written} files {verb} ({nbytes / 1e6:.0f} MB), {same} already there with the same size, "
-          f"{len(differ)} existing with another size, {len(left_out)} left out; runs {len(seen_runs)} of {len(runs)} named")
+          f"{len(differ)} existing with another size, {len(left_out)} left out; runs {len(seen_runs)} of {len(runs)} named"
+          + (f"; {skipped} baseline flow files not taken (--flows-for)" if flows_for is not None else ""))
     for x in differ[:20]:
         print("  DIFFERS " + x)
     for x in left_out[:20]:

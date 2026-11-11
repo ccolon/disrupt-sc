@@ -28,10 +28,10 @@ draws of (b0, b1, rho) at the reported standard errors: the 16-84 % interval (ab
 2.5-97.5 % interval, month by month and for the integral over the event months (August to December 2018; July to
 December 2026). Independence is an assumption; the band is indicative, not an exact confidence interval.
 
-2026: the low-water days of June to September are observed (PEGELONLINE daily means to 29 September); from 30
-September the days follow the weekly means of the profile (the BfG outlook of 28 September and the assumed
-recovery), a week below 78 cm counting for all its days. The result is what the published regression implies for
-2026 under the same outlook, the comparison line of the prospective test.
+2026: the low-water days are observed to 10 November (PEGELONLINE daily means; the record of 11 November is a
+partial day); from 12 November the days follow the weekly means of the profile (the BfG forecasts of 11 and
+9 November), a week below 78 cm counting for all its days. The result is what the published regression implies
+for the 2026 season on the same river as the model's runs, the comparison line of the prospective test.
 
 Usage:
     python studies/rhine2026/benchmark_ademmer.py [--out-dir studies/rhine2026/additional_data] [--draws 20000]

@@ -38,6 +38,11 @@ def main(cluster_dir, out_dir):
     paired = cluster_dir / f"compare_runs_batch_jobs_{NEW}_paired"
     new_csv = pd.concat([read_csv(ref.with_suffix(".csv")), read_csv(paired.with_suffix(".csv"))])
     new_wk = pd.concat([weekly(ref.with_suffix(".txt")), weekly(paired.with_suffix(".txt"))], axis=1)
+    sea = cluster_dir / f"compare_runs_batch_jobs_{NEW}_searate_b"         # the sea-rate run has a list of its own
+    sea_run = f"2026_{T}_searate"
+    if sea.with_suffix(".csv").exists():
+        new_csv = pd.concat([new_csv, read_csv(sea.with_suffix(".csv")).loc[[sea_run]]])
+        new_wk = pd.concat([new_wk, weekly(sea.with_suffix(".txt"))[[sea_run]]], axis=1)
     assert not new_csv.index.duplicated().any(), "a run appears twice in the cluster tables"
 
     def assemble(name: str, rows: list[str]):
@@ -68,7 +73,7 @@ def main(cluster_dir, out_dir):
     old_rows = lambda name: list(read_csv((out_dir / f"compare_runs_batch_jobs_{OLD}_{name}").with_suffix(".csv")).index)   # noqa: E731
     assemble("main", ORDER_MAIN)
     assemble("paired", old_rows("paired"))
-    assemble("rev", [r for r in old_rows("rev") if not r.endswith(("_q25", "_q75"))])
+    assemble("rev", [r for r in old_rows("rev") if not r.endswith(("_q25", "_q75"))] + ([sea_run] if sea_run in new_csv.index else []))
     assemble("ladder", old_rows("ladder"))
     assemble("cross", old_rows("cross"))
     assemble("norail", old_rows("norail"))
@@ -97,6 +102,15 @@ def main(cluster_dir, out_dir):
         num = [c for c in b.index if pd.api.types.is_number(b[c])]
         diff = {c: (float(a[c]), float(b[c])) for c in num if float(a[c]) != float(b[c])}
         print(f"{inv} on the model code of 2 November against the run of 6 November: " + ("identical in every column" if not diff else f"DIFFERS: {diff}"))
+        # the repeated run is the one the paper reads: its table, in the shape of the table of 6 November
+        out = out_dir / f"compare_runs_batch_jobs_{NEW}_inv075"
+        cols = list(read_csv(old_inv).columns)
+        new_csv.loc[[inv], cols].to_csv(out.with_suffix(".csv"))
+        note = ("assembled by merge_cluster_tables_20261111.py: the 2018 run at 0.75 times the inventories repeated on the model code of "
+                "2 November 2026 (jobs_20261111_ref.txt); the run of 6 November is in compare_runs_batch_jobs_20261106_inv075")
+        txt = "\n".join(header(ref.with_suffix(".txt"))) + "\n" + new_csv.loc[[inv], cols].T.to_string() + "\n\n" + MARK + "\n" + new_wk[[inv]].dropna().to_string() + "\n\n" + f"# {note}\n"
+        out.with_suffix(".txt").write_text(txt, encoding="utf-8")
+        print(f"   written: {out.name}.csv/.txt")
     assert RENAME, "merge_cluster_tables.RENAME is used by read_csv"
 
 

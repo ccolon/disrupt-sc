@@ -30,8 +30,8 @@ paper reports simulation results, not hypothesis tests on samples. Fill as follo
 regional accounts, TENtec (TEN-T network), Global Energy Monitor and Climate TRACE facility trackers, SPAM 2020,
 Bundesbank balance-sheet statistics. No instrument software.
 
-**Data analysis.** DisruptSC v2 (Python 3.10; GPL-3.0; https://github.com/ccolon/disrupt-sc, commits recorded in
-`studies/rhine2026/forecast_manifest.md`; release tag and Zenodo DOI to be added), with NumPy, pandas, GeoPandas,
+**Data analysis.** DisruptSC v2 (Python 3.10; GPL-3.0; https://github.com/ccolon/disrupt-sc, the version of the runs recorded in
+`studies/rhine2026/cluster/batch_20261111.md`; release tag and Zenodo DOI to be added), with NumPy, pandas, GeoPandas,
 NetworkX and Matplotlib; the analysis and figure scripts of `studies/rhine2026`. State the exact versions from the
 environment file at submission (`conda list` of the `dsc` environment).
 
@@ -62,7 +62,7 @@ hydrological data are the daily Kaub gauge records of 2018 and 2026.
 core) and sufficient for the spread to be reported as mean, standard deviation and range; no power calculation.
 
 **Data collection.** Public statistical and geospatial sources downloaded by script between September and November
-2026 (dates in `forecast_manifest.md` and Supplementary Section S1); no field data.
+2026 (dates in Supplementary Section S1 and in the provenance files next to each data set); no field data.
 
 **Timing.** Simulated weeks: 22 June to 23 November 2026 plus 20 recovery weeks; 16 July to 16 December 2018 plus 20
 recovery weeks. The 2026 forecast was issued on 7 October 2026 on hydrological information to 30 September; the

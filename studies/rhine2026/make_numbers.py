@@ -57,7 +57,9 @@ def main(tag: str, overleaf: Path, date_list: str):
     r = table(rv) if rv.exists() else pd.DataFrame()
     lv = AD / f"compare_runs_batch_jobs_{date_list}_ladder.csv"
     ld = table(lv) if lv.exists() else pd.DataFrame()
-    zv = AD / "compare_runs_batch_jobs_20261106_inv075.csv"           # the rung at x0.75 of 6 Nov 2026 (jobs_20261106_inv075.txt)
+    zv = AD / f"compare_runs_batch_jobs_{date_list}_inv075.csv"         # 11 Nov 2026: the rung at x0.75 repeated on the model code of 2 November (jobs_20261111_ref.txt)
+    if not zv.exists():
+        zv = AD / "compare_runs_batch_jobs_20261106_inv075.csv"       # the rung at x0.75 of 6 Nov 2026 (jobs_20261106_inv075.txt)
     zt = table(zv) if zv.exists() else pd.DataFrame()
     t = pd.concat([m, p] + ([r] if len(r) else []) + ([ld] if len(ld) else []) + ([zt] if len(zt) else []))
     B, B18 = f"2026_{tag}_base", f"2018_{tag}_base"
@@ -83,7 +85,8 @@ def main(tag: str, overleaf: Path, date_list: str):
     put("EarlyWaveQ", r2(w.loc[1:6].sum() / q26), "weeks 1-6 (22 June - 2 August), % of a quarter")
     put("AugWaveQ", r2(w.loc[7:11].sum() / q26), "August trough (weeks 7-11), all sectors")
     put("AugWaveIndQ", r2(ind[ind.time_step.between(7, 11)].loss.sum() / q26), "industry part of the August trough")
-    put("AugWaveEurBn", r1(ind[ind.time_step.between(7, 11)].loss.sum() / 1e3 * 0.92), "EUR bn, industry part of the August trough (0.92 EUR per USD)")
+    # 11 Nov 2026: the 2022 average rate of the ECB, 1.053 USD per EUR, as in the note of the transport-cost table (was 0.92 EUR per USD)
+    put("AugWaveEurBn", r1(ind[ind.time_step.between(7, 11)].loss.sum() / 1e3 / 1.053), "EUR bn, industry part of the August trough (1.053 USD per EUR, 2022 average)")
     put("AutumnWaveQ", r2(w.loc[12:19].sum() / q26), "autumn trough (weeks 12-19, 7 September - 1 November)")
     e26 = [p.loc[f"2026_{tag}_seed{s}_base", "DEU_%quarter"] for s in range(1, 11)] + [b["DEU_%quarter"]]
     put("EnsMean", r2(np.mean(e26)), "ensemble of 11 supply-chain draws, mean"); put("EnsSd", r2(np.std(e26, ddof=1))); put("EnsMin", r2(min(e26))); put("EnsMax", r2(max(e26)))
@@ -275,8 +278,8 @@ def main(tag: str, overleaf: Path, date_list: str):
             return pct(100 * (r.loc[run, "DEU_%quarter"] / m.loc[base, "DEU_%quarter"] - 1))
         for mac, run in (("RevRailFifty", f"2026_{REV}_rail50"), ("RevRailHundredForty", f"2026_{REV}_rail140"), ("RevHeadTen", f"2026_{REV}_head10"), ("RevHeadTwentyFive", f"2026_{REV}_head25"),
                          ("RevRestFifteen", f"2026_{REV}_rest15"), ("RevRestSixty", f"2026_{REV}_rest60"), ("RevFloorLow", f"2026_{REV}_floor04"), ("RevFloorHigh", f"2026_{REV}_floor16"),
-                         ("RevDeepLocal", f"2026_{REV}_deeplocal"), ("RevFleetWide", f"2026_{REV}_fleetwide"), ("RevDfuel", f"2026_{REV}_dfuel0"), ("RevServ", f"2026_{REV}_serv45"),
-                         ("RevQLow", f"2026_{REV}_q25"), ("RevQHigh", f"2026_{REV}_q75")):
+                         ("RevDeepLocal", f"2026_{REV}_deeplocal"), ("RevFleetWide", f"2026_{REV}_fleetwide"), ("RevDfuel", f"2026_{REV}_dfuel0"), ("RevServ", f"2026_{REV}_serv45"),      # 11 Nov 2026: no stress path on the outlook any more
+                         ("RevSeaRate", f"2026_{REV}_searate")):                                          # 11 Nov 2026: bulk at the sea rates of bulk carriers and tankers
             put(mac, r2(r.loc[run, "DEU_%quarter"]), f"{run}: {rel(run)} % against the base"); put(mac + "Rel", rel(run).replace("-", "$-$"))
             put(mac + "Abs", rel(run).lstrip("-"), "the same change without its sign")
         for mac, run in (("RevRailFiftyyy", f"2018_{REV}_rail50"), ("RevRailHundredFortyyy", f"2018_{REV}_rail140")):
@@ -727,7 +730,7 @@ def main(tag: str, overleaf: Path, date_list: str):
                                             ("Rev", f"compare_runs_batch_jobs_{date_list}_rev.csv"), ("Ladder", f"compare_runs_batch_jobs_{date_list}_ladder.csv"),
                                             ("Cross", f"compare_runs_batch_jobs_{cross_date}_cross.csv"), ("NoRail", f"compare_runs_batch_jobs_{norail_date}_norail.csv"),
                                             ("Alt", f"compare_runs_batch_jobs_{alt_date}_altriver.csv"),
-                                            ("Inv075", "compare_runs_batch_jobs_20261106_inv075.csv")) if (AD / f_).exists()}
+                                            ("Inv075", zv.name)) if (AD / f_).exists()}
         nr_ = {suf_: len(table(AD / f_)) for suf_, f_ in files_.items()}
         if "Inv075" in nr_:            # 6 Nov 2026: the rung at x0.75 counts with the inventory ladder (si_tables.runs_table does the same)
             nr_["Ladder"] = nr_.get("Ladder", 0) + nr_.pop("Inv075")
