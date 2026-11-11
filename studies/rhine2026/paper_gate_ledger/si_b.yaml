@@ -2,12 +2,6 @@
 # conventions), 5 Nov 2026. Format: see the docstring of paper_gate.py. The other parts of si.tex are in si_a.yaml.
 allowed:
   # ---- S3 Gauges
-  - file: si.tex
-    text: 'the observed means were 25, 7 and about $-2$ (the last from two observed days and the outlook of 28 September)'
-    why: 'data: 2026 profile of 30 Sep (scenarios/2026.csv): weeks of 14/21/28 Sep at 25.2, 6.6 and -1.7 cm (two observed days, 2 and 2 cm, plus the outlook of 28 Sep)'
-  - file: si.tex
-    text: 'are run as two stress paths of the forecast'
-    why: 'design: the two quantile profiles q25 and q75'
   # ---- S3 Loading table
   # ---- S3 Capacities
   # ---- S3 Surcharge

@@ -56,9 +56,6 @@ allowed:
     text: 'calibrated on 28 European economies (the EU-27 and Switzerland)'
     why: 'design: scope of 28 economies'
   - file: main.tex
-    text: 'three choices among a few candidates each (the representation of the river'
-    why: 'count: the three choices made on the 2018 benchmark (river representation, inventory level, suppliers per input)'
-  - file: main.tex
     text: 'Four results follow. First, on the 2018 low water'
     why: 'count: the paper describing itself'
   - file: main.tex
@@ -248,7 +245,7 @@ allowed:
     text: 'With its gain extended to 100\,cm, as the loading of the purpose-built tankers'
     why: 'design: fleetwide variant (gain up to 100 cm)'
   - file: main.tex
-    text: 'The three together remove \finalbatch{\LevPackageAvg}'
+    text: 'The three together remove \LevPackageAvg'
     why: 'count: the package = fairway + fleet + inventories'
   - file: main.tex
     text: 'inventories ahead in \StocksBeatFairwayDraws{} of ten'
@@ -257,7 +254,7 @@ allowed:
     text: 'it is the same for the 28 economies as a whole'
     why: 'design: scope of 28 economies'
   - file: main.tex
-    text: 'the three together \finalbatch{\LevEUPackage}'
+    text: 'the three together \LevEUPackage'
     why: 'count: the package of three levers'
   - file: main.tex
     text: 'so we report it as a sensitivity at two ceilings'
@@ -278,9 +275,6 @@ allowed:
     text: 'barge-dependent buyers; ``all three together'
     why: 'count: the package of three levers'
   # ---------------------------------------------------------------- discussion (l. 172-182)
-  - file: main.tex
-    text: 'and three choices were made on the 2018 benchmark'
-    why: 'count: the three selection choices'
   - file: main.tex
     text: 'Run apart, the two episodes of 2026 cost less than in sequence'
     why: 'count: the two episodes'
@@ -432,15 +426,6 @@ allowed:
     text: 'are two views of the same loss'
     why: 'count: value added and consumption'
   - file: main.tex
-    text: 'Three modeling choices were made on the 2018 benchmark'
-    why: 'count: the selection choices'
-  - file: main.tex
-    text: 'the representation of the river (two options), the level of the inventories (four options)'
-    why: 'count: candidates of the selection'
-  - file: main.tex
-    text: 'the number of suppliers per input (two options)'
-    why: 'count: candidates of the selection'
-  - file: main.tex
     text: 'the loading-curve variants and two suppliers per input'
     why: 'design: loading-curve variants and the two-supplier run'
   # ---------------------------------------------------------------- methods: adaptation (l. 235-243)
@@ -516,9 +501,6 @@ allowed:
   - file: main.tex
     text: 'and the fleet last in \FleetLastDraws{} of ten'
     why: '5 Nov 2026 pending fix (patch_pending_20261105.py); design: ten further networks'
-  - file: main.tex
-    text: 'missed the end-of-September episode by 15 to 44\,cm'
-    why: '5 Nov 2026 pending fix (patch_pending_20261105.py); data: scenarios/2026.csv, the outlook of 7 September (previous values 22 and 42 cm) against the observed weekly means of the weeks of 21 and 28 September (6.6 and -1.7 cm); the Methods give 22 and 42 against 7 and -2'
   - file: main.tex
     text: 'three fleets on the same river, for which the capacities below are set per class'
     why: 'count: the three cargo classes (Methods, Transport layer; trim of 7 Nov 2026)'
@@ -678,7 +660,7 @@ claims:
     range: [2.0, 2.8]
     why: 'result: autumn episode over August episode; more than doubles = 2.0-2.8'
   - file: main.tex
-    text: 'costs \finalbatch{\AutumnWaveQ}\,\%, more than twice as much'
+    text: 'costs \AutumnWaveQ\,\%, more than twice as much'
     expr: 'AutumnWaveQ/AugWaveQ'
     range: [2.0, 2.8]
     why: 'result: autumn over August; more than twice = 2.0-2.8'
@@ -759,7 +741,7 @@ claims:
     range: [2.25, 2.75]
     why: '5 Nov 2026 pending fix (patch_pending_20261105.py); result: priced river with closures (2018_r6_bycargo_priced), first week of German loss against the first day of the benchmark''s first month of shortfall (August; the benchmark is monthly); two and a half months = 2.25-2.75'
   - file: main.tex
-    text: '\,\% with four, and \finalbatch{\WaveInterEightAbs}\,\% less with eight'
+    text: '\,\% with four, and \WaveInterEightAbs\,\% less with eight'
     expr: 'WaveInterEight'
     range: [-100, -0.05]
     why: '5 Nov 2026 pending fix (patch_pending_20261105.py); sign: eight weeks apart the sequence costs less than the sum of the episodes (the explanation that follows needs a negative value); four and eight = design (gap4, gap8)'

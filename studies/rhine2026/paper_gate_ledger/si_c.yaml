@@ -1,7 +1,6 @@
 # Ledger of paper_gate.py: entries added with the author's revision of the SI of 10 November 2026 (written by
 # review/ledger_si_20261110.py through review/ledger_edit.py). Format: see the docstring of paper_gate.py.
 allowed:
-- {file: main.tex, text: Anthropic Fable 5.1 was used, why: 'count: a product version in the author''s AI disclosure'}
 - {file: si.tex, text: Ten sectors use facility data. Nine keep their facilities as points, why: 'count: the ten facility sectors of the sentence (B05, B06, B07, C19, C20, C17-18, C24B, C23, C24A kept as points; D aggregated to NUTS2 capacity); crops (A01) use a gridded source and are named before'}
 - {file: si.tex, text: 'roads (2,979 edges), railways (4,261), inland waterways (461, including 30 for the Rhine from Basel to Rotterdam)', why: 'data: edge counts by mode of the TEN-T extraction of 29 August 2026; the Rhine is a chain of 30 named reaches'}
 - {file: si.tex, text: We assume that 18 commodity-like products are pooled across regions, why: 'count: the eighteen pooled products listed in the sentence (the pooled sectors of the configuration)'}
@@ -18,7 +17,6 @@ allowed:
 - {file: si.tex, text: by 8 to 15 percentage points, why: 'data: road share of tonne-km, Eurostat 2023 minus model, as rounded in Table S-modal (France 8, Germany 11, Austria 13, Netherlands 14, Belgium 15; 8.3 to 14.2 unrounded in country_modal_split.csv of the base run)'}
 - {file: si.tex, text: Kaub carries \KaubMt~Mt a year against 50--60 in the counts, why: 'evidence: ccnr2023 (the counts at Emmerich and Iffezheim and the estimates between them, scenarios/rhine_capacities.csv); about 50 Mt past Kaub, 55-60 up to Koblenz-Bonn'}
 - {file: si.tex, text: 'of the forty largest European seaports are within 30\,\% of the Eurostat statistics', why: 'design: the 30 % band of the count \PortsWithinThirty; forty = the seaports of the calibration'}
-- {file: si.tex, text: 'The residuals fall into four kinds, three of which are off the Kaub path', why: 'count: the four residuals described in the paragraphs that follow'}
 - {file: si.tex, text: amount to \RhineEmmerichMt~Mt against 118, why: 'evidence: ccnr2023 (the counts at Emmerich and Iffezheim and the estimates between them, scenarios/rhine_capacities.csv); Emmerich 118 Mt'}
 - {file: si.tex, text: 'Oslo (\PortOsloMt{} against 5) and M\''alaga (\PortMalagaMt{} against 2)', why: 'evidence: Eurostat mar_go_aa 2023, gross weight of goods handled (Table S-ports): Oslo 5.3, Malaga 2.1 Mt'}
 - {file: si.tex, text: ports outside the forty largest carry \SecPortsMt~Mt against \SecPortsObsMt, why: 'count: forty = the seaports of the calibration'}
@@ -28,14 +26,8 @@ allowed:
 - {file: si.tex, text: the ports outside the 40 largest where the model routes 50~Mt or more, why: 'design: the selection of the rows below the line (si_tables.ports_table, outside_mt = 50)'}
 - {file: si.tex, text: four kinds of statistic, why: 'count: the four kinds of statistic listed in the sentence'}
 - {file: si.tex, text: the six-week outlook of the same institute of 28 September, why: 'data: horizon of the BfG outlook (bfg2026)'}
-- {file: si.tex, text: 'had put the weeks of 14, 21 and 28 September at 12, 22 and 42\,cm; the observed means were 25, 7 and about $-2$ (the last from two observed days and the outlook of 28 September)', why: 'data: BfG outlook of 7 Sep, medians of the weeks of 14/21/28 Sep (scenarios/bfg_6week_kaub_20260907.csv), against the 2026 profile of 30 Sep (scenarios/2026.csv: 25.2, 6.6 and -1.7 cm)'}
-- {file: si.tex, text: Two stress profiles therefore take the outlook's 25th and 75th percentile for the forecast weeks, why: 'data: the 25-75 % quantiles of the BfG outlook of 28 Sep (scenarios/2026_q25.csv, 2026_q75.csv)'}
 - {file: si.tex, text: 'stays at 0.08 below 5\,cm', why: 'data: floor of the loading table (scenarios/draught_table.csv, row 5 cm)'}
-- {file: si.tex, text: 'are three fleets: $K_{r,c}=\max\!\big(s_{r,c}\,T_r,\;1.02\,F_{r,c}\big)$', why: 'design: the capacity per cargo class (anchor_rhine_capacities.py --by-cargo --headroom 0.02: the larger of the counted tonnage split by the baseline''s class shares and the baseline flow of the class plus 2 %)'}
-- {file: si.tex, text: 'and the model''s own flow plus 2\,\% elsewhere', why: 'design: the headroom of the anchored capacities (0.02)'}
-- {file: si.tex, text: 'At Kaub this gives 175,900 t a day in total, against 137,000 in the counts: 32,400 for the container vessels, 62,900 for the dry-bulk vessels and 80,600 for the tank barges', why: 'data: scenarios/rhine_capacities_anchored_r6_bycargo.csv, reach rhine_mainz_koblenz (per-class capacities and their sum), against scenarios/rhine_capacities.csv (137,000 t a day)'}
 - {file: si.tex, text: 'Headrooms of 10 and 25\,\% instead of 2 are tested in Section', why: 'design: the two headroom runs of the sensitivity list (2026_r6_bycargo_head10, _head25)'}
-- {file: si.tex, text: and one third of its excess over 1 on the Lower Rhine reaches. This factor of one third is an assumption, why: 'design: lower_rhine_factor = 1/3 (run_rhine.py, DEFAULT_LOWER_RHINE_FACTOR)'}
 - {file: si.tex, text: runs with a factor of zero and of one gave the same loss, why: 'history: the runs of 15 September 2026 with the factor at 0 and at 1 (2026_fc0910_lr0, 2026_fc0910_lr1; additional_data/compare_runs_batch_20260915.csv)'}
 - {file: si.tex, text: (raw 15-minute values), why: 'data: resolution of the gauge record (pegelonline2026) behind scenarios/2026.csv'}
 - {file: si.tex, text: 'a truck carries 25 tonnes, against 2,000 and more for a barge or an ore train', why: 'convention: orders of magnitude of the payloads (the sentence of the earlier S3)'}
@@ -66,7 +58,6 @@ allowed:
 - {file: si.tex, text: 'that a day of low water raises rail tonnage by 0.07\,\%, that is about 2\,\% over a low-water month of 30 days. Applied to about 6.7 Mt of rail freight a week, the order of the German total (362 Mt in 2024, or 7.0 Mt a week', why: 'evidence: Kiel Working Paper 2155, Appendix B, Table B1 (+0.071 % of rail tonnage per low-water day, monthly data 2005-2019); Destatis, rail freight 362.3 Mt in 2024 (destatis2026gueterbefoerderung); 6.7 Mt a week is the base of the 140 kt ceiling (0.0007 x 30 x 6.7 Mt = 141 kt), see evidence/si_evidence_sea_vot_rail_20261110.md'}
 - {file: si.tex, text: this gives about 140 kt a week, why: 'design: the second rail ceiling'}
 - {file: si.tex, text: so 140 kt for bulk alone is likely more than rail can take on, why: 'design: the second rail ceiling'}
-- {file: si.tex, text: 'The 50 kt ceiling binds (the placed tonnage reaches the ceiling) in 23 of the 23 profile weeks of 2026 and 21 of the 22 of 2018, and in 3 and 0 of the recovery weeks in which bulk is still cut; the 140 kt ceiling in 20 and 17 profile weeks and 0 and 0 recovery weeks', why: 'result: counts computed by si_tables.rail_weeks_table from the logs of the four rail runs of the batch of 2 November 2026 (the caption of Table S-railweeks as generated on 3 November)'}
 - {file: si.tex, text: (column~1 of their Table~2), why: 'evidence: ademmer2023, Table 2, column 1 (the regression of monthly growth of industrial production on the change in low-water days; benchmark_ademmer.py)'}
 - {file: si.tex, text: 'on which the Kaub gauge is below 78\,cm', why: 'evidence: ademmer2023, Table 2, column 1 (the regression of monthly growth of industrial production on the change in low-water days; benchmark_ademmer.py); 78 cm is the equivalent low water level of the Kaub gauge'}
 - {file: si.tex, text: 'y_t = a + \beta_0\,\Delta d_t + \beta_1\,\Delta d_{t-1} + \rho\,y_{t-1} + \text{controls} + \varepsilon_t', why: 'convention: indices of the equation'}
@@ -75,6 +66,12 @@ allowed:
 - {file: si.tex, text: '29, 14, 31, 30 and 3 days below 78\,cm from August to December 2018', why: 'data: days below 78 cm in the daily record of the Kaub gauge, August to December 2018 (scenarios/kaub_daily_2018.csv; benchmark_ademmer.py)'}
 - {file: si.tex, text: 'Every inventory target was multiplied by 0.75, 1.25, 1.5 and 2', why: 'design: the inventory levels of the 2018 runs (jobs_20261102_ladder.txt, jobs_20261106_inv075.txt)'}
 - {file: main.tex, text: 'two stress paths (Supplementary Section~S7), not bounds', why: 'design: the two quantile paths (q25, q75)'}
+- {file: si.tex, text: we build two additional profiles from its 25th and 75th percentiles for the forecast weeks, why: 'data: the 25-75 % quantiles of the BfG outlook of 28 Sep (scenarios/2026_q25.csv, 2026_q75.csv)'}
+- {file: si.tex, text: 'are three distinct fleets: $K_{r,c}=\max\!\big(s_{r,c}\,T_r,\;1.02\,F_{r,c}\big)$', why: 'design: the capacity per cargo class (anchor_rhine_capacities.py --by-cargo --headroom 0.02: the larger of the counted tonnage split by the baseline''s class shares and the baseline flow of the class plus 2 %)'}
+- {file: si.tex, text: 'the factor 1.02 leaves a headroom of 2\,\% over the model''s own flow', why: 'design: the headroom of the anchored capacities (0.02)'}
+- {file: si.tex, text: 'At Kaub, this gives 175,900 t a day in total: 32,400 for container vessels, 62,900 for dry-bulk vessels, and 80,600 for tank barges', why: 'data: scenarios/rhine_capacities_anchored_r6_bycargo.csv, reach rhine_mainz_koblenz (per-class capacities and their sum)'}
+- {file: si.tex, text: and one third of its excess over 1 on the Lower Rhine reaches. This one-third factor is an assumption, why: 'design: lower_rhine_factor = 1/3 (run_rhine.py, DEFAULT_LOWER_RHINE_FACTOR)'}
+- {file: si.tex, text: 'The 50 kt ceiling is reached in \RailBindFifty{} of the 23 profile weeks of 2026 and in \RailBindFiftyyy{} of the 22 of 2018, the 140 kt ceiling in', why: 'design and data: the two ceilings of the rail runs (50 and 140 kt a week) and the lengths of the two profiles (23 weeks in scenarios/2026.csv, 22 in scenarios/2018.csv); the counts themselves are macros'}
 claims:
 - file: si.tex
   text: The 39 other sectors are downscaled using NUTS3 employment
@@ -117,11 +114,6 @@ claims:
   range: [0.58, 0.72]
   why: 'result: the upper end, Strasbourg 10 against 16 = 0.62 (Karlsruhe 0.59); two thirds = 0.58-0.72'
 - file: si.tex
-  text: the loss of the 28 economies and the consumption loss of each
-  expr: NRegions
-  range: [28, 28]
-  why: 'data bound to the macro: the 28 economies of the model'
-- file: si.tex
   text: At three quarters of the balance-sheet values the industrial shortfall is nearer the benchmark's
   expr: min(abs(RecordInt-ModelInt), abs(RecordInt-LadderIntA), abs(RecordInt-LadderIntB), abs(RecordInt-LadderIntD)) - abs(RecordInt-LadderIntZ)
   range: [0.01, 100]
@@ -141,4 +133,14 @@ claims:
   expr: min(CrossStockRail - LevStock, CrossDeepRail - LevDeep, CrossStockTRail - LevStockT, CrossFleetRail - LevFleet)
   range: [1, 100]
   why: 'result: every single lever avoids a larger share of the rail-50 base than of the reference base'
+- file: main.tex
+  text: The lower ceiling is reached in nearly every week of both events
+  expr: min(RailBindFifty/23, RailBindFiftyyy/22)
+  range: [0.9, 1.0]
+  why: 'result: the 50 kt ceiling is reached in 23 of 23 profile weeks of 2026 and 21 of 22 of 2018'
+- file: main.tex
+  text: the higher one in most
+  expr: min(RailBindHundredForty/23, RailBindHundredFortyyy/22)
+  range: [0.6, 0.95]
+  why: 'result: the 140 kt ceiling is reached in 20 of 23 profile weeks of 2026 and 17 of 22 of 2018'
 pending: []

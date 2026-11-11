@@ -692,6 +692,17 @@ def main(tag: str, overleaf: Path, date_list: str):
                     offr_.append(float(mt_.group(3).replace(",", "")) / 1e3)
         put("RailOfferedMin", f"{10 * np.floor(min(offr_) / 10 + 0.5):.0f}", f"kt a week: the least cut bulk offered to rail in a profile week of the 50 kt runs ({min(offr_):.1f}, rounded to 10 kt)")
         put("RailOfferedMax", f"{10 * np.floor(max(offr_) / 10 + 0.5):.0f}", f"the most ({max(offr_):.1f})")
+        # 11 Nov 2026: the profile weeks in which each ceiling is reached (the placed tonnage within 0.5 kt of the ceiling), the
+        # counts that the caption of the former table of rail weeks carried (si_tables.rail_weeks_table, same rule)
+        for mac_, run_, ceil_ in (("RailBindFifty", f"2026_{REV}_rail50", 50), ("RailBindFiftyyy", f"2018_{REV}_rail50", 50),
+                                  ("RailBindHundredForty", f"2026_{REV}_rail140", 140), ("RailBindHundredFortyyy", f"2018_{REV}_rail140", 140)):
+            np_ = len(pd.read_csv(HERE / "scenarios" / f"{run_[:4]}.csv"))
+            nb_ = 0
+            for line_ in (RUNS / f"{run_}.log").read_text(encoding="utf-8", errors="replace").splitlines():
+                mt_ = re.search(r"Capacity gate t=(\d+):.*relief ([\d,]+) t of ([\d,]+) t offered", line_)
+                if mt_ and int(mt_.group(1)) <= np_ and float(mt_.group(3).replace(",", "")) > 0 and float(mt_.group(2).replace(",", "")) / 1e3 >= ceil_ - 0.5:
+                    nb_ += 1
+            put(mac_, str(nb_), f"{run_}: profile weeks (of {np_}) in which the {ceil_} kt rail ceiling is reached")
         # ---- [G] what crosses Kaub (S5): the Kaub-crossing links of the link-level run at the baseline (v0: validation_outputs.csv,
         # group kaub, t=0), the services' missing refined fuel and the French buyers (link_flows_disrupted.csv.gz)
         put("KaubLinks", f"{int(v0.n.sum()):,}".replace(",", "{,}"), f"commercial links whose baseline route crosses Kaub (2026_{tag}_full)")

@@ -404,7 +404,7 @@ def stocks_table(out: Path):
         basis = basis.replace("M&S", "materials and supplies").replace("&", " and ")   # no & in a cell: the lint counts them
         rows.append(f"{tex(codes_tex)} & {tex(name)} & {num(model)} & {grade} & {tex(basis)} \\\\")
     (out / "si_stocks.tex").write_text(r"""\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
-\begin{longtable}{L{16mm}L{38mm}rcL{77mm}}
+\begin{longtable}{L{16mm}L{38mm}rcL{76mm}}
 \caption{\textbf{Inventory targets by buying industry.} Days of consumption of purchased goods inputs that each industry holds at the baseline, with the grade of the evidence and the evidence. The notes follow the table; the targets set for one input of an industry are in Table~\ref{tab:stockoverrides}.}
 \label{tab:stocks} \\
 \toprule
@@ -705,17 +705,18 @@ def gate_table(out: Path):
     for t in range(1, len(prof) + 1):
         r = prof.iloc[t - 1]
         cut, resent, blocked = gt.get(t, (0.0, 0.0, 0.0))
-        rows.append(f"{t} & {r.week_start} & {tex(r.status)} & {float(r.kaub_cm):.1f} & {lf(float(r.kaub_cm)):.2f} & {cut / 1e3:.0f} & {resent / 1e3:.0f} & {blocked / 1e3:.0f} \\\\")
+        # 11 Nov 2026 (the author's answer to open point 4): the column of the total (rerouted + blocked) is no longer printed
+        rows.append(f"{t} & {r.week_start} & {tex(r.status)} & {float(r.kaub_cm):.1f} & {lf(float(r.kaub_cm)):.2f} & {resent / 1e3:.0f} & {blocked / 1e3:.0f} \\\\")
     (out / "si_gate.tex").write_text(r"""\begingroup\footnotesize
-\begin{longtable}{rllrrrrr}
+\begin{longtable}{rllrrrr}
 \caption{\textbf{The gate week by week, 2026 reference run.} For each profile week: the status of the gauge, its weekly mean (cm), the loading share of the loading curve, and the tonnage (kt) that the gates of the Rhine chain cut, re-sent on another route and withheld (returned to the supplier's inventory), from the run's log. The cut tonnage is the offered load above capacity; the withheld tonnage is what found no acceptable route. """ + f"The baseline flow at Kaub is {kaub_kt():,.0f} kt a week. " + horizon + r"""}
 \label{tab:gate} \\
 \toprule
-week & start & status & Kaub & loading share & cut & re-sent & withheld \\
+week & start & status & Kaub & loading share & re-sent & withheld \\
 \midrule
 \endfirsthead
 \toprule
-week & start & status & Kaub & loading share & cut & re-sent & withheld \\
+week & start & status & Kaub & loading share & re-sent & withheld \\
 \midrule
 \endhead
 """ + "\n".join(rows) + r"""
@@ -1251,7 +1252,7 @@ def main(overleaf: Path, tag: str = None, lists: str = None, check: bool = False
     print(f"batch: tag {TAG}, lists {LISTS}")
     out = overleaf / "tables"; out.mkdir(exist_ok=True)
     for fn in (rates_table, stocks_table, criticality_table, thresholds_table, loading_table,
-               runs_table, representations_table, channels_table, gate_table, prospective_table, prospective_sectors_table, revision_table, cross_table, rail_weeks_table, ports_table, modal_table):
+               runs_table, representations_table, channels_table, gate_table, prospective_table, prospective_sectors_table, revision_table, cross_table, ports_table, modal_table):   # 11 Nov 2026: rail_weeks_table left the SI (its counts are macros RailBind*)
         if only and not any(o.strip() and o.strip() in fn.__name__ for o in only.split(",")):   # --only rates,stocks: a subset (10 Nov 2026)
             continue
         try:

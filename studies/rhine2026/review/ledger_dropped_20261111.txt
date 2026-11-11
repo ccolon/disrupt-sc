@@ -1,0 +1,20 @@
+Ledger entries dropped on 11 November 2026: their sentence is no longer in the manuscript (Overleaf 41f0e3c and the round of that day).
+
+main.tex: Anthropic Fable 5.1 was used
+main.tex: Three modeling choices were made on the 2018 benchmark
+main.tex: and three choices were made on the 2018 benchmark
+main.tex: missed the end-of-September episode by 15 to 44\,cm
+main.tex: the number of suppliers per input (two options)
+main.tex: the representation of the river (two options), the level of the inventories (four options)
+main.tex: three choices among a few candidates each (the representation of the river
+si.tex: At Kaub this gives 175,900 t a day in total, against 137,000 in the counts: 32,400 for the container vessels, 62,900 for the dry-bulk vessels and 80,600 for the tank barges
+si.tex: The 50 kt ceiling binds (the placed tonnage reaches the ceiling) in 23 of the 23 profile weeks of 2026 and 21 of the 22 of 2018, and in 3 and 0 of the recovery weeks in which bulk is still cut; the 140 kt ceiling in 20 and 17 profile weeks and 0 and 0 recovery weeks
+si.tex: The residuals fall into four kinds, three of which are off the Kaub path
+si.tex: Two stress profiles therefore take the outlook's 25th and 75th percentile for the forecast weeks
+si.tex: and one third of its excess over 1 on the Lower Rhine reaches. This factor of one third is an assumption
+si.tex: and the model's own flow plus 2\,\% elsewhere
+si.tex: are run as two stress paths of the forecast
+si.tex: are three fleets: $K_{r,c}=\max\!\big(s_{r,c}\,T_r,\;1.02\,F_{r,c}\big)$
+si.tex: had put the weeks of 14, 21 and 28 September at 12, 22 and 42\,cm; the observed means were 25, 7 and about $-2$ (the last from two observed days and the outlook of 28 September)
+si.tex: the loss of the 28 economies and the consumption loss of each
+si.tex: the observed means were 25, 7 and about $-2$ (the last from two observed days and the outlook of 28 September)
