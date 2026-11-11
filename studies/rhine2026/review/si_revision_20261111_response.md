@@ -366,3 +366,50 @@ between the change of the profile file and the reading of the new runs, and is n
 3. The rewording for the season as observed, in the main text and in S3, S6 and S9; the issue history out of the
    manuscript and `forecast_manifest.md` out of the repository; the cover letter.
 4. One push, and the record in this file.
+
+## 11. Evening of 11 November: the batch, the checks, what waits
+
+State at 20:37: every run of the reference network had finished except the run with two suppliers per input; 40 of the
+60 runs on the ten further networks had finished; no job had failed. The portal then logged the session off (between
+20:37 and 21:45), so nothing is downloaded yet and the manuscript is unchanged (Overleaf `56a69d8`).
+
+### The two checks, made on the cluster
+
+| Check | Result |
+|---|---|
+| Control: the reference run on the old profile, in the checkout of this batch | Identical to the reference run of 2 November, byte for byte (six output files, same sha256). German loss 1.110 % of a quarter. |
+| The 2018 run at 0.75 times the inventories, repeated on the model code of 2 November | Same results as the run of 6 November at the precision printed: 0.801 % of a quarter. The paper now reads the repeated run. |
+
+So only the river differs between this batch and that of 2 November, and the model fixes made for other studies on 3 and
+6 November do not change the Rhine runs.
+
+### First reading (two runs, read on the cluster; the tables will confirm)
+
+| Run | German loss, % of a quarter | 28 economies, billion USD |
+|---|---|---|
+| Reference network, profile of 30 September (2 November) | 1.110 | 13.1 |
+| Reference network, river as observed | 1.224 (+10 %) | 14.3 |
+| The same with bulk at the sea rates of bulk carriers and tankers | 1.218 (-0.5 % against the line above) | 13.8 |
+
+- The peak stays in the week of 19 October, at 2.19 % of a week's value added (2.10 before).
+- The return to 18 cm in the week of 2 November costs little in the model: the weekly German loss is 1,610 million USD
+  in the week of 19 October, 960 the week after and under 430 from 2 November on.
+- The sea rate moves the German loss by half a percent. It moves the French loss more (0.206 against 0.257 % of a
+  quarter). This is a number of one run and waits for the table.
+
+### Made ready for the reading (committed locally, `27dbdbe`)
+
+- The number and table generators without the stress paths, with the sea-rate run as one row of the sensitivity table,
+  and with the 2022 exchange rate for the one amount in euros.
+- The run list (`additional_data/runs_20261111.csv`, written at the reading) names the job list each run was really
+  launched from. Before, it carried the name of the table, which for some 2018 runs was not a file. The set is 128
+  runs: 129, less the two stress paths, plus the sea-rate run.
+- The Zenodo package script and the reporting notes no longer point to the forecast manifest. The package leaves out
+  the profiles and forecasts of earlier states of the season (a choice for the author to confirm).
+- The folders of the runs on the old profile are moved, not deleted: `C:/dsc_runs/rhine2026_profile0930` (6.8 GB).
+
+### What waits for the portal
+
+The download (about 2.4 GB), the tables, the numbers, the figures, the rewording, the removal of
+`forecast_manifest.md`, the cover letter, the gate and the push. The steps are written as a runbook at the end of
+`cluster/batch_20261111.md`.
