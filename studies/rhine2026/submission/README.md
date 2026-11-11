@@ -65,3 +65,21 @@ Open before upload (the author): acknowledgements, the e-mail, the AI-use wordin
 ORCID, release tag and DOIs to add) and the code release, the November batch on the observed season (daggers and todos
 removed), the reviewer list with contact details, the preprint decision, the APC arrangement. Details and the order
 of operations: `natcomms_requirements_20261107.md`, section 5.
+
+## Status on 12 November 2026 (the runs on the river as observed)
+
+The 2026 runs were repeated on 11 November on the Kaub gauge as observed to 10 November (record:
+`../cluster/batch_20261111.md`; response to the author: `../review/si_revision_20261111_response.md`, sections 10 to 12).
+What changes for the package:
+
+- The manuscript no longer presents a forecast with an issue history. It gives an estimate of the season as observed,
+  made before the production statistics of October to December. `forecast_manifest.md` has left the repository.
+- The headline is 1.22 ± 0.43 % of a quarter of German value added over the eleven networks (it was 1.12 ± 0.41).
+- The paper rests on 128 runs, listed in `../additional_data/runs_20261111.csv` with the job list each was launched from.
+- `cover_letter.md`: the paragraph on the test says what will be done when the indices of October to December are
+  released, without a numeric threshold.
+- `reporting_summary_notes.md`: timing, reproducibility and blinding follow the manuscript.
+- `build_zenodo_package.py`: no pointer to the manifest. The package leaves out the gauge profiles of earlier states
+  of the season (`2026_vintage*.csv`, `2026_q25.csv`, `2026_q75.csv`) and keeps the six-week outlooks of September,
+  which the Discussion cites. The package has not been rebuilt: run the script before the upload.
+- Not redone on the new text: the word counts and the checks of `natcomms_requirements_20261107.md`.

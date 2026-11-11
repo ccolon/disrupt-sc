@@ -81,7 +81,7 @@ def main(out: Path):
         if (prof.status.astype(str) == st).any():
             seen.append(plt.Rectangle((0, 0), 1, 1, color=col, alpha=0.35, linewidth=0, label=lab))
     h1, l1 = a1.get_legend_handles_labels(); h2, l2 = a1r.get_legend_handles_labels()
-    a1.legend(h1 + h2 + seen, l1 + l2 + [p.get_label() for p in seen], frameon=False, fontsize=7, loc="upper center", ncol=3)
+    a1.legend(h1 + h2 + seen, l1 + l2 + [p.get_label() for p in seen], frameon=False, fontsize=7, loc="upper left", bbox_to_anchor=(0.09, 1.02), ncol=2)      # 11 Nov 2026: clear of the rise of mid-November
     a1.set_title("(a) The 2026 low water at Kaub", loc="left", fontsize=9.5, color=INK)
     # (b) the weekly loss, eleven networks
     a2.fill_between(dates, nets.min(axis=1), nets.max(axis=1), color=BLUE, alpha=0.15, linewidth=0, label="range of the eleven networks")
@@ -91,7 +91,7 @@ def main(out: Path):
     a2.text(dates[pk1], mean[pk1] + 0.12, "August episode", color=MUTED, fontsize=8, ha="center")
     a2.text(dates[pk2], mean[pk2] + 0.12, "autumn episode", color=MUTED, fontsize=8, ha="center")
     if last_obs is not None:
-        a2.text(last_obs - pd.Timedelta(days=1.5), float(nets.max().max()) * 0.82, "forecast from here ", color=MUTED, fontsize=7.5, ha="right", va="center", rotation=90)
+        a2.text(last_obs - pd.Timedelta(days=1.5), float(nets.max().max()) * 0.82, "gauge forecast from here ", color=MUTED, fontsize=7.5, ha="right", va="center", rotation=90)
     a2.set_ylabel("German value-added loss\n(% of a week)", color=MUTED, fontsize=8)
     a2.set_ylim(0, float(nets.max().max()) * 1.12)
     a2.legend(frameon=False, fontsize=7, loc="upper left")

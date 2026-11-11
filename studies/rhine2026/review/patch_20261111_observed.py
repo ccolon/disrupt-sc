@@ -192,7 +192,7 @@ changed = 0
 OLD_P = r"howpublished = {\url{https://www.pegelonline.wsv.de/}, REST API, data retrieved 10 and 30 September 2026 (DL-DE->Zero-2.0)}"
 NEW_P = r"howpublished = {\url{https://www.pegelonline.wsv.de/}, REST API and long-term download, data retrieved to 11 November 2026 (DL-DE->Zero-2.0)}"
 OLD_B = r"howpublished = {Vintages of 7 and 28 September 2026, \url{https://vorhersage.bafg.de/6-Wochen-Vorhersage/Rhein-Kaub_6Wochen_Wasserstand_QuansBox.csv}}"
-NEW_B = r"howpublished = {Vintages of 7 and 28 September and of 9 November 2026, \url{https://vorhersage.bafg.de/6-Wochen-Vorhersage/Rhein-Kaub_6Wochen_Wasserstand_QuansBox.csv}}"
+NEW_B = r"howpublished = {Issues of 7 and 28 September and of 9 November 2026, \url{https://vorhersage.bafg.de/6-Wochen-Vorhersage/Rhein-Kaub_6Wochen_Wasserstand_QuansBox.csv}}"
 for old, new in ((OLD_P, NEW_P), (OLD_B, NEW_B)):
     if t.count(old) == 1:
         t = t.replace(old, new); changed += 1

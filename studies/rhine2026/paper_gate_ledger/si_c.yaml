@@ -25,7 +25,6 @@ allowed:
 - {file: si.tex, text: The 30 largest seaports by gross weight of goods handled, why: 'count: the rows of Table S-ports above the line (si_tables.ports_table, top_n = 30)'}
 - {file: si.tex, text: the ports outside the 40 largest where the model routes 50~Mt or more, why: 'design: the selection of the rows below the line (si_tables.ports_table, outside_mt = 50)'}
 - {file: si.tex, text: four kinds of statistic, why: 'count: the four kinds of statistic listed in the sentence'}
-- {file: si.tex, text: the six-week outlook of the same institute of 28 September, why: 'data: horizon of the BfG outlook (bfg2026)'}
 - {file: si.tex, text: 'stays at 0.08 below 5\,cm', why: 'data: floor of the loading table (scenarios/draught_table.csv, row 5 cm)'}
 - {file: si.tex, text: 'Headrooms of 10 and 25\,\% instead of 2 are tested in Section', why: 'design: the two headroom runs of the sensitivity list (2026_r6_bycargo_head10, _head25)'}
 - {file: si.tex, text: runs with a factor of zero and of one gave the same loss, why: 'history: the runs of 15 September 2026 with the factor at 0 and at 1 (2026_fc0910_lr0, 2026_fc0910_lr1; additional_data/compare_runs_batch_20260915.csv)'}
@@ -61,7 +60,6 @@ allowed:
 - {file: si.tex, text: 'with $\beta_0=-0.034$ (standard error 0.012), $\beta_1=-0.024$ (0.014) and $\rho=-0.172$ (0.119)', why: 'evidence: ademmer2023, Table 2, column 1 (the regression of monthly growth of industrial production on the change in low-water days; benchmark_ademmer.py)'}
 - {file: si.tex, text: '$g_t=\beta_0\,\Delta d_t+\beta_1\,\Delta d_{t-1}+\rho\,g_{t-1}$', why: 'convention: indices of the equation'}
 - {file: si.tex, text: '29, 14, 31, 30 and 3 days below 78\,cm from August to December 2018', why: 'data: days below 78 cm in the daily record of the Kaub gauge, August to December 2018 (scenarios/kaub_daily_2018.csv; benchmark_ademmer.py)'}
-- {file: si.tex, text: we build two additional profiles from its 25th and 75th percentiles for the forecast weeks, why: 'data: the 25-75 % quantiles of the BfG outlook of 28 Sep (scenarios/2026_q25.csv, 2026_q75.csv)'}
 - {file: si.tex, text: 'are three distinct fleets: $K_{r,c}=\max\!\big(s_{r,c}\,T_r,\;1.02\,F_{r,c}\big)$', why: 'design: the capacity per cargo class (anchor_rhine_capacities.py --by-cargo --headroom 0.02: the larger of the counted tonnage split by the baseline''s class shares and the baseline flow of the class plus 2 %)'}
 - {file: si.tex, text: 'the factor 1.02 leaves a headroom of 2\,\% over the model''s own flow', why: 'design: the headroom of the anchored capacities (0.02)'}
 - {file: si.tex, text: 'At Kaub, this gives 175,900 t a day in total: 32,400 for container vessels, 62,900 for dry-bulk vessels, and 80,600 for tank barges', why: 'data: scenarios/rhine_capacities_anchored_r6_bycargo.csv, reach rhine_mainz_koblenz (per-class capacities and their sum)'}
@@ -79,7 +77,17 @@ allowed:
 - {file: si.tex, text: At 15 and 60 days instead of 30, why: 'design: --restoration-days 15 and 60 against the 30 days of the reference run'}
 - {file: si.tex, text: 'At 10 and 25\,\% instead of 2', why: 'design: the headroom of the anchored capacities in the two headroom runs'}
 - {file: si.tex, text: With a coping duration of 45 days instead of 90 for the non-storable inputs, why: 'design: inventory_targets_service45.yaml against the 90-day coping duration'}
-- {file: main.tex, text: 'two stress paths (Supplementary Section~S9), not bounds', why: 'count: the two stress paths (25th and 75th percentile of the outlook)'}
+- {file: main.tex, text: 'the weekly mean was 2\,cm in the week of 28 September, and the daily mean $-5$\,cm on 1 October', why: 'data: scenarios/2026.csv (built 11 Nov 2026 by fetch_kaub.py; cluster/batch_20261111.md), week of 28 September 1.8 cm; scenarios/kaub_daily_2026.csv, 1 October -4.8 cm'}
+- {file: main.tex, text: 'It stayed below 25\,cm until late October, rose to 45\,cm in the week of 26 October and fell back to 18\,cm in the first week of November', why: 'data: scenarios/2026.csv (built 11 Nov 2026 by fetch_kaub.py; cluster/batch_20261111.md), weeks of 5, 12 and 19 October 5.8, 13.5 and 21.0 cm; 26 October 45.3; 2 November 18.0'}
+- {file: main.tex, text: 'which have the river above 130\,cm from 16 November', why: 'data: scenarios/2026.csv (built 11 Nov 2026 by fetch_kaub.py; cluster/batch_20261111.md), weeks of 16 and 23 November 133.3 and 134.0 cm (BfG 14-day forecast of 11 November, six-week outlook of 9 November)'}
+- {file: main.tex, text: '(23 weeks from 22 June, followed by 20 weeks of recovery)', why: 'design: scenarios/2026.csv (built 11 Nov 2026 by fetch_kaub.py; cluster/batch_20261111.md) has 23 weeks; run_rhine.py --recovery-weeks 20 (43 weeks in all)'}
+- {file: main.tex, text: for the 20 weeks from 22 June to 8 November 2026, why: 'data: scenarios/2026.csv (built 11 Nov 2026 by fetch_kaub.py; cluster/batch_20261111.md), 20 rows with status observed'}
+- {file: main.tex, text: the daily medians of the 14-day forecast of 11 November, why: 'source: BfG 14-day forecast of Kaub, issue of 11 November 2026 (scenarios/bfg_14day_kaub_20261111.csv)'}
+- {file: main.tex, text: 'These forecasts have the river above 130\,cm from 16 November', why: 'data: scenarios/2026.csv (built 11 Nov 2026 by fetch_kaub.py; cluster/batch_20261111.md), weeks of 16 and 23 November 133.3 and 134.0 cm'}
+- {file: si.tex, text: 'is observed for its first 20 weeks, to 8 November', why: 'data: scenarios/2026.csv (built 11 Nov 2026 by fetch_kaub.py; cluster/batch_20261111.md), 20 rows with status observed'}
+- {file: si.tex, text: the daily medians of the institute's 14-day forecast of 11 November, why: 'source: BfG 14-day forecast of Kaub, issue of 11 November 2026 (scenarios/bfg_14day_kaub_20261111.csv)'}
+- {file: main.tex, text: 'ten weeks below 50\,cm from 7 September, eight of them below 30\,cm', why: 'data: scenarios/2026.csv (built 11 Nov 2026 by fetch_kaub.py; cluster/batch_20261111.md), weeks 12 to 21 (7 September to 9 November): 25.3, 25.2, 6.6, 1.8, 5.8, 13.5, 21.0, 45.3, 18.0, 48.4 cm'}
+- {file: si.tex, text: With dry bulk at 0.0034 and liquid bulk at 0.0051 USD per tonne-kilometer, why: 'design: calibration/sea_rate_by_cargo.yaml (run 2026_r6_bycargo_searate); the values are those of kim2023, Table 5.5, in euros'}
 claims:
 - file: si.tex
   text: The 39 other sectors are downscaled using NUTS3 employment
@@ -136,11 +144,6 @@ claims:
   expr: max(ModalDERoad-73, ModalNLRoad-53, ModalBERoad-78, ModalFRRoad-89, ModalATRoad-69)
   range: [-100, -1]
   why: 'result: the model''s road share below Eurostat''s in each of the five (gaps 8-15 points, the smallest France 81 against 89)'
-- file: si.tex
-  text: Under the ceiling each lever removes a larger share of a smaller loss than under the paper's rule
-  expr: min(CrossStockRail - LevStock, CrossDeepRail - LevDeep, CrossStockTRail - LevStockT, CrossFleetRail - LevFleet)
-  range: [1, 100]
-  why: 'result: every single lever avoids a larger share of the rail-50 base than of the reference base'
 - file: main.tex
   text: The lower ceiling is reached in nearly every week of both events
   expr: min(RailBindFifty/23, RailBindFiftyyy/22)
@@ -176,4 +179,49 @@ claims:
   expr: abs(RevDeepLocalRemoves - LevDeep)
   range: [0, 10]
   why: 'result: the fairway on the Kaub reach alone removes about as much as the offset on every reach'
+- file: main.tex
+  text: a loss that builds from July and nearly triples in the autumn
+  expr: AutumnWaveQ/AugWaveQ
+  range: [2.6, 3.0]
+  why: 'result: the autumn episode (weeks 12-23) over the August one (weeks 7-11), reference network; nearly triples = 2.6-3.0'
+- file: main.tex
+  text: nearly three times as much, because it is longer and deeper
+  expr: AutumnWaveQ/AugWaveQ
+  range: [2.6, 3.0]
+  why: 'result: the autumn episode (weeks 12-23) over the August one (weeks 7-11), reference network; nearly three times = 2.6-3.0'
+- file: main.tex
+  text: and the second costs a fifth more than it would have alone
+  expr: 100*(WaveBafterAQ/WaveBQ-1)
+  range: [17, 23]
+  why: 'result: what the second episode adds after the first against its cost alone, reference network; a fifth = 17-23'
+- file: main.tex
+  text: divides the loss by about three and a half compared with a model that keys every input to its region
+  expr: NoPoolQ/DEUlossQ
+  range: [3.25, 3.75]
+  why: 'result: the run without pooling over the reference run; about three and a half = 3.25-3.75'
+- file: main.tex
+  text: and a fleet built for low water more than a fifth
+  expr: LevFleetAvg
+  range: [20.5, 24.4]
+  why: 'result: fleet lever, mean of the eleven networks; more than a fifth = 20.5-24.4'
+- file: main.tex
+  text: a fleet built for low water more than a fifth (a quarter with its gain
+  expr: LevFleetAvg
+  range: [20.5, 24.4]
+  why: 'result: fleet lever, mean of the eleven networks; more than a fifth = 20.5-24.4'
+- file: si.tex
+  text: Under the ceiling the levers remove the same or a larger share of a smaller loss than under the paper's rule
+  expr: min(CrossStockRail - LevStock, CrossDeepRail - LevDeep, CrossStockTRail - LevStockT, CrossFleetRail - LevFleet)
+  range: [0, 100]
+  why: 'result: % of the loss removed on top of the 50 kt ceiling against the same lever under the paper''s rule, reference network'
+- file: si.tex
+  text: the targeted inventories gain the most and pass the fleet
+  expr: (CrossStockTRail - LevStockT) - max(CrossStockRail - LevStock, CrossDeepRail - LevDeep, CrossFleetRail - LevFleet)
+  range: [1, 100]
+  why: 'result: the gain in share removed is largest for the targeted inventories'
+- file: si.tex
+  text: The smallest effect of the table.
+  expr: abs(RevSeaRateThree/DEUlossQThree - 1)*100
+  range: [0, 3.9]
+  why: 'result: the sea-rate run changes the 2026 loss by less than the next smallest row of the table (loading share below 5 cm at 0.04, 4 %)'
 pending: []

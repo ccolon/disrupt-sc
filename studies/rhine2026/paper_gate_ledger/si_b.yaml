@@ -21,9 +21,6 @@ allowed:
   - file: si.tex
     text: 'at 140 kt the building-materials chain is nearly whole again'
     why: 'design: rail ceiling 140 kt (the share itself is \ShareConstructionRailHundredForty, bound in the same sentence)'
-  - file: si.tex
-    text: 'The outlook''s 25th and 75th percentile paths give'
-    why: 'data: the quantile profiles of the BfG outlook of 28 Sep (scenarios/2026_q25.csv, 2026_q75.csv)'
   # ---- S4 levers under finite rail, memory at 15 days
   - file: si.tex
     text: 'so the two together avoid \CrossStockOverlap\,\% less than the sum'
@@ -172,9 +169,6 @@ allowed:
   - file: si.tex
     text: 'the mean of $|s_m - \hat s_m|$ over the four months'
     why: 'design: scoring months September-December'
-  - file: si.tex
-    text: 'Two comparisons are made on common information'
-    why: 'count: the two comparisons of the protocol'
   - file: si.tex
     text: 'and the fourth-quarter accounts are the closest tests'
     why: 'convention: calendar quarter'

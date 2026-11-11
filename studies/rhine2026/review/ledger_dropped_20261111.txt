@@ -41,3 +41,33 @@ si.tex: the loading curve by about a half up or down
 si.tex: the refill time of inventories and the service rules by up to a third
 si.tex: two suppliers per input down by nearly a half
 si.tex: with its shortfall raised by 15\,\% the industrial shortfall is \TableLowInt{} percent-months, lowered by 15\,\%
+
+# dropped by ledger_20261111_observed.py (the rewording for the season as observed)
+main.tex: two observed days at 2\,cm, and $-3$\,cm for the rest of the week in the six-week outlook
+main.tex: kept Kaub below 60\,cm through the end of October
+main.tex: fourteen weeks observed, one partly, five from the outlook, and three assumed
+main.tex: the autumn episode, seven weeks at or below 36\,cm from 7 September
+main.tex: the six-week outlook of 28 September and the assumed recovery shaded
+main.tex: Five limitations bound the reading
+main.tex: outlook's 25th- and 75th-percentile paths
+main.tex: 25th- and 75th-percentile stress paths give
+main.tex: (23 weeks, flagged in Fig.~\ref{fig:event}, followed by 20 weeks of recovery)
+main.tex: (14 observations), two observed days and the outlook's median for the week of 28 September
+main.tex: the ensemble median of the six-week outlook
+main.tex: assumed values of 75, 90 and 105\,cm for the three last weeks
+main.tex: and the six-week outlooks from the Federal Institute of Hydrology
+main.tex: spread evenly would cost two fifths less
+main.tex: cost a sixth more in sequence than apart
+main.tex: and a fleet built for low water a fifth
+main.tex: a loss that builds from July and more than doubles in the autumn
+main.tex: costs \AutumnWaveQ\,\%, more than twice as much
+main.tex: about two fifths less than the season as it happened
+main.tex: and the second costs a quarter more than it would have alone
+main.tex: divides the loss by three compared with a model that keys every input to its region
+main.tex: a fleet built for low water a fifth
+si.tex: The outlook's 25th and 75th percentile paths give
+si.tex: Two comparisons are made on common information
+si.tex: the six-week outlook of the same institute of 28 September
+si.tex: we build two additional profiles from its 25th and 75th percentiles for the forecast weeks
+main.tex: two stress paths (Supplementary Section~S9), not bounds
+si.tex: Under the ceiling each lever removes a larger share of a smaller loss than under the paper's rule

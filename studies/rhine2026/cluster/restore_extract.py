@@ -53,7 +53,7 @@ def main() -> int:
     written = same = skipped = 0
     nbytes = 0
     left_out, differ, seen_runs = [], [], set()
-    with tarfile.open(arc, "r:gz") as t:
+    with tarfile.open(arc, "r:*") as t:           # 11 Nov 2026: gzip or xz (the lean package of that evening is a .txz)
         for m in t:
             p = PurePosixPath(m.name)
             if m.isdir():

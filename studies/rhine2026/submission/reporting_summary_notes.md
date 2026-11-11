@@ -65,8 +65,9 @@ core) and sufficient for the spread to be reported as mean, standard deviation a
 2026 (dates in Supplementary Section S1 and in the provenance files next to each data set); no field data.
 
 **Timing.** Simulated weeks: 22 June to 23 November 2026 plus 20 recovery weeks; 16 July to 16 December 2018 plus 20
-recovery weeks. The 2026 forecast was issued on 7 October 2026 on hydrological information to 30 September; the
-submitted version uses the observed season [to be stated after the November batch].
+recovery weeks. The model and its parameters were fixed on 2 November 2026. The 2026 runs of 11 November use the Kaub
+gauge as observed to 10 November 2026; the last three weeks of the profile rest on the forecasts of the Federal
+Institute of Hydrology of 9 and 11 November and are replaced by the observed record at revision.
 
 **Data exclusions.** None of the economic data; in the transport network, edges outside the EU-27 and Switzerland
 are kept only as sea lanes and gateway connectors (Supplementary Section S1). Pre-established.
@@ -77,11 +78,12 @@ are kept only as sea lanes and gateway connectors (Supplementary Section S1). Pr
 run of the study and not selected on the results (Methods, "Economic layer").
 
 **Reproducibility.** All runs are deterministic given the seed and the recorded inputs (`run_fingerprint.json` in
-every run folder); the paper's 129 runs are listed in Supplementary Table S[n] with their job lists; regeneration of
+every run folder); the paper's 128 runs are listed in `additional_data/runs_20261111.csv` with their job lists; regeneration of
 every number and table of the manuscript is scripted (`make_numbers.py`, `si_tables.py`, `paper_gate.py --regen`).
 
-**Blinding.** Not applicable (no human raters). The prospective test is pre-specified: the scoring protocol and the
-forecast were fixed before the outcome statistics were published (Methods, "Prospective test").
+**Blinding.** Not applicable (no human raters). The test on the production index is pre-specified: the scoring protocol
+was fixed on 9 October 2026 and the model on 2 November, before the indices of October to December 2026 were
+published; the index of September, published on 6 November, entered no choice (Methods, "Prospective test").
 
 **Did the study involve field work?** No.
 

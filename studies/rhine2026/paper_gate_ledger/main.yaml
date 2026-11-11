@@ -122,23 +122,11 @@ allowed:
     text: 'After the August 2026 record (11\,cm in the week of 10 August) the river recovered to 67\,cm'
     why: 'data: 2026 profile of 30 Sep (scenarios/2026.csv: week of 10 Aug 11.0 cm, week of 24 Aug 67.0 cm)'
   - file: main.tex
-    text: 'two observed days at 2\,cm, and $-3$\,cm for the rest of the week in the six-week outlook'
-    why: 'data: 2026 profile of 30 Sep (scenarios/2026.csv, week of 28 Sep: two observed days at 2 cm, five at -3 cm from the BfG outlook of 28 Sep, bfg2026)'
-  - file: main.tex
-    text: 'kept Kaub below 60\,cm through the end of October'
-    why: 'data: BfG outlook of 28 Sep in the 2026 profile (scenarios/2026.csv: 6, 24, 36, 43 cm in October)'
-  - file: main.tex
-    text: 'fourteen weeks observed, one partly, five from the outlook, and three assumed'
-    why: 'data: status column of scenarios/2026.csv (14 observed, 1 observed+forecast, 5 forecast, 3 assumption)'
-  - file: main.tex
     text: 'the loss cumulated over the 43 weeks of the run divided by thirteen weeks'
     why: 'design: run length 43 weeks (23 profile + 20 recovery); convention: a quarter = 13 weeks'
   - file: main.tex
     text: 'a size, not the growth of any quarter'
     why: 'convention: calendar quarter'
-  - file: main.tex
-    text: 'the autumn episode, seven weeks at or below 36\,cm from 7 September'
-    why: 'data: 2026 profile of 30 Sep (scenarios/2026.csv: weeks of 7 Sep - 19 Oct at 25, 25, 7, -2, 6, 24, 36 cm)'
   - file: main.tex
     text: 'industrial loss over the five weeks of the August episode'
     why: 'convention: the August trough = run weeks 7-11 (make_numbers.py, AugWaveIndQ)'
@@ -148,9 +136,6 @@ allowed:
   - file: main.tex
     text: '33\,\% of the surveyed Rhine-corridor firms reported production restrictions and 6\,\% a stop'
     why: 'evidence: dihk2026 (survey of 29 July - 4 August)'
-  - file: main.tex
-    text: 'the six-week outlook of 28 September and the assumed recovery shaded'
-    why: 'data: the BfG six-week outlook of 28 Sep used for weeks 15-20 (bfg2026, scenarios/2026.csv)'
   - file: main.tex
     text: 'on the same calendar; the two episodes'
     why: 'data: the two episodes of the 2026 profile (scenarios/2026.csv)'
@@ -300,9 +285,6 @@ allowed:
     text: 'The nine low-water tankers built by the chemical companies since 2018 and the seven more planned'
     why: 'evidence: wiwo2026'
   - file: main.tex
-    text: 'Five limitations bound the reading'
-    why: 'count: the paper describing itself'
-  - file: main.tex
     text: 'the operators'' counts of two events (Supplementary Table'
     why: 'data: sources of the loading table (2018 and 2026 counts, SI tab:loading)'
   - file: main.tex
@@ -311,12 +293,6 @@ allowed:
   - file: main.tex
     text: 'the spread across its eleven versions'
     why: 'design: number of networks'
-  - file: main.tex
-    text: 'outlook''s 25th- and 75th-percentile paths'
-    why: 'convention: quantiles of the BfG ENS outlook (q25, q75 runs; l. 182 and 223)'
-  - file: main.tex
-    text: '25th- and 75th-percentile stress paths give'
-    why: 'design: the two quantile paths (q25, q75)'
   # ---------------------------------------------------------------- methods: model (l. 191-213)
   - file: main.tex
     text: 'with the rest of the world represented by 12 external partners'
@@ -395,18 +371,6 @@ allowed:
     why: 'data: loading table (scenarios/draught_table.csv: 0.19 at 11 cm, floor 0.08 below 5 cm)'
   # ---------------------------------------------------------------- methods: scenarios (l. 223-225)
   - file: main.tex
-    text: '(23 weeks, flagged in Fig.~\ref{fig:event}, followed by 20 weeks of recovery)'
-    why: 'data: length of scenarios/2026.csv (23 weeks) + design: 20 recovery weeks'
-  - file: main.tex
-    text: '(14 observations), two observed days and the outlook''s median for the week of 28 September'
-    why: 'data: status column of scenarios/2026.csv'
-  - file: main.tex
-    text: 'the ensemble median of the six-week outlook'
-    why: 'data: BfG outlook of 28 Sep (bfg2026, scenarios/bfg_6week_kaub_20260930.csv)'
-  - file: main.tex
-    text: 'assumed values of 75, 90 and 105\,cm for the three last weeks'
-    why: 'data: assumed recovery weeks of scenarios/2026.csv'
-  - file: main.tex
     text: 'from 16 July to 16 December 2018 (22 weeks) with twenty recovery weeks'
     why: 'data: scenarios/2018.csv (22 weeks) + design: 20 recovery weeks'
   # ---------------------------------------------------------------- methods: accounting, calibration (l. 227-233)
@@ -478,9 +442,6 @@ allowed:
     text: 'and of the two loading curves'
     why: 'design: tablelow/tablehigh'
   # ---------------------------------------------------------------- data availability, layout (l. 255-266)
-  - file: main.tex
-    text: 'and the six-week outlooks from the Federal Institute of Hydrology'
-    why: 'evidence: bfg2026 (horizon of the outlook)'
   - file: main.tex
     text: 'the transport network is the TEN-T network of the European Commission'
     why: 'convention: TEN-T is the network''s name (the gate reads TEN as the number word ten)'
@@ -625,21 +586,6 @@ claims:
     range: [66, 75]
     why: 'result: % of the 2018 loss removed by inventories x2; almost three quarters = 66-75'
   - file: main.tex
-    text: 'spread evenly would cost two fifths less'
-    expr: '100*(1-FlatQ/DEUlossQ)'
-    range: [36, 44]
-    why: 'result: flat profile vs the season; two fifths = 36-44'
-  - file: main.tex
-    text: 'cost a sixth more in sequence than apart'
-    expr: 'WaveInterShare'
-    range: [15, 18.5]
-    why: 'result: interaction without a gap, % of the sum; a sixth = 15-18.5'
-  - file: main.tex
-    text: 'and a fleet built for low water a fifth'
-    expr: 'LevFleetAvg'
-    range: [17, 23]
-    why: 'result: fleet lever, mean of the eleven networks; a fifth = 17-23'
-  - file: main.tex
     text: 'what the railway can take on at short notice removes a quarter to more than a half'
     expr: 'RevRailFiftyAbs'
     range: [22, 28]
@@ -654,21 +600,6 @@ claims:
     expr: 'RecordInt - TableLowInt'
     range: [0.01, 100]
     why: 'result: the larger of the two loading-curve variants (TableLowInt) is below the record''s center'
-  - file: main.tex
-    text: 'a loss that builds from July and more than doubles in the autumn'
-    expr: 'AutumnWaveQ/AugWaveQ'
-    range: [2.0, 2.8]
-    why: 'result: autumn episode over August episode; more than doubles = 2.0-2.8'
-  - file: main.tex
-    text: 'costs \AutumnWaveQ\,\%, more than twice as much'
-    expr: 'AutumnWaveQ/AugWaveQ'
-    range: [2.0, 2.8]
-    why: 'result: autumn over August; more than twice = 2.0-2.8'
-  - file: main.tex
-    text: 'about two fifths less than the season as it happened'
-    expr: '100*(1-FlatQ/DEUlossQ)'
-    range: [35, 45]
-    why: 'result: flat profile vs the season; about two fifths = 35-45'
   - file: main.tex
     text: 'are less than a third of the deliveries that German buyers miss'
     expr: 'TransportWithheldShare'
@@ -695,11 +626,6 @@ claims:
     range: [2.3, 2.7]
     why: 'result: 2018 loss over its industrial part; 2.3-2.7'
   - file: main.tex
-    text: 'and the second costs a quarter more than it would have alone'
-    expr: '100*(WaveBafterAQ/WaveBQ-1)'
-    range: [22, 28]
-    why: 'result: second episode after the first vs alone; a quarter = 22-28'
-  - file: main.tex
     text: 'and the building-materials chain a sixth'
     expr: 'ShareConstruction+ShareCement'
     range: [15, 18.5]
@@ -709,16 +635,6 @@ claims:
     expr: '100*(100-NetShare)/(100-PerishableShare)'
     range: [20.5, 25]
     why: 'result: backlog worked off; nearly a quarter = 20.5-25'
-  - file: main.tex
-    text: 'divides the loss by three compared with a model that keys every input to its region'
-    expr: 'NoPoolQ/DEUlossQ'
-    range: [2.7, 3.3]
-    why: 'result: no pooling over the base; by three = 2.7-3.3'
-  - file: main.tex
-    text: 'a fleet built for low water a fifth'
-    expr: 'LevFleetAvg'
-    range: [17, 23]
-    why: 'result: fleet lever, mean of the eleven networks; a fifth = 17-23'
   - file: main.tex
     text: '(a quarter with its gain extended to 100\,cm)'
     expr: 'RevFleetWideRemoves'

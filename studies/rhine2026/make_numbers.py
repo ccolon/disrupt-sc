@@ -87,7 +87,9 @@ def main(tag: str, overleaf: Path, date_list: str):
     put("AugWaveIndQ", r2(ind[ind.time_step.between(7, 11)].loss.sum() / q26), "industry part of the August trough")
     # 11 Nov 2026: the 2022 average rate of the ECB, 1.053 USD per EUR, as in the note of the transport-cost table (was 0.92 EUR per USD)
     put("AugWaveEurBn", r1(ind[ind.time_step.between(7, 11)].loss.sum() / 1e3 / 1.053), "EUR bn, industry part of the August trough (1.053 USD per EUR, 2022 average)")
-    put("AutumnWaveQ", r2(w.loc[12:19].sum() / q26), "autumn trough (weeks 12-19, 7 September - 1 November)")
+    # 11 Nov 2026: on the river as observed the autumn low water lasts to the week of 9 November and its losses to the end of the
+    # profile, so the episode is counted to week 23 (it was weeks 12-19 on the profile of 30 September)
+    put("AutumnWaveQ", r2(w.loc[12:23].sum() / q26), "autumn episode (weeks 12-23, 7 September - 29 November)")
     e26 = [p.loc[f"2026_{tag}_seed{s}_base", "DEU_%quarter"] for s in range(1, 11)] + [b["DEU_%quarter"]]
     put("EnsMean", r2(np.mean(e26)), "ensemble of 11 supply-chain draws, mean"); put("EnsSd", r2(np.std(e26, ddof=1))); put("EnsMin", r2(min(e26))); put("EnsMax", r2(max(e26)))
     put("EnsMeanBn", r1(np.mean(e26) * q26 / 1e3), "bn USD, the ensemble mean of the German loss (22 Oct 2026: the headline is the mean over the eleven networks)")
@@ -199,6 +201,7 @@ def main(tag: str, overleaf: Path, date_list: str):
     put("WaveInterFour", pct(100 * (gaps[4] - A - Bw) / (A + Bw))); put("WaveInterEight", f"{100 * (gaps[8] - A - Bw) / (A + Bw):.1f}", "signed")
     flat = m.loc[f"{wv}_flat", "DEU_%quarter"]
     put("FlatQ", r2(flat), "the same capacity shortfall spread evenly"); put("TroughPremium", pct(100 * (base / flat - 1)), "% by which the season exceeds the flat profile")
+    put("FlatLess", pct(100 * (1 - flat / base)), "% by which the flat profile costs less than the season (11 Nov 2026: printed instead of a fraction word)")
     # ---- levers
     for lev in LEVERS:
         ref = 100 * (1 - m.loc[f"2026_{tag}_{lev}", "DEU_cum_mUSD"] / b.DEU_cum_mUSD)
@@ -282,6 +285,10 @@ def main(tag: str, overleaf: Path, date_list: str):
                          ("RevSeaRate", f"2026_{REV}_searate")):                                          # 11 Nov 2026: bulk at the sea rates of bulk carriers and tankers
             put(mac, r2(r.loc[run, "DEU_%quarter"]), f"{run}: {rel(run)} % against the base"); put(mac + "Rel", rel(run).replace("-", "$-$"))
             put(mac + "Abs", rel(run).lstrip("-"), "the same change without its sign")
+        # 11 Nov 2026: the sea-rate run changes the loss by half a percent, which the two-decimal macros print as no change
+        sea_, ref_ = r.loc[f"2026_{REV}_searate", "DEU_%quarter"], m.loc[B, "DEU_%quarter"]
+        put("RevSeaRateThree", f"{sea_:.3f}", "the sea-rate run, % of a quarter, three decimals"); put("DEUlossQThree", f"{ref_:.3f}", "the reference run, three decimals")
+        put("RevSeaRateRelOne", f"{100 * (sea_ / ref_ - 1):+.1f}".replace("-", "$-$").replace("+", "$+$"), "% against the reference run, one decimal")
         for mac, run in (("RevRailFiftyyy", f"2018_{REV}_rail50"), ("RevRailHundredFortyyy", f"2018_{REV}_rail140")):
             put(mac, r2(r.loc[run, "DEU_%quarter"]), f"{run}: {rel(run, B18)} % against the 2018 base"); put(mac + "Rel", rel(run, B18).replace("-", "$-$"))
             put(mac + "Abs", rel(run, B18).lstrip("-"), "the same change without its sign")
@@ -293,16 +300,12 @@ def main(tag: str, overleaf: Path, date_list: str):
         put("ReliefBnFifty", r1(rsum5[rsum5.cargo_type.isin(["dry_bulk", "liquid_bulk"])].relief_usd.sum() / 1e3), "bn USD delivered through the 50 kt ceiling over the run")
         put("ReliefBnHundredForty", r1(rsum[rsum.cargo_type.isin(["dry_bulk", "liquid_bulk"])].relief_usd.sum() / 1e3))
     # ---- constants: the price-with-closures representation (S6) and the model size
-    for mac, val, com in (("DEUlossQP", "0.54", "2026 (vintage of 10 Sep), stocks x2, priced river with closures"), ("DEUlossQyyP", "0.32", "2018, stocks x2"),
+    for mac, val, com in (("DEUlossQyyP", "0.32", "2018, stocks x2"),      # 11 Nov 2026: DEUlossQP (a run on the profile of 10 September, unused) is gone
                           ("PriceIntP", "2.0", "2018 industrial shortfall, stocks x2, earlier rule"), ("PriceIntRawP", "5.0", "stocks x1, earlier rule"), ("LevFleetP", "95", "fleet lever in the price representation"),
                           ("NFirms", "12{,}719", ""), ("NLinks", "1.38", "million commercial links"), ("NRoutable", "786{,}608", ""), ("NEdges", "10{,}139", ""), ("NNodes", "6{,}767", ""), ("NRegions", "28", ""), ("NSectors", "50", "")):
         put(mac, val, com)
     # ---- the review of 8 October 2026 (review_checks_20261008.py): forecast vintage, lever ordering, index bridge, anatomy
-    sep = AD / "compare_runs_batch_jobs_20260930_main.csv"
-    if sep.exists():
-        ts = table(sep)
-        if "2026_s30_base" in ts.index:
-            put("ForecastSepQ", r2(ts.loc["2026_s30_base", "DEU_%quarter"]), "the forecast as first issued on 30 Sep 2026, on the loading table of September (2026_s30_base)")
+    # 11 Nov 2026: the macro of the forecast as first issued (ForecastSepQ) is gone with the issue history
     av = pd.DataFrame({k: [100 * (1 - p.loc[f"2026_{tag}_seed{s}_{k}", "DEU_cum_mUSD"] / p.loc[f"2026_{tag}_seed{s}_base", "DEU_cum_mUSD"]) for s in range(1, 11)] for k in LEVERS})
     single = av[["stock7", "deep20", "fleet", "stock7t"]]
     put("StocksBeatFairwayDraws", WORDS[int((av.stock7 > av.deep20).sum())], "of the ten further draws in which stocks +7 days avoids more than the fairway")
@@ -758,9 +761,8 @@ def main(tag: str, overleaf: Path, date_list: str):
     _missing_inputs()
     lines = [f"% Key numbers of the paper, generated by studies/rhine2026/make_numbers.py from the batch of {date_list} (run names {tag}): the river as a",
              "% quantity constraint with the voyage surcharge, stocks at their evidence values, crude and gas by pipeline, construction a",
-             "% non-storable input, the loading table rebuilt on its ledger (6 Oct 2026); the 2026 profile of 30 Sep (observations to 29 Sep,",
-             "% the BfG outlook of 28 Sep, 23 weeks). Do not edit by hand: rerun the script after a batch.",
-             "% \\finalbatch{} in the text marks the 2026 numbers of the forecast that the revision after the event replaces."]
+             "% non-storable input, the loading table rebuilt on its ledger (6 Oct 2026); the 2026 profile is scenarios/2026.csv (from the batch",
+             "% of 20261111: the river as observed to 10 Nov 2026, 23 weeks). Do not edit by hand: rerun the script after a batch."]
     for k, (v, c) in M.items():
         lines.append(f"\\newcommand{{\\{k}}}{{{v}}}" + (f"  % {c}" if c else ""))
     (overleaf / "numbers.tex").write_text("\n".join(lines) + "\n", encoding="utf-8")

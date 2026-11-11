@@ -964,7 +964,8 @@ def revision_table(out: Path):
         if run is None or run not in t.index:
             return "--", ""
         v = t.loc[run, q]
-        return f"{v:.2f}", f"{100 * (v / base - 1):+.0f}".replace("+", "$+$").replace("-", "$-$")
+        chg = 100 * (v / base - 1)                       # 11 Nov 2026: a change below 1 % keeps one decimal (the sea-rate run)
+        return f"{v:.2f}", (f"{chg:+.0f}" if abs(chg) >= 0.95 else f"{chg:+.1f}").replace("+", "$+$").replace("-", "$-$")
 
     def row(par, ref, alt, k26=None, k18=None):
         a_, ca = loss(f"2026_{REV}_{k26}" if k26 else None, b26)
@@ -987,7 +988,7 @@ def revision_table(out: Path):
             row("", "", "lowered by 15" + pc, "tablehigh", "tablehigh"),
             row("loading share below 5" + BS + ",cm", "0.08", "0.04", "floor04"),
             row("", "", "0.16", "floor16"),
-            row("sea rate of bulk cargo (USD per tkm)", "0.0015, as containers", "0.0034 dry, 0.0051 liquid", "searate"),
+            row("sea rate of bulk cargo, USD per tonne-kilometer", "0.0015", "0.0034 for dry bulk, 0.0051 for liquid bulk", "searate"),
             row("mechanisms", "capacity limit and surcharge", "capacity limit alone", "gateonly"),
             row("", "", "surcharge alone", "surchargeonly"),
             BS + "midrule", head("Firms and inputs"),

@@ -24,7 +24,7 @@ HERE = Path(__file__).resolve().parents[1]
 AD = HERE / "additional_data"
 INK, MUTED, GRID = "#1f2328", "#6e7781", "#e6e8eb"
 BLUE, ORANGE = "#2f6fdb", "#e0842a"
-SHADE = {"observed+forecast": ("#f5d58a", "partly observed"), "forecast": ("#f2b56b", "BfG six-week outlook"), "assumption": ("#d9d9d9", "assumed recovery")}
+SHADE = {"observed+forecast": ("#f5d58a", "partly observed"), "forecast": ("#f2b56b", "BfG forecasts"), "assumption": ("#d9d9d9", "assumed recovery")}
 
 
 def weekly_block(txt_path: Path) -> pd.DataFrame:
@@ -74,7 +74,7 @@ def main(out: Path):
     if len(obs):
         last_obs = pd.Timestamp(obs.week_start.max()) + pd.Timedelta(days=3.5)
         ax.axvline(last_obs, color=MUTED, linewidth=0.9)
-        ax.text(last_obs, max(ref.max(), band.max().max()) * 0.30, " forecast from here", color=MUTED, fontsize=7.5, ha="left", va="center", rotation=90)
+        ax.text(last_obs, max(ref.max(), band.max().max()) * 0.30, " gauge forecast from here", color=MUTED, fontsize=7.5, ha="left", va="center", rotation=90)
     pk1, pk2 = ref.loc[1:10].idxmax(), ref.loc[11:].idxmax()
     ax.text(dates[pk1], ref[pk1] + 0.12, "August episode", color=MUTED, fontsize=8, ha="center")
     ax.text(dates[pk2], ref[pk2] + 0.12, "autumn episode", color=MUTED, fontsize=8, ha="center")

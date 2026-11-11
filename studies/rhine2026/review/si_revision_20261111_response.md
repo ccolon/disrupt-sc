@@ -413,3 +413,107 @@ So only the river differs between this batch and that of 2 November, and the mod
 The download (about 2.4 GB), the tables, the numbers, the figures, the rewording, the removal of
 `forecast_manifest.md`, the cover letter, the gate and the push. The steps are written as a runbook at the end of
 `cluster/batch_20261111.md`.
+
+## 12. Night of 11 to 12 November: the batch read, the manuscript on the river as observed
+
+The portal was back at 22:20. Every run had finished (106 of 106, none failed). The results were downloaded with their
+checksums verified, and the numbers, tables, figures and text follow them. One push to Overleaf; the record of the
+reading is in `cluster/batch_20261111.md`.
+
+### The checks
+
+| Check | Result |
+|---|---|
+| Control: the reference run on the old profile, in the checkout of this batch | Identical to the run of 2 November: every output file byte for byte, every column and week of the table. |
+| The 2018 run at 0.75 times the inventories, repeated on the model code of 2 November | Every loss equal to the run of 6 November. The monthly table of the eight 2018 runs is unchanged. |
+| Months before the change of profile | July, August and September of the monthly path unchanged (0.1, 1.5, 0.9 %). |
+
+### The numbers
+
+German loss in % of a quarter of value added. "Before" is the batch of 2 November on the profile of 30 September.
+
+| | Before | Now |
+|---|---|---|
+| Eleven networks: mean ± standard deviation (range) | 1.12 ± 0.41 (0.38 to 1.76) | 1.22 ± 0.43 (0.43 to 1.88) |
+| The same in billion USD; the 28 economies | 10.7; 12.4 | 11.6; 13.5 |
+| Reference network | 1.11 | 1.22 |
+| Peak week, reference network | 2.1 % of a week, week of 19 October | 2.2 %, week of 19 October |
+| Monthly industrial shortfall, July to December (%) | 0.1, 1.5, 0.9, 2.1, -0.6, -1.1 | 0.1, 1.5, 0.9, 2.2, 0.0, -1.2 |
+| Loss avoided, mean of eleven networks: inventories, fairway, fleet, targeted inventories, all three | 42, 43, 21, 27, 84 % | 40, 42, 23, 25, 83 % |
+| The two episodes alone; in sequence against their sum | 0.36 and 0.60; +16 % | 0.36 and 0.73; +12 % |
+| The same shortfall spread evenly | 41 % less | 45 % less |
+| Without pooling | 3.4, three times the reference run | 4.2, 3.4 times |
+| No rail for bulk; rail ceiling of 50 and 140 kt | +61 %; -25, -57 % | +57 %; -25, -56 % |
+| Loading curve, shortfall raised and lowered by 15 % | +53, -45 % | +52, -47 % |
+| Bulk at the sea rates of bulk carriers and tankers (open point 3) | not run | 1.218 against 1.224: -0.5 % |
+
+The loss is a tenth higher and every relative result holds within four points, pooling apart. The order of the levers
+and of the sensitivity list is unchanged. The second dip of the river, 18 cm in the week of 2 November, adds a small
+bump in mid-November and no new peak.
+
+### What changed in the text
+
+Applied by `review/patch_20261111_observed.py` (written before the runs were read) and `review/patch_20261111_results.py`
+(after):
+
+- **Abstract.** "in the summer and autumn of 2026"; "For the 2026 season as observed, it gives, ahead of the production
+  statistics of October to December, a loss of". 197 words.
+- **Introduction.** The model "is then run on the 2026 season as observed, before the production statistics of October
+  to December were published". The third result gives the two numbers (45 % less; 12 % more in sequence) where it had
+  "two fifths" and "a sixth". The fleet removes "more than a fifth" (23 %).
+- **Results, the 2026 event.** Heading: "a loss that builds from July and nearly triples in the autumn". First paragraph
+  on the observed river. The autumn episode is "ten weeks below 50 cm from 7 September, eight of them below 30 cm" and
+  costs "nearly three times as much" as August. Its weeks now run to the end of the profile (they stopped on 1 November).
+- **Discussion.** Four limitations. The second episode costs "a fifth more than it would have alone" (it was a quarter).
+  Pooling divides the loss "by about three and a half". The sentence on the September outlooks now cites them.
+- **Methods.** Scenarios and Prospective test rewritten: no issue history; the model fixed on 2 November; the September
+  index released before the runs and not used; October to December released after submission.
+- **Table 1.** One measure; the row of the earlier measure is gone.
+- **SI.** S3 Gauges; S6 protocol and monthly path (November is at the baseline on the reference network, it was a rebound;
+  chemicals are at their baseline in December); S7 status of the weeks; S9 without the item and the two rows on the gauge
+  of the forecast weeks, with one item and one row for the sea rate; the cell of the sea rate in the table of the
+  transport costs.
+- **Figures.** Eight redrawn. The legend of Fig. 4a is moved clear of the rise of mid-November; the shaded weeks are
+  labelled "partly observed" and "BfG forecasts".
+
+### Found on the way
+
+1. **A sentence that was already wrong.** S8 said that the runs without rail keep "the same peak weeks". They do not,
+   and did not on 2 November (2026: week 17 against 18; 2018: week 21 against 16). The clause is removed.
+2. **The loss map was two batches old.** `F5_loss_map` (Fig. 3a) had not been redrawn since 22 October. It is now drawn
+   from the reference run of this batch.
+3. **The levers under a rail ceiling.** "Each lever removes a larger share ... in the same order" no longer holds: the
+   fairway removes the same share (48 %), and the targeted inventories pass the fleet. The sentence says so.
+4. **The run list named tables, not job lists.** `additional_data/runs_20261111.csv` now gives, for each of the 128 runs,
+   the job list it was launched from.
+
+### Decisions of mine that the author may reverse
+
+1. **The deposit at submission is now in the manuscript.** Methods and Data availability say that the monthly path, the
+   gauge profile and the run tables are deposited on Zenodo on the day of submission, with a red note for the DOI. The
+   plan and the cover letter said it; the manuscript said "upon acceptance" for everything. If there is no deposit at
+   submission, the sentence and the clause of the cover letter go.
+2. **Numbers in place of fraction words** in the Introduction (45 %, 12 %), because both moved out of their words.
+3. **The Zenodo package** leaves out the two earlier profiles and the two stress paths, and keeps the six-week outlooks
+   of September, which the Discussion cites.
+4. **The loss of the autumn episode** is counted to the end of the profile (weeks 12 to 23), since the low water now
+   lasts to mid-November.
+
+### Checks
+
+`paper_gate.py --regen`: PASS. The 519 macros and the 16 tables regenerate from the runs and equal the manuscript; the
+ledger, the bare numbers and the compile pass (63 pages). Report: `review/paper_gate_20261112_observed.md`. Warnings as
+before: 40 number words, 14 uncited bibliography entries, 194 unused macros. Word counts: abstract 197, main text 5,448
+(guide 5,000), Methods 3,092 (guide 3,000).
+
+### Left for the author
+
+1. Read the reworded passages, above all the abstract and the first paragraph of the 2026 Results.
+2. The Zenodo deposit at submission and its DOI (two red notes in `main.tex`, one for the data, one for the code).
+3. "Calibrated on the 2018 low water" in the abstract: still the author's call ("Tested on" was suggested).
+4. The cover letter (`submission/cover_letter.md`): the paragraph on the test is rewritten without a threshold.
+5. Housekeeping, each needing a yes: the old 2026 runs kept locally (`C:/dsc_runs/rhine2026_profile0930`, 6.8 GB), the
+   archives of this batch once no longer needed (2.3 GB locally), and on the cluster the 2026 runs of 2 November and
+   a 0.7 GB package I built and did not use.
+6. At revision: replace the last three weeks of the profile by the observed record and rerun the reference run; score
+   the indices of October to December as they are released.

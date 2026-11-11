@@ -90,7 +90,7 @@ CONTENTS = [
     ("additional_data", "repo", "studies/rhine2026/additional_data/inventory_targets_construction_nonstorable.yaml", "the variant that treats construction as non-storable (the paper's setting)", "own"),
     ("additional_data", "repo", "studies/rhine2026/additional_data/wiod_correspondence.csv", "the sector correspondence used to map the criticality survey onto the ICIO sectors", "own"),
     ("scenarios", "repo", "studies/rhine2026/scenarios/*.csv",
-     "the weekly gauge profiles (2018, 2026, the wave experiments), the daily Kaub records, the two BfG forecasts behind the last three weeks of the 2026 profile, the loading tables (draught_table*.csv with their ledger) and the Rhine capacities per cargo class", "scenarios"),
+     "the weekly gauge profiles (2018, 2026, the wave experiments), the daily Kaub records, the BfG forecasts (the six-week outlooks of 7 and 28 September and of 9 November 2026, the 14-day forecast of 11 November), the loading tables (draught_table*.csv with their ledger) and the Rhine capacities per cargo class", "scenarios"),
 ]
 
 SOURCES = {
@@ -114,13 +114,11 @@ SOURCES = {
 }
 
 # 11 Nov 2026: the 2026 profile is the river as observed; the profiles and forecasts of earlier states of the season stay out
-SCENARIOS_LEFT_OUT = {"2026_vintage0910.csv", "2026_vintage0930.csv", "2026_q25.csv", "2026_q75.csv",
-                      "bfg_6week_kaub_20260907.csv", "bfg_6week_kaub_20260907_classes.csv", "bfg_6week_kaub_20260930.csv",
-                      "bfg_14day_kaub_20260909.csv"}
+SCENARIOS_LEFT_OUT = {"2026_vintage0910.csv", "2026_vintage0930.csv", "2026_q25.csv", "2026_q75.csv", "bfg_14day_kaub_20260909.csv"}
 
 EXCLUDED_DEFAULT = [
-    ("scenarios/2026_vintage*.csv, 2026_q25.csv, 2026_q75.csv, bfg_6week_kaub_20260907*.csv, bfg_6week_kaub_20260930.csv, bfg_14day_kaub_20260909.csv",
-     "gauge profiles and forecasts of earlier states of the 2026 season; the paper's runs read the profile on the river as observed (scenarios/2026.csv) and none of these."),
+    ("scenarios/2026_vintage*.csv, 2026_q25.csv, 2026_q75.csv, bfg_14day_kaub_20260909.csv",
+     "gauge profiles of earlier states of the 2026 season, built on the outlooks of September, and a 14-day forecast that no run reads; the paper's runs read the profile on the river as observed (scenarios/2026.csv). The six-week outlooks of September stay in the package: the Discussion cites them."),
     ("EU/Spatial/sources/NUTS_RG_20M_*.geojson, nuts2_admin.geojson, nuts3_admin*.geojson",
      "GISCO NUTS boundaries 2021 and 2024 (1:20M, EPSG:4326, levels 2 and 3) and the per-country NUTS3 files cut from them: '(c) EuroGeographics for the administrative boundaries', GISCO terms (non-commercial use), which a CC BY deposit cannot carry. Download: https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/territorial-units-statistics (NUTS_RG_20M_2024_4326_LEVL_2/3, NUTS_RG_20M_2021_4326_LEVL_2/3); nuts3_admin_<ISO3>.geojson = the level-3 polygons of each country with shapeName = NUTS code. Needed only to rebuild firms.geojson with the firm extractor, not to run the model. Re-run with --with-gisco to include them."),
     ("EU/calibration_log.md", "the calibration diary (internal working document, 230 kB). Re-run with --with-calibration-log to include it."),
