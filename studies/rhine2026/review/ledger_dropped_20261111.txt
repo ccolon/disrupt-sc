@@ -18,3 +18,26 @@ si.tex: are three fleets: $K_{r,c}=\max\!\big(s_{r,c}\,T_r,\;1.02\,F_{r,c}\big)$
 si.tex: had put the weeks of 14, 21 and 28 September at 12, 22 and 42\,cm; the observed means were 25, 7 and about $-2$ (the last from two observed days and the outlook of 28 September)
 si.tex: the loss of the 28 economies and the consumption loss of each
 si.tex: the observed means were 25, 7 and about $-2$ (the last from two observed days and the outlook of 28 September)
+
+Dropped with the new structure of the SI (afternoon of 11 November 2026):
+
+main.tex: two stress paths (Supplementary Section~S7), not bounds
+si.tex: A ceiling of 50 kt a week is reached in nearly every profile week of both events
+si.tex: Across ten further versions of the supplier network
+si.tex: At 45 days the services' share of the German loss is
+si.tex: Every inventory target was multiplied by 0.75, 1.25, 1.5 and 2
+si.tex: The loading share below 5\,cm, at half and twice its value, moves it by
+si.tex: \RevHeadTwentyFiveRel\,\% at 10 and 25\,\% instead of 2
+si.tex: \RevRailFiftyRel\,\%; at 140 kt it delivers \ReliefBnHundredForty{} billion
+si.tex: \RevRestFifteenRel\,\% (15 days) and \RevRestSixtyRel\,\% (60 days)
+si.tex: a 45-day coping duration for the non-storable inputs, instead of 90, raises it
+si.tex: below the benchmark's one-standard-deviation band and inside its 95\,\% band
+si.tex: in 2018 the two ceilings remove
+si.tex: no pooling up threefold
+si.tex: no rail bypass for bulk up by three fifths
+si.tex: of its value at 50 kt (\ReliefLiquidShareHundredForty{} at 140)
+si.tex: the loading curve by about a half up or down
+si.tex: the loading curve by about a half up or down
+si.tex: the refill time of inventories and the service rules by up to a third
+si.tex: two suppliers per input down by nearly a half
+si.tex: with its shortfall raised by 15\,\% the industrial shortfall is \TableLowInt{} percent-months, lowered by 15\,\%

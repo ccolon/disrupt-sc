@@ -1,0 +1,7 @@
+# logistics.basic_cost.maritime by cargo class (11 Nov 2026), for the sensitivity run 2026_r6_bycargo_searate.
+# The runs of the paper use one sea rate, 0.0015 USD per tonne-kilometer, the operator cost of container carriers
+# (KiM 2023: 0.0014 EUR). Here bulk takes the operator costs of the same source: bulk carriers 0.0034, tankers 0.0051.
+default: 0.0015
+container: 0.0015
+dry_bulk: 0.0034
+liquid_bulk: 0.0051

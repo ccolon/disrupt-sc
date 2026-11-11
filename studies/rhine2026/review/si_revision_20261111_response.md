@@ -290,3 +290,79 @@ Points to know, none blocking:
   `make_numbers.py` (four macros `RailBind*`).
 - `ledger_20261111.py`: the ledger of the gate; the 18 entries dropped are listed in `ledger_dropped_20261111.txt`.
 - `si_notes_extract.py` (of 10 November) produced `si_revision_20261111_notes.md`.
+
+## 10. Afternoon of 11 November: the author's decisions, the rerun, the structure
+
+### The decisions (the author's answers to the six questions of section 7)
+
+| Question | Answer | Consequence |
+|---|---|---|
+| 1. Profile on 16 November? | "can we build the profile today? no need to wait for another week" | The profile is built on 11 November, on the river observed to 10 November. |
+| 2. A pilot of two runs? | "in this case the pilot becomes the main run" | The whole set is launched at once; the control run is one of its runs. |
+| 3. The download form | "submit", then a yes to the box of the terms of use | The days from 28 September to 12 October are downloaded from the station's long-term archive. |
+| 4. Issue history | "out of the manuscript and the repo" | To do with the rewording below: the manuscript loses the issue dates; `forecast_manifest.md` leaves the repository. |
+| 5. The 5 % rule | "let's drop that. We can only say if it varies significantly." | The cover letter gives no threshold. |
+| 6. Structure; S4 or S5 | "no swap" | The structure of section 6 is applied as proposed. |
+
+### The rerun (launched at 12:20; record in `cluster/batch_20261111.md`)
+
+- **Profile.** 20 weeks observed (22 June to 8 November), the week of 9 November from two observed days and the 14-day
+  forecast of 11 November, the week of 16 November from the same forecast, the week of 23 November from the six-week
+  outlook of 9 November. The weeks to 27 September are unchanged.
+
+| Week starting | Before (cm) | Now (cm) | Status now |
+|---|---|---|---|
+| 28 Sep | -1.7 | 1.8 | observed |
+| 5 Oct | 6.0 | 5.8 | observed |
+| 12 Oct | 24 | 13.5 | observed |
+| 19 Oct | 36 | 21.0 | observed |
+| 26 Oct | 43 | 45.3 | observed |
+| 2 Nov | 58 | 18.0 | observed |
+| 9 Nov | 75 | 48.4 | two days observed, then forecast |
+| 16 Nov | 90 | 133.3 | forecast |
+| 23 Nov | 105 | 134.0 | forecast |
+
+  The forecasts have the river rising from 12 November. The capacity shortfall summed over the season barely changes
+  (13.86 week-equivalents against 13.73): the trough of October and early November is deeper, the recovery faster.
+  The lowest daily mean of the season is -4.8 cm, on 1 October.
+- **Runs.** 101 runs read the 2026 profile; with the control and one repeated 2018 run, 103, on 104 jobs. The two stress
+  paths on the outlook's quartiles are not rerun. The sea-rate run of open point 3 is launched apart, in two steps,
+  because a sea rate changes the routes and so the baseline on which the Rhine capacities are anchored.
+- **Model.** The code of 2 November, in a separate checkout on the cluster, with its own output folder: nothing of the
+  batch of 2 November is overwritten, and the updates of other studies cannot reach the batch. The reference network
+  was rebuilt there with 12,719 firms, the count of 2 November.
+- **Control.** One run repeats the reference run on the old profile; it must return 1.110 % of a quarter exactly.
+- **One 2018 run repeated.** The run at 0.75 times the inventories had run on 6 November on later model code than the
+  128 others; it is repeated on the code of 2 November.
+- **Timing.** The cache builder finished in 21 minutes; the runs of the reference network started at 12:42; the levers
+  on the ten further networks follow their bases. Expected end: about 20:00.
+
+### The structure (Overleaf `56a69d8`)
+
+Applied as in section 6. Blocks are moved whole. What is new text:
+
+- one opening sentence per section, S5 to S9;
+- S8: two short paragraphs on the inventories and on the fairway, taken from the Methods, and the sentence on how a
+  lever is measured (note N10);
+- S9: the reading of the sensitivity table as a list of eleven items, ranked by size of effect, with the two paragraphs
+  on the inventories and on the suppliers merged in. The order is that of the present numbers and will be checked
+  against the new ones. The item on the gauge of the forecast weeks goes with the stress paths;
+- paragraph titles: "The 2018 benchmark", "Bulk does not change mode: the modal-switch rule", "What crosses Kaub, and
+  at what price", "Which inputs go missing", "Rail, a bounded substitute".
+
+Removed: the table of the inventory levels on 2018 (15 tables remain in the SI), the sentence that summed up the
+sensitivities in fractions ("the loading curve by about a half up or down ..."), which the list replaces, and the
+sentence "one supplier per input is the choice the benchmark supports", which contradicted the one-choice version
+(now: "The reference value of one supplier is kept"). Notes N10 and N11 are answered; `si.tex` has no note left.
+`main.tex`: 24 pointers to SI sections updated.
+
+Checks on this version: gate without regeneration PASS; compile clean (63 pages). The regeneration check cannot pass
+between the change of the profile file and the reading of the new runs, and is not claimed.
+
+### What follows when the runs are read
+
+1. The control and the two built-in checks (July and August of the monthly path unchanged).
+2. Numbers, tables and figures regenerated; the order of the list of S9 and the sentences bound to numbers re-read.
+3. The rewording for the season as observed, in the main text and in S3, S6 and S9; the issue history out of the
+   manuscript and `forecast_manifest.md` out of the repository; the cover letter.
+4. One push, and the record in this file.

@@ -1,0 +1,14 @@
+# Anmerkung: Die Zeitstempel werden im ISO-8601-Format mit Zeitzonenoffset entsprechend der jeweils gültigen gesetzlichen Zeit (MEZ/MESZ) formatiert. Weitere Informationen zum Standard finden Sie unter https://de.wikipedia.org/wiki/ISO_8601.
+station_name=KAUB
+station_uuid=1d26e504-7f9e-480a-b52c-5932be6549ab
+station_number=25700100
+station_water=RHEIN
+station_authority=WSA RHEIN
+station_agency=STANDORT BINGEN
+timeseries_name=W
+timeseries_unit=cm
+timeseries_equidistance=15
+start=2026-09-28T00:00:00+02:00
+end=2026-10-12T23:45:00+02:00
+quality=unchecked
+Bei der Verwendung der Daten gelten die Nutzungsbedingungen von PEGELONLINE unter https://pegelonline.wsv.de/gast/nutzungsbedingungen

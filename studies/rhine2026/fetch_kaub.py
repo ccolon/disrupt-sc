@@ -15,6 +15,15 @@ printed for the old and the new profile, so a schedule change is visible.
         --forecast-6week studies/rhine2026/scenarios/bfg_6week_kaub_20260907.csv \
         --extend "2026-10-19=80,2026-10-26=95"                    # write scenarios/2026.csv + kaub_daily_2026.csv
     python studies/rhine2026/fetch_kaub.py --out-dir <dir>        # write the two files elsewhere (staging)
+    python studies/rhine2026/fetch_kaub.py --staged studies/rhine2026/scenarios/staging_20261111 \
+        --long-term <file of the station's long-term download> \
+        --forecast-14day studies/rhine2026/scenarios/bfg_14day_kaub_20261111.csv \
+        --forecast-6week studies/rhine2026/scenarios/bfg_6week_kaub_20261109.csv   # the season as observed (11 Nov 2026)
+
+11 Nov 2026: --staged merges raw 15-minute files of the REST service saved on an earlier day; --long-term merges a file
+of the station's long-term raw download (the days that the REST service no longer serves); --forecast-14day takes the
+daily medians of the BfG 14-day forecast (https://vorhersage.bafg.de/14-Tage-Vorhersage/Kaub_Quantile_25700100.csv) for
+the missing days of the open week, a partial day included, and for every later week that it covers in full.
 
 The REST API serves at most the last 30 days; older days come from the long-term download already
 in kaub_daily_2026.csv (identical values: cross-checked 29 Aug - 4 Sep 2026). The 6-week CSV is the
@@ -30,6 +39,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import numpy as np
 import pandas as pd
 
 HERE = Path(__file__).resolve().parent
@@ -40,6 +50,8 @@ SCEN = HERE / "scenarios"
 API = "https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations/KAUB/W/measurements.json?start=P{days}D"
 SOURCE = ("PEGELONLINE REST API measurements.json (ungepruefte Rohdaten, DL-DE->Zero-2.0), daily mean of "
           "15-min W values in legal time, https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations/KAUB/W")
+LONG_TERM_SOURCE = ("PEGELONLINE WSV long-term raw download (ungepruefte Rohdaten, DL-DE->Zero-2.0), daily mean of 15-min W "
+                    "values in legal time, https://www.pegelonline.wsv.de/gast/stammdaten?pegelnr=25700100")
 FULL_DAY = 90
 DEFAULT_EXTEND_NOTE = ("assumption: recovery continuing at the trend of the BfG ENS median (about +20 cm a week); "
                        "replace with observations")
@@ -48,7 +60,46 @@ DEFAULT_EXTEND_NOTE = ("assumption: recovery continuing at the trend of the BfG 
 def fetch_daily(days: int) -> pd.DataFrame:
     with urllib.request.urlopen(API.format(days=days), timeout=90) as r:
         data = json.load(r)
+    return daily_means(data)
+
+
+def read_measurements(path: Path) -> list[dict]:
+    """15-minute measurements of a saved file: the REST service's JSON (a list of {timestamp, value}), the long-term
+    download as JSON (the same list, possibly under a key) or as CSV (timestamp;value, decimal comma allowed)."""
+    path = Path(path)
+    if path.suffix.lower() == ".json":
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(data, dict):
+            lists = [v for v in data.values() if isinstance(v, list) and v and isinstance(v[0], dict)]
+            if len(lists) != 1:
+                raise SystemExit(f"{path.name}: {len(lists)} lists of measurements found, expected one")
+            data = lists[0]
+        out = []
+        for m in data:
+            ts = m.get("timestamp") or m.get("time") or m.get("datetime")
+            val = m.get("value") if "value" in m else m.get("wert")
+            if ts is None or val is None:
+                continue
+            out.append({"timestamp": ts, "value": float(val)})
+        return out
+    out = []
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        parts = re.split(r"[;,\t]", line.strip(), maxsplit=1)
+        if len(parts) != 2:
+            continue
+        try:
+            ts = datetime.fromisoformat(parts[0].strip().strip('"'))
+            val = float(parts[1].strip().strip('"').replace(",", "."))
+        except ValueError:
+            continue
+        out.append({"timestamp": ts.isoformat(), "value": val})
+    return out
+
+
+def daily_means(data: list[dict]) -> pd.DataFrame:
+    """Daily means in legal time of a list of {timestamp, value}; duplicate timestamps count once."""
     tz = ZoneInfo("Europe/Berlin")
+    data = list({m["timestamp"]: m for m in data}.values())
     by_day = defaultdict(list)
     last = {}
     for m in data:
@@ -103,6 +154,30 @@ def parse_forecast_6week(path) -> tuple[str, dict[str, dict]]:
     return issued, rows
 
 
+def parse_forecast_14day(path) -> tuple[str, dict[str, dict]]:
+    """BfG 14-day quantile CSV (daily means) -> (issue date, {date iso: {p5, p25, median, p75, p95}})."""
+    issued, rows, cols = "?", {}, None
+    for line in Path(path).read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if line.startswith("#"):
+            m = re.search(r"Wasserstandsvorhersage vom (\d{4}-\d{2}-\d{2})", line)
+            if m:
+                issued = m.group(1)
+            continue
+        parts = [p.strip() for p in line.split(";")]
+        if parts[0] == "Datum":
+            cols = {name: i for i, name in enumerate(parts)}
+            continue
+        if cols is None or len(parts) < len(cols):
+            continue
+        day = datetime.strptime(parts[0].split(" ")[0], "%d.%m.%Y").date().isoformat()
+        rows[day] = {"p5": float(parts[cols["5%"]]), "p25": float(parts[cols["25%"]]), "median": float(parts[cols["50%"]]),
+                     "p75": float(parts[cols["75%"]]), "p95": float(parts[cols["95%"]])}
+    return issued, rows
+
+
 def parse_extend(raw: str | None) -> list[tuple[str, float]]:
     if not raw:
         return []
@@ -115,7 +190,8 @@ def parse_extend(raw: str | None) -> list[tuple[str, float]]:
 
 def rebuild_profile(profile: pd.DataFrame, daily: pd.DataFrame, fill_cm: float | None, fill_note: str | None = None,
                     forecast: tuple[str, dict] | None = None, extend: list[tuple[str, float]] | None = None,
-                    extend_note: str = DEFAULT_EXTEND_NOTE) -> pd.DataFrame:
+                    extend_note: str = DEFAULT_EXTEND_NOTE, forecast14: tuple[str, dict] | None = None,
+                    continue_forecast: bool = True) -> pd.DataFrame:
     d = daily.copy()
     d["date"] = pd.to_datetime(d["date"])
     d["partial"] = d["source"].str.contains("PARTIAL")
@@ -124,6 +200,17 @@ def rebuild_profile(profile: pd.DataFrame, daily: pd.DataFrame, fill_cm: float |
     fill = last_full if fill_cm is None else fill_cm
     fill_src = fill_note or ("persistence of the last observed day" if fill_cm is None else "--fill-cm")
     issued, fc = forecast if forecast else ("?", {})
+    issued14, fc14 = forecast14 if forecast14 else ("?", {})
+
+    def days_of(ws: str) -> list[str]:
+        return [(pd.Timestamp(ws) + pd.Timedelta(days=i)).date().isoformat() for i in range(7)]
+
+    def forecast14_row(ws: str, prev: str) -> dict:
+        med = [fc14[x]["median"] for x in days_of(ws)]
+        lo, hi = min(fc14[x]["p5"] for x in days_of(ws)), max(fc14[x]["p95"] for x in days_of(ws))
+        return {"week_start": ws, "kaub_cm": round(float(np.mean(med)), 1), "status": "forecast",
+                "note": f"BfG 14-day forecast issued {issued14}: mean of the daily medians ({', '.join(f'{x:.0f}' for x in med)} cm; "
+                        f"5-95 % of the days {lo:.0f} to {hi:.0f}); {prev}"}
 
     def forecast_row(ws: str, prev: str) -> dict:
         q = fc[ws]
@@ -140,6 +227,21 @@ def rebuild_profile(profile: pd.DataFrame, daily: pd.DataFrame, fill_cm: float |
             out.append({"week_start": r["week_start"], "kaub_cm": round(float(v["kaub_cm"].mean()), 1), "status": "observed",
                         "note": f"PEGELONLINE daily means (raw 15-min data, DL-DE->Zero-2.0), weekly mean; daily min "
                                 f"{v['kaub_cm'].min():.0f}, max {v['kaub_cm'].max():.0f}; {prev}"})
+        elif len(v) > 0 and fc14 and all(x in fc14 for x in days_of(r["week_start"])
+                                         if pd.Timestamp(x) not in v.index[~v["partial"]]):
+            # the open week with the 14-day forecast: full observed days, then the daily medians (a partial day included)
+            full = v[~v["partial"]]
+            if len(full) == 0:
+                out.append(forecast14_row(r["week_start"], prev))
+                continue
+            rest = [x for x in days_of(r["week_start"]) if pd.Timestamp(x) not in full.index]
+            med = [fc14[x]["median"] for x in rest]
+            est = (float(full["kaub_cm"].sum()) + float(np.sum(med))) / 7
+            obs = ", ".join(f"{x:.0f}" for x in full["kaub_cm"])
+            out.append({"week_start": r["week_start"], "kaub_cm": round(est, 1), "status": "observed+forecast",
+                        "note": f"{full.index[0].date()} to {full.index[-1].date()} observed daily means ({obs}), remaining "
+                                f"{len(rest)} days at the daily medians of the BfG 14-day forecast issued {issued14} "
+                                f"({', '.join(f'{x:.0f}' for x in med)} cm); {prev}"})
         elif len(v) > 0:
             obs = ", ".join(f"{x:.0f}" for x in v["kaub_cm"])
             partial_tag = ", last day partial" if bool(v["partial"].iloc[-1]) else ""
@@ -147,6 +249,8 @@ def rebuild_profile(profile: pd.DataFrame, daily: pd.DataFrame, fill_cm: float |
             out.append({"week_start": r["week_start"], "kaub_cm": round(est, 1), "status": "observed+forecast",
                         "note": f"{v.index[0].date()} to {v.index[-1].date()} observed daily means ({obs}{partial_tag}), "
                                 f"remaining {7 - len(v)} days at {fill:.0f} cm ({fill_src}); {prev}"})
+        elif fc14 and all(x in fc14 for x in days_of(r["week_start"])):
+            out.append(forecast14_row(r["week_start"], prev))
         elif r["week_start"] in fc:
             out.append(forecast_row(r["week_start"], prev))
         else:
@@ -155,7 +259,7 @@ def rebuild_profile(profile: pd.DataFrame, daily: pd.DataFrame, fill_cm: float |
     def next_week(ws: str) -> str:
         return (pd.Timestamp(ws) + pd.Timedelta(days=7)).date().isoformat()
 
-    while next_week(out[-1]["week_start"]) in fc:                      # continue to the last forecast week
+    while continue_forecast and next_week(out[-1]["week_start"]) in fc:   # continue to the last forecast week
         ws = next_week(out[-1]["week_start"])
         out.append(forecast_row(ws, "new week"))
     for ws, cm in extend or []:                                         # then the tail assumption
@@ -173,6 +277,11 @@ def main():
     ap.add_argument("--fill-cm", type=float, default=None, help="gauge assumed for the missing days of the open week")
     ap.add_argument("--fill-note", default=None, help="source of --fill-cm, written into the week's note")
     ap.add_argument("--forecast-6week", default=None, help="BfG 6-week QuansBox CSV: ENS medians for the weeks without observations")
+    ap.add_argument("--forecast-14day", default=None, help="BfG 14-day quantile CSV: daily medians for the open week and the weeks it covers in full")
+    ap.add_argument("--staged", default=None, help="folder of raw 15-minute JSON files of the REST service saved earlier (kaub_15min_*.json)")
+    ap.add_argument("--long-term", default=None, help="file of the station's long-term raw download (JSON or CSV), the reference for older days")
+    ap.add_argument("--no-fetch", action="store_true", help="do not call the REST service (rebuild from the saved files only)")
+    ap.add_argument("--keep-length", action="store_true", help="keep the number of weeks of the profile: do not append the later weeks of the 6-week outlook")
     ap.add_argument("--extend", default=None, help="assumption weeks after the forecast, 'YYYY-MM-DD=cm,...' (consecutive Mondays)")
     ap.add_argument("--extend-note", default=DEFAULT_EXTEND_NOTE)
     ap.add_argument("--profile", default="2026")
@@ -181,18 +290,45 @@ def main():
     args = ap.parse_args()
 
     fetched_on = datetime.now(ZoneInfo("Europe/Berlin")).strftime("%Y-%m-%d %H:%M")
-    fetched = fetch_daily(args.days)
-    print(f"fetched {len(fetched)} days ({fetched['date'].iloc[0]} to {fetched['date'].iloc[-1]}, {fetched_on}):")
-    print(fetched.tail(10).to_string(index=False))
-
     daily_path = SCEN / f"kaub_daily_{args.profile}.csv"
-    existing = pd.read_csv(daily_path)
-    daily = merge_daily(existing, fetched, fetched_on)
+    daily = pd.read_csv(daily_path)
+    if args.long_term:                              # the reference for the days the REST service no longer serves
+        lt = daily_means(read_measurements(Path(args.long_term)))
+        # days already taken from a long-term download are kept; a day taken from the REST service (often fetched before
+        # its last values were in) gives way to the complete day of the long-term file
+        have = set(daily.loc[daily["source"].str.contains("long-term") & ~daily["source"].str.contains("PARTIAL"), "date"])
+        lt = lt[(lt["n"] >= FULL_DAY) & ~lt["date"].isin(have)]
+        old = daily.set_index("date")["kaub_cm"]
+        for _, r in lt[lt["date"].isin(old.index)].iterrows():
+            print(f"   {r['date']}: {old[r['date']]} (REST service) -> {r['kaub_cm']} (long-term download, {int(r['n'])} values)")
+        add = pd.DataFrame({"date": lt["date"], "kaub_cm": lt["kaub_cm"], "source": LONG_TERM_SOURCE + f", downloaded {fetched_on[:10]}"})
+        daily = pd.concat([daily[~daily["date"].isin(set(add["date"]))], add]).sort_values("date").reset_index(drop=True)
+        print(f"long-term download {Path(args.long_term).name}: {len(add)} full days taken"
+              + (f" ({add['date'].iloc[0]} to {add['date'].iloc[-1]})" if len(add) else ""))
+    if args.staged:
+        files = sorted(Path(args.staged).glob("kaub_15min_*.json"))
+        staged = daily_means([m for f in files for m in read_measurements(f)])
+        when = datetime.fromtimestamp(max(f.stat().st_mtime for f in files), ZoneInfo("Europe/Berlin")).strftime("%Y-%m-%d %H:%M")
+        daily = merge_daily(daily, staged, when)
+        print(f"staged files ({len(files)}, saved {when}): {len(staged)} days ({staged['date'].iloc[0]} to {staged['date'].iloc[-1]})")
+    if not args.no_fetch:
+        fetched = fetch_daily(args.days)
+        print(f"fetched {len(fetched)} days ({fetched['date'].iloc[0]} to {fetched['date'].iloc[-1]}, {fetched_on}):")
+        print(fetched.tail(10).to_string(index=False))
+        daily = merge_daily(daily, fetched, fetched_on)
+    dd = pd.to_datetime(daily["date"])
+    gaps = sorted(set(pd.date_range(dd.min(), dd.max()).date) - set(dd.dt.date))
+    if gaps:
+        print(f"WARNING: {len(gaps)} day(s) missing in the daily record, {gaps[0]} to {gaps[-1]}")
     profile = pd.read_csv(SCEN / f"{args.profile}.csv")
     forecast = parse_forecast_6week(args.forecast_6week) if args.forecast_6week else None
     if forecast:
         print(f"6-week forecast issued {forecast[0]}: weeks {', '.join(forecast[1])}")
-    new = rebuild_profile(profile, daily, args.fill_cm, args.fill_note, forecast, parse_extend(args.extend), args.extend_note)
+    forecast14 = parse_forecast_14day(args.forecast_14day) if args.forecast_14day else None
+    if forecast14:
+        print(f"14-day forecast issued {forecast14[0]}: days {min(forecast14[1])} to {max(forecast14[1])}")
+    new = rebuild_profile(profile, daily, args.fill_cm, args.fill_note, forecast, parse_extend(args.extend), args.extend_note,
+                          forecast14, continue_forecast=not args.keep_length)
 
     floors = parse_closure_floors(DEFAULT_CLOSURE_FLOORS)
     cts = list(DEFAULT_CARGO_TYPES)

@@ -16,26 +16,8 @@ allowed:
   # ---- S4 Conservation and stationarity
   # ---- S4 Sensitivities of the revision
   - file: si.tex
-    text: '\RevRailFiftyRel\,\%; at 140 kt it delivers \ReliefBnHundredForty{} billion'
-    why: 'design: rail ceiling 140 kt a week'
-  - file: si.tex
-    text: 'in 2018 the two ceilings remove'
-    why: 'design: the two rail ceilings (50 and 140 kt)'
-  - file: si.tex
-    text: '\RevHeadTwentyFiveRel\,\% at 10 and 25\,\% instead of 2'
-    why: 'design: capacity headroom 10 and 25 % against the 2 % of the paper'
-  - file: si.tex
-    text: '\RevRestFifteenRel\,\% (15 days) and \RevRestSixtyRel\,\% (60 days)'
-    why: 'design: refill time of the sensitivity (15 and 60 days)'
-  - file: si.tex
     text: 'The low-water fleet with its gain carried to 100\,cm removes'
     why: 'design: fleet-wide variant (draught_table_lowwater_wide.csv)'
-  - file: si.tex
-    text: 'a 45-day coping duration for the non-storable inputs, instead of 90, raises it'
-    why: 'design: service coping duration 45 against 90 days (inventory_targets_service45.yaml)'
-  - file: si.tex
-    text: 'of its value at 50 kt (\ReliefLiquidShareHundredForty{} at 140)'
-    why: 'design: rail ceilings 50 and 140 kt'
   - file: si.tex
     text: 'at 140 kt the building-materials chain is nearly whole again'
     why: 'design: rail ceiling 140 kt (the share itself is \ShareConstructionRailHundredForty, bound in the same sentence)'
@@ -88,20 +70,11 @@ allowed:
     text: 'two months before the first week in which any vessel class stopped sailing'
     why: 'data: 2018 profile (scenarios/2018.csv) against the first version''s sailing floors: first closure in mid-October, two months after the August onset'
   - file: si.tex
-    text: 'below the benchmark''s one-standard-deviation band and inside its 95\,\% band'
-    why: 'convention: the 2.5-97.5 % band'
-  - file: si.tex
-    text: 'Across ten further versions of the supplier network'
-    why: 'design: ten further supply-chain draws'
-  - file: si.tex
     text: 'of the eleven networks fall inside the benchmark''s one-standard-deviation band'
     why: 'design: reference network plus ten draws'
   - file: si.tex
     text: '\DrawsInWideBand{} inside its 95\,\% band'
     why: 'convention: the 2.5-97.5 % band'
-  - file: si.tex
-    text: 'with its shortfall raised by 15\,\% the industrial shortfall is \TableLowInt{} percent-months, lowered by 15\,\%'
-    why: 'design: loading-table band x1.15 / x0.85'
   - file: si.tex
     text: 'With two suppliers per input instead of one'
     why: 'design: two suppliers per input (sup2)'
@@ -240,40 +213,10 @@ claims:
   # 5 Nov 2026 pending fix (patch_pending_20261105.py); words bound to the new macros
   # ---- moved or copied from main.yaml by the trim of 7 Nov 2026 (ledger_relocate.py)
   - file: si.tex
-    text: 'the refill time of inventories and the service rules by up to a third'
-    expr: 'max(RevRestFifteenAbs, RevRestSixtyAbs, RevServAbs)'
-    range: [30, 37]
-    why: 'result: largest % change of the 2026 loss among rest15, rest60 and serv45; up to a third = 30-37'
-  - file: si.tex
     text: 'sea lanes (948) and multimodal connectors at terminals and ports (1,490)'
     expr: 'NEdges - 2979 - 4261 - 461 - 948'
     range: [1490, 1490]
     why: 'data check: the edge counts by mode (roads 2,979, rail 4,261, waterways 461, sea 948, connectors 1,490) sum to \NEdges'
-  - file: si.tex
-    text: 'the loading curve by about a half up or down'
-    expr: '100*(TableLowQ/DEUlossQ-1)'
-    range: [40, 60]
-    why: 'result: 2026 loss with the shortfall +15 %; about a half = 40-60'
-  - file: si.tex
-    text: 'the loading curve by about a half up or down'
-    expr: '100*(1-TableHighQ/DEUlossQ)'
-    range: [40, 60]
-    why: 'result: 2026 loss with the shortfall -15 %; about a half = 40-60'
-  - file: si.tex
-    text: 'two suppliers per input down by nearly a half'
-    expr: '100*(1-SupTwoQ/DEUlossQ)'
-    range: [44, 50]
-    why: 'result: two suppliers per input; nearly a half = 44-50'
-  - file: si.tex
-    text: 'no pooling up threefold'
-    expr: 'NoPoolQ/DEUlossQ'
-    range: [2.7, 3.3]
-    why: 'result: no pooling over the base; threefold = 2.7-3.3'
-  - file: si.tex
-    text: 'no rail bypass for bulk up by three fifths'
-    expr: 'RevNoRailAbs'
-    range: [56, 64]
-    why: 'result: % rise without the rail bypass; three fifths = 56-64'
   # ---- moved or copied from main.yaml by the trim of 7 Nov 2026 (ledger_relocate.py)
   - file: si.tex
     text: 'inside the EUR 1--2 billion (0.1--0.2 percentage points of third-quarter GDP)'
