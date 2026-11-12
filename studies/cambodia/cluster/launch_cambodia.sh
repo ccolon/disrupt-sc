@@ -77,7 +77,10 @@ if ! $DRY_RUN; then
         echo "data_path: ${DATA_PATH} (repo HEAD $(git -C "${DATA_PATH}" rev-parse HEAD 2>/dev/null))"
         (cd "${DATA_PATH}" && sha256sum Cambodia/Transport/transport.gpkg Cambodia/Transport/multimodal.gpkg \
             Cambodia/Transport/flood_v3_edges.csv Cambodia/Economic/mrio.csv Cambodia/Spatial/firms.geojson \
-            Cambodia/Spatial/households.geojson 2>&1)
+            Cambodia/Spatial/households.geojson \
+            Cambodia/Economic/sector_table.csv Cambodia/Economic/sector_table_baci2023.csv \
+            Cambodia/Spatial/countries.geojson Cambodia/Spatial/countries_baci2023.geojson 2>&1)
+        # (12 Nov 2026) sector tables and countries files too: the R2 base reads the *_baci2023 ones (Q31)
         echo "job_list: ${JOBS_FILE}"
     } > "${DEST}/CODE_VERSION.txt"
     cp "$JOBS_FILE" "$DEST/"
