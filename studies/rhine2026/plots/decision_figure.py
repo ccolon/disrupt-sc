@@ -1,7 +1,8 @@
 """F1b: what happens to one shipment in a low-water week (the per-shipment decision diagram, 5 Oct 2026; laid out at
 print width on 13 Oct 2026; redrawn 22 Oct 2026 on the author's notes: one loading-curve box that sets both the
 surcharge and the capacity, a 'delivered with the surcharge' box and the 'cut share' box on one row feeding the buyer,
-containers may switch, most bulk waits (the asterisk is explained in the caption)).
+containers may switch, most bulk waits; 12 Nov 2026: no asterisk on 'bulk', the author having cut its note from
+the caption).
 
 Usage:
     python studies/rhine2026/plots/decision_figure.py [--out studies/rhine2026/figures]
@@ -53,7 +54,7 @@ def main(out: Path):
     arrow(ax, 6.0, 3.35, 7.3, 2.83, text="capacity", color=MUTED, tx=0.45, ty=0.12)
     # row 3: the two outcomes, side by side, both feeding the buyer
     box(ax, 4.5, 0.75, 2.6, 1.0, "delivered,\nwith the surcharge", fc="#e9f4ee", ec=GREEN)
-    box(ax, 7.6, 0.72, 2.4, 1.55, "cut share looks for\nanother route:\ncontainers may switch\nto rail or road, most\nbulk* cannot and waits", fs=7)
+    box(ax, 7.6, 0.72, 2.4, 1.55, "cut share looks for\nanother route:\ncontainers may switch\nto rail or road, most\nbulk cannot and waits", fs=7)
     arrow(ax, 4.5, 1.78, 4.5, 1.28); arrow(ax, 7.6, 1.78, 7.6, 1.53)
     box(ax, 10.3, 0.75, 2.2, 1.3, "buyer draws on\nits inventory; output\nlost when a critical\ninput runs out", fc="#e9f4ee", ec=GREEN, fs=7)
     arrow(ax, 8.78, 0.75, 9.17, 0.75)

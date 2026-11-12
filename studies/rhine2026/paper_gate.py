@@ -330,6 +330,12 @@ def check_macros(repo, docs, values, dups, ck: Check):
     used = set(re.findall(r"\\([A-Za-z]+)", alltext))
     for u in sorted(u for u in used - defined - BUILTIN if u[0].isupper()):
         ck.fail(f"\\{u} is used but defined nowhere")
+    # 12 Nov 2026: a number macro followed directly by a space swallows it ('\PeakDateFirst and' printed '5 Octoberand')
+    for name, text in docs.items():
+        for m in re.finditer(r"\\([A-Za-z]+) +(?=[A-Za-z0-9(])", text):
+            if m.group(1) in values:
+                ck.fail(f"{name}:{line_of(text, m.start())}  \\{m.group(1)} is followed by a space that LaTeX swallows (add {{}}): "
+                        f"{context(text, m.start(), m.end())}")
     unused = sorted(set(values) - used)
     if unused:
         ck.warn(f"{len(unused)} of {len(values)} macros of numbers.tex are never used: {', '.join(unused)}")

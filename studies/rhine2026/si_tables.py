@@ -749,19 +749,21 @@ week & start & status & Kaub & loading share & re-sent & withheld \\
 
 
 def prospective_table(out: Path):
-    """The prospective test (review NS4, E3): the model's monthly industrial shortfall of 2026 on the reference network
-    against the path the published specification implies for the same low-water days."""
+    """The prospective test (review NS4, E3): the path that the published specification implies for the low-water days
+    of 2026, and the model's monthly industrial shortfall on the reference network, with the mean, the lowest and the
+    highest of the eleven networks. 12 Nov 2026 (the author's note): a table of Section S6 of the SI (it was the table
+    of the main text); the low-water days first, then the published specification and its band, then the model; the
+    two loading-curve rows are gone (their runs are in Table S-revision); every row has its sum. In the three rows on
+    the eleven networks each cell is a statistic of its column, the sum included (the lowest sum of a network, not the
+    sum of the lowest months)."""
     from matched_estimand_2018 import model_path
     from benchmark_ademmer import record, EVENT_MONTHS
     labs = ["Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    SUM = "Jul-Dec"                                       # the row of the band file that holds the networks' sums
     d = model_path(RUNS / B26, 2026)
     t, s = record(2026, 1)
     ev = t[t.month.isin(EVENT_MONTHS[2026])]
 
-    # 6 Nov 2026 (the author's review: 'too wide, make it readable'): a wrapped label column, \footnotesize, 4 pt column
-    # separation, the eleven networks' range as two rows of single numbers (the 'a to b' ranges of negative months were
-    # the widest cells), a minus sign in math mode, and the vintage of the reference run in the caption (main.tex)
-    # instead of the first row's label
     def cell(v) -> str:
         v = 0.0 if abs(v) < 0.05 else float(v)
         return f"{v:.1f}".replace("-", "$-$")
@@ -769,34 +771,37 @@ def prospective_table(out: Path):
     def rng(a, b) -> str:
         return f"{cell(a)}--{cell(b)}" if a >= 0 and b >= 0 else f"{cell(a)} to {cell(b)}"
 
-    # 11 Nov 2026: one measure, the index measure (the row of the production-weighted B-E series of the earlier version is gone)
-    rows = ["model, reference network & " + " & ".join(cell(d[f"ind_{m}"]) for m in labs) + f" & {cell(d['ind_integrated_pct_months'])} \\\\"]
-    seeds = [RUNS / B26] + [RUNS / f"2026_{TAG}_seed{s}_base" for s in range(1, 11)]
+    days = [int(v) for v in ev.low_water_days]
+    rows = ["low-water days (observed to 10 November, then the forecasts) & " + " & ".join(str(v) for v in days) + f" & {sum(days)} \\\\",
+            "published specification, same low-water days & " + " & ".join(cell(v) for v in ev.central) + f" & {cell(s['integral'])} \\\\",
+            "its 16--84\\,\\% band & " + " & ".join(rng(a, b) for a, b in zip(ev.p16, ev.p84)) + f" & {rng(s['p16'], s['p84'])} \\\\",
+            "\\midrule",
+            "model, reference network & " + " & ".join(cell(d[f"ind_{m}"]) for m in labs) + f" & {cell(d['ind_integrated_pct_months'])} \\\\"]
+    seeds = [RUNS / B26] + [RUNS / f"2026_{TAG}_seed{k}_base" for k in range(1, 11)]
     band = AD / ("prospective_band_2026.csv" if TAG == "s07" else f"prospective_band_2026_{TAG}.csv")   # the 7 Oct file was written by read_batch_20261007_rev.py
     if all((r_ / "firm_data.csv").exists() for r_ in seeds):
         import numpy as np
-        a = np.array([[model_path(r_, 2026)[f"ind_{m}"] for m in labs] for r_ in seeds])
-        pd.DataFrame({"month": labs, "min": a.min(axis=0), "max": a.max(axis=0), "mean": a.mean(axis=0)}).to_csv(band, index=False)
+        paths = [d] + [model_path(r_, 2026) for r_ in seeds[1:]]
+        a = np.array([[p_[f"ind_{m}"] for m in labs] + [p_["ind_integrated_pct_months"]] for p_ in paths])
+        pd.DataFrame({"month": labs + [SUM], "min": a.min(axis=0), "max": a.max(axis=0), "mean": a.mean(axis=0)}).to_csv(band, index=False)
     if band.exists():
-        bd = pd.read_csv(band)
-        rows.append("model, lowest of the eleven networks & " + " & ".join(cell(v) for v in bd["min"]) + " & \\\\")
-        rows.append("model, highest of the eleven networks & " + " & ".join(cell(v) for v in bd["max"]) + " & \\\\")
-    for run, lab in ((f"2026_{TAG}_tablelow", "model, loading curve, shortfall $\\times$1.15"), (f"2026_{TAG}_tablehigh", "model, loading curve, shortfall $\\times$0.85")):
-        if (RUNS / run / "firm_data.csv").exists():
-            dd = model_path(RUNS / run, 2026)
-            rows.append(f"{lab} & " + " & ".join(cell(dd[f"ind_{m}"]) for m in labs) + f" & {cell(dd['ind_integrated_pct_months'])} \\\\")
-    rows += ["published specification, same low-water days & " + " & ".join(cell(v) for v in ev.central) + f" & {cell(s['integral'])} \\\\",
-            "its 16--84\\,\\% band & " + " & ".join(rng(a, b) for a, b in zip(ev.p16, ev.p84)) + f" & {rng(s['p16'], s['p84'])} \\\\",
-            "low-water days (observed to 10 November, then the forecasts) & " + " & ".join(str(int(v)) for v in ev.low_water_days) + " & \\\\"]
-    (out / "prospective.tex").write_text(r"""\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}L{4.6cm}rrrrrrr@{}}
+        bd = pd.read_csv(band).set_index("month")
+        if SUM in bd.index:
+            for col, lab in (("mean", "model, mean of the eleven networks"), ("min", "model, lowest of the eleven networks"),
+                             ("max", "model, highest of the eleven networks")):
+                rows.append(f"{lab} & " + " & ".join(cell(bd.loc[m, col]) for m in labs) + f" & {cell(bd.loc[SUM, col])} \\\\")
+    (out / "si_prospective.tex").write_text(r"""\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\caption{\textbf{The prospective test.} Days of low water at Kaub (below 78\,cm) and monthly shortfall of German industrial production in 2026 (\%; the production-index measure, each sector's shortfall rate weighted by its German value added, sections B--D): the path that the published specification of ref.~\citep{ademmer2023} implies for these days, with its band, and the model on the river as observed to 10 November 2026, on the reference network and across the eleven networks. In the three rows on the eleven networks, each cell is the mean, the lowest or the highest of the eleven for that column. Negative values are production above the no-event baseline. The last column is the sum of the months (days; percent-months).}
+\label{tab:prospective}
+\begin{tabular}{L{62mm}rrrrrrr}
 \toprule
  & Jul & Aug & Sep & Oct & Nov & Dec & Jul--Dec \\
 \midrule
 """ + "\n".join(rows) + r"""
 \bottomrule
 \end{tabular}
-\endgroup
+\end{table}
 """, encoding="utf-8")
 
 
@@ -853,7 +858,8 @@ def cross_table(out: Path):
     a30, b30 = m.loc[f"{WV}_A", q], m.loc[f"{WV}_B", q]; a15, b15 = c.loc[f"{WV9}_A_rest15", q], c.loc[f"{WV9}_B_rest15", q]
     seq30 = {0: m.loc[B26, q], 2: m.loc[f"{WV}_AB_gap2", q], 4: m.loc[f"{WV}_AB_gap4", q]}
     seq15 = {0: r.loc[f"2026_{REV}_rest15", q], 2: c.loc[f"{WV9}_AB_gap2_rest15", q], 4: c.loc[f"{WV9}_AB_gap4_rest15", q]}
-    wrows = [f"first wave alone (A) & {a30:.2f} & & {a15:.2f} & " + BS * 2, f"second wave alone (B) & {b30:.2f} & & {b15:.2f} & " + BS * 2,
+    # 12 Nov 2026: 'episode' as in the main text since the author's round of that day (it was 'wave')
+    wrows = [f"first episode alone (A) & {a30:.2f} & & {a15:.2f} & " + BS * 2, f"second episode alone (B) & {b30:.2f} & & {b15:.2f} & " + BS * 2,
              f"A + B & {a30 + b30:.2f} & & {a15 + b15:.2f} & " + BS * 2]
     for g in (0, 2, 4):
         wrows.append(f"A then B, {g} weeks of normal water between & {seq30[g]:.2f} & {100 * (seq30[g] / (a30 + b30) - 1):+.0f} & {seq15[g]:.2f} & {100 * (seq15[g] / (a15 + b15) - 1):+.0f} " + BS * 2)
@@ -874,7 +880,7 @@ def cross_table(out: Path):
 """, encoding="utf-8")
     (out / "si_cross_waves.tex").write_text(r"""\begin{table}[tbp]
 \centering\small
-\caption{\textbf{The two waves of 2026 at two refill times.} German loss (\% of a quarter) of the two waves alone, of their sum, and of their sequence with 0, 2 and 4 weeks of normal water between them, at the refill time of 30 days of the paper and at 15 days; the change is the sequence against the sum (\%).}
+\caption{\textbf{The two episodes of 2026 at two refill times.} German loss (\% of a quarter) of the two episodes alone, of their sum, and of their sequence with 0, 2 and 4 weeks of normal water between them, at the refill time of 30 days of the paper and at 15 days; the change is the sequence against the sum (\%).}
 \label{tab:crosswaves}
 \begin{tabular}{lrrrr}
 \toprule
@@ -984,7 +990,7 @@ def revision_table(out: Path):
             row("", "", "ceiling of 140 kt a week", "rail140", "rail140"),
             row("headroom of the capacity at normal water", "2" + pc, "10" + pc, "head10"),
             row("", "", "25" + pc, "head25"),
-            row("loading curve, shortfall", "as built", "raised by 15" + pc, "tablelow", "tablelow"),
+            row("loading curve, capacity reduction", "as built", "raised by 15" + pc, "tablelow", "tablelow"),   # 12 Nov 2026: it was "shortfall", the word of the production loss
             row("", "", "lowered by 15" + pc, "tablehigh", "tablehigh"),
             row("loading share below 5" + BS + ",cm", "0.08", "0.04", "floor04"),
             row("", "", "0.16", "floor16"),

@@ -83,3 +83,15 @@ What changes for the package:
   of the season (`2026_vintage*.csv`, `2026_q25.csv`, `2026_q75.csv`) and keeps the six-week outlooks of September,
   which the Discussion cites. The package has not been rebuilt: run the script before the upload.
 - Not redone on the new text: the word counts and the checks of `natcomms_requirements_20261107.md`.
+
+## Status on 12 November 2026, evening (the author's round on Overleaf)
+
+The author revised `main.tex` and `si.tex` on Overleaf (commit 4dfe508); the round is answered note by note in
+`../review/revision_20261112_response.md`. What changes for the package:
+
+- The table of the prospective test is Supplementary Table S10 (Section S6). The main text has 6 figures and no table.
+- Counts by `wordcount.py` on the text of this round: abstract 167 words (guide 200), main text 5,334 (guide 5,000),
+  Methods 3,066 (guide 3,000), legends 60 to 150, 97 references cited (guide 70).
+- `natcomms_requirements_20261107.md` is the state of 7 November and still reads "6 figures + 1 table"; its other checks
+  were not redone.
+- The cover letter was not changed by this round.

@@ -9,9 +9,6 @@ allowed:
     text: 'multiplier $1/\text{loading share}$, capped at 20, is applied on every reach from Koblenz upstream'
     why: 'design: surcharge multiplier and its cap of 20'
   # ---- S4 Mechanism tests
-  - file: si.tex
-    text: 'puts more than 50\,km of extra distance on a mode'
-    why: 'design: access allowance of the modal-switch rule (50 km)'
   # ---- S4 flat profile
   # ---- S4 Conservation and stationarity
   # ---- S4 Sensitivities of the revision
@@ -28,12 +25,6 @@ allowed:
   - file: si.tex
     text: 'where the 30-day rule gives +\WaveInterShare'
     why: 'design: the paper''s refill time of 30 days'
-  - file: si.tex
-    text: 'with two and four weeks of normal water between them'
-    why: 'design: gaps of the wave experiment (scenarios/2026_waveAB_gap2/gap4.csv)'
-  - file: si.tex
-    text: 'because at 15 days the buyers hit by the first wave'
-    why: 'design: refill time 15 days'
   # ---- S5
   # ---- S6 Two representations of the river
   - file: si.tex
@@ -43,9 +34,6 @@ allowed:
   - file: si.tex
     text: 'the eleven versions of the supplier--buyer network (sampling)'
     why: 'design: reference network plus ten draws'
-  - file: si.tex
-    text: 'the loading curve with its shortfall raised and lowered by 15\,\%; two suppliers per input'
-    why: 'design: loading-table band x1.15 / x0.85 (draught_table_low/high.csv); two suppliers per input'
   - file: si.tex
     text: 'a ceiling of 50 and 140 kt a week for all of them'
     why: 'design: rail ceilings'
@@ -77,17 +65,8 @@ allowed:
     why: 'design: two suppliers per input (sup2)'
   # ---- S10
   - file: si.tex
-    text: 'the central table with its loading raised by 0.10 between 15 and 55\,cm'
-    why: 'design: the fleet lever (scenarios/draught_table_lowwater.csv)'
-  - file: si.tex
     text: 'the nine such vessels in service in August 2026 (about 800 tonnes of cargo at 30\,cm'
     why: 'evidence: wiwo2026 (nine low-water tankers); Stolt Ludwigshafen payload (BASF press release 2023, loading-table source)'
-  - file: si.tex
-    text: 'against about half of that for a standard unit'
-    why: 'evidence: single-vessel loads at 30 cm (contargo2026; loading table, vessel column)'
-  - file: si.tex
-    text: 'it loads more at every gauge between 15 and 55\,cm'
-    why: 'design: the fleet lever'
   - file: si.tex
     text: 'interpolated linearly to zero at the neighboring anchors, 10 and 78\,cm'
     why: 'design: the fleet lever (draught_table_lowwater.csv)'
@@ -106,9 +85,6 @@ allowed:
   - file: si.tex
     text: 'eleven versions of the supplier--buyer network'
     why: 'design: number of supplier--buyer networks (reference + ten seeds); l. 35 and 197'
-  - file: si.tex
-    text: 'range of the eleven networks'
-    why: 'design: number of networks (l. 81 and 245)'
   - file: si.tex
     text: 'of the eleven networks fall inside the benchmark'
     why: 'design: number of networks (the count itself is \DrawsInBand)'
@@ -151,15 +127,6 @@ allowed:
   - file: si.tex
     text: '(below 5\,cm the loading curve is held at its lowest value, 8\,\%, an assumption)'
     why: 'data: floor of the loading table (scenarios/draught_table.csv)'
-  - file: si.tex
-    text: '19, 31, 30, 31 and 15 days from July to November'
-    why: 'data: days below 78 cm, scenarios/kaub_daily_2026.csv to 29 Sep then scenarios/2026.csv (checked 5 Nov: Jul 19, Aug 31, Sep 29+1)'
-  - file: si.tex
-    text: 'and of the two loading curves'
-    why: 'design: tablelow/tablehigh'
-  - file: si.tex
-    text: 'The two differ in shape: the model is spiky'
-    why: 'count: model and regression paths'
   - file: si.tex
     text: 'the mean over the eleven networks, the headline of this paper'
     why: 'design: number of networks'

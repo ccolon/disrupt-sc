@@ -100,7 +100,6 @@ def main(runs: Path, out: Path):
         PRICED = {1.0: "2018_baseline", 1.5: "2018_inv150", 2.0: "2018_pipe"}
     print(f"priced river: {PRICED[1.0]}, {PRICED[1.5]}, {PRICED[2.0]}")
     priced1 = matched(runs / PRICED[1.0])
-    INT_PRICED = {1.0: priced1["integral"], 1.5: matched(runs / PRICED[1.5])["integral"], 2.0: matched(runs / PRICED[2.0])["integral"]}
     PRICED_X1 = [priced1[mo] for mo in MONTHS]
     m = table(AD / f"compare_runs_batch_jobs_{LISTS}_main.csv")
     p = table(AD / f"compare_runs_batch_jobs_{LISTS}_paired.csv")
@@ -123,7 +122,7 @@ def main(runs: Path, out: Path):
     ax.set_xticks(x); ax.set_xticklabels(list(MONTHS), fontsize=8)
     ax.set_ylabel("shortfall of industrial production (%)", color=MUTED, fontsize=8)
     ax.set_ylim(0, 3.0)
-    ax.legend([(h_rng, h_iqr, hm), (h_bench, hb), ha], ["model (mean, interquartile range, range of 11 networks)", "statistical benchmark (±1 s.d. band)", "alternative river (surcharge, closures)"],
+    ax.legend([(h_rng, h_iqr, hm), (h_bench, hb), ha], ["model (mean, interquartile, min–max of 11 networks)", "statistical benchmark (±1 s.d. band)", "alternative river (surcharge, closures)"],
               handler_map={tuple: HandlerTuple(ndivide=1)}, frameon=False, fontsize=7, loc="upper left")
     ax.set_title("(a) German industrial production, 2018", loc="left", fontsize=9.5, color=INK)
 
@@ -132,6 +131,10 @@ def main(runs: Path, out: Path):
     # the eleven networks as a shaded range and interquartile range at x1 instead of points (the points are in (d));
     # the loading-curve bar in blue (green was the benchmark's colour); a rung at x0.75 (2018_<TAG>_inv075) when its
     # run is there (the author's question of 6 Nov: the ladder below the balance-sheet level, not a new baseline)
+    # 12 Nov 2026 (the author's notes on the caption): one legend entry for the model and the networks' range, as in
+    # (a); no alternative river in this panel; the range of the eleven networks centred on x1; the loading-curve
+    # variants as two triangles at x1 instead of a segment; no '(statistics)' under the x1 tick. The line is the
+    # reference network (the inventory levels were run on it alone), which the legend says
     ax = axes[0, 1]; style(ax)
     h_bband = ax.axhspan(rec_s["p16"], rec_s["p84"], color=GREEN, alpha=0.2, linewidth=0)
     h_bline = ax.axhline(rec_s["integral"], color=GREEN, linewidth=1.2)
@@ -140,23 +143,35 @@ def main(runs: Path, out: Path):
         gate[0.75] = matched(runs / f"2018_{TAG}_inv075")["integral"]
     gate = dict(sorted(gate.items()))
     h_model, = ax.plot(list(gate), list(gate.values()), color=INK, linewidth=1.8, marker="o", markersize=5)
-    h_alt, = ax.plot(list(INT_PRICED), list(INT_PRICED.values()), color=ORANGE, linewidth=1.3, linestyle="--", marker="o", markersize=4)
     ints = np.array([s["integral"] for s in seeds] + [ref["integral"]])
-    xl, xr = 0.90, 0.96                                     # the eleven networks' integrals at x1, drawn beside the rung
+    xl, xr = 0.965, 1.035                                   # the eleven networks' integrals, centred on x1
     h_nrng = ax.fill_between([xl, xr], ints.min(), ints.max(), color=GREY, alpha=0.35, linewidth=0)
     h_niqr = ax.fill_between([xl, xr], np.quantile(ints, 0.25), np.quantile(ints, 0.75), color=GREY, alpha=0.6, linewidth=0)
-    h_curve, = ax.plot([1.0, 1.0], [high["integral"], low["integral"]], color=BLUE, linewidth=2.5, alpha=0.8, solid_capstyle="round", zorder=2)
+    h_up, = ax.plot([1.0], [low["integral"]], color=BLUE, marker="^", markersize=5.5, linestyle="none", zorder=5)     # capacity reduction x1.15
+    h_dn, = ax.plot([1.0], [high["integral"]], color=BLUE, marker="v", markersize=5.5, linestyle="none", zorder=5)    # capacity reduction x0.85
     h_sup = ax.scatter([1.0], [sup2["integral"]], color=INK, marker="x", s=40, zorder=4)
     ticks = sorted(set(gate) | {1.0, 1.25, 1.5, 2.0})
-    ax.set_xticks(ticks); ax.set_xticklabels([("×1\n(statistics)" if t == 1.0 else f"×{t:g}") for t in ticks], fontsize=8)
+    ax.set_xticks(ticks); ax.set_xticklabels([f"×{t:g}" for t in ticks], fontsize=8)
     ax.set_xlim(min(ticks) - 0.2, 2.1)
     ax.set_xlabel("inventory multiplier", color=MUTED, fontsize=8)
     ax.set_ylabel("industrial shortfall, Aug–Dec 2018 (percent-months)", color=MUTED, fontsize=8)
-    ax.set_ylim(0, 12.5)                                  # room above the band (3.6-7.1) for the six-line legend
-    ax.legend([h_model, h_alt, (h_bband, h_bline), (h_nrng, h_niqr), h_curve, h_sup],
-              ["model (reference network)", "alternative river (surcharge, closures)", "statistical benchmark (±1 s.d. band)",
-               "eleven networks at ×1 (interquartile range, range)", "loading curve, shortfall ×1.15 and ×0.85", "two suppliers per input"],
-              handler_map={tuple: HandlerTuple(ndivide=1)}, frameon=True, framealpha=0.9, edgecolor="none", fontsize=7, loc="upper left")
+    ax.set_ylim(0, 12.0)                                  # room above the band (3.6-7.1) for the legend
+    from matplotlib.legend_handler import HandlerBase
+    from matplotlib.lines import Line2D
+
+    class _Pair:                                           # the two triangles as one legend entry
+        def __init__(self, *handles):
+            self.handles = handles
+
+    class _TwoMarkers(HandlerBase):
+        def create_artists(self, legend, orig, x0, y0, width, height, fontsize, trans):
+            return [Line2D([x0 + width * (0.32 + 0.36 * k)], [y0 + height / 2], marker=h.get_marker(), color=h.get_color(),
+                           markersize=h.get_markersize(), linestyle="none", transform=trans) for k, h in enumerate(orig.handles)]
+
+    ax.legend([(h_nrng, h_niqr, h_model), (h_bband, h_bline), _Pair(h_up, h_dn), h_sup],
+              ["model (reference network; at ×1: interquartile\nand min–max of the 11 networks)", "statistical benchmark (±1 s.d. band)",
+               "loading curve, capacity reduction ×1.15 and ×0.85", "two suppliers per input"],
+              handler_map={tuple: HandlerTuple(ndivide=1), _Pair: _TwoMarkers()}, frameon=True, framealpha=0.9, edgecolor="none", fontsize=7, loc="upper left")
     ax.set_title("(b) Cumulated shortfall: inventories, loading curve, suppliers", loc="left", fontsize=9.5, color=INK)
     print("ladder (inventory multiplier -> percent-months): " + ", ".join(f"x{k:g} {v:.2f}" for k, v in gate.items()))
 

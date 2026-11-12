@@ -3,7 +3,7 @@
 (a) Weekly German value-added loss: the 2026 season (A then B, no gap), wave A alone, wave B alone placed at
     its calendar position, and their sum - the area between the season and the sum is the interaction.
 (b) Cumulated loss of A then B against the weeks of normal water between them, with L(A) + L(B) as the
-    reference, and the flat profile (the same cumulated capacity shortfall, spread evenly).
+    reference, and the flat profile (the same cumulated capacity reduction, spread evenly).
 
 Usage:
     python studies/rhine2026/plots/wave_figure.py [--out studies/rhine2026/figures]
@@ -70,7 +70,7 @@ def main(out: Path):
     season = base.reindex(weeks).fillna(0.0)
     dates = [FIRST + pd.Timedelta(weeks=i - 1) for i in weeks]
 
-    fig, axes = plt.subplots(1, 2, figsize=(7.0, 3.1), gridspec_kw={"width_ratios": [1.45, 1]})
+    fig, axes = plt.subplots(1, 2, figsize=(7.0, 3.6), gridspec_kw={"width_ratios": [1.3, 1]})   # 12 Nov 2026 (the author's note): slightly larger
     fig.patch.set_facecolor("white")
 
     ax = axes[0]; style(ax)
@@ -100,26 +100,21 @@ def main(out: Path):
     ax.text(0.1, s - 0.012, "the two episodes alone, summed", color=MUTED, fontsize=7.5, ha="left", va="top")
     # 6 Nov 2026 (the author's review): the season as it happened, the comparison point of every other value of the panel
     ax.axhline(L[0], color=INK, linewidth=0.9, linestyle="-.", alpha=0.7)
-    ax.text(8.0, L[0] - 0.012, "season as it happened (no gap)", color=INK, fontsize=7.5, ha="right", va="top")
-    ax.plot(gaps, L, color=INK, linewidth=1.8, marker="o", markersize=5, label="in sequence, 30-day refill time")
-    cx = AD / f"compare_runs_batch_jobs_{CROSS}_cross.csv"; rv = AD / f"compare_runs_batch_jobs_{LISTS}_rev.csv"
+    ax.text(8.0, L[0] - 0.012, "season as it happened", color=INK, fontsize=7.5, ha="right", va="top")
+    ax.plot(gaps, L, color=INK, linewidth=1.8, marker="o", markersize=5, label="the two episodes in sequence")
+    # 12 Nov 2026 (the author's decision): the same experiment at a 15-day refill time is no longer drawn here; its
+    # numbers stay in Table S-crosswaves of the SI (si_tables.py, cross_table), with what bounds the refill
     L15 = []
-    if cx.exists() and rv.exists():                            # the batch of 9 Oct: the same experiment at a 15-day refill time
-        c, r = table(cx), table(rv)
-        s15 = c.loc[f"{WV9}_A_rest15", "DEU_%quarter"] + c.loc[f"{WV9}_B_rest15", "DEU_%quarter"]
-        L15 = [r.loc[f"2026_{REV}_rest15", "DEU_%quarter"], c.loc[f"{WV9}_AB_gap2_rest15", "DEU_%quarter"], c.loc[f"{WV9}_AB_gap4_rest15", "DEU_%quarter"]]
-        TEAL = "#1f9e9e"
-        ax.plot([0, 2, 4], L15, color=TEAL, linewidth=1.6, marker="o", markersize=4.5, label="in sequence, 15-day refill time")
     f = t.loc[f"{WV}_flat", "DEU_%quarter"]
     ax.axhline(f, color=GREEN, linewidth=1.0, linestyle=":")
     ax.text(8.0, f + 0.012, "flat profile", color=GREEN, fontsize=7.5, ha="right", va="bottom")
     ax.legend(frameon=False, fontsize=7, loc="upper right")
     ax.set_xticks(gaps)
-    ax.set_xlabel("weeks of normal water between the two episodes", color=MUTED, fontsize=8)
+    ax.set_xlabel("weeks of normal water\nbetween the two episodes", color=MUTED, fontsize=8)   # two lines: the label is wider than the panel
     ax.set_ylabel("German loss (% of a quarter)", color=MUTED, fontsize=8)
     ys = L + L15 + [s, f]
     ax.set_ylim(min(ys) - 0.06, max(ys) + 0.12)            # from the data: the per-class batch runs 0.65 to 1.11, the 7 Oct one 1.1 to 1.64
-    ax.set_title("(b) The interaction, by gap and refill time", loc="left", fontsize=9.5, color=INK)
+    ax.set_title("(b) The interaction, by gap", loc="left", fontsize=9.5, color=INK)
 
     finish(fig)
     fig.tight_layout(w_pad=2.0)

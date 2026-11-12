@@ -1,0 +1,100 @@
+Ledger entries dropped in the round of 12 November 2026 (their sentence left the manuscript or was reworded; the reworded ones
+were entered again on their new wording by ledger_20261112_round.py). Rebuilt from the ledger files against the last commit.
+main.tex [allowed]: (18 products are poolable, standardized goods
+main.tex [allowed]: 33\,\% of the surveyed Rhine-corridor firms reported production restrictions and 6\,\% a stop
+main.tex [allowed]: Across all deliveries in the 28 economies only
+main.tex [allowed]: After the August 2026 record (11\,cm in the week of 10 August) the river recovered to 67\,cm
+main.tex [allowed]: For containers the penalty of a switch is 15\,\% of the normal freight bill
+main.tex [allowed]: German firms within 50\,km of the Rhine producing below 99\,\% and below half of their baseline
+main.tex [allowed]: If it may, up to 50 kt a week, the 400 wagons that the national rail operator could add
+main.tex [allowed]: It stayed below 25\,cm until late October, rose to 45\,cm in the week of 26 October and fell back to 18\,cm in the first week of November
+main.tex [allowed]: The nine low-water tankers built by the chemical companies since 2018 and the seven more planned
+main.tex [allowed]: The refill time sets how fast this happens: at 15 days instead of the model's 30
+main.tex [allowed]: a local variant adds the 20\,cm on the Kaub stretch only
+main.tex [allowed]: a week at 11\,cm passes a fifth of the normal tonnage; a week below 5\,cm, 8\,\%
+main.tex [allowed]: adds more than 50\,km on a mode that was initially under 100\,km
+main.tex [allowed]: and doubling it raises it by \RevRestSixtyRel
+main.tex [allowed]: and of the two loading curves
+main.tex [allowed]: and the fleet last in \FleetLastDraws{} of ten
+main.tex [allowed]: and when the railway can take on 50 kt a week
+main.tex [allowed]: at a refill time of 15 days instead of 30
+main.tex [allowed]: barge freight rates rose two and a half times on dry cargo
+main.tex [allowed]: can still carry about 800 tonnes at a gauge of 30\,cm, against about 400 for a standard vessel
+main.tex [allowed]: even more than the two together
+main.tex [allowed]: firm agents, 251 regional household agents and twelve external trading partners
+main.tex [allowed]: freight being about 5\,\% of the input bill of the median firm and a quarter to a half for transport operators
+main.tex [allowed]: from three quarters of the balance-sheet value to twice it
+main.tex [allowed]: halving it cuts the loss by \RevRestFifteenAbs
+main.tex [allowed]: in counterfactual runs with normal water between the two episodes
+main.tex [allowed]: in sequence with 1, 2, 4 and 8 weeks of normal water (200\,cm at Kaub)
+main.tex [allowed]: industrial loss over the five weeks of the August episode
+main.tex [allowed]: it is the same for the 28 economies as a whole
+main.tex [allowed]: its sum over the five months comes nearer the benchmark
+main.tex [allowed]: losses are expressed as a share of a quarter (13 weeks)
+main.tex [allowed]: lowered by 15\,\% (blue bar) and two suppliers per input (cross)
+main.tex [allowed]: one supplier per input are kept because they are what the evidence documents
+main.tex [allowed]: raising or lowering by 15\,\% the share of the normal tonnage it keeps off the river
+main.tex [allowed]: range of the eleven networks
+main.tex [allowed]: set a new one on 4 August and fell to 5\,cm on 17 August; the tonnage passing the stretch fell by three quarters
+main.tex [allowed]: so we report it as a sensitivity at two ceilings
+main.tex [allowed]: ten weeks below 50\,cm from 7 September, eight of them below 30\,cm
+main.tex [allowed]: the alternative at $\times$1, 1.5 and 2, rerun on the same flows
+main.tex [allowed]: the chemical companies had nine shallow-draft tankers built
+main.tex [allowed]: the eleven networks at the balance-sheet inventories
+main.tex [allowed]: the loading-curve variants and two suppliers per input
+main.tex [allowed]: the loss cumulated over the 43 weeks of the run divided by thirteen weeks
+main.tex [allowed]: the mean absolute error over the four months
+main.tex [allowed]: the single levers on top of the 50 kt rail ceiling; the wave profiles at a refill time of 15 days
+main.tex [allowed]: the sum of the losses of the two waves alone
+main.tex [allowed]: the three classes are three fleets
+main.tex [allowed]: the transport network is the TEN-T network of the European Commission
+main.tex [allowed]: the weekly mean was 2\,cm in the week of 28 September, and the daily mean $-5$\,cm on 1 October
+main.tex [allowed]: two direct effects, run apart on the reference network
+main.tex [allowed]: up to 140 kt a week, the monthly rail volume that the statistical response
+main.tex [allowed]: variants with the shortfall raised and lowered by 15\,\% give
+main.tex [allowed]: which acts in two ways
+main.tex [allowed]: which have the river above 130\,cm from 16 November
+main.tex [allowed]: with 15 days it disappears
+main.tex [allowed]: with a utilization rate $u=0.8$
+main.tex [allowed]: with other estimates made in August and September of 0.2--0.35 points
+main.tex [claims]: (a quarter with its gain extended to 100\,cm)
+main.tex [claims]: The lower ceiling is reached in nearly every week of both events
+main.tex [claims]: a fleet built for low water more than a fifth (a quarter with its gain
+main.tex [claims]: a loss that builds from July and nearly triples in the autumn
+main.tex [claims]: a quarter of the loss at the tonnage the operator offered in August 2026 and more than a half at the scale of the rail response
+main.tex [claims]: and the building-materials chain a sixth
+main.tex [claims]: divides the loss by about three and a half compared with a model that keys every input to its region
+main.tex [claims]: each remove two fifths of the loss
+main.tex [claims]: goods producers and construction work off nearly a quarter of their backlog
+main.tex [claims]: inside the EUR 1--2 billion (0.1--0.2 percentage points of third-quarter GDP)
+main.tex [claims]: it predicts an economy-wide loss two and a half times larger
+main.tex [claims]: one extra week removes two fifths of the 2026 loss
+main.tex [claims]: one more week of them removes two fifths of the 2026 loss
+main.tex [claims]: starts its losses two and a half months late
+main.tex [claims]: the barge-dependent buyers alone a quarter
+main.tex [claims]: the higher one in most
+main.tex [claims]: the model's industrial loss lies within the 95\,\% band of their estimate
+main.tex [claims]: the other 39 sectors are placed on NUTS3 employment
+main.tex [claims]: the three together more than four fifths
+main.tex [claims]: two thirds in its food chain
+main.tex [claims]: what the railway can take on at short notice removes a quarter to more than a half
+main.tex [claims]: while doubling inventories reduces the loss by almost three quarters
+main.tex [claims]: would each remove two fifths of it
+si.tex [allowed]: 19, 31, 30, 31 and 15 days from July to November
+si.tex [allowed]: The two differ in shape: the model is spiky
+si.tex [allowed]: The two waves at a 15-day refill time
+si.tex [allowed]: Under the kilometer thresholds alone, 1,553 pairs find no acceptable route (833 million USD of the week's orders), 1,224 deliver on their own modes (385 million) and 54 on a path without penalty (24 million)
+si.tex [allowed]: With the shortfall it implies raised or lowered by 15\,\%
+si.tex [allowed]: against about half of that for a standard unit
+si.tex [allowed]: already has 100\,km or more of road (35\,\%)
+si.tex [allowed]: and of the two loading curves
+si.tex [allowed]: because at 15 days the buyers hit by the first wave
+si.tex [allowed]: for nine tenths of the pairs without a route, the alternative is a barge to Koblenz, 88\,km of truck around the reach and a barge again, at a median surcharge of 49\,\% on the freight; it is refused because 88\,km exceeds the allowance
+si.tex [allowed]: it loads more at every gauge between 15 and 55\,cm
+si.tex [allowed]: on the 2,831 origin--destination pairs (5,707 links) whose bulk crosses Kaub, in a ten-week test run
+si.tex [allowed]: puts more than 50\,km of extra distance on a mode
+si.tex [allowed]: range of the eleven networks
+si.tex [allowed]: the central table with its loading raised by 0.10 between 15 and 55\,cm
+si.tex [allowed]: the loading curve with its shortfall raised and lowered by 15\,\%; two suppliers per input
+si.tex [allowed]: with a refill time of 15 days instead of 30. At 15 days the two waves
+si.tex [allowed]: with two and four weeks of normal water between them
