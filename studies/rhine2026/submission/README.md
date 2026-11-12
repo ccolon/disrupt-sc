@@ -95,3 +95,20 @@ The author revised `main.tex` and `si.tex` on Overleaf (commit 4dfe508); the rou
 - `natcomms_requirements_20261107.md` is the state of 7 November and still reads "6 figures + 1 table"; its other checks
   were not redone.
 - The cover letter was not changed by this round.
+
+## Status on 12 November 2026, late evening (the protocol of the 2026 test left the paper)
+
+The author's decision in chat, after the round above: the paper does not ship the protocol of the 2026 test. Record:
+`../review/revision_20261112_response.md`, section 9. What changes for the package:
+
+- The SI has eight sections. The former S6 ("The 2026 test") is gone; S7 to S9 are now S6 to S8. The two monthly tables
+  (industrial production against the published specification; the sectors on the river) are results of Section S6,
+  "The 2026 season in detail".
+- The Methods have no paragraph "Prospective test". Nothing is deposited on Zenodo at submission: the data statement
+  says "upon acceptance" for the gauge profile, the run tables and the scope data package. One red note is left in
+  `main.tex`, for the DOI of the code release.
+- `cover_letter.md`: the paragraph that announced a test scored during review is rewritten. It keeps the replacement of
+  the three forecast weeks of the river profile at revision.
+- `reporting_summary_notes.md`: the note on blinding follows the Methods.
+- Counts by `wordcount.py`: abstract 167 words, main text 5,270 (guide 5,000), Methods 2,860 (guide 3,000).
+- The older lines of this file that name sections of the SI (S4 to S10) describe earlier states.

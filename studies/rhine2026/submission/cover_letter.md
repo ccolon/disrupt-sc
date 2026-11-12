@@ -43,23 +43,21 @@ has drained. Third, most of the loss falls on services and outside the corridor,
 fuel and building materials, which the production statistics of industry do not measure: the model predicts an
 economy-wide loss two and a half times the industrial loss the official estimates capture.
 
-The study contains a test that is still open. Every parameter is set from external evidence or calibrated on normal
-traffic; one modeling choice, the representation of the river, was made on the 2018 event, whose published statistical
-estimate the model reproduces within the estimate's uncertainty band. The model and its parameters were fixed on
-2 November 2026, and the simulations use the Rhine as observed to 10 November. The German production indices of
-October, November and December are due after submission; the monthly path that the model implies for them and the
-scoring rule are in the manuscript and deposited at [DOI]. During review we will score each index on its first
-release and report the result, whatever it is. We will also replace the last three weeks of the river profile, which
-rest on official forecasts, with the observed record and rerun the reference simulation; if the results vary
-significantly, we will rerun all simulations of 2026 and update every number, and otherwise report the comparison in
-the Supplementary Information. We will not change the model in response to the statistics. The code is open
-(GPL-3.0, github.com/ccolon/disrupt-sc) and every number in the text is generated from the run outputs. The estimates of the 2026 event made during the summer extrapolated the 2018 statistics or ran a regional
-model of the Rhine corridor; this is the first from a model of supply-chain propagation.
+Every parameter is set from external evidence or calibrated on normal traffic; one modeling choice, the
+representation of the river, was made on the 2018 event, whose published statistical estimate the model reproduces
+within the estimate's uncertainty band. The simulations use the Rhine as observed to 10 November 2026. The last three
+weeks of the river profile rest on official forecasts. During review we will replace them with the observed record and
+rerun the reference simulation; if the results vary significantly, we will rerun all simulations of 2026 and update
+every number, and otherwise report the comparison in the Supplementary Information. The estimate was made before the
+German production statistics of October to December 2026 were published; the monthly path that the model implies is
+given in the Supplementary Information. The code is open (GPL-3.0, github.com/ccolon/disrupt-sc) and every number in
+the text is generated from the run outputs. The estimates of the 2026 event made during the summer extrapolated the
+2018 statistics or ran a regional model of the Rhine corridor; this is the first from a model of supply-chain
+propagation.
 
 We believe the paper suits Nature Communications because it joins three communities the journal serves, climate
 impacts, complex networks and economics, around a question that policy-makers in Europe are asking now, with a
-mechanism-level answer that statistics alone cannot give, and with a benchmark on 2018 and a test on statistics still
-to be published that readers can follow and check.
+mechanism-level answer that statistics alone cannot give, and with a benchmark on the 2018 event.
 
 This manuscript is not under consideration elsewhere, and there is no related manuscript under consideration or in
 press. [A preprint was / was not posted on <server> on <date>.] The work was not discussed with a Nature

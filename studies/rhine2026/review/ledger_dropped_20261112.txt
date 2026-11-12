@@ -98,3 +98,18 @@ si.tex [allowed]: the central table with its loading raised by 0.10 between 15 a
 si.tex [allowed]: the loading curve with its shortfall raised and lowered by 15\,\%; two suppliers per input
 si.tex [allowed]: with a refill time of 15 days instead of 30. At 15 days the two waves
 si.tex [allowed]: with two and four weeks of normal water between them
+
+Dropped in the evening of 12 November 2026, with the protocol of the 2026 test (the former Section S6 of the SI):
+si.tex: the mean over the eleven networks, the headline of this paper
+si.tex: $s_m = 100\,(1 - I_m/\bar I)$
+si.tex: the mean of $|s_m - \hat s_m|$ over the four months
+si.tex: and the fourth-quarter accounts are the closest tests
+si.tex: the model's value-added change by calendar quarter
+si.tex: of the quarter's baseline in the third quarter of 2026
+si.tex: industrial loss over the five weeks of the August episode
+si.tex: with other estimates made in August and September of 0.2--0.35 points
+si.tex: 33\,\% of the surveyed Rhine-corridor firms reported production restrictions and 6\,\% a stop
+si.tex: German firms within 50\,km of the Rhine produce below 99\,\% of their baseline
+si.tex: \CorridorStopRhineAug\,\% below half of it
+si.tex: inside the EUR 1--2 billion (0.1--0.2 percentage points of third-quarter GDP)
+si.tex: inside the EUR 1--2 billion (0.1--0.2 percentage points of third-quarter GDP)

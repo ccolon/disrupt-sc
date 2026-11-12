@@ -81,9 +81,9 @@ run of the study and not selected on the results (Methods, "Economic layer").
 every run folder); the paper's 128 runs are listed in `additional_data/runs_20261111.csv` with their job lists; regeneration of
 every number and table of the manuscript is scripted (`make_numbers.py`, `si_tables.py`, `paper_gate.py --regen`).
 
-**Blinding.** Not applicable (no human raters). The test on the production index is pre-specified: the scoring protocol
-was fixed on 9 October 2026 and the model on 2 November, before the indices of October to December 2026 were
-published; the index of September, published on 6 November, entered no choice (Methods, "Prospective test").
+**Blinding.** Not applicable (no human raters). The production indices of 2026 entered no choice of the model, its
+parameters or the loading curve (Methods, "Scenarios"); the indices of October to December 2026 were not published when
+the runs were made.
 
 **Did the study involve field work?** No.
 

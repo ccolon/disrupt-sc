@@ -749,10 +749,10 @@ week & start & status & Kaub & loading share & re-sent & withheld \\
 
 
 def prospective_table(out: Path):
-    """The prospective test (review NS4, E3): the path that the published specification implies for the low-water days
-    of 2026, and the model's monthly industrial shortfall on the reference network, with the mean, the lowest and the
-    highest of the eleven networks. 12 Nov 2026 (the author's note): a table of Section S6 of the SI (it was the table
-    of the main text); the low-water days first, then the published specification and its band, then the model; the
+    """The monthly path of German industrial production in 2026: the path that the published specification implies for
+    the low-water days of 2026, and the model's monthly industrial shortfall on the reference network, with the mean, the
+    lowest and the highest of the eleven networks. 12 Nov 2026 (the author's note): a table of the SI (it was the table
+    of the main text), in the section on the 2026 season since the protocol of the test left the paper that evening; the low-water days first, then the published specification and its band, then the model; the
     two loading-curve rows are gone (their runs are in Table S-revision); every row has its sum. In the three rows on
     the eleven networks each cell is a statistic of its column, the sum included (the lowest sum of a network, not the
     sum of the lowest months)."""
@@ -792,7 +792,7 @@ def prospective_table(out: Path):
                 rows.append(f"{lab} & " + " & ".join(cell(bd.loc[m, col]) for m in labs) + f" & {cell(bd.loc[SUM, col])} \\\\")
     (out / "si_prospective.tex").write_text(r"""\begin{table}[tbp]
 \centering\footnotesize\setlength{\tabcolsep}{4pt}
-\caption{\textbf{The prospective test.} Days of low water at Kaub (below 78\,cm) and monthly shortfall of German industrial production in 2026 (\%; the production-index measure, each sector's shortfall rate weighted by its German value added, sections B--D): the path that the published specification of ref.~\citep{ademmer2023} implies for these days, with its band, and the model on the river as observed to 10 November 2026, on the reference network and across the eleven networks. In the three rows on the eleven networks, each cell is the mean, the lowest or the highest of the eleven for that column. Negative values are production above the no-event baseline. The last column is the sum of the months (days; percent-months).}
+\caption{\textbf{The monthly path of German industrial production, 2026.} Days of low water at Kaub (below 78\,cm) and monthly shortfall of German industrial production in 2026 (\%; the production-index measure, each sector's shortfall rate weighted by its German value added, sections B--D): the path that the published specification of ref.~\citep{ademmer2023} implies for these days, with its band, and the model on the river as observed to 10 November 2026, on the reference network and across the eleven networks. In the three rows on the eleven networks, each cell is the mean, the lowest or the highest of the eleven for that column. Negative values are production above the no-event baseline. The last column is the sum of the months (days; percent-months).}
 \label{tab:prospective}
 \begin{tabular}{L{62mm}rrrrrrr}
 \toprule
@@ -806,7 +806,7 @@ def prospective_table(out: Path):
 
 
 def prospective_sectors_table(out: Path):
-    """Sectoral signatures of the 2026 forecast (review 8 Oct, G2/E3): monthly production shortfall of the German sectors on
+    """The monthly path of the sectors on the river, 2026 (review 8 Oct, G2/E3): monthly production shortfall of the German sectors on
     the river and of the transport operators, reference network, production-weighted within the sector."""
     from matched_estimand_2018 import monthly_from_weekly, FIRST
     run = RUNS / B26
@@ -831,7 +831,7 @@ def prospective_sectors_table(out: Path):
         rows.append(f"{lab} & " + " & ".join(_signed(mo[m]) for m in months) + f" & {_signed(sum(mo.values()))} \\\\")
     (out / "si_prospective_sectors.tex").write_text(r"""\begin{table}[tbp]
 \centering\footnotesize\setlength{\tabcolsep}{4pt}
-\caption{\textbf{Sectoral signatures of the 2026 forecast.} Monthly shortfall of production (\%, production-weighted within the sector; negative values are production above the no-event baseline) of the German sectors on the river and of the transport operators, reference network, """ + batch_text("issued") + r"""; the last column is the plain sum of the months (percent-months). Pre-specified for the prospective test of the main text: the production index gives the industrial rows by month, the turnover index of transport and storage the operators' rows.}
+\caption{\textbf{The monthly path of the sectors on the river, 2026.} Monthly shortfall of production (\%, production-weighted within the sector; negative values are production above the no-event baseline) of the German sectors on the river and of the transport operators, reference network; the last column is the plain sum of the months (percent-months). In the statistics, the production index gives the industrial rows by month, and the turnover index of transport and storage the operators' rows.}
 \label{tab:prospective_sectors}
 \begin{tabular}{L{52mm}rrrrrrr}
 \toprule

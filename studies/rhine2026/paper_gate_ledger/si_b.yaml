@@ -128,46 +128,13 @@ allowed:
     text: '(below 5\,cm the loading curve is held at its lowest value, 8\,\%, an assumption)'
     why: 'data: floor of the loading table (scenarios/draught_table.csv)'
   - file: si.tex
-    text: 'the mean over the eleven networks, the headline of this paper'
-    why: 'design: number of networks'
-  - file: si.tex
-    text: '$s_m = 100\,(1 - I_m/\bar I)$'
-    why: 'convention: notation of the observed shortfall'
-  - file: si.tex
-    text: 'the mean of $|s_m - \hat s_m|$ over the four months'
-    why: 'design: scoring months September-December'
-  - file: si.tex
-    text: 'and the fourth-quarter accounts are the closest tests'
-    why: 'convention: calendar quarter'
-  - file: si.tex
-    text: 'the model''s value-added change by calendar quarter'
-    why: 'convention: calendar quarter'
-  - file: si.tex
-    text: 'of the quarter''s baseline in the third quarter of 2026'
-    why: 'convention: calendar quarter'
-  - file: si.tex
     text: 'a week in week 24 to \CatchUpLastM~million in week 43'
     why: '5 Nov 2026 pending fix (patch_pending_20261105.py); design: week 24 is the first recovery week after the 23 weeks of the 2026 profile, week 43 the last week of the run'
   - file: si.tex
     text: 'The run horizon, 43 weeks for 2026 and 42 for 2018'
     why: 'design: run length (Supplementary Section S10; moved from Methods on 7 Nov 2026)'
   # ---- moved or copied from main.yaml by the trim of 7 Nov 2026 (ledger_relocate.py)
-  - file: si.tex
-    text: 'industrial loss over the five weeks of the August episode'
-    why: 'convention: the August trough = run weeks 7-11 (make_numbers.py, AugWaveIndQ)'
-  - file: si.tex
-    text: 'with other estimates made in August and September of 0.2--0.35 points'
-    why: 'evidence: bloomberg2026commerzbank (Commerzbank 0.35, 11 Aug), kiel2026autumn (0.2 adopted, 0.3 ceteris paribus, 3 Sept), jannsen2026lowwater (the same, Wirtschaftsdienst 106(9))'
-  - file: si.tex
-    text: '33\,\% of the surveyed Rhine-corridor firms reported production restrictions and 6\,\% a stop'
-    why: 'evidence: dihk2026 (survey of 29 July - 4 August)'
-  - file: si.tex
-    text: 'German firms within 50\,km of the Rhine produce below 99\,\% of their baseline'
-    why: 'design: corridor radius 50 km, threshold 99 % of baseline (make_numbers.py, CorridorFirmsBelowRhine*)'
   # ---- moved or copied from main.yaml by the trim of 7 Nov 2026 (ledger_relocate.py)
-  - file: si.tex
-    text: '\CorridorStopRhineAug\,\% below half of it'
-    why: 'design: stop threshold = half of baseline output (make_numbers.py, CorridorStopRhine*)'
 claims:
 
   # 5 Nov 2026 rewrite (patch_stale_claims_20261105.py); words matched to the batch of 2 Nov
@@ -179,16 +146,6 @@ claims:
     range: [1490, 1490]
     why: 'data check: the edge counts by mode (roads 2,979, rail 4,261, waterways 461, sea 948, connectors 1,490) sum to \NEdges'
   # ---- moved or copied from main.yaml by the trim of 7 Nov 2026 (ledger_relocate.py)
-  - file: si.tex
-    text: 'inside the EUR 1--2 billion (0.1--0.2 percentage points of third-quarter GDP)'
-    expr: 'AugWaveEurBn'
-    range: [1, 2]
-    why: 'result: the model''s August industrial loss in EUR bn lies inside the ifw2026 estimate (the digits are that evidence)'
-  - file: si.tex
-    text: 'inside the EUR 1--2 billion (0.1--0.2 percentage points of third-quarter GDP)'
-    expr: 'AugWaveIndQ'
-    range: [0.1, 0.2]
-    why: 'result: the same in % of a quarter of German value added against the ifw2026 0.1-0.2 points'
 pending:
   # ---- S3
   # ---- S4 the two channels

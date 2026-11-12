@@ -166,3 +166,66 @@ Not done: the review panel was not run on this version; the submission package w
 | `ledger_20261112_round.py` | The ledger of the gate; `ledger_dropped_20261112.txt` lists what left |
 | `check_macro_spaces.py` | A number macro followed by a space |
 | `check_prose.py` | Open brackets, a word twice, punctuation |
+
+## 9. Late evening: the protocol of the 2026 test leaves the paper
+
+The author's question in chat, after reading the round: "do we really need to ship this 2026 protocol? It exposes to
+more questions, I think the paper is already good without it. I would remove S6, put the monthly path by sector and
+the two prospective tables in S5. What do you think?"
+
+My answer was yes, and it is applied (Overleaf `69660ff`, one push). The reasons:
+
+1. **The test could not show much, and it could fail for the wrong reason.** The score compared the model with the
+   production index measured against its level of January to June. That index also carries demand, energy prices and
+   the industrial trend, and the paper itself said that the score "does not validate the causal loss". The verdict rule
+   ("judged wrong if its score exceeds the zero path's") then turned mostly on whether German industry as a whole ended
+   2026 above or below its first half. A pass would have proved little; a fail could have come from the business cycle.
+2. **It needed a story of dates that a referee cannot verify:** the model fixed on 2 November, the index of September
+   released on 6 November and left unopened, the runs of 11 November.
+3. **The four results do not rest on it.**
+4. **Removing it now is clean.** No index has been scored, nothing was deposited and nothing was submitted, so this is
+   a choice of design, not an answer to a result.
+
+What went and what stayed:
+
+| | Before | Now |
+|---|---|---|
+| SI, Section S6 "The 2026 test" | The protocol (index, comparator, months, score, verdict, dates), the signed quarterly changes, the two tables, the estimates of August | Removed as a section. The two tables stay, each with a paragraph, as results of the 2026 season |
+| Where the two tables are | S6 | At the end of "The 2026 season in detail", which is now S6. Not in S5: see below |
+| Table of the monthly path of industry | "The prospective test" | "The monthly path of German industrial production, 2026" (Table S13 in the PDF); same rows |
+| Table of the sectors | "Pre-specified for the prospective test: ..." | "In the statistics, the production index gives the industrial rows by month, and the turnover index of transport and storage the operators' rows" (Table S14) |
+| SI sections | S1 to S9 | S1 to S8: the former S7, S8 and S9 are S6, S7 and S8. 32 section numbers changed in the two files |
+| Methods, "Prospective test" | A paragraph of 195 words | Removed |
+| Methods, Scenarios | "The model, its parameters, and the loading curve were fixed on 2 November 2026. The production indices of July, August, and September 2026, released on ..., entered no choice." | "The production indices of 2026 entered no choice of the model, its parameters, or the loading curve." |
+| Introduction | "... the first from a model of supply-chain propagation, with a test against statistics that are still to be published"; "..., which the statistics of the autumn of 2026 will test" | Both clauses removed |
+| Discussion | A paragraph, "The 2026 results are a forecast that readers can check ..." | Two sentences at the end of the paragraph on services: the monthly path was computed before the statistics of October to December and can be compared with them, "although these also carry demand, energy prices, and the industrial trend" |
+| Results, survey of August | "(Supplementary Section S6)" | Pointer removed; the SI paragraph only repeated the main text |
+| Data availability | Gauge profile, monthly path and run tables "deposited on Zenodo at submission" | Everything "upon acceptance; until then, available from the corresponding author" |
+| Cover letter | "The study contains a test that is still open ... During review we will score each index ..." | Rewritten without the test. It keeps the replacement of the three forecast weeks of the river at revision |
+
+**Where the tables are.** You named S5. I put them in the section on the 2026 season instead: S5 gives the reasons for
+the two choices made on 2018, and these tables are results of 2026. If you prefer S5, it is one block to move.
+
+**What you may still want to reverse or cut:**
+
+1. The deposit on Zenodo at submission is gone with the protocol: it existed to give the forecast a public date. The
+   date of receipt of the manuscript now plays that part. One red note is left in `main.tex` (the DOI of the code).
+2. The abstract and the Introduction still say that the estimate comes before the production statistics of October to
+   December. This is what will make a referee ask how the model compares once they are out. Table S13 is there to
+   answer; the two sentences of the Discussion say what such a comparison cannot show.
+3. No longer printed anywhere: the signed quarterly changes (+0.39 and −0.23 % of a quarter) and the share of firms
+   below baseline at the autumn peak (22.2 and 13.5 %). The macros stay in `numbers.tex`.
+4. The row "mean of the eleven networks" of Table S13 was there because the protocol scored it. It can stay as
+   information or go.
+
+**Numbers in the earlier sections of this file.** Sections 2 to 6 name the SI sections and the table as they were
+before this step: S7, S8 and S9 there are now S6, S7 and S8, and "Table S10" is Table S13. Open point 3 of section 6
+still stands for that table; the notes N05, N08 and N09 are superseded by this section.
+
+**Checks.** `paper_gate.py --regen`: PASS (`review/paper_gate_20261112_protocol_out.md`); 61 pages, no undefined
+reference. Counts: abstract 167 words, main text 5,270 (guide 5,000), Methods 2,860 (guide 3,000, now within it).
+Thirteen entries of the ledger left with the section.
+
+**Scripts.** `patch_20261112_protocol_out.py` (both files), `renumber_si_sections.py` (lists or shifts the hard-coded
+section numbers), `patch_tools_20261112_protocol_out.py` (`si_tables.py`, the loading-table ledger),
+`ledger_20261112_protocol_out.py`, `patch_submission_20261112_protocol_out.py` (cover letter, reporting notes, README).
