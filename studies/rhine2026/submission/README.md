@@ -10,10 +10,12 @@ the submission needs besides the manuscript, and the scripts that build the file
 | File | What it is |
 |---|---|
 | `natcomms_requirements_20261107.md` | every requirement of the journal's pages (quoted, with the URL) against the manuscript: status PASS / ACTION / DECISION / LATER, and the order of the final steps |
-| `cover_letter.md` | the cover letter draft, following the journal's list of contents; brackets for what only the author can fill |
+| `cover_letter.md` | the cover letter (final text of 13 November, for double-anonymised review: it carries the author information removed from the manuscript); brackets for what only the author can settle |
+| `build_cover_letter.py` | builds `cover_letter.docx` from `cover_letter.md` (e-mail read from the Overleaf copy, ORCID from `--orcid`, today's date) |
+| `build_review_code_archive.py` | builds `code_for_review_anonymous.zip`, the code for the reviewers under double-anonymised review (model, tests and study scripts; text files only; identifying strings replaced), and searches the archive for what is left |
 | `suggested_reviewers.md` | reviewer candidates by expertise and exclusions to consider, for the author to vet |
 | `reporting_summary_notes.md` | drafted answers for the Nature Portfolio reporting summary, if the editor asks for it |
-| `build_submission.py` | builds `main_text.pdf` (manuscript without the SI), `supplementary_information.pdf` (the SI as its own document, own reference list) and `combined.pdf` in a temporary copy of the Overleaf folder; prints the word counts and the page counts; fails on an engine error or an unresolved reference |
+| `build_submission.py` | with `--anonymous`: `main_text_anonymous.pdf` and `supplementary_information_anonymous.pdf` (no author block, funding or author contributions, no repository address, earlier work in the third person; metadata removed; searched for identifying strings). Without: builds `main_text.pdf` (manuscript without the SI), `supplementary_information.pdf` (the SI as its own document, own reference list) and `combined.pdf` in a temporary copy of the Overleaf folder; prints the word counts and the page counts; fails on an engine error or an unresolved reference |
 | `wordcount.py` | the counts against the journal's guide (title 15, abstract 200, main text 5,000, Methods 3,000, legends 350, references 70, display items 10), macros expanded |
 | `build_zenodo_package.py` | builds the Zenodo deposit of the EU data package (zip, README with provenance and licences, sha256 manifest, metadata draft, build report) in `C:/dsc_runs/rhine2026/zenodo/`; uploads nothing |
 
@@ -123,3 +125,40 @@ For the package:
   listed in `build_zenodo_package.py`, folder `evidence`. Rebuild the document with
   `../evidence/build_si_tables_detailed.py` if `numbers.tex` or `refs.bib` change, then rebuild the package.
 - The SI has eight sections and the PDF 60 pages.
+
+## Status on 13 November 2026, afternoon (the submission form; the author submits)
+
+The author opened the submission at Nature Communications and chose double-anonymised peer review, no Zenodo deposit before acceptance, and to upload the files and submit alone.
+
+Manuscript (Overleaf 3cd6f17): the title page has no "Draft of" date and the red note of Code availability is gone
+(`../review/patch_main_20261113_submission.py`). No `\todo` is left in `main.tex` or `si.tex`.
+
+Files to upload, built in `local/rhine2026_submission/` of the repository (ignored by git):
+
+```
+python studies/rhine2026/submission/build_submission.py --out local/rhine2026_submission               # named PDFs, combined.pdf
+python studies/rhine2026/submission/build_submission.py --out local/rhine2026_submission --anonymous   # the two anonymous PDFs
+python studies/rhine2026/submission/build_cover_letter.py --out local/rhine2026_submission --orcid <id>
+python studies/rhine2026/submission/build_review_code_archive.py --out local/rhine2026_submission
+```
+
+- `main_text_anonymous.pdf` (27 pages) and `supplementary_information_anonymous.pdf` (35 pages): the author's surname
+  appears only in the reference list; no author in the metadata.
+- `cover_letter.docx`: names the Collection, gives the author, affiliation, funding, author contributions, competing
+  interests and the address of the code (the journal's checklist for double-anonymised review moves them there). Two
+  brackets are the author's: the preprint sentence and the suggested reviewers (to be checked for conflicts of interest).
+- `code_for_review_anonymous.zip` (438 files, 2.2 MB): the journal asks for the code when a manuscript goes out to
+  review, and the public repository names its author. Left out: `review/`, `submission/`, `figures/`, `evidence/`, the
+  records of cluster operations, binary files. Checked: no name, address, institution, account or local folder left.
+
+Filled in the form (saved, not submitted): title and abstract; subject terms (Industry and Natural hazards, the author's,
+plus Economics, Climate-change impacts and Complex networks); Collection "Managing cascading and non-linear climate
+risks" (open until 17 April 2027; "Drought" is closed); not a clinical trial; code developed: yes, no Code Ocean
+capsule, code submitted as a supplementary software file, with a note on the repository and the data; no figshare
+upload. The author's own answers were left as found: no competing interests, no dual publication, double-anonymised
+review, previous interactions "None of the above".
+
+Left to the author (the Validate step lists the first five as errors): gender identity and the authorship declaration
+(Authors tab); the consent to the Research Square dashboard; In Review yes or no; the transparent-peer-review
+statement; the APC waiver box (optional; a request is only considered at submission); the upload of the files; the
+push of this repository, which the Code availability statement points to.
