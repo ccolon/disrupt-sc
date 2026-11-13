@@ -1,0 +1,179 @@
+# Cambodia paper, runs on the R2 base (Q32 "All three", 13 Nov 2026; reports/19_pilot_r2_read.md), networks 1-10, d = 12,
+# caches cam_r2_s<n> (1-2 built by pilot_r2_20261112, 3-10 new). One list, so that one setup job builds each network.
+#   - the R2 base: no-flood to day 2 (day-0 flows for the carbon-tax benchmark, trans_null.py) and the single Mekong,
+#     single Tonle Sap and the pair at tau 0, 6, 12, 24 to day 116 - the base of the carbon-tax runs on R2
+#     (jobs_trans_r2.txt) and of the robustness rows below;
+#   - robustness rows of the Q23 review, R_rob design (singles, tau 0, 12, 24): utility and transport inputs at 90 days
+#     (Rhine 2026's treatment); households hold stocks (the default.yaml household block).
+# 170 runs (10 no-flood + 60 + 50 + 50), ~130 CPU-h.
+# Usage: bash studies/cambodia/cluster/launch_cambodia.sh --jobs studies/cambodia/cluster/jobs_r2_rob.txt --batch r2_rob_<date>
+1 none 12 --cache-dir cam_r2_s1 --t-final 2
+1 single_mekong 12 --cache-dir cam_r2_s1 --t-final 116
+1 single_tonle 12 --cache-dir cam_r2_s1 --t-final 116
+1 pair_mekong_tonle_tau0 12 --cache-dir cam_r2_s1 --t-final 116
+1 pair_mekong_tonle_tau6 12 --cache-dir cam_r2_s1 --t-final 116
+1 pair_mekong_tonle_tau12 12 --cache-dir cam_r2_s1 --t-final 116
+1 pair_mekong_tonle_tau24 12 --cache-dir cam_r2_s1 --t-final 116
+1 single_mekong 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s1 --t-final 116
+1 single_tonle 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s1 --t-final 116
+1 pair_mekong_tonle_tau0 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s1 --t-final 116
+1 pair_mekong_tonle_tau12 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s1 --t-final 116
+1 pair_mekong_tonle_tau24 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s1 --t-final 116
+1 single_mekong 12 --set enable_household_inventories=true --cache-dir cam_r2_s1 --t-final 116
+1 single_tonle 12 --set enable_household_inventories=true --cache-dir cam_r2_s1 --t-final 116
+1 pair_mekong_tonle_tau0 12 --set enable_household_inventories=true --cache-dir cam_r2_s1 --t-final 116
+1 pair_mekong_tonle_tau12 12 --set enable_household_inventories=true --cache-dir cam_r2_s1 --t-final 116
+1 pair_mekong_tonle_tau24 12 --set enable_household_inventories=true --cache-dir cam_r2_s1 --t-final 116
+2 none 12 --cache-dir cam_r2_s2 --t-final 2
+2 single_mekong 12 --cache-dir cam_r2_s2 --t-final 116
+2 single_tonle 12 --cache-dir cam_r2_s2 --t-final 116
+2 pair_mekong_tonle_tau0 12 --cache-dir cam_r2_s2 --t-final 116
+2 pair_mekong_tonle_tau6 12 --cache-dir cam_r2_s2 --t-final 116
+2 pair_mekong_tonle_tau12 12 --cache-dir cam_r2_s2 --t-final 116
+2 pair_mekong_tonle_tau24 12 --cache-dir cam_r2_s2 --t-final 116
+2 single_mekong 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s2 --t-final 116
+2 single_tonle 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s2 --t-final 116
+2 pair_mekong_tonle_tau0 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s2 --t-final 116
+2 pair_mekong_tonle_tau12 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s2 --t-final 116
+2 pair_mekong_tonle_tau24 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s2 --t-final 116
+2 single_mekong 12 --set enable_household_inventories=true --cache-dir cam_r2_s2 --t-final 116
+2 single_tonle 12 --set enable_household_inventories=true --cache-dir cam_r2_s2 --t-final 116
+2 pair_mekong_tonle_tau0 12 --set enable_household_inventories=true --cache-dir cam_r2_s2 --t-final 116
+2 pair_mekong_tonle_tau12 12 --set enable_household_inventories=true --cache-dir cam_r2_s2 --t-final 116
+2 pair_mekong_tonle_tau24 12 --set enable_household_inventories=true --cache-dir cam_r2_s2 --t-final 116
+3 none 12 --cache-dir cam_r2_s3 --t-final 2
+3 single_mekong 12 --cache-dir cam_r2_s3 --t-final 116
+3 single_tonle 12 --cache-dir cam_r2_s3 --t-final 116
+3 pair_mekong_tonle_tau0 12 --cache-dir cam_r2_s3 --t-final 116
+3 pair_mekong_tonle_tau6 12 --cache-dir cam_r2_s3 --t-final 116
+3 pair_mekong_tonle_tau12 12 --cache-dir cam_r2_s3 --t-final 116
+3 pair_mekong_tonle_tau24 12 --cache-dir cam_r2_s3 --t-final 116
+3 single_mekong 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s3 --t-final 116
+3 single_tonle 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s3 --t-final 116
+3 pair_mekong_tonle_tau0 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s3 --t-final 116
+3 pair_mekong_tonle_tau12 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s3 --t-final 116
+3 pair_mekong_tonle_tau24 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s3 --t-final 116
+3 single_mekong 12 --set enable_household_inventories=true --cache-dir cam_r2_s3 --t-final 116
+3 single_tonle 12 --set enable_household_inventories=true --cache-dir cam_r2_s3 --t-final 116
+3 pair_mekong_tonle_tau0 12 --set enable_household_inventories=true --cache-dir cam_r2_s3 --t-final 116
+3 pair_mekong_tonle_tau12 12 --set enable_household_inventories=true --cache-dir cam_r2_s3 --t-final 116
+3 pair_mekong_tonle_tau24 12 --set enable_household_inventories=true --cache-dir cam_r2_s3 --t-final 116
+4 none 12 --cache-dir cam_r2_s4 --t-final 2
+4 single_mekong 12 --cache-dir cam_r2_s4 --t-final 116
+4 single_tonle 12 --cache-dir cam_r2_s4 --t-final 116
+4 pair_mekong_tonle_tau0 12 --cache-dir cam_r2_s4 --t-final 116
+4 pair_mekong_tonle_tau6 12 --cache-dir cam_r2_s4 --t-final 116
+4 pair_mekong_tonle_tau12 12 --cache-dir cam_r2_s4 --t-final 116
+4 pair_mekong_tonle_tau24 12 --cache-dir cam_r2_s4 --t-final 116
+4 single_mekong 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s4 --t-final 116
+4 single_tonle 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s4 --t-final 116
+4 pair_mekong_tonle_tau0 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s4 --t-final 116
+4 pair_mekong_tonle_tau12 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s4 --t-final 116
+4 pair_mekong_tonle_tau24 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s4 --t-final 116
+4 single_mekong 12 --set enable_household_inventories=true --cache-dir cam_r2_s4 --t-final 116
+4 single_tonle 12 --set enable_household_inventories=true --cache-dir cam_r2_s4 --t-final 116
+4 pair_mekong_tonle_tau0 12 --set enable_household_inventories=true --cache-dir cam_r2_s4 --t-final 116
+4 pair_mekong_tonle_tau12 12 --set enable_household_inventories=true --cache-dir cam_r2_s4 --t-final 116
+4 pair_mekong_tonle_tau24 12 --set enable_household_inventories=true --cache-dir cam_r2_s4 --t-final 116
+5 none 12 --cache-dir cam_r2_s5 --t-final 2
+5 single_mekong 12 --cache-dir cam_r2_s5 --t-final 116
+5 single_tonle 12 --cache-dir cam_r2_s5 --t-final 116
+5 pair_mekong_tonle_tau0 12 --cache-dir cam_r2_s5 --t-final 116
+5 pair_mekong_tonle_tau6 12 --cache-dir cam_r2_s5 --t-final 116
+5 pair_mekong_tonle_tau12 12 --cache-dir cam_r2_s5 --t-final 116
+5 pair_mekong_tonle_tau24 12 --cache-dir cam_r2_s5 --t-final 116
+5 single_mekong 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s5 --t-final 116
+5 single_tonle 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s5 --t-final 116
+5 pair_mekong_tonle_tau0 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s5 --t-final 116
+5 pair_mekong_tonle_tau12 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s5 --t-final 116
+5 pair_mekong_tonle_tau24 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s5 --t-final 116
+5 single_mekong 12 --set enable_household_inventories=true --cache-dir cam_r2_s5 --t-final 116
+5 single_tonle 12 --set enable_household_inventories=true --cache-dir cam_r2_s5 --t-final 116
+5 pair_mekong_tonle_tau0 12 --set enable_household_inventories=true --cache-dir cam_r2_s5 --t-final 116
+5 pair_mekong_tonle_tau12 12 --set enable_household_inventories=true --cache-dir cam_r2_s5 --t-final 116
+5 pair_mekong_tonle_tau24 12 --set enable_household_inventories=true --cache-dir cam_r2_s5 --t-final 116
+6 none 12 --cache-dir cam_r2_s6 --t-final 2
+6 single_mekong 12 --cache-dir cam_r2_s6 --t-final 116
+6 single_tonle 12 --cache-dir cam_r2_s6 --t-final 116
+6 pair_mekong_tonle_tau0 12 --cache-dir cam_r2_s6 --t-final 116
+6 pair_mekong_tonle_tau6 12 --cache-dir cam_r2_s6 --t-final 116
+6 pair_mekong_tonle_tau12 12 --cache-dir cam_r2_s6 --t-final 116
+6 pair_mekong_tonle_tau24 12 --cache-dir cam_r2_s6 --t-final 116
+6 single_mekong 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s6 --t-final 116
+6 single_tonle 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s6 --t-final 116
+6 pair_mekong_tonle_tau0 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s6 --t-final 116
+6 pair_mekong_tonle_tau12 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s6 --t-final 116
+6 pair_mekong_tonle_tau24 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s6 --t-final 116
+6 single_mekong 12 --set enable_household_inventories=true --cache-dir cam_r2_s6 --t-final 116
+6 single_tonle 12 --set enable_household_inventories=true --cache-dir cam_r2_s6 --t-final 116
+6 pair_mekong_tonle_tau0 12 --set enable_household_inventories=true --cache-dir cam_r2_s6 --t-final 116
+6 pair_mekong_tonle_tau12 12 --set enable_household_inventories=true --cache-dir cam_r2_s6 --t-final 116
+6 pair_mekong_tonle_tau24 12 --set enable_household_inventories=true --cache-dir cam_r2_s6 --t-final 116
+7 none 12 --cache-dir cam_r2_s7 --t-final 2
+7 single_mekong 12 --cache-dir cam_r2_s7 --t-final 116
+7 single_tonle 12 --cache-dir cam_r2_s7 --t-final 116
+7 pair_mekong_tonle_tau0 12 --cache-dir cam_r2_s7 --t-final 116
+7 pair_mekong_tonle_tau6 12 --cache-dir cam_r2_s7 --t-final 116
+7 pair_mekong_tonle_tau12 12 --cache-dir cam_r2_s7 --t-final 116
+7 pair_mekong_tonle_tau24 12 --cache-dir cam_r2_s7 --t-final 116
+7 single_mekong 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s7 --t-final 116
+7 single_tonle 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s7 --t-final 116
+7 pair_mekong_tonle_tau0 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s7 --t-final 116
+7 pair_mekong_tonle_tau12 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s7 --t-final 116
+7 pair_mekong_tonle_tau24 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s7 --t-final 116
+7 single_mekong 12 --set enable_household_inventories=true --cache-dir cam_r2_s7 --t-final 116
+7 single_tonle 12 --set enable_household_inventories=true --cache-dir cam_r2_s7 --t-final 116
+7 pair_mekong_tonle_tau0 12 --set enable_household_inventories=true --cache-dir cam_r2_s7 --t-final 116
+7 pair_mekong_tonle_tau12 12 --set enable_household_inventories=true --cache-dir cam_r2_s7 --t-final 116
+7 pair_mekong_tonle_tau24 12 --set enable_household_inventories=true --cache-dir cam_r2_s7 --t-final 116
+8 none 12 --cache-dir cam_r2_s8 --t-final 2
+8 single_mekong 12 --cache-dir cam_r2_s8 --t-final 116
+8 single_tonle 12 --cache-dir cam_r2_s8 --t-final 116
+8 pair_mekong_tonle_tau0 12 --cache-dir cam_r2_s8 --t-final 116
+8 pair_mekong_tonle_tau6 12 --cache-dir cam_r2_s8 --t-final 116
+8 pair_mekong_tonle_tau12 12 --cache-dir cam_r2_s8 --t-final 116
+8 pair_mekong_tonle_tau24 12 --cache-dir cam_r2_s8 --t-final 116
+8 single_mekong 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s8 --t-final 116
+8 single_tonle 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s8 --t-final 116
+8 pair_mekong_tonle_tau0 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s8 --t-final 116
+8 pair_mekong_tonle_tau12 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s8 --t-final 116
+8 pair_mekong_tonle_tau24 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s8 --t-final 116
+8 single_mekong 12 --set enable_household_inventories=true --cache-dir cam_r2_s8 --t-final 116
+8 single_tonle 12 --set enable_household_inventories=true --cache-dir cam_r2_s8 --t-final 116
+8 pair_mekong_tonle_tau0 12 --set enable_household_inventories=true --cache-dir cam_r2_s8 --t-final 116
+8 pair_mekong_tonle_tau12 12 --set enable_household_inventories=true --cache-dir cam_r2_s8 --t-final 116
+8 pair_mekong_tonle_tau24 12 --set enable_household_inventories=true --cache-dir cam_r2_s8 --t-final 116
+9 none 12 --cache-dir cam_r2_s9 --t-final 2
+9 single_mekong 12 --cache-dir cam_r2_s9 --t-final 116
+9 single_tonle 12 --cache-dir cam_r2_s9 --t-final 116
+9 pair_mekong_tonle_tau0 12 --cache-dir cam_r2_s9 --t-final 116
+9 pair_mekong_tonle_tau6 12 --cache-dir cam_r2_s9 --t-final 116
+9 pair_mekong_tonle_tau12 12 --cache-dir cam_r2_s9 --t-final 116
+9 pair_mekong_tonle_tau24 12 --cache-dir cam_r2_s9 --t-final 116
+9 single_mekong 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s9 --t-final 116
+9 single_tonle 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s9 --t-final 116
+9 pair_mekong_tonle_tau0 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s9 --t-final 116
+9 pair_mekong_tonle_tau12 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s9 --t-final 116
+9 pair_mekong_tonle_tau24 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s9 --t-final 116
+9 single_mekong 12 --set enable_household_inventories=true --cache-dir cam_r2_s9 --t-final 116
+9 single_tonle 12 --set enable_household_inventories=true --cache-dir cam_r2_s9 --t-final 116
+9 pair_mekong_tonle_tau0 12 --set enable_household_inventories=true --cache-dir cam_r2_s9 --t-final 116
+9 pair_mekong_tonle_tau12 12 --set enable_household_inventories=true --cache-dir cam_r2_s9 --t-final 116
+9 pair_mekong_tonle_tau24 12 --set enable_household_inventories=true --cache-dir cam_r2_s9 --t-final 116
+10 none 12 --cache-dir cam_r2_s10 --t-final 2
+10 single_mekong 12 --cache-dir cam_r2_s10 --t-final 116
+10 single_tonle 12 --cache-dir cam_r2_s10 --t-final 116
+10 pair_mekong_tonle_tau0 12 --cache-dir cam_r2_s10 --t-final 116
+10 pair_mekong_tonle_tau6 12 --cache-dir cam_r2_s10 --t-final 116
+10 pair_mekong_tonle_tau12 12 --cache-dir cam_r2_s10 --t-final 116
+10 pair_mekong_tonle_tau24 12 --cache-dir cam_r2_s10 --t-final 116
+10 single_mekong 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s10 --t-final 116
+10 single_tonle 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s10 --t-final 116
+10 pair_mekong_tonle_tau0 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s10 --t-final 116
+10 pair_mekong_tonle_tau12 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s10 --t-final 116
+10 pair_mekong_tonle_tau24 12 --set inventory_duration_targets.values.utility=90 --set inventory_duration_targets.values.transport=90 --cache-dir cam_r2_s10 --t-final 116
+10 single_mekong 12 --set enable_household_inventories=true --cache-dir cam_r2_s10 --t-final 116
+10 single_tonle 12 --set enable_household_inventories=true --cache-dir cam_r2_s10 --t-final 116
+10 pair_mekong_tonle_tau0 12 --set enable_household_inventories=true --cache-dir cam_r2_s10 --t-final 116
+10 pair_mekong_tonle_tau12 12 --set enable_household_inventories=true --cache-dir cam_r2_s10 --t-final 116
+10 pair_mekong_tonle_tau24 12 --set enable_household_inventories=true --cache-dir cam_r2_s10 --t-final 116
