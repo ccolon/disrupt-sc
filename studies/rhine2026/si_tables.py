@@ -126,6 +126,8 @@ def kaub_kt() -> float:
 
 sys.path.insert(0, str(HERE))
 from build_criticality_eu import ICIO_TO_WIOD  # noqa: E402
+from si_tables_evidence import (COUNTRY, LOADING_CAPTION, LOADING_TEXT, OVERRIDES, OVERRIDES_CAPTION, OVERRIDES_SERVICES,  # noqa: E402
+                                RATES_CAPTION, RATES_NOTES, RATES_TEXT, SAME_WATERWAYS, STOCK_ROWS, STOCKS_CAPTION, STOCKS_NOTES, word)
 
 SECTOR = {
     "A01": "Crop and animal production", "A02": "Forestry and logging", "A03": "Fishing and aquaculture",
@@ -263,12 +265,20 @@ def regional(node, cargo: str = "default", base_key: str = "default"):
 
 
 def rail_cell(bc, cargo: str) -> str:
+    """The rail cost of a cargo class and, where some countries carry a higher one, that cost with their number; the
+    countries are named in the notes of the table (13 Nov 2026: the cell listed their codes)."""
     base, var = regional(bc["railways"], cargo)
     dear = {k: v for k, v in var.items() if abs(v - base) > 1e-12}
     if not dear:
         return f"{base:.3f}"
     vals = sorted(set(dear.values()))
-    return f"{base:.3f} ({' / '.join(f'{v:.3f}' for v in vals)} in {len(dear)} countries: {', '.join(sorted(dear))})"
+    return f"{base:.3f}; {' / '.join(f'{v:.3f}' for v in vals)} in {word(len(dear))} countries$^{{a}}$"
+
+
+def rail_dear(bc, cargo: str) -> dict:
+    """{country: cost} of the countries whose rail cost differs from the base value."""
+    base, var = regional(bc["railways"], cargo)
+    return {k: v for k, v in var.items() if abs(v - base) > 1e-12}
 
 
 def water_cell(bc, cargo: str) -> str:
@@ -276,12 +286,17 @@ def water_cell(bc, cargo: str) -> str:
     if not (isinstance(node, dict) and "attribute" in node):
         return f"{regional(node, cargo)[0]:.3f}"
     base, var = regional(node, cargo, base_key="Rhine")
-    return f"{base:.3f} on the Rhine, {min(var.values()):.3f}--{max(var.values()):.3f} on the other waterways"
+    return f"{base:.3f} on the Rhine; up to {max(var.values()):.3f} on other waterways"
 
 
 def rates_table(out: Path):
+    """13 Nov 2026 (the author's request): the evidence cells are the plain sentences of si_tables_evidence.py (two or
+    three figures each); the value cells come from the parameters of the reference run, as before. The table is
+    written for the per-class batch (rail costs by country, waterway costs by waterway, seaport fees by port)."""
     lg, from_run = batch_logistics()
+    assert from_run, "the table of transport costs is written for the per-class batch (its reference run on disk)"
     bc, vot, dw, lf, sp = lg["basic_cost"], lg["cost_of_time"], lg["dwell_times"], lg["loading_fees"], lg["speeds"]
+    T = RATES_TEXT
 
     def transfer(pair: str) -> str:
         d, f = dw[pair], lf[pair]
@@ -290,57 +305,57 @@ def rates_table(out: Path):
                              (("container", "containers"), ("dry_bulk", "dry bulk"), ("liquid_bulk", "liquid bulk")))
         return f"{num(d)} h / {num(f)}"
 
-    # notes and rows that exist only with the job lists' overrides (from_run); the 7 Oct tables are unchanged
-    rail_note = (" Dearer in the countries named, where the model over-used rail (calibration round 2, Section~S2)."
-                 if from_run and isinstance(bc["railways"], dict) and "attribute" in bc["railways"] else "")
-    water_note = ""
-    if from_run and "attribute" in bc["waterways"]:
-        w_base, w_var = regional(bc["waterways"], "dry_bulk", base_key="Rhine")
-        same = sorted(k for k, v in w_var.items() if abs(v - w_base) < 1e-12 and not k.startswith("("))
-        water_note = (f" Set by waterway in calibration round 5 (Section~S2): the Rhine's values hold on {len(same)} other "
-                      f"named waterways ({', '.join(same)}), the others are up to {max(w_var.values()) / w_base:.0f} times "
-                      f"dearer (about the same factors for every cargo class).")
-    container_note = ("The per-class batch carries containers on the Rhine (\\KaubContMt~Mt a year through Kaub against "
-                      "about 10 in the counts, Section~S2), within the capacities of their vessel class (Methods)."
-                      if from_run else "The model routes the Rhine's containers by rail (Methods).")
+    # what the sentences and the notes say in words, checked against the parameters of the run
+    dear = rail_dear(bc, "default")
+    assert sorted(dear) == sorted(rail_dear(bc, "liquid_bulk")), "the same countries carry the higher rail cost for every cargo class"
+    rail_base = regional(bc["railways"], "default")[0]
+    assert all(abs(v / rail_base - 1.2) < 0.03 for v in dear.values()), "the rail cost is 20 % higher in the countries named"
+    countries = sorted(COUNTRY[c] for c in dear)
+    w_base, w_var = regional(bc["waterways"], "dry_bulk", base_key="Rhine")
+    same = sorted(k for k, v in w_var.items() if abs(v - w_base) < 1e-12 and not k.startswith("("))
+    assert len(same) == SAME_WATERWAYS.count(",") + 2, f"the notes name {SAME_WATERWAYS.count(',') + 2} waterways with the Rhine's values, the parameters have {len(same)}: {same}"
+    times = max(w_var.values()) / w_base
+    assert abs(times - round(times)) < 0.05, times
+    rail_text = T["rail"].replace("<<n_countries>>", word(len(dear)))
+    water_dry_text = T["water_dry"].replace("<<n_waterways>>", word(len(same))).replace("<<times>>", word(round(times)))
+    notes = RATES_NOTES.replace("<<countries>>", ", ".join(countries[:-1]) + " and " + countries[-1]).replace("<<waterways>>", SAME_WATERWAYS)
+
     port_rows = []
-    if from_run and isinstance(lf.get("by_port"), dict):
+    if isinstance(lf.get("by_port"), dict):
         fees = lf["by_port"]
         cont = [float(v["container"] if isinstance(v, dict) else v) for v in fees.values()]
         other = [float(v["default"] if isinstance(v, dict) else v) for v in fees.values()]
         port_rows.append(f"seaport fee, by port & containers {min(cont):g}--{max(cont):g}, other cargo {min(other):g}--{max(other):g} "
-                         f"USD per tonne at {len(fees)} ports & On top of the transfer above: the feeder ladder of calibration round 6 "
-                         f"(Section~S2), a fee that falls with the port's tonnage, so that the small ports do not draw the cargo "
-                         f"of the large ones. \\\\")
+                         f"USD per tonne at {len(fees)} ports & {T['port_fee']} \\\\")
 
     rows = [
         r"\multicolumn{3}{l}{\emph{Line haul, USD per tonne-kilometer}} \\",
-        f"road, containers and dry bulk & {bc['roads']['default']:.3f} & A full-load long-haul rate. No rate series was collected; the Panteia comparison for 2018 gives 0.115 EUR per tonne-kilometer for a tractor-semitrailer at fleet average, empty legs included. Road is never a line-haul mode for bulk (Methods). Calibrated. \\\\",
-        f"road, liquid bulk & {bc['roads']['liquid_bulk']:.3f} & Road tankers: dedicated equipment and cleaning. No rate evidence; set with the rail value so that the German liquid-bulk split by mode matches Eurostat 2023 (28 / 42 / 30 road / rail / waterway). Calibrated. \\\\",
-        f"rail, containers and dry bulk & {rail_cell(bc, 'default')} & Within the range of block-train and intermodal rates in Europe (0.02--0.04); lowered from 0.044 in the calibration of the modal split (Fig.~S2). Calibrated.{rail_note} \\\\",
-        f"rail, liquid bulk & {rail_cell(bc, 'liquid_bulk')} & Tank cars: as the road tankers. Calibrated. \\\\",
-        f"inland waterway, dry bulk & {water_cell(bc, 'dry_bulk')} & Push-convoy cost 0.008--0.012 EUR per tonne-kilometer (ores 0.009, coal 0.008; Panteia for KiM 2023, 2021 prices); the published coal rate Rotterdam--Basel of 2015, 10.5 EUR per tonne (0.013; INFRAS for the Swiss Federal Statistical Office). Single motor vessels cost 0.018 (CEMT Va) to 0.036 (Kempenaar), so grain-type flows in single vessels are under-priced in the model.{water_note} \\\\",
-        f"inland waterway, liquid bulk & {water_cell(bc, 'liquid_bulk')} & Tanker spot rates: ARA--Karlsruhe 27--29 EUR per tonne in June--July 2025 (0.042--0.045; Riverlake via OPIS) and about 20 in June 2022 (0.031; Handelsblatt), ARA--Cologne 15--17 (0.047--0.053), ARA--Basel 42 in November 2023 (0.051; Refinitiv series in the CCNR price-formation report); operator cost 0.029 (Panteia for KiM). \\\\",
-        f"inland waterway, containers & {water_cell(bc, 'container')} & Operator cost 0.025 (Panteia for KiM); Rotterdam--Basel 162--178 EUR per TEU upstream (INFRAS 2015 worked example); Middle Rhine tariffs 125--140 EUR per TEU (Konings 2009), 12--18 EUR per tonne all-in at 10 tonnes per TEU. {container_note} \\\\",
-        f"sea & {bc['maritime']:.4f} & The prior of the scope; sea lanes are unconstrained in this study. \\\\",
+        f"road, containers and dry bulk & {bc['roads']['default']:.3f} & {T['road']} \\\\",
+        f"road, liquid bulk & {bc['roads']['liquid_bulk']:.3f} & {T['road_liquid']} \\\\",
+        f"rail, containers and dry bulk & {rail_cell(bc, 'default')} & {rail_text} \\\\",
+        f"rail, liquid bulk & {rail_cell(bc, 'liquid_bulk')} & {T['rail_liquid']} \\\\",
+        f"inland waterway, dry bulk & {water_cell(bc, 'dry_bulk')} & {water_dry_text} \\\\",
+        f"inland waterway, liquid bulk & {water_cell(bc, 'liquid_bulk')} & {T['water_liquid']} \\\\",
+        f"inland waterway, containers & {water_cell(bc, 'container')} & {T['water_container']} \\\\",
+        f"sea & {bc['maritime']:.4f} & {T['sea']} \\\\",
         r"\midrule",
         r"\multicolumn{3}{l}{\emph{Value of time, USD per tonne-hour}} \\",
-        f"containers & {vot['container']['default']:.2f} (road and rail); {vot['container']['waterways']:.2f} (waterways); {vot['container']['maritime']:.2f} (sea) & A cargo-side (inventory) value: the vessel-side cost of time is 0.02--0.07 EUR per tonne-hour at full load and 0.13--0.26 at fleet average (Panteia for KiM); 0.20 in the European Commission's charging study of 2005. \\\\",
-        f"dry and liquid bulk & {vot['dry_bulk']:.2f} (all modes) & A low value: transit time hardly weighs on the routing of bulk. \\\\",
+        f"containers & {vot['container']['default']:.2f} (road and rail); {vot['container']['waterways']:.2f} (waterways); {vot['container']['maritime']:.2f} (sea) & {T['vot_container']} \\\\",
+        f"dry and liquid bulk & {vot['dry_bulk']:.2f} (all modes) & {T['vot_bulk']} \\\\",
         r"\midrule",
         r"\multicolumn{3}{l}{\emph{Terminal transfer, hours of dwell time / USD per tonne}} \\",
-        f"road--rail & {transfer('roads-railways')} & Intermodal terminals and bulk sidings at both ends of a rail trip; tank cars are loaded at the shipper's siding. \\\\",
-        f"road-- or rail--waterway & {transfer('roads-waterways')} & The fixed per-voyage element of the rates: tankers 3--7 EUR per tonne across lanes (fit to the spot quotes), two container lifts 70--80 EUR per TEU (Konings 2009; 7--8 EUR per tonne at 10 tonnes per TEU); the liquid-bulk terminal set at 8 h and 3.5 USD in the calibration of the German liquid-bulk split. \\\\",
-        f"waterway--sea & {transfer('waterways-maritime')} & Port handling. \\\\",
-        f"road-- or rail--sea & {transfer('roads-maritime')} & Port handling; the sea leg is unconstrained in this study. \\\\",
+        f"road--rail & {transfer('roads-railways')} & {T['transfer_road_rail']} \\\\",
+        f"road-- or rail--waterway & {transfer('roads-waterways')} & {T['transfer_land_water']} \\\\",
+        f"waterway--sea & {transfer('waterways-maritime')} & {T['transfer_water_sea']} \\\\",
+        f"road-- or rail--sea & {transfer('roads-maritime')} & {T['transfer_land_sea']} \\\\",
     ] + port_rows + [
         r"\midrule",
         r"\multicolumn{3}{l}{\emph{Speed, kilometers per hour}} \\",
-        f"road / rail / inland waterway / sea & {num(sp['roads'])} / {num(sp['railways'])} / {num(sp['waterways'])} / {num(sp['maritime'])} & Motorway line haul; freight trains; Rhine barges (about 10 upstream, 15 downstream); short sea. \\\\",
+        f"road / rail / inland waterway / sea & {num(sp['roads'])} / {num(sp['railways'])} / {num(sp['waterways'])} / {num(sp['maritime'])} & {T['speed']} \\\\",
     ]
     (out / "si_rates.tex").write_text(r"""\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
 \begin{longtable}{L{27mm}L{30mm}L{91mm}}
-\caption{\textbf{Transport cost parameters and the rate evidence.} The values used by every run of this paper (the configuration of the batches of 30 September and 7 October 2026, identical but for the loading curve) and the evidence behind them. Operator costs are the Panteia cost figures for the Netherlands Institute for Transport Policy Analysis (KiM, 2023; price level 2021), fleet averages that include empty legs and waiting; the rates are spot quotes and published tariffs as cited in the evidence dossier of the code repository; USD and EUR are treated as equal. No public source prints a full normal-water rate table by vessel class (the CCNR publishes indices), so the waterway values rest on operator costs and the quoted lanes; the rail and road values are calibrated on the modal split (Fig.~S2). ARA: Amsterdam--Rotterdam--Antwerp.}
+\caption{""" + RATES_CAPTION + r"""}
 \label{tab:rates} \\
 \toprule
 mode, cargo class & value & evidence \\
@@ -352,16 +367,10 @@ mode, cargo class & value & evidence \\
 \endhead
 """ + "\n".join(rows) + r"""
 \bottomrule
+\multicolumn{3}{L{150mm}}{""" + notes + r"""} \\
 \end{longtable}
 \endgroup
 """, encoding="utf-8")
-    if from_run:        # the caption names where the values come from (5 Nov 2026)
-        f_ = out / "si_rates.tex"
-        f_.write_text(f_.read_text(encoding="utf-8").replace(
-            "(the configuration of the batches of 30 September and 7 October 2026, identical but for the loading curve)",
-            "(as the reference run of the batch of 2 November 2026 records them: the scope's configuration with the "
-            "overrides of the job lists, which set rail costs by country, waterway costs by waterway, seaport fees by "
-            "port and the containers' value of time on the waterway)"), encoding="utf-8")
 
 
 # ------------------------------------------------------------------------------------------------ S1: stocks
@@ -382,63 +391,43 @@ def _codes(label: str) -> tuple[list[str], str, str]:
     return [tok], tok, SECTOR[tok]
 
 
-# (buyer, input, label, grade, basis): the input-specific targets of the configuration, with the reason where the model
-# departs from the physical figure (evidence section 6.3 and the calibration log of the data repository)
-OVERRIDES = [
-    ("*", "D", "any buyer: electricity, gas and steam (D), water (E)", "B",
-     "Physically non-storable (about 2 days; Bundesbank D--E stocks 3 days). The model has no grid substitution between plants, so a 2-day buffer turned any plant cut into an economy-wide cascade (run of 4 September 2026); kept at the coping duration of the services, a stated limitation of the transport representation."),
-    ("D", "B05", "power plants: coal", "B",
-     "Reserve plants must hold 30 days of coal (Energy Industry Act, section 50b, inserted by the reserve-plant act of 2022); Steag 2022: about a week on site, 30 days fleet-wide including Rotterdam."),
-    ("D", "B06", "power plants: gas", "B",
-     "Pipeline-fed: the pipelined-flows rule delivers B06 outside the network, and the 90 days stand for the storage of the gas system, not for a plant stock."),
-    ("D", "C19", "power plants: fuel oil", "B", "Oil plants: the 10-day rule of the same act."),
-    ("C19", "B06", "refineries: crude oil (and crude import bundles)", "B",
-     "Operators' crude stocks are 10--12 days of primary supply (Eurostat holder split, May 2025; EU-27 operators 18.7 days). Crude reaches the refineries by pipeline, and the 90 days are the stockholding obligation of Directive 2009/119/EC (90 days of net imports) carried by the pipeline system; crude never stops a refinery in the runs, and the refinery pathway of the German loss is refined products."),
-    ("C24A", "B07", "steelworks: iron ore", "B",
-     "Duisburg normally holds one to two months of ore and coal (Platts, 12 August 2026); stockyard design 7--45 days."),
-    ("C24A", "B05", "steelworks: coking coal", "B", "As ore."),
-    ("C20", "C19", "chemical plants: liquid feedstocks (naphtha, LPG)", "C",
-     "No published figure; the timing of the force-majeure warnings of July 2026 (ICIS) against the balance-sheet average of 30 days for all chemical inputs."),
-    ("C20", "B06", "chemical plants: gas and condensate", "C", "As the liquid feedstocks."),
-    ("C10T12", "A01", "mills: grain and oilseeds", "B",
-     "Flour mills: silo capacity of two production weeks (Verband Deutscher M\\\"uhlen site report); oil mills 5--10 days; feed plants just in time; the grain stocks sit upstream on farms and in trade."),
-    ("C23", "B05", "cement plants: coal", "C",
-     "Externally supplied fuels 21--30 days (vendor and engineering sources); clinker 7--14 days."),
-    ("C23", "C19", "cement plants: petroleum coke", "C", "As coal."),
-    ("H49", "C19", "haulers: fuel", "B", "Bundesbank H raw-material stock 7.3 days (fuel, tires, spares)."),
-]
-
-
 def stocks_table(out: Path):
-    """10 Nov 2026 (the author's notes): the 'lean' column is gone (the 2019 values are in the evidence cells) and the
-    input-specific targets are a table of their own, si_stock_overrides (buyer, input, days, grade, evidence)."""
+    """13 Nov 2026 (the author's request): the rows and their evidence are those of si_tables_evidence.py, in plain
+    sentences; five groups of industries that share a value, a grade and their evidence are one row each. Each row
+    is checked against the configuration (one value for its industries) and against the evidence file (the grade)."""
     inv = config()["inventory_duration_targets"]
     values, overrides = inv["values"], inv["overrides"]
-    rows = []
+    record = {}                                           # industry code -> (grade, recommended days) of the evidence file
     for label, rec, lean, grade, basis in _evidence_rows("### 6.2 Recommended table", "### 6.3 Input-type overrides"):
-        codes, codes_tex, name = _codes(label)
+        for c in _codes(label)[0]:
+            record[c] = (grade, int(re.match(r"\d+", rec).group()))
+    covered = sorted(c for _, _, codes, _, _ in STOCK_ROWS for c in codes)
+    assert covered == sorted(record), f"the rows of the table and the evidence file do not cover the same industries: {set(covered) ^ set(record)}"
+    rows = []
+    for shown, name, codes, grade, text in STOCK_ROWS:
         model = {values[c] for c in codes}
-        assert len(model) == 1, (label, model)
+        assert len(model) == 1, (shown, model)
         model = model.pop()
-        recommended = int(re.match(r"\d+", rec).group())
-        if recommended != model:
-            print(f"WARNING {label}: evidence recommends {recommended} d, the configuration has {model}")
-        basis = basis.replace("M&S", "materials and supplies").replace("&", " and ")   # no & in a cell: the lint counts them
-        rows.append(f"{tex(codes_tex)} & {tex(name)} & {num(model)} & {grade} & {tex(basis)} \\\\")
+        assert {record[c][0] for c in codes} == {grade}, (shown, grade, {record[c][0] for c in codes})
+        for c in codes:
+            if record[c][1] != model:
+                print(f"WARNING {c}: evidence recommends {record[c][1]} d, the configuration has {model}")
+        rows.append(f"{shown} & {tex(name or SECTOR[codes[0]])} & {num(model)} & {grade} & {text} \\\\")
     (out / "si_stocks.tex").write_text(r"""\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
-\begin{longtable}{L{16mm}L{38mm}rcL{76mm}}
-\caption{\textbf{Inventory targets by buying industry.} Days of consumption of purchased goods inputs that each industry holds at the baseline, with the grade of the evidence and the evidence. The notes follow the table; the targets set for one input of an industry are in Table~\ref{tab:stockoverrides}.}
+\begin{longtable}{L{19mm}L{36mm}rcL{75mm}}
+\caption{""" + STOCKS_CAPTION + r"""}
 \label{tab:stocks} \\
 \toprule
-industry & & days & grade & evidence \\
+industry & & days & grade$^{a}$ & evidence \\
 \midrule
 \endfirsthead
 \toprule
-industry & & days & grade & evidence \\
+industry & & days & grade$^{a}$ & evidence \\
 \midrule
 \endhead
 """ + "\n".join(rows) + r"""
 \bottomrule
+\multicolumn{5}{L{150mm}}{""" + STOCKS_NOTES + r"""} \\
 \end{longtable}
 \endgroup
 """, encoding="utf-8")
@@ -451,12 +440,11 @@ industry & & days & grade & evidence \\
         who = who if buyer == "*" else f"{who} ({tex(buyer)})"
         what = what if buyer == "*" else f"{what} ({tex(inp)})"
         rows.append(f"{who} & {what} & {num(v)} & {grade} & {basis} \\\\")
-    st = ", ".join(inv["service_types"])
-    rows.append(f"any buyer & services and construction (F, G--T) & {num(inv['service_days'])} & -- & Non-storable inputs (types {tex(st)}): "
-                f"the buyer copes for {num(inv['service_days'])} days without an inventory, the model's coping duration. \\\\")
+    rows.append(f"any buyer & services and construction (F, G--T) & {num(inv['service_days'])} & -- & "
+                f"{OVERRIDES_SERVICES.replace('{days}', num(inv['service_days']))} \\\\")
     (out / "si_stock_overrides.tex").write_text(r"""\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
 \begin{longtable}{L{30mm}L{36mm}rcL{65mm}}
-\caption{\textbf{Input-specific inventory targets.} Targets that replace the industry value of Table~\ref{tab:stocks} for one input, with the evidence and, where the model departs from the physical figure, the modeling reason. Grades as in Table~\ref{tab:stocks}.}
+\caption{""" + OVERRIDES_CAPTION + r"""}
 \label{tab:stockoverrides} \\
 \toprule
 buyer & input & days & grade & evidence and modeling reason \\
@@ -557,26 +545,29 @@ setting of the rule & gives up (\%) \\
 
 # ------------------------------------------------------------------------------------------------ S3: loading, forecast
 def loading_table(out: Path):
-    """The loading curve as a source ledger (6 Oct 2026, review NS1): for each anchor its nature, source and date,
-    what the source measures (reach, cargo, period, denominator) and the transformation to the fleet value."""
+    """The loading curve with its evidence. 13 Nov 2026 (the author's request): two text columns in plain sentences,
+    'evidence' and 'how the value is set' (si_tables_evidence.LOADING_TEXT); the ledger of the anchors, with every
+    source, what it measures and the transformation, stays scenarios/draught_table_ledger.csv."""
     d = pd.read_csv(HERE / "scenarios" / "draught_table.csv")
     led = pd.read_csv(HERE / "scenarios" / "draught_table_ledger.csv").set_index("kaub_cm")
-    assert list(led.index) == [int(x) for x in d.kaub_cm], "ledger rows must match the table's anchors"
+    anchors = [int(x) for x in d.kaub_cm]
+    assert list(led.index) == anchors, "ledger rows must match the table's anchors"
+    assert sorted(LOADING_TEXT) == anchors, "the sentences of the table must match the table's anchors"
     for cm, r in zip(d.kaub_cm, d.itertuples()):
         assert abs(led.fleet[int(cm)] - r.load_factor) < 1e-9, (cm, led.fleet[int(cm)], r.load_factor)
-    # 10 Nov 2026 (the author's notes): the single-vessel column and the 'nature' column are no longer printed
-    rows = "\n".join(f"{int(cm)} & {led.fleet[int(cm)]:.2f} & {tex(led.source[int(cm)])} & {tex(led.measures[int(cm)])} & {tex(led.transformation[int(cm)])} \\\\"
-                     for cm in d.kaub_cm)
+    for cm in (15, 25, 30, 40, 55, 78, 100, 120):         # the sentences that quote the loading share quote the curve's
+        assert f"{led.fleet[cm]:.2f}" in LOADING_TEXT[cm][1], (cm, led.fleet[cm], LOADING_TEXT[cm][1])
+    rows = "\n".join(f"{cm} & {led.fleet[cm]:.2f} & {LOADING_TEXT[cm][0]} & {LOADING_TEXT[cm][1]} \\\\" for cm in anchors)
     (out / "si_loading_table.tex").write_text(r"""\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
-\begin{longtable}{rL{11mm}L{45mm}L{40mm}L{42mm}}
-\caption{\textbf{The loading curve at Kaub.} Share of the normal tonnage that the Kaub reach can pass at a weekly mean gauge, with, for each value, the data source, what it originally measures, and how it is treated.}
+\begin{longtable}{rL{11mm}L{70mm}L{58mm}}
+\caption{""" + LOADING_CAPTION + r"""}
 \label{tab:loading} \\
 \toprule
-cm & loading share & source & measures & treatment \\
+cm & loading share & evidence & how the value is set \\
 \midrule
 \endfirsthead
 \toprule
-cm & loading share & source & measures & treatment \\
+cm & loading share & evidence & how the value is set \\
 \midrule
 \endhead
 """ + rows + r"""

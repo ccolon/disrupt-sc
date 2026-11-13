@@ -144,6 +144,8 @@ allowed:
 - {file: main.tex, text: 'With the 30-day refill time of the model, four weeks of normal water between the episodes', why: 'design: restoration time 30 days, gap of four weeks (wave isolation)'}
 - {file: main.tex, text: 'raised and lowered by 15\,\%, the model gives', why: 'design: loading-curve variants with the capacity reduction +-15 % (tablelow / tablehigh)'}
 - {file: main.tex, text: 'The weekly mean was 2\,cm in the week of 28 September, and the daily mean $-5$\,cm on 1 October', why: 'data: scenarios/2026.csv (built 11 Nov 2026 by fetch_kaub.py; cluster/batch_20261111.md), week of 28 September 1.8 cm; scenarios/kaub_daily_2026.csv, 1 October -4.8 cm'}
+- {file: si.tex, text: from reports of about twice as many vessels at moderate low water, why: 'evidence: scenarios/draught_table_ledger.csv, row of 55 cm (trade press of 2026: twice the number of vessels deployed for the same cargo at moderate low water)'}
+- {file: si.tex, text: 'only one count of tonnage exists, at a gauge of about 12\,cm', why: 'evidence: scenarios/draught_table_ledger.csv, row of 15 cm (count of the Dutch inland navigation association for the week to about 13 August 2026, mean gauge about 12 cm)'}
 claims:
 - file: si.tex
   text: The 39 other sectors are downscaled using NUTS3 employment

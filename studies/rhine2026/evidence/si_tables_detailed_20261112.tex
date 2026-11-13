@@ -1,0 +1,167 @@
+% Tables S1 (transport costs), S2 (inventories by industry), S3 (inventories by input) and S7 (loading curve) of the
+% Supplementary Information as they stood on 12 November 2026 (Overleaf 69660ff), before their evidence cells were
+% rewritten in plain sentences on 13 November 2026. This is the detailed record: every figure, date and source.
+% The citation keys are those of refs.bib of the manuscript.
+
+% >>> generated table si_rates (edit the caption, headers and text cells here; studies/rhine2026/si_tables.py only checks and refreshes the numbers)
+\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{longtable}{L{27mm}L{30mm}L{91mm}}
+\caption{\textbf{Transport cost parameters:} the baseline values and the evidence behind them. Most of the evidence comes from the operator costs compiled for the Netherlands Institute for Transport Policy Analysis (KiM)~\citep{kim2023}, from quoted and published freight rates of the Rhine trades, and from the Eurostat modal split~\citep{eurostat2023modal}, on which the road and rail values are calibrated (Section~S2). Notes follow the table.}
+\label{tab:rates} \\
+\toprule
+mode, cargo class & value & evidence \\
+\midrule
+\endfirsthead
+\toprule
+mode, cargo class & value & evidence \\
+\midrule
+\endhead
+\multicolumn{3}{l}{\emph{Line haul, USD per tonne-kilometer}} \\
+road, containers and dry bulk & 0.050 & A full-load long-haul rate; no rate series was collected. For comparison, the operator cost of a tractor--semitrailer at fleet average, empty legs included, was 0.115 EUR per tonne-kilometer in 2018~\citep{kim2023}. Calibrated on the modal split by country~\citep{eurostat2023modal}. \\
+road, liquid bulk & 0.130 & No rate evidence was collected. Set together with the rail value so that the German split of liquid bulk by mode matches the statistics (Section~S2). \\
+rail, containers and dry bulk & 0.032 (0.038 in 10 countries: AT, BG, CZ, ES, FR, HU, IT, PL, SI, SK) & Between the operator costs of a dry-bulk charter train (0.014 EUR per tonne-kilometer) and of a container shuttle (0.045) in the Netherlands in 2021~\citep{kim2023}; the average freight revenue of European railway undertakings was 0.036 EUR per tonne-kilometer in 2019 and 0.047 in 2024~\citep{irgrail2026mm14}. Calibrated on the modal split by country~\citep{eurostat2023modal}; 20\,\% higher in the ten countries named, where the model otherwise carries too much by rail (Section~S2). \\
+rail, liquid bulk & 0.085 (0.100 in 10 countries: AT, BG, CZ, ES, FR, HU, IT, PL, SI, SK) & Set with the road value on the German split of liquid bulk alone (Section~S2). It is an effective cost, not a tariff: the operator cost of a liquid-bulk charter train is 0.018 EUR per tonne-kilometer~\citep{kim2023}. \\
+inland waterway, dry bulk & 0.010 on the Rhine, 0.010--0.040 on the other waterways & Push-convoy cost 0.008--0.012 EUR per tonne-kilometer (ores 0.009, coal 0.008; 2021 prices)~\citep{kim2023}; the published coal rate Rotterdam--Basel of 2015, 10.5 EUR per tonne (0.013 per tonne-kilometer)~\citep{infras2017}. Single motor vessels cost 0.018 (CEMT class Va$^{a}$) to 0.036 (Kempenaar$^{a}$)~\citep{kim2023}, so grain-type flows in single vessels are under-priced in the model. The same values hold on eight other waterways (Amsterdam--Rhine canal, Ghent--Terneuzen canal, IJssel, IJsselmeer, Noordzeekanaal, Nord-Ostsee-Kanal, Scheldt, Scheldt--Rhine link); on the other waterways they are up to four times higher (Section~S2). \\
+inland waterway, liquid bulk & 0.038 on the Rhine, 0.038--0.152 on the other waterways & Tanker spot rates: ARA$^{b}$--Karlsruhe 27--29 EUR per tonne in June--July 2025 (0.042--0.045 per tonne-kilometer) and ARA--Cologne 15--17 (0.047--0.053)~\citep{opis2025riverlake}; ARA--Karlsruhe about 20 in June 2022 (0.031)~\citep{handelsblatt2022rhine}; ARA--Basel 42 in November 2023 (0.051)~\citep{ccnr2024price}; operator cost 0.029~\citep{kim2023}. \\
+inland waterway, containers & 0.022 on the Rhine, 0.022--0.088 on the other waterways & Operator cost 0.025~\citep{kim2023}; Rotterdam--Basel 162--178 EUR per TEU$^{c}$ upstream in 2015~\citep{infras2017}; Middle Rhine tariffs of 125--140 EUR per TEU~\citep{konings2009}, that is 12--18 EUR per tonne all-in at 10 tonnes per TEU. In the model \KaubContMt~Mt of containers a year pass Kaub, against about 10 in the counts (Section~S2). \\
+sea & 0.0015 & Operator cost of container carriers on deep-sea itineraries, 0.0014 EUR per tonne-kilometer in 2021~\citep{kim2023}. Bulk carriers cost 0.0034 and tankers 0.0051 in the same source, so the sea leg of bulk is under-priced two- to threefold; a run with bulk at these two rates changes the 2026 loss by \RevSeaRateRelOne\,\% (Section~S8). Sea lanes carry no capacity limit in this study; the rate bears on the port at which imports land (Section~S2). \\
+\midrule
+\multicolumn{3}{l}{\emph{Value of time, USD per tonne-hour}} \\
+containers & 1.00 (road and rail); 0.32 (waterways); 0.15 (sea) & A meta-analysis of freight studies gives, for shippers in Germany and all commodities, 1.59 on road, 0.27 on rail, 0.19 at sea and 0.09 on inland waterways (2017 prices)~\citep{binsuwadan2022vfts}: the road and sea values are in line with it, the rail and waterway values three to four times higher. The waterway value is calibrated on the container tonnage of the Rhine (Section~S2). For comparison, the vessel-side cost of time on inland waterways is 0.02--0.07 EUR per tonne-hour at full load and 0.13--0.26 at fleet average~\citep{kim2023}, and 0.20 in a study for the European Commission~\citep{ecorys2005}. \\
+dry and liquid bulk & 0.08 (all modes) & No value by commodity was found. The same meta-analysis gives 0.09 for shippers on inland waterways, all commodities~\citep{binsuwadan2022vfts}, and the cargo component is about a fifth of the value of time of a freight movement~\citep{dejong2014freightvot}. \\
+\midrule
+\multicolumn{3}{l}{\emph{Terminal transfer, hours of dwell time / USD per tonne}} \\
+road--rail & containers 3 h / 2; dry bulk 4 h / 3; liquid bulk 1 h / 1 & Intermodal terminals and bulk sidings at both ends of a rail trip. The German appraisal rates for a transfer between road, rail and inland vessel are 20.80 EUR per container, 2.60 EUR per tonne of dry bulk and 2.90 of liquid bulk (2012 prices)~\citep{planco2015bvwp}; two German terminal operators charge 30.50 EUR per loading unit in 2026~\citep{duss2026price,dbis2026price}. At 10 tonnes per unit, the container and dry-bulk values are close to the appraisal rates, and the liquid-bulk value is a third of its rate. No published dwell time was found; the hours are assumptions. \\
+road-- or rail--waterway & containers 4 h / 4; dry bulk 20 h / 5; liquid bulk 8 h / 3.5 & The fixed per-voyage element of the rates: tankers 3--7 EUR per tonne across lanes (fitted to the spot quotes above), two container lifts 70--80 EUR per TEU~\citep{konings2009} (7--8 EUR per tonne at 10 tonnes per TEU); the liquid-bulk terminal is set at 8 h and 3.5 USD in the calibration of the German liquid-bulk split. \\
+waterway--sea & 8 h / 2 & Port handling. As in the row above, a container lift costs 35--40 EUR per TEU in the port of Rotterdam~\citep{konings2009}, that is 3.5--4 EUR per tonne: the model's value is about half of it. A barge spends about 8 hours sailing between the terminals of that port and about one hour waiting at each~\citep{konings2009}. No published figure was found for bulk. \\
+road-- or rail--sea & 24 h / 7 & Port handling. \\
+seaport fee, by port & containers 0.29--8.43, other cargo 0.1--2.81 USD per tonne at 140 ports & On top of the transfer above: a fee that falls with the port's tonnage; see the fee ladder in Section~S2. \\
+\midrule
+\multicolumn{3}{l}{\emph{Speed, kilometers per hour}} \\
+road / rail / inland waterway / sea & 60 / 45 / 12 / 35 & Motorway line haul; freight trains; Rhine barges (about 10 upstream, 15 downstream); short sea. \\
+\bottomrule
+\multicolumn{3}{L{150mm}}{\emph{Notes.} The model is in US dollars of 2022. Values in euros are quoted as their sources give them, at the price level of the year named; one euro was worth 1.05 US dollars on average in 2022~\citep{ecb2026exrusd}. Operator costs are fleet averages that include empty legs and waiting, at 2021 price levels~\citep{kim2023}; rates are spot quotes and published tariffs. No public source gives a full rate table by vessel class at normal water; the Central Commission for the Navigation of the Rhine (CCNR) publishes indices. $^{a}$Classes of motor vessels in the European classification of inland waterways (CEMT): class Va carries 1,500 to 3,000 tonnes, the Kempenaar (class II) 400 to 650. $^{b}$ARA: the seaports of Amsterdam, Rotterdam and Antwerp. $^{c}$TEU: twenty-foot equivalent unit.} \\
+\end{longtable}
+\endgroup
+% <<< generated table si_rates
+
+% >>> generated table si_stocks (edit the caption, headers and text cells here; studies/rhine2026/si_tables.py only checks and refreshes the numbers)
+\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{longtable}{L{16mm}L{38mm}rcL{76mm}}
+\caption{\textbf{Inventory targets by buying industry.} Days of consumption of purchased goods inputs that each industry holds at the baseline. The main source is the corporate balance-sheet statistics of the Bundesbank~\citep{bundesbank2025}, complemented by the sector sheets of the Banque de France~\citep{banquefrance2025fiben} and the manufacturers' survey of the US Census Bureau~\citep{census2026m3}. Each value carries a grade for its evidence (author's judgment). Input-specific targets are given in Table~\ref{tab:stockoverrides}.}
+\label{tab:stocks} \\
+\toprule
+industry & & days & grade$^{a}$ & evidence \\
+\midrule
+\endfirsthead
+\toprule
+industry & & days & grade$^{a}$ & evidence \\
+\midrule
+\endhead
+A01 & Crop and animal production & 30 & C & Ratio series$^{b}$ A: non-finished stock of 49 d of material costs. It counts growing crops and livestock as work in progress (WIP), so it is an upper bound; 30 d is assumed below it. Feed and fertilizer stocks sit on farms (BLE$^{c}$). \\
+B05--B09 & Mining and quarrying & 30 & C & Ratio series B: 74 d incl. WIP; FIBEN$^{d}$ B median 50 d of turnover; RHB$^{e}$ not split. Partly assumed. \\
+C10T12 & Food, beverages and tobacco & 18 & A & Bundesbank 10-12 RHB 18.4 d (2019: 17.7); ratio series 10: 20 d; FIBEN 10 median 18 d; Census$^{f}$ food $\sim$15 d; mills 14 d, oil mill 5-10 d, feed just-in-time. Beverages are higher (42 d). \\
+C13T15 & Textiles, apparel and leather & 40 & A & Bundesbank 13-15 RHB 41.9 d (2019: 34.9); Census textiles/apparel $\sim$45-50 d. \\
+C16 & Wood and wood products & 33 & B & Bundesbank 16-18 RHB 32.9 d (2019: 27.5); ratio series 16: 71 d incl. WIP; Census wood $\sim$31 d. \\
+C17\_18 & Paper products and printing & 33 & B & Same 16-18 group; ratio series 17: 45 d, 18: 43 d incl. WIP; Census paper $\sim$30 d, printing $\sim$32 d. \\
+C19 & Coke and refined petroleum products & 12 & B & German refiners'/operators' crude = 10 d of primary supply (Eurostat holder split, May 2025; BAFA$^{g}$ 2024 flows); EU27 operators 18.7 d (upper bound); Census petroleum materials and supplies $\sim$7 d. Strategic (EBV/CSE$^{h}$) stocks excluded. \\
+C20 & Chemicals & 30 & A & Bundesbank 20-21 RHB 30.7 d (2019: 25.9); ratio series 20: 43 d incl. WIP; FIBEN 20 median 62 d of turnover; Census chemicals $\sim$26 d. Bulk liquid feedstocks at river sites are shorter (Table~\ref{tab:stockoverrides}). \\
+C21 & Pharmaceuticals & 60 & B & Ratio series 21: 82 d non-finished stock (incl. WIP), 68 d total/turnover; 20-21 group RHB 31 d is dominated by chemicals. \\
+C22 & Rubber and plastics & 40 & B & Bundesbank 22-23 RHB 38.9 d (2019: 30.9); ratio series 22: 59 d incl. WIP; Census plastics $\sim$34 d. \\
+C23 & Other non-metallic mineral products & 30 & B & 22-23 group RHB 38.9 d; ratio series 23: 73 d incl. WIP; Census nonmetallic $\sim$32 d; cement: clinker 7-14 d, quarry minerals continuous, imported fuels 21-30 d (vendor sources). Weighted towards purchased fuels/additives: 30. \\
+C24A & Basic iron and steel & 40 & B & Bundesbank 24-25 RHB 36.4 d (2019: 31.1); ratio series 24: 55 d incl. WIP; FIBEN 24 median 62 d; Duisburg "one to two months" (Platts); yard design 7-45 d; Census primary metals $\sim$36 d. \\
+C24B & Non-ferrous metals & 40 & C & Same sources as C24A, no separate split. \\
+C25 & Fabricated metal products & 36 & B & Bundesbank 24-25 RHB 36.4 d; ratio series 25: 128 d incl. WIP (job-shop WIP); FIBEN 25 median 41 d; Census fabricated $\sim$32 d. \\
+C26 & Computer, electronic and optical products & 60 & B & Bundesbank 26-27 RHB 70.3 d in 2023 vs 36.8 in 2019 (chip-shortage stockpiles); ratio series 26: 125 d incl. WIP; Census computers $\sim$50 d. 60 = between 2019 and 2023. \\
+C27 & Electrical equipment & 60 & B & Same 26-27 group; ratio series 27: 142 d incl. WIP; Census electrical $\sim$41 d. \\
+C28 & Machinery and equipment & 55 & A & Bundesbank 28 RHB 58.7 d (2019: 42.8); Census machinery $\sim$60 d; ratio series 192 d incl. WIP (long cycles). \\
+C29 & Motor vehicles & 18 & A & Bundesbank 29-30 RHB 18.4 d (2019: 12.5); ratio series 29: 26 d incl. WIP; FIBEN 29 median 60 d of turnover; Census transport equipment $\sim$19 d. \\
+C301 & Ships and boats & 60 & D & Ratio series 30: 345 d incl. WIP (multi-year builds); RHB not split. Assumed. \\
+C302T309 & Other transport equipment & 60 & D & As C301. Assumed. \\
+C31T33 & Furniture, other manufacturing, repair & 40 & C & Ratio series 31: 57 d, 32: 77 d, 33: 213 d incl. WIP; Census furniture $\sim$40 d. \\
+D & Electricity, gas and steam & 20 & B & EKBG$^{i}$ minimum 30 d on site for coal reserve plants, 10 d oil; Steag 2022: $\sim$1 week on site, 30 d fleet-wide incl. Rotterdam; gas = pipeline/storage operators, not plant stock; Bundesbank D-E RHB 3 d (of a denominator dominated by energy purchases for resale). The sector value of 20 is a blend; the targets by input are in Table~\ref{tab:stockoverrides}. \\
+E & Water, sewerage and waste & 10 & C & Ratio series E: 22 d non-finished stock, 20 d total/turnover; RHB small. \\
+F & Construction & 10 & A & Bundesbank F RHB 8.9 d (stable 8-10 d since 2011); FIBEN F median 12-14 d of turnover; the 179 bn EUR WIP is unfinished buildings, not inputs. \\
+G & Wholesale and retail trade & 5 & B & Bundesbank G RHB 2.2 d of material costs (divisions 45: 1.4, 46: 2.7, 47: 1.4); the goods-for-resale stock (29-56 d of turnover) is not an intermediate input, since the input--output table records trade as a margin. \\
+H49--H53 & Transport and storage & 7 & B & Bundesbank H RHB 7.3 d (2019: 6.1) - fuel, tires, spares; ratio series 49: 25 d incl. WIP, 52: 8 d; FIBEN H median 3 d of turnover. \\
+I & Accommodation and food services & 5 & B & Ratio series I: 7 d non-finished stock, 4.5 d total/turnover. \\
+J58T60 & Publishing and audiovisual & 10 & C & Bundesbank J RHB 2.2 d; ratio series J: 21 d incl. WIP. \\
+J61 & Telecommunications & 10 & C & Ratio series 61: 28 d incl. WIP, 19 d total/turnover. \\
+J62\_63 & IT and information services & 10 & C & Ratio series 62-63: 18 d incl. WIP, 11 d total/turnover. \\
+K & Finance and insurance & 7 & D & No balance-sheet data (banks excluded); goods inputs negligible. Assumed. \\
+L & Real estate & 10 & D & Ratio series L: 208 d incl. property WIP; goods inputs negligible. Assumed. \\
+M & Professional and scientific services & 10 & C & Bundesbank M-N RHB 6.2 d; ratio series 113 d incl. unbilled WIP. \\
+N & Administrative services & 10 & C & As M. \\
+O & Public administration & 15 & D & No data. Assumed (stores of supplies). \\
+P & Education & 15 & D & Ratio series P-Q aggregate 28 d incl. WIP, 9 d total/turnover. Assumed. \\
+Q & Health and social work & 20 & C & Ratio series 86: 40 d non-finished stock, 13 d total/turnover (drugs, consumables). \\
+R & Arts and recreation & 7 & D & Assumed. \\
+S & Other services & 7 & D & Assumed. \\
+T & Households as employers & 7 & D & Assumed. \\
+\bottomrule
+\multicolumn{5}{L{150mm}}{\emph{Notes.} d: days. $^{a}$Grade of the evidence: A, balance-sheet data for the industry itself; B, data for a group of industries, or physical stock data; C, indirect evidence; D, assumed. $^{b}$Ratio series: the ratios that the Bundesbank computes from the annual accounts of German firms, by industry division (\emph{Jahresabschlussstatistik, Verh\"altniszahlen}, edition of May 2026). The ratio used here is the non-finished stock, that is, inventories less finished goods and merchandise, over material costs, in days. It includes work in progress (WIP), the goods that a firm is still making, so it is an upper bound for the purchased inputs. $^{c}$BLE: the German Federal Office for Agriculture and Food. $^{d}$FIBEN: the sector sheets of the Banque de France~\citep{banquefrance2025fiben} (median stocks over turnover). $^{e}$RHB (\emph{Roh-, Hilfs- und Betriebsstoffe}): raw materials, consumables and supplies over material costs, times 365, from the extrapolated corporate balance sheets of the Bundesbank~\citep{bundesbank2025}, for 2023, with the 2019 value in brackets. $^{f}$Census: the M3 survey of the US Census Bureau~\citep{census2026m3} (materials-and-supplies inventories over the cost of materials). $^{g}$BAFA: the German Federal Office for Economic Affairs and Export Control (official oil statistics). $^{h}$EBV: the German petroleum stockholding association~\citep{ebv2025}; CSE: the central stockholding entities of the other member states. $^{i}$EKBG: the German reserve-plant act of 2022~\citep{ekbg2022}.} \\
+\end{longtable}
+\endgroup
+% <<< generated table si_stocks
+
+% >>> generated table si_stock_overrides (edit the caption, headers and text cells here; studies/rhine2026/si_tables.py only checks and refreshes the numbers)
+\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{longtable}{L{30mm}L{36mm}rcL{65mm}}
+\caption{\textbf{Input-specific inventory targets.} Targets that replace the industry value of Table~\ref{tab:stocks} for one input, with the evidence and, where the model departs from the physical figure, the modeling reason. Grades as in Table~\ref{tab:stocks}.}
+\label{tab:stockoverrides} \\
+\toprule
+buyer & input & days & grade & evidence and modeling reason \\
+\midrule
+\endfirsthead
+\toprule
+buyer & input & days & grade & evidence and modeling reason \\
+\midrule
+\endhead
+any buyer & electricity, gas and steam (D), water (E) & 90 & B & Physically non-storable (about 2 days; Bundesbank D--E stocks 3 days). The model has no grid substitution between plants, so a 2-day buffer would turn any plant cut into an economy-wide cascade; the input is kept at the coping duration of the services, a limitation of the model. \\
+power plants (D) & coal (B05) & 30 & B & Reserve plants must hold 30 days of coal (Energy Industry Act, section 50b, inserted by the reserve-plant act of 2022~\citep{ekbg2022}); Steag 2022: about a week on site, 30 days fleet-wide including Rotterdam. \\
+power plants (D) & gas (B06) & 90 & B & Pipeline-fed: gas is delivered outside the transport network, and the 90 days stand for the storage of the gas system, not for a plant stock. \\
+power plants (D) & fuel oil (C19) & 10 & B & Oil plants: the 10-day rule of the same act. \\
+refineries (C19) & crude oil (B06) & 90 & B & Operators' crude stocks are 10--12 days of primary supply (Eurostat holder split, May 2025; EU-27 operators 18.7 days). Crude reaches the refineries by pipeline, and the 90 days are the stockholding obligation of Directive 2009/119/EC~\citep{council2009oilstocks} (90 days of net imports) carried by the pipeline system; crude never stops a refinery in the runs, and refineries enter the German loss through their refined products. \\
+steelworks (C24A) & iron ore (B07) & 40 & B & Duisburg normally holds one to two months of ore and coal (Platts, 12 August 2026); stockyard design 7--45 days. \\
+steelworks (C24A) & coking coal (B05) & 40 & B & As ore. \\
+chemical plants (C20) & liquid feedstocks (naphtha, LPG) (C19) & 14 & C & No published figure; the timing of the force-majeure warnings of July 2026~\citep{icis2026} against the balance-sheet average of 30 days for all chemical inputs. \\
+chemical plants (C20) & gas and condensate (B06) & 14 & C & As the liquid feedstocks. \\
+mills (C10T12) & grain and oilseeds (A01) & 10 & B & Flour mills: silo capacity of two production weeks (Verband Deutscher M\"uhlen site report); oil mills 5--10 days; feed plants just in time; the grain stocks sit upstream on farms and in trade. \\
+cement plants (C23) & coal (B05) & 25 & C & Externally supplied fuels 21--30 days (vendor and engineering sources); clinker 7--14 days. \\
+cement plants (C23) & petroleum coke (C19) & 25 & C & As coal. \\
+haulers (H49) & fuel (C19) & 7 & B & Bundesbank H raw-material stock 7.3 days (fuel, tires, spares). \\
+any buyer & services and construction (F, G--T) & 90 & -- & Non-storable inputs (services, trade, transport and construction): the buyer copes for 90 days without an inventory, the model's coping duration. \\
+\bottomrule
+\end{longtable}
+\endgroup
+% <<< generated table si_stock_overrides
+
+% >>> generated table si_loading_table (edit the caption, headers and text cells here; studies/rhine2026/si_tables.py only checks and refreshes the numbers)
+\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{longtable}{rL{11mm}L{45mm}L{40mm}L{42mm}}
+\caption{\textbf{The loading curve at Kaub.} Share of the normal tonnage that the Kaub reach can pass at a weekly mean gauge, with, for each value, the data source, what it originally measures, and how it is treated.}
+\label{tab:loading} \\
+\toprule
+cm & loading share & source & what it measures & treatment \\
+\midrule
+\endfirsthead
+\toprule
+cm & loading share & source & what it measures & treatment \\
+\midrule
+\endhead
+5 & 0.08 & Stolt Ludwigshafen (BASF, 135 x 17.5 m): about 800 t at Kaub 30 cm, 2,300 t at 100 cm, 5,100 t at full draft (BASF press release 2023); nine such tankers in service in August 2026 (WirtschaftsWoche 18 Aug 2026~\citep{wiwo2026}); Kaub 5--6 cm on 14--17 Aug 2026 (PEGELONLINE~\citep{pegelonline2026}); press on 14 Aug 2026: shipping past Kaub stopped (Verkehrsrundschau) & the payload of one purpose-built tanker at 30 cm (liquid bulk, upstream), the count of such vessels, and qualitative reports at 5-6 cm; no tonnage count exists at 5 cm & assumed: the low-water tankers and the small dry-cargo units still moving; the count of the week in which the gauge fell from 23 to 6 cm (0.22, next row) bounds it from above; held at 0.08 below 5 cm; tested at 0.04 and 0.16 (Section~S8) \\
+10 & 0.18 & as the rows above and below & no measurement at this gauge & an anchor of the curve, on the line between the value at 5 cm and the count at about 12 cm \\
+15 & 0.24 & KBN (Koninklijke Binnenvaart Nederland) via Schuttevaer, 14 Aug 2026~\citep{schuttevaer2026}: 60 kt dry and 30 kt wet in the week to about 13 Aug 2026 against a normal 300 and 100 kt & weekly tonnage of the association's members past the Middle Rhine, dry and liquid, both directions, in a week whose daily gauge fell from 23 to 6 cm (mean about 12 cm); denominator the association's own normal week & the count gives 0.22 of normal at a mean gauge of about 12 cm; the row takes 0.24 at 15 cm \\
+25 & 0.28 & Argus Media, Aug 2026: a 1,200 t tanker loads 180 t at 23 cm; the low-water tankers 700-800 t of 5,100 t (BASF 2023, WirtschaftsWoche 2026) & single-vessel payloads, liquid bulk, Kaub 23-30 cm & a single-vessel load of 0.15 times a redeployment of 1.9 (more vessels for the same cargo) gives the loading share \\
+30 & 0.30 & Kiel Institute statement of 28 Jul 2026~\citep{ifw2026}: loads 10-15 \% of capacity; van Dorsser et al.~\citep{vandorsser2020}: at the 2018 record of 25 cm only CEMT class II-III vessels sailed & single-vessel loads at about 30 cm, all cargo; the classes able to sail in 2018 & a single-vessel load of 0.10-0.15 times a redeployment of 2-2.5 gives the loading share \\
+40 & 0.33 & WSV loading convention: at 40-50 cm a standard vessel carries about 20 \%; Contargo surcharge notice, Aug 2026~\citep{contargo2026}: at 40 cm freight navigation practically impossible for large container vessels & single-vessel load factor of a standard unit (GMS) and the container operator's threshold & a single-vessel load of 0.20 times a redeployment of 1.65 gives the loading share \\
+55 & 0.40 & Contargo surcharge table, 9 Aug 2026: at 55 cm a large container vessel loads 16 \%; Schiffahrts-Zeitung / SMC 2026: twice the number of vessels deployed for the same cargo at moderate low water & single large container vessel at 55 cm; the fleet redeployment factor & 0.16 times a redeployment of 2.5 gives the loading share \\
+78 & 0.60 & GlW convention (equivalent low water, 78 cm): Contargo loads 25 \% per vessel, four times the ships; Ademmer et al.~\citep{ademmer2023}: a full month below 78 cm lowers German inland-waterway tonnage by about 25 \% (monthly, national, all cargo, 1991-2019) & the national monthly tonnage response to a month of low water (all cargo, a month in which Kaub usually sits far below 78 cm: October and November 2018, monthly means 47 and 40 cm), and the load of one vessel class at the convention gauge & the two observations do not bound the loading share, since they measure different quantities under different conditions (a national monthly flow against a single-vessel payload at the gauge); 0.60 is the authors' reading of a fleet that loads 0.35 per vessel at this gauge and redeploys, placed between the single-vessel load and the national monthly response, and is an assumed anchor \\
+100 & 0.80 & Maersk low-water surcharge of EUR 100 per 20-foot container below 91 cm (surcharge notice) & the gauge at which the mild surcharge band starts, containers & assumed: mild restriction, 0.80 \\
+120 & 0.90 & Kaub 120-125 cm in late April 2026: normal loading reported (press) & qualitative & assumed: near-normal loading, 0.90 \\
+150 & 1.00 & full loading of a standard vessel needs about 150 cm at Kaub (hydrostatus, Kiel Institute); the fleet's slack absorbs the residual & single-vessel full-load gauge & full loading of the fleet from 150 cm \\
+250 & 1.00 & Contargo 2017: 250 cm = 100 \% for the largest vessels & single-vessel convention & full loading \\
+\bottomrule
+\end{longtable}
+\endgroup
+% <<< generated table si_loading_table
