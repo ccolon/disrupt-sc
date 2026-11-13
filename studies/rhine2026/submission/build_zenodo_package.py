@@ -89,6 +89,9 @@ CONTENTS = [
     ("additional_data", "repo", "studies/rhine2026/additional_data/inventory_targets_service45.yaml", "the sensitivity variant with a 45-day coping duration for services", "own"),
     ("additional_data", "repo", "studies/rhine2026/additional_data/inventory_targets_construction_nonstorable.yaml", "the variant that treats construction as non-storable (the paper's setting)", "own"),
     ("additional_data", "repo", "studies/rhine2026/additional_data/wiod_correspondence.csv", "the sector correspondence used to map the criticality survey onto the ICIO sectors", "own"),
+    ("evidence", "repo", "studies/rhine2026/evidence/si_tables_detailed.pdf",
+     "the detailed evidence behind Supplementary Tables S1, S2, S3 and S7 (transport costs, inventory targets by industry and by input, loading curve): every figure, date and source; the Supplementary Information prints a shorter version and points here", "own"),
+    ("evidence", "repo", "studies/rhine2026/evidence/si_tables_detailed_20261112.tex", "the LaTeX source of these four tables", "own"),
     ("scenarios", "repo", "studies/rhine2026/scenarios/*.csv",
      "the weekly gauge profiles (2018, 2026, the wave experiments), the daily Kaub records, the BfG forecasts (the six-week outlooks of 7 and 28 September and of 9 November 2026, the 14-day forecast of 11 November), the loading tables (draught_table*.csv with their ledger) and the Rhine capacities per cargo class", "scenarios"),
 ]

@@ -12,11 +12,14 @@ evidence/inventory_durations_by_industry.md and in scenarios/draught_table_ledge
 LaTeX strings: they are written into the tables as they are (no escaping).
 """
 
+# 13 Nov 2026 (the author's choice): each caption tells the reader where the figures and sources that left the cells are
+DETAIL = "The detailed evidence, with every figure and source, is in the data deposit (Data availability of the main text)."
+
 # ------------------------------------------------------------------------------------------------ Table S1: transport costs
 RATES_CAPTION = (r"\textbf{Transport cost parameters:} the baseline values and the evidence behind them. Most of the evidence comes "
                  r"from the operator costs compiled for the Netherlands Institute for Transport Policy Analysis (KiM)~\citep{kim2023}, "
                  r"from quoted and published freight rates of the Rhine trades, and from the Eurostat modal split~\citep{eurostat2023modal}, "
-                 r"on which the road and rail values are calibrated (Section~S2). Notes follow the table.")
+                 r"on which the road and rail values are calibrated (Section~S2). " + DETAIL + " Notes follow the table.")
 
 RATES_TEXT = {
     "road": (r"Calibrated so that the model reproduces each country's split of freight between modes~\citep{eurostat2023modal}. No series "
@@ -90,7 +93,7 @@ STOCKS_CAPTION = (r"\textbf{Inventory targets by buying industry.} Days of consu
                   r"the baseline. Unless a row says otherwise, the evidence is the stock of raw materials and supplies that German firms of "
                   r"the industry held in 2023, in days of their purchases of materials~\citep{bundesbank2025}; French~\citep{banquefrance2025fiben} "
                   r"and US~\citep{census2026m3} firm statistics serve as a comparison. Each value carries a grade for its evidence (author's "
-                  r"judgment). Input-specific targets are given in Table~\ref{tab:stockoverrides}.")
+                  r"judgment). Input-specific targets are given in Table~\ref{tab:stockoverrides}. " + DETAIL)
 
 # (codes as printed, name or None for the name of the single code, codes of the configuration, grade, evidence)
 STOCK_ROWS = [
@@ -201,11 +204,11 @@ OVERRIDES_SERVICES = (r"These inputs cannot be stored. The buyer manages without
                       r"(Methods).")
 OVERRIDES_CAPTION = (r"\textbf{Input-specific inventory targets.} Targets that replace the industry value of Table~\ref{tab:stocks} for one "
                      r"input, with the evidence and, where the model departs from the physical figure, the modeling reason. Grades as in "
-                     r"Table~\ref{tab:stocks}.")
+                     r"Table~\ref{tab:stocks}. " + DETAIL)
 
 # ------------------------------------------------------------------------------------------------ Table S7: the loading curve
 LOADING_CAPTION = (r"\textbf{The loading curve at Kaub.} Share of the normal tonnage that the Kaub reach can pass at a weekly mean gauge, "
-                   r"with the evidence for each value and how the value is set.")
+                   r"with the evidence for each value and how the value is set. " + DETAIL)
 
 # gauge (cm) -> (evidence, how the value is set)
 LOADING_TEXT = {

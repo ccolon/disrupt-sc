@@ -112,3 +112,14 @@ The author's decision in chat, after the round above: the paper does not ship th
 - `reporting_summary_notes.md`: the note on blinding follows the Methods.
 - Counts by `wordcount.py`: abstract 167 words, main text 5,270 (guide 5,000), Methods 2,860 (guide 3,000).
 - The older lines of this file that name sections of the SI (S4 to S10) describe earlier states.
+
+## Status on 13 November 2026 (the evidence tables of the SI)
+
+Tables S1, S2, S3 and S7 of the SI are rewritten in plain sentences (record: `../review/revision_20261113_tables_response.md`).
+Their captions point to the detailed evidence in the data deposit, and the data statement of the main text names it.
+For the package:
+
+- `../evidence/si_tables_detailed.pdf` (the four tables in their detailed form, 10 pages) and its LaTeX source are
+  listed in `build_zenodo_package.py`, folder `evidence`. Rebuild the document with
+  `../evidence/build_si_tables_detailed.py` if `numbers.tex` or `refs.bib` change, then rebuild the package.
+- The SI has eight sections and the PDF 60 pages.

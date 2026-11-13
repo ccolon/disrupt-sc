@@ -81,3 +81,19 @@ Table S7, one value and one grade per merged row of Table S2. All 97 references 
 | `review/patch_si_20261113_evidence_tables.py` | Keeps the detailed tables, empties the four blocks, adds the sentence before the loading curve |
 | `review/ledger_20261113_evidence_tables.py` | Two ledger entries for that sentence |
 | `evidence/si_tables_detailed_20261112.tex` | The four tables as they stood on 12 November |
+
+## The author's answer: (a)
+
+"ok for (a)" (13 November). Done, Overleaf `8df30b9`:
+
+- Each of the four captions ends with: "The detailed evidence, with every figure and source, is in the data deposit
+  (Data availability of the main text)."
+- Data availability of the main text names "the detailed evidence behind Supplementary Tables S1, S2, S3 and S7" among
+  what is deposited on Zenodo upon acceptance and available from the corresponding author until then.
+- The document that the captions point to is `evidence/si_tables_detailed.pdf` (10 pages): the four tables in their
+  detailed form, numbered S1, S2, S3 and S7, with their references. It is built by
+  `evidence/build_si_tables_detailed.py` from `evidence/si_tables_detailed_20261112.tex`, `numbers.tex` and `refs.bib`.
+- `submission/build_zenodo_package.py` lists the document and its LaTeX source in a folder `evidence` of the package.
+  The package was not rebuilt and nothing was uploaded.
+
+Check: `paper_gate.py --regen` PASS on this version (`review/paper_gate_20261113_evidence_tables.md`).
