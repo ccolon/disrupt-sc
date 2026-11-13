@@ -655,20 +655,28 @@ class Firm:
         for info in self.suppliers.values():
             input_weight[info["sector"]] = input_weight.get(info["sector"], 0.0) + info.get("weight", 1.0)
         eq_pool_need = {p: sum(self.eq_needs.get(i, 0.0) for i in members) for p, members in pools.items()}
-        effective: dict[str, tuple[str, float]] = {}
+        effective: dict[str, tuple[str, float, float]] = {}
         pool_weight: dict[str, float] = {}
+        pool_base_weight: dict[str, float] = {}
         for supplier_id, info in self.suppliers.items():
             input_id = info["sector"]
             pool = pool_of.get(input_id, input_id)
-            w = info.get("weight", 1.0) / input_weight[input_id] if input_weight.get(input_id, 0.0) > EPSILON else 0.0
+            base = info.get("weight", 1.0) / input_weight[input_id] if input_weight.get(input_id, 0.0) > EPSILON else 0.0
             if len(pools.get(pool, [])) > 1 and eq_pool_need.get(pool, 0.0) > EPSILON:
-                w *= self.eq_needs.get(input_id, 0.0) / eq_pool_need[pool]
-            if adaptive_weight:
-                w *= info.get("satisfaction", 1.0)
-            effective[supplier_id] = (pool, w)
+                base *= self.eq_needs.get(input_id, 0.0) / eq_pool_need[pool]
+            w = base * info.get("satisfaction", 1.0) if adaptive_weight else base
+            effective[supplier_id] = (pool, base, w)
             pool_weight[pool] = pool_weight.get(pool, 0.0) + w
-        for supplier_id, (pool, w) in effective.items():
+            pool_base_weight[pool] = pool_base_weight.get(pool, 0.0) + base
+        for supplier_id, (pool, base, w) in effective.items():
             total_w = pool_weight.get(pool, 0.0)
+            if total_w <= EPSILON:
+                # KI-57 (13 Nov 2026): when every supplier of a pool has failed for ~20 steps, the
+                # fill-rate signals (0.5^n) sum below EPSILON. Ordering nothing would be an absorbing
+                # state: satisfaction only updates on a positive order, so the firm would never order
+                # the input again. With no supplier to prefer, the firm orders by baseline shares
+                # instead, as it does without switching, and the signals recover once deliveries do.
+                w, total_w = base, pool_base_weight.get(pool, 0.0)
             self.purchase_plan[supplier_id] = pool_total.get(pool, 0.0) * (w / total_w if total_w > EPSILON else 0.0)
 
     def _calculate_price(self, sc_network: ScNetwork):
