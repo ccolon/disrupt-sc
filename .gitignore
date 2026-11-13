@@ -8,6 +8,21 @@ analysis/*
 !analysis/process-results.ipynb
 simulation_outputs.err
 
+# Local-only folders (not part of the remote cambodia branch)
+documentation/
+dataprep/
+paper/
+
+# Paper (ERL): track notebooks, README and manuscript figures.
+# The data folder (~1.5 GB) is shared as a zip on Drive, see paper_ERL/README.md.
+paper_ERL/data/
+paper_ERL/figures/generated/
+
+# OS / editor clutter
+.DS_Store
+.Rhistory
+.Rproj.user/
+
 # Exclude input folder - data is now in separate repository
 input/*
 
