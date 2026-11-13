@@ -288,7 +288,8 @@ household_inventory_duration_target:
   unit: day
 
 # In case firms have more than one supplier for an input, determines whether to adapt the order to each supplier
-# based on how well they covered the previous order
+# based on how well they covered the previous order. When all suppliers of an input have failed for ~20 steps
+# (signals below 1e-6), the firm orders by its baseline shares again (KI-57)
 adaptive_supplier_weight: False
 
 # When True, firms cap their input orders at current production capacity: a firm whose
