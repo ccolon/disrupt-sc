@@ -171,15 +171,21 @@ class CommercialLink:
         self._update_status()
 
     def calculate_relative_increase_in_transport_cost(self) -> float:
-        if self.delivery_in_tons == 0:
-            raise ValueError(f"Link {self.supplier_id}→{self.buyer_id}: delivery_in_tons is 0")
+        if self.delivery_in_tons == 0 and self.delivery > EPSILON:
+            raise ValueError(f"Link {self.supplier_id}→{self.buyer_id}: delivery_in_tons is 0 "
+                             f"for a delivery of {self.delivery}")
         for label, val in [("route_cost_per_ton", self.route_cost_per_ton),
                            ("alt_route_cost_per_ton", self.alternative_route_cost_per_ton)]:
             if isinstance(val, float) and np.isnan(val):
                 raise ValueError(f"Link {self.supplier_id}→{self.buyer_id}: {label} is nan")
 
-        normal_bill = self.delivery_in_tons * self.route_cost_per_ton
-        new_bill = self.delivery_in_tons * self.alternative_route_cost_per_ton
+        # KI-58 (14 Nov 2026): a supplier whose stock is empty ships 0 on every link (rationing 0 in
+        # Firm._evaluate_quantities_to_deliver), and Firm.deliver still routes those links; when the main
+        # route is closed this used to raise. The relative increase does not depend on the tonnage, so a
+        # zero delivery takes it from the costs per ton; with a tonnage the arithmetic is unchanged.
+        tons = self.delivery_in_tons if self.delivery_in_tons != 0 else 1.0
+        normal_bill = tons * self.route_cost_per_ton
+        new_bill = tons * self.alternative_route_cost_per_ton
 
         if normal_bill == 0:
             return 0.0
