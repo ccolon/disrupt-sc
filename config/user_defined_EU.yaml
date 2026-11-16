@@ -28,8 +28,12 @@ filepaths:
   firms_spatial: "Spatial/firms.geojson"
   households_spatial: "Spatial/households.geojson"
   countries_spatial: "Spatial/countries.geojson"
-  transport: "Transport/transport.gpkg"
-  multimodal: "Transport/multimodal.gpkg"
+  # 16 Nov 2026: the network tagged with the name of each waterway and the country of each edge
+  # (onboarding/scripts/tag_network_attributes.py, 29 Oct 2026), which the rail and waterway rates below are keyed on.
+  # Every run of the Rhine paper reads these two files; until 16 Nov they were set by a --config-set flag on each run.
+  # The untagged files stay in Transport/.
+  transport: "Transport/tagged/transport.gpkg"
+  multimodal: "Transport/tagged/multimodal.gpkg"
 
 transport_modes: [roads, railways, waterways, maritime]
 with_transport: True
@@ -168,7 +172,23 @@ logistics:
     # ADOPTED 11:33): containers 67/28/4.5 (67.5/27.5/5), dry bulk 55/27/17 (53/27/20), Emmerich 115 Mt
     # (118), Koeln-Duesseldorf 86 (88), Kaub 62 (50; v12 68), Mannheim 29 (36), Basel 3.2 (5.5).
     roads: {default: 0.050, liquid_bulk: 0.130}
-    railways: {default: 0.032, liquid_bulk: 0.085}
+    # Calibration round 2 (25 Oct 2026; studies/rhine2026/calibration/round2/rail_country20.yaml, in this file since
+    # 16 Nov 2026): rail 20 % dearer in the countries where the model over-used it (round 1b's +40 % overshot: FR fell
+    # to 1 % of inland tkm by rail against 9 observed, IT to 4 against 12, AT to 18 against 29). Keyed on the country
+    # of the edge; "default" is the rate of every other country (the v13 values).
+    railways:
+      attribute: country_code
+      default: {default: 0.032, liquid_bulk: 0.085}
+      FR: {default: 0.038, liquid_bulk: 0.10}
+      IT: {default: 0.038, liquid_bulk: 0.10}
+      AT: {default: 0.038, liquid_bulk: 0.10}
+      ES: {default: 0.038, liquid_bulk: 0.10}
+      HU: {default: 0.038, liquid_bulk: 0.10}
+      SI: {default: 0.038, liquid_bulk: 0.10}
+      SK: {default: 0.038, liquid_bulk: 0.10}
+      BG: {default: 0.038, liquid_bulk: 0.10}
+      PL: {default: 0.038, liquid_bulk: 0.10}
+      CZ: {default: 0.038, liquid_bulk: 0.10}
     # v13 (8 Sep 2026, user decision): waterway line-haul by vessel type, from
     # studies/rhine2026/evidence/waterway_rates_by_vessel_type.md. Push-convoy bulk (ore, coal,
     # aggregates) costs 0.008-0.010 EUR/tkm (Panteia/KiM 2023) = the v12 rate; tank barges cost
@@ -178,7 +198,53 @@ logistics:
     # convoys - kept at 0.010 (under-priced, noted). The fixed per-voyage element (tankers 4-5,
     # container lifts 7-8 USD/t) sits in the river loading fees below. v12 was a uniform 0.010,
     # which capped delivered-price rises near +10 % under a x2.5 low-water surcharge.
-    waterways: {default: 0.010, dry_bulk: 0.010, liquid_bulk: 0.038, container: 0.022}
+    # Calibration round 5, v5 (29 Oct 2026; studies/rhine2026/calibration/round5/water_by_waterway_v5.yaml, in this
+    # file since 16 Nov 2026): the v13 rates above hold on the Rhine and the waterways of its delta; the other
+    # waterways are dearer by class of waterway (locked tributaries 0.013, canals 0.020, Elbe and Oder 0.030, the Lek
+    # 0.015, the Po system 0.040; "default" is the rate of an untagged waterway), with the same ratios between cargo
+    # classes. Derived by calibration/round5/derive_v4v5.py from round 3. Keyed on the name of the waterway.
+    waterways:
+      attribute: waterway
+      default: {default: 0.015, dry_bulk: 0.015, liquid_bulk: 0.057, container: 0.033}
+      Rhine: {default: 0.01, dry_bulk: 0.01, liquid_bulk: 0.038, container: 0.022}
+      Lek: {default: 0.015, dry_bulk: 0.015, liquid_bulk: 0.057, container: 0.033}
+      IJssel: {default: 0.01, dry_bulk: 0.01, liquid_bulk: 0.038, container: 0.022}
+      IJsselmeer: {default: 0.01, dry_bulk: 0.01, liquid_bulk: 0.038, container: 0.022}
+      Amsterdam-Rhine canal: {default: 0.01, dry_bulk: 0.01, liquid_bulk: 0.038, container: 0.022}
+      Noordzeekanaal: {default: 0.01, dry_bulk: 0.01, liquid_bulk: 0.038, container: 0.022}
+      Scheldt-Rhine link: {default: 0.01, dry_bulk: 0.01, liquid_bulk: 0.038, container: 0.022}
+      Scheldt: {default: 0.01, dry_bulk: 0.01, liquid_bulk: 0.038, container: 0.022}
+      Ghent-Terneuzen canal: {default: 0.01, dry_bulk: 0.01, liquid_bulk: 0.038, container: 0.022}
+      Albert canal: {default: 0.012, dry_bulk: 0.012, liquid_bulk: 0.045, container: 0.026}
+      Meuse: {default: 0.012, dry_bulk: 0.012, liquid_bulk: 0.045, container: 0.026}
+      Main: {default: 0.013, dry_bulk: 0.013, liquid_bulk: 0.05, container: 0.029}
+      Moselle: {default: 0.013, dry_bulk: 0.013, liquid_bulk: 0.05, container: 0.029}
+      Neckar: {default: 0.013, dry_bulk: 0.013, liquid_bulk: 0.05, container: 0.029}
+      Saar: {default: 0.013, dry_bulk: 0.013, liquid_bulk: 0.05, container: 0.029}
+      Danube: {default: 0.013, dry_bulk: 0.013, liquid_bulk: 0.05, container: 0.029}
+      Seine: {default: 0.013, dry_bulk: 0.013, liquid_bulk: 0.05, container: 0.029}
+      Rhone: {default: 0.013, dry_bulk: 0.013, liquid_bulk: 0.05, container: 0.029}
+      Saone: {default: 0.013, dry_bulk: 0.013, liquid_bulk: 0.05, container: 0.029}
+      Po: {default: 0.04, dry_bulk: 0.04, liquid_bulk: 0.152, container: 0.088}
+      Wesel-Datteln-Kanal: {default: 0.013, dry_bulk: 0.013, liquid_bulk: 0.05, container: 0.029}
+      Rhein-Herne-Kanal: {default: 0.013, dry_bulk: 0.013, liquid_bulk: 0.05, container: 0.029}
+      Dortmund-Ems-Kanal: {default: 0.013, dry_bulk: 0.013, liquid_bulk: 0.05, container: 0.029}
+      Mittellandkanal: {default: 0.02, dry_bulk: 0.02, liquid_bulk: 0.076, container: 0.044}
+      Elbe-Seitenkanal: {default: 0.02, dry_bulk: 0.02, liquid_bulk: 0.076, container: 0.044}
+      Main-Donau-Kanal: {default: 0.02, dry_bulk: 0.02, liquid_bulk: 0.076, container: 0.044}
+      Weser: {default: 0.022, dry_bulk: 0.022, liquid_bulk: 0.084, container: 0.048}
+      Kuestenkanal-Hunte: {default: 0.02, dry_bulk: 0.02, liquid_bulk: 0.076, container: 0.044}
+      Havel-Berlin canals: {default: 0.02, dry_bulk: 0.02, liquid_bulk: 0.076, container: 0.044}
+      Oder: {default: 0.03, dry_bulk: 0.03, liquid_bulk: 0.114, container: 0.066}
+      Elbe: {default: 0.03, dry_bulk: 0.03, liquid_bulk: 0.114, container: 0.066}
+      Vltava: {default: 0.03, dry_bulk: 0.03, liquid_bulk: 0.114, container: 0.066}
+      Nord-Ostsee-Kanal: {default: 0.01, dry_bulk: 0.01, liquid_bulk: 0.038, container: 0.022}
+      Fissero-Tartaro-Canalbianco: {default: 0.04, dry_bulk: 0.04, liquid_bulk: 0.152, container: 0.088}
+      Litoranea Veneta: {default: 0.04, dry_bulk: 0.04, liquid_bulk: 0.152, container: 0.088}
+      Idrovia Ferrarese: {default: 0.04, dry_bulk: 0.04, liquid_bulk: 0.152, container: 0.088}
+    # One sea rate for every cargo in the runs of the paper. The sensitivity run 2026_r6_bycargo_searate gives bulk
+    # the operator costs of bulk carriers and tankers (studies/rhine2026/calibration/sea_rate_by_cargo.yaml), with
+    #   --config-set 'logistics.basic_cost.maritime={"default": 0.0015, "container": 0.0015, "dry_bulk": 0.0034, "liquid_bulk": 0.0051}'
     maritime: 0.0015
   # v5 (2026-09-03): per-MODE value of time for containers. The inland 1.6
   # USD/t.h stands in for service quality and separates road from rail; on the
@@ -199,7 +265,10 @@ logistics:
     # missing container rate; 0.45 (v12) put Rotterdam-Basel at ~80 USD/t vs a 15-25 USD/t tariff
     # (0.15 with the 0.022 rate sent 16 % of container tkm to the river, Kaub 114 Mt: the discriminator
     # between ~40-47 USD/t road, rail and barge options is the time term - 0.35 targets the v12 split)
-    container: {default: 1.0, maritime: 0.15, waterways: 0.35}   # v8: 1.2 -> 1.0 with rail at 45 km/h
+    # 27 Oct 2026: waterways 0.35 -> 0.32. Calibration rounds 2 and 3 bracketed 0.25, 0.28, 0.30 and 0.32 with the
+    # rates by waterway; every run since round 4 uses 0.32 (the flag --container-water-vot 0.32 of the job lists; in
+    # this file since 16 Nov 2026).
+    container: {default: 1.0, maritime: 0.15, waterways: 0.32}   # v8: 1.2 -> 1.0 with rail at 45 km/h
     dry_bulk: 0.08
     liquid_bulk: 0.08
     default: 2.0
@@ -224,15 +293,161 @@ logistics:
     railways-maritime: 24
     waterways-maritime: 8
   loading_fees:  # USD/ton
-    roads-railways: {default: 3, container: 2, dry_bulk: 3, liquid_bulk: 1}
     # v13: fixed per-voyage element of the rate evidence - tank terminals 3-7 EUR/t per voyage, i.e.
     # ~3.5 per transfer (liquid 3 -> 3.5, dwell 10 -> 8 h), container lifts 7-8 USD/t for the two ends
     # (container 3 -> 4)
+    # Calibration round 6 (29 Oct 2026; studies/rhine2026/calibration/round6/port_fees_feeder_a3.yaml, in this file
+    # since 16 Nov 2026): the six transfer fees are unchanged; by_port adds a surcharge at each seaport that falls
+    # with its size, the "feeder ladder": for containers 3 x log10(100 Mt / the port's annual tonnage), between 0 and
+    # 12 USD/t, and a third of it for other cargo (Amsterdam keeps 0.75 where the ladder gives less). Derived by
+    # calibration/round6/derive_feeder_ladder.py from the Eurostat port throughput of 2023.
+    roads-railways: {default: 3, container: 2, dry_bulk: 3, liquid_bulk: 1}
     roads-waterways: {default: 6, container: 4, dry_bulk: 5, liquid_bulk: 3.5}
     roads-maritime: 7
     railways-waterways: {default: 6, container: 4, dry_bulk: 5, liquid_bulk: 3.5}
     railways-maritime: 7
     waterways-maritime: 2
+    by_port:
+      Agioi Theodoroi: {container: 1.84, default: 0.61}
+      Algeciras: {container: 0.3, default: 0.1}
+      Alicante: {container: 4.65, default: 1.55}
+      Amsterdam: 0.75
+      Ancona: {container: 4.13, default: 1.38}
+      Augusta: {container: 1.74, default: 0.58}
+      Aveiro: {container: 3.71, default: 1.24}
+      Barcelona: {container: 0.87, default: 0.29}
+      Bari: {container: 3.42, default: 1.14}
+      Bayonne: {container: 4.91, default: 1.64}
+      Bilbao: {container: 1.5, default: 0.5}
+      Bordeaux: {container: 3.67, default: 1.22}
+      Bremen: {container: 2.87, default: 0.96}
+      Bremerhaven: {container: 1.22, default: 0.41}
+      Brest: {container: 4.75, default: 1.58}
+      Brindisi: {container: 3.24, default: 1.08}
+      Burgas: {container: 2.31, default: 0.77}
+      Cadiz: {container: 3.69, default: 1.23}
+      Caen: {container: 5.47, default: 1.82}
+      Calais: {container: 2.41, default: 0.8}
+      Cartagena: {container: 1.28, default: 0.43}
+      Castellon: {container: 2.42, default: 0.81}
+      Catania: {container: 3.5, default: 1.17}
+      Chioggia: {container: 6.17, default: 2.06}
+      Civitavecchia: {container: 2.94, default: 0.98}
+      Constanta: {container: 0.52, default: 0.17}
+      Cuxhaven: {container: 4.87, default: 1.62}
+      Delfzijl: {container: 3.1, default: 1.03}
+      Dublin: {container: 1.82, default: 0.61}
+      Dunkerque: {container: 1.35, default: 0.45}
+      Elefsina: {container: 2.59, default: 0.86}
+      Emden: {container: 4.05, default: 1.35}
+      Fos-sur-Mer: {container: 0.52, default: 0.17}
+      Frederikshavn: {container: 4.99, default: 1.66}
+      Galway: {container: 7.84, default: 2.61}
+      Gavle: {container: 4.13, default: 1.38}
+      Gdansk: {container: 0.29, default: 0.1}
+      Gdynia: {container: 1.76, default: 0.59}
+      Genova: {container: 0.99, default: 0.33}
+      Ghent: {container: 1.57, default: 0.52}
+      Gijon: {container: 2.18, default: 0.73}
+      Gioia Tauro: {container: 1.35, default: 0.45}
+      Goteborg: {container: 1.37, default: 0.46}
+      Halmstad: {container: 4.94, default: 1.65}
+      Hamina: {container: 2.55, default: 0.85}
+      Hanko: {container: 4.05, default: 1.35}
+      Helsingborg: {container: 3.3, default: 1.1}
+      Helsinki: {container: 2.57, default: 0.86}
+      Huelva: {container: 1.6, default: 0.53}
+      Inkoo: {container: 4.77, default: 1.59}
+      Joensuu: {container: 7.57, default: 2.52}
+      Karlshamn: {container: 3.96, default: 1.32}
+      Kavala: {container: 5.38, default: 1.79}
+      Kiel: {container: 3.9, default: 1.3}
+      Klaipeda: {container: 1.65, default: 0.55}
+      Koge: {container: 5.11, default: 1.7}
+      Kokkola: {container: 4.28, default: 1.43}
+      Koper: {container: 2.02, default: 0.67}
+      Kotka: {container: 2.55, default: 0.85}
+      La Coruna: {container: 2.57, default: 0.86}
+      La Rochelle: {container: 3.2, default: 1.07}
+      La Spezia: {container: 2.48, default: 0.83}
+      Lappeenranta: {container: 6.0, default: 2.0}
+      Larnaka: {container: 5.54, default: 1.85}
+      Las Palmas: {container: 2.1, default: 0.7}
+      Le Havre: {container: 0.37, default: 0.12}
+      Leixoes: {container: 2.65, default: 0.88}
+      Lemesos: {container: 4.81, default: 1.6}
+      Lisboa: {container: 2.88, default: 0.96}
+      Livorno: {container: 1.58, default: 0.53}
+      Lorient: {container: 4.87, default: 1.62}
+      Lubeck: {container: 2.43, default: 0.81}
+      Lulea: {container: 3.31, default: 1.1}
+      Malaga: {container: 5.03, default: 1.68}
+      Malmo: {container: 3.29, default: 1.1}
+      Marseille: {container: 0.52, default: 0.17}
+      Messina: {container: 2.87, default: 0.96}
+      Milazzo: {container: 2.9, default: 0.97}
+      Monfalcone: {container: 4.25, default: 1.42}
+      Motril: {container: 4.91, default: 1.64}
+      Naantali: {container: 4.24, default: 1.41}
+      Nantes: {container: 1.64, default: 0.55}
+      Napoli: {container: 2.46, default: 0.82}
+      Nice: {container: 8.43, default: 2.81}
+      Norrkoping: {container: 4.57, default: 1.52}
+      Nynashamn: {container: 4.57, default: 1.52}
+      Olbia: {container: 3.54, default: 1.18}
+      Oslo: {container: 3.84, default: 1.28}
+      Oulu: {container: 5.26, default: 1.75}
+      Pasajes: {container: 4.4, default: 1.47}
+      Patra: {container: 4.29, default: 1.43}
+      Piraeus: {container: 1.03, default: 0.34}
+      Pitea: {container: 5.23, default: 1.74}
+      Ploce: {container: 3.96, default: 1.32}
+      Pori: {container: 4.46, default: 1.49}
+      Portimao: {container: 7.57, default: 2.52}
+      Porto Foxi: {container: 1.82, default: 0.61}
+      Porto Nogaro: {container: 6.18, default: 2.06}
+      Porto Torres: {container: 4.65, default: 1.55}
+      Raahe: {container: 3.68, default: 1.23}
+      Rauma: {container: 3.97, default: 1.32}
+      Ravenna: {container: 1.73, default: 0.58}
+      Riga: {container: 2.27, default: 0.76}
+      Rijeka: {container: 4.06, default: 1.35}
+      Rostock: {container: 1.87, default: 0.62}
+      Rouen: {container: 0.37, default: 0.12}
+      Saint-Nazaire: {container: 1.64, default: 0.55}
+      Salerno: {container: 3.58, default: 1.19}
+      Santander: {container: 3.59, default: 1.2}
+      Savona: {container: 2.45, default: 0.82}
+      Sete: {container: 3.99, default: 1.33}
+      Sines: {container: 1.2, default: 0.4}
+      Siracusa: {container: 2.5, default: 0.83}
+      Skoldvik: {container: 1.88, default: 0.63}
+      Sodertalje: {container: 5.97, default: 1.99}
+      Split: {container: 4.78, default: 1.59}
+      Stade: {container: 4.29, default: 1.43}
+      Stockholm: {container: 3.24, default: 1.08}
+      Sundsvall: {container: 5.47, default: 1.82}
+      Swinoujscie: {container: 2.25, default: 0.75}
+      Szczecin: {container: 2.78, default: 0.93}
+      Tallinn: {container: 2.71, default: 0.9}
+      Taranto: {container: 2.46, default: 0.82}
+      Tarragona: {container: 1.48, default: 0.49}
+      Terneuzen: {container: 1.31, default: 0.44}
+      Thessaloniki: {container: 2.48, default: 0.83}
+      Tornio: {container: 4.56, default: 1.52}
+      Trelleborg: {container: 2.73, default: 0.91}
+      Trieste: {container: 0.87, default: 0.29}
+      Umea: {container: 5.07, default: 1.69}
+      Valencia: {container: 0.62, default: 0.21}
+      Varna: {container: 2.66, default: 0.89}
+      Vasteras: {container: 5.28, default: 1.76}
+      Venezia: {container: 1.94, default: 0.65}
+      Vigo: {container: 4.16, default: 1.39}
+      Vlissingen: {container: 1.31, default: 0.44}
+      Volos: {container: 3.93, default: 1.31}
+      Waterford: {container: 5.24, default: 1.75}
+      Wilhelmshaven: {container: 1.58, default: 0.53}
+      Wismar: {container: 4.84, default: 1.61}
   border_crossing_fees:   # Schengen/EU internal borders are ~free; keep tiny
     roads: 0.5
     railways: 0.5
