@@ -56,11 +56,13 @@ Phase 4 on the data repository (22 Sep 2026, in the cloud container, 4 CPUs):
 - Ecuador's `transport.gpkg` carries no usable edge names (28 edges named
   "None, None"), so a name-keyed override cannot target an Ecuador edge until
   the data names them; the timing runs set the capacity programmatically.
-  The Gulf data of the repository names its border crossings, sea lanes,
-  airports and pipelines, but not its 113 multimodal connectors: the port
-  gateways of the April runs cannot be named from this data either (KI-44).
-- The Gulf rebuild itself still needs a v2 scope configuration (the v1 one
-  lives on `legacy/v1`).
+  The Gulf data of the repository names its border crossings, sea lanes
+  (among them the 28 `port_*` maritime access lanes, where port capacities
+  can sit: each override matches one edge), airports and pipelines, but not
+  its 113 land-side multimodal connectors (KI-44, corrected 17 Nov 2026).
+- The Gulf rebuild itself still needs a v2 scope configuration (the April one
+  is a gitignored local config written for the retired `gradual` mode; the
+  April runs were made on main `c79f62e`, not on `legacy/v1`: KI-62).
 
 Phase 4 evidence of 21 Sep 2026 (Testkistan and synthetic, before the
 optimisations; the synthetic gate times are superseded by the table above):
@@ -122,9 +124,9 @@ optimisations; the synthetic gate times are superseded by the table above):
   proportional to the traffic through the capacitated links. On-off only: no
   cost multiplier anywhere, one rationing rule. The last code state carrying
   the Gulf machinery is archived under the repo's `legacy/*` convention
-  (`legacy/v2-capacity-routing` at main `2fbb13d`, to be created; `legacy/v1`
-  of 18 Apr 2026 already holds the v1 code of the April Gulf runs); main is
-  cleaned.
+  (`legacy/v2-capacity-routing` at main `2fbb13d`, to be created; the April
+  Gulf runs were made on main `c79f62e` of 7 Apr 2026 with an uncommitted
+  config and transport edit, not on `legacy/v1`: KI-62); main is cleaned.
 
 ## 1. What the code does today
 
@@ -455,9 +457,10 @@ of the above (to be created by the maintainer, this session's push access is
 limited to its working branch: `git branch legacy/v2-capacity-routing 2fbb13d
 && git push origin legacy/v2-capacity-routing`; `git archive
 legacy/v2-capacity-routing -o legacy.zip` gives the zip). `legacy/v1`
-(18 Apr 2026, `d47cc0f`) already holds the v1 code on which the April 2026
-Gulf and Hormuz runs were made, and every exported run records its commit in
-`run_fingerprint.json`. On main, `capacity_constraint: gradual | binary`
+(18 Apr 2026, `d47cc0f`) holds the v1 code; the April 2026 Gulf and Hormuz
+runs were made on main `c79f62e` (7 Apr 2026, early v2) with an uncommitted
+config and `transport.gpkg` edit, before runs recorded their commit (KI-62).
+Every run exported today records its commit in `run_fingerprint.json`. On main, `capacity_constraint: gradual | binary`
 raise at parse with a message naming `legacy/v2-capacity-routing`.
 
 ### 3.6 Relation to the existing mechanisms
@@ -518,7 +521,7 @@ the calibrated baseline.
 - LPs, heuristic, candidate generation, chunking and multi-route plans:
   dropped, no benchmark copy.
 - Gulf-era code: archived in git under `legacy/*` (`legacy/v2-capacity-routing`
-  at `2fbb13d`; `legacy/v1` already holds the April 2026 code), not kept as
+  at `2fbb13d`; the April 2026 runs are main `c79f62e`, KI-62), not kept as
   deprecated modes; main cleaned.
 - Cut tonnage is re-sent within the step until convergence; the residue waits.
 - One rationing rule: proportional within a round, round priority across
