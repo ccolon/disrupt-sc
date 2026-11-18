@@ -101,7 +101,8 @@ def build_agents(common: dict, ap, sp, tp, seed=None):
     if common.get("crit_df") is not None:
         load_input_criticality(firms, common["crit_df"])
     load_inventories(firms, ap.inventory_duration_targets,
-                     sp.time_resolution, common["sector_table"])
+                     sp.time_resolution, common["sector_table"],
+                     by_region=ap.inventory_duration_targets_by_region)
     households = create_households(common["household_table"], common["consumption"])
     households = add_representative_demand_agents(
         households, common["mrio"], common["selection"], ap, sp.time_resolution)
@@ -109,7 +110,7 @@ def build_agents(common: dict, ap, sp, tp, seed=None):
         households, ap.enable_household_inventories,
         ap.household_inventory_duration_targets,
         ap.inventory_restoration_time, sp.time_resolution,
-        common["sector_table"])
+        common["sector_table"], by_region=ap.inventory_duration_targets_by_region)
     countries = create_countries(
         common["mrio"], common["tnodes"], common["countries_path"],
         common["usd_per_ton"], sp.time_resolution, ap, common["selection"],

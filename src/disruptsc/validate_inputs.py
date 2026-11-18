@@ -31,6 +31,7 @@ _VALID_TIME_RESOLUTIONS = ("day", "week", "month", "year")
 _KNOWN_DISRUPTION_TYPES = (
     "transport_disruption", "transport_disruption_probability",
     "capital_destruction", "productivity_shock",
+    "stock_injection",
 )
 
 

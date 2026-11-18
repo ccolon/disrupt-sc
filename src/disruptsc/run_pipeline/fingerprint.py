@@ -71,6 +71,9 @@ WATERMARKED_CONFIG_KEYS = (
     "critical_input_threshold",
     "capital_to_value_added_ratio",
     "inventory_duration_targets",
+    # region-specific stock depths (MC1, 18 Nov 2026); re-applied on every cache load like
+    # inventory_duration_targets, so run provenance only, not a stage cache key
+    "inventory_duration_targets_by_region",
     "inventory_restoration_time",
     "enable_household_inventories",
     "firm_data_type",

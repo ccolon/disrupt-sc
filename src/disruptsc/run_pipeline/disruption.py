@@ -632,6 +632,106 @@ class ProductivityShock:
 
 
 # ------------------------------------------------------------------
+# Stock injection (a dated strategic release)
+# ------------------------------------------------------------------
+
+def _input_matches(input_id: str, key: str) -> bool:
+    """An input id (``SAU_B06``, ``ROW_imports``) matches its full id or its sector part."""
+    return input_id == key or (input_id.split("_", 1)[-1] if "_" in input_id else input_id) == key
+
+
+@dataclass
+class StockInjection:
+    """A one-off addition to the input stocks of the agents of a region (MC1, Hormuz 2026).
+
+    The IEA collective release of March 2026 put oil from strategic reserves into the
+    market at a date; giving the importers larger stocks from t = 0 instead would move
+    its effect in time (decision Q17, 18 Nov 2026). At the start of step ``start_time``,
+    once, every agent located in ``region`` (``agent.region``) that uses ``input`` gets
+    ``days`` days of its usual use of that input added to its stock:
+
+        added = eq_use_per_step x days / days_per_step
+
+    i.e. the region receives ``days`` x its usual daily use, shared among its users in
+    proportion to their usual use. "Usual use" is the equilibrium use (``eq_needs``),
+    not the current one: a release is a fixed volume quoted in days of normal demand,
+    and the current use is depressed exactly where the shortage bites (a stopped
+    refinery would get nothing), which would also make the injected total depend on
+    the simulated state. Firms use an input when it is in their input mix (``input``
+    = its sector code, e.g. B06, or a full input id, e.g. SAU_B06; an import bundle by
+    its id or ``imports``); households receive it only if they hold stocks
+    (``enable_household_inventories``); the national government / investment agents
+    and the country agents hold no stocks and receive nothing. The stock enters the
+    buyers' inventories like a delivery, so the next order covers less of the gap; it
+    is not removed afterwards (stocks above target are not sold back).
+    """
+    region: str = ""
+    input: str = ""
+    days: float = 0.0
+    start_time: int = 1
+    days_per_step: float = 7.0
+    # diagnostics of the last implement (model monetary units)
+    injected: float = 0.0
+    n_agents: int = 0
+
+    def implement(self, firms: dict, households: dict | None = None):
+        steps = self.days / self.days_per_step
+        total, agents = 0.0, 0
+        for firm in firms.values():
+            if firm.region != self.region:
+                continue
+            got = False
+            for input_id, coef in firm.input_mix.items():
+                if coef <= 0 or not _input_matches(input_id, self.input):
+                    continue
+                q = firm.eq_needs.get(input_id, 0.0) * steps
+                if q <= 0:
+                    continue
+                firm.inventory[input_id] = firm.inventory.get(input_id, 0.0) + q
+                total += q
+                got = True
+            agents += got
+        for hh in (households or {}).values():
+            if (hh.region != self.region or not hh.use_inventories
+                    or getattr(hh, "agent_type", "household") != "household"):
+                continue
+            got = False
+            for sector_id, use in hh.eq_needs.items():
+                if use <= 0 or not _input_matches(sector_id, self.input):
+                    continue
+                q = use * steps
+                hh.inventory[sector_id] = hh.inventory.get(sector_id, 0.0) + q
+                total += q
+                got = True
+            agents += got
+        self.injected, self.n_agents = total, agents
+        if agents:
+            logging.info(f"StockInjection t={self.start_time}: {self.days:g} days of {self.input} to {agents} "
+                         f"agent(s) in {self.region}, {total:,.6g} model units added to their stocks")
+        else:
+            logging.warning(f"StockInjection t={self.start_time}: no agent in region '{self.region}' uses "
+                            f"input '{self.input}' (or holds stocks) - this injection is a no-op")
+
+    def log_info(self):
+        logging.info(f"StockInjection: {self.days:g} days of {self.input} in {self.region} at t={self.start_time}")
+
+
+def _parse_stock_injection(cfg: dict, time_resolution: str) -> StockInjection:
+    missing = [k for k in ("region", "input", "days", "start_time") if k not in cfg]
+    if missing:
+        raise ValueError(f"stock_injection needs {missing} (region, input sector, days of use, start_time step)")
+    days, start = cfg["days"], cfg["start_time"]
+    if isinstance(days, bool) or not isinstance(days, (int, float)) or not days >= 0:
+        raise ValueError(f"stock_injection days must be a number >= 0 (got {days!r})")
+    if isinstance(start, bool) or not isinstance(start, int) or start < 1:
+        raise ValueError(f"stock_injection start_time must be an integer step >= 1 (got {start!r}); "
+                         f"step 0 is the undisturbed baseline")
+    from disruptsc.config import days_per_timestep
+    return StockInjection(region=str(cfg["region"]), input=str(cfg["input"]), days=float(days),
+                          start_time=start, days_per_step=days_per_timestep(time_resolution))
+
+
+# ------------------------------------------------------------------
 # Disruption list: parse from YAML config
 # ------------------------------------------------------------------
 
@@ -798,6 +898,9 @@ def parse_disruptions(config_list: list | None,
                 )
             disruptions.append(d)
 
+        elif dtype == "stock_injection":
+            disruptions.append(_parse_stock_injection(cfg, time_resolution))
+
         else:
             raise ValueError(f"Unknown disruption type: {dtype}")
 
@@ -805,7 +908,7 @@ def parse_disruptions(config_list: list | None,
 
 
 def apply_disruptions(disruptions: list, time_step: int,
-                      transport_network, firms: dict):
+                      transport_network, firms: dict, households: dict | None = None):
     """Apply disruptions whose start_time matches *time_step*.
 
     Returns the available (undisrupted) transport network view.
@@ -817,6 +920,8 @@ def apply_disruptions(disruptions: list, time_step: int,
             d.implement(transport_network)
         elif isinstance(d, (CapitalDestruction, ProductivityShock)):
             d.implement(firms)
+        elif isinstance(d, StockInjection):
+            d.implement(firms, households)
 
     return transport_network.get_undisrupted_network()
 

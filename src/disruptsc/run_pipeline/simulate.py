@@ -441,7 +441,7 @@ def _run_one_time_step(time_step, sc_network, transport_network,
     # Apply disruptions starting this step
     if disruptions:
         available_transport_network = apply_disruptions(
-            disruptions, time_step, transport_network, firms,
+            disruptions, time_step, transport_network, firms, households,
         )
 
     # Reconstruction demand (ARIO-style): when a reconstruction-enabled capital
