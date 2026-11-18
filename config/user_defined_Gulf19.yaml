@@ -194,6 +194,32 @@ inventory_duration_targets:
   unit: day
 inventory_restoration_time: 4
 
+# -- Country stock depths (Hormuz node A12, model change MC1, 18 Nov 2026) --
+# Days of use per input SECTOR (Gulf19 sector names), for the firms and the
+# households located in the region; they replace the per-type days above for
+# those inputs only. Block copied from disrupt-sc-studies/hormuz/calibration/
+# stocks_by_region_draft.yaml; every value is a row of
+# hormuz/data/stocks/stock_cover.csv or stock_cover_bloc_means.csv (evidence
+# node D7): IEA Oil Market Report 12 Aug 2026, Table 5, end Dec 2025 (pre-war).
+# IEA days = total stocks on land (industry + government, crude + products) in
+# days of FORWARD DEMAND, not days of net imports; the same figure is given to
+# Oil (crude) and Refining (products). The IEA collective release of 11 Mar
+# 2026 is NOT here: a policy reaction, for the ex-post run (Q24, node A13).
+# Regions left to the generic days above: ARE SAU IRQ IRN OMN BHR KWT QAT (net
+# exporters, no import cover found), CHN and IND (no days figure), AFR and EAS
+# (no member in the IEA table), and Gas everywhere (no days of cover found).
+# MC1 caveats: stocks above target are never drawn down; household stocks only
+# with enable_household_inventories (on here); the adjusted targets per region
+# are logged at build ("inventory_duration_targets_by_region [...]", KI-36).
+inventory_duration_targets_by_region:
+  JPN: {Oil: 156, Refining: 156}   # stock_cover.csv JPN/oil: total stocks on land, 156 days of forward demand, end Dec 2025
+  KOR: {Oil: 75, Refining: 75}     # KOR/oil 75 days, end Dec 2025
+  TUR: {Oil: 94, Refining: 94}     # TUR/oil 94 days, end Dec 2025
+  EUR: {Oil: 111, Refining: 111}   # bloc mean 111.14 (net-import-weighted, 25 of 31 members, 96 % of bloc net imports)
+  RoW: {Oil: 64, Refining: 64}     # bloc mean 63.73 (AUS CHL NZL USA only, 68 % of bloc net imports) - the weakest value
+  PAK: {Refining: 28}              # PAK/oil petrol and diesel cover 28 days each, OGRA, 2 Mar 2026 (product cover)
+  BGD: {Refining: 15}              # derived 15.3: BPC 4 Mar 2026 diesel 201,610 t/14 d, petrol 21,705 t/17 d, octane 34,133 t/31 d
+
 # -- Which cargo may use which mode --
 # Pipelines carry crude only: the Strait bypass lines (Petroline,
 # Habshan-Fujairah) are crude lines, and refined products or gas let into the
