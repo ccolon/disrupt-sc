@@ -127,6 +127,12 @@ excluded from the headline loss.
 - **stock_injection** — a dated, one-off addition of `days` of equilibrium
   use of an input to the stocks of the agents of a region (a strategic
   release), at the start of its step.
+- **export_ban** — the firms of an exporting region (x sector) withhold a
+  fraction of what their rationing allotted to buyers in other regions, per
+  destination, over a window of steps; the withheld goods stay in their stock.
+  The shares are re-evaluated every step from the windows
+  (`update_export_bans`, called by `apply_disruptions`), so overlapping bans
+  keep the later expiry in any order, and `set_initial_conditions` clears them.
 
 Firm-side timed recovery is threshold-only (full restoration when the
 duration elapses); transport-edge recovery supports shapes.
