@@ -66,7 +66,12 @@ seed: 0
 # check over t_final weeks.
 simulation_type: disruption
 t_final: 104
-epsilon_stop_condition: 0   # always run the full t_final
+# Early stop OFF (read as SimParams.epsilon_stop): every Hormuz run uses the
+# fixed horizon. With a value > 0, continue_disruption_run stops once t is past
+# the last disruption START and losses are at or below it, whatever the
+# disruption's duration - a run whose stocks still buffer an active Strait
+# closure could stop early; and an undisturbed run would run one step only.
+epsilon_stop_condition: 0
 mc_repetitions: 0
 export_files: True
 # KI-33: the per-link and per-inventory step files are not needed by the
@@ -192,9 +197,15 @@ inventory_restoration_time: 4
 # 18 Nov 2026) - all of them crude, all routable again with crude on roads.
 # The buyers of crude sit on road nodes (firms other than the oil and gas
 # fields sit at their region's household centroid) and so does AFR's producer
-# (Nairobi); a road leg is their only access to a pipeline or a port. Crude on
-# roads at t=0 and across the border edges: disrupt-sc-studies/hormuz/data/
-# gulf_port/ (A1 tables); leakage by road under a closure is checked in A6.
+# (Nairobi); a road leg is their only access to a pipeline or a port.
+# Consequence, undisturbed run of 18 Nov 2026 (output/Gulf/20261118_100420,
+# t=0): 3.32 Mt/week of crude from the Shaybah field cross the unnamed SAU-OMN
+# border road edge into the Yibal-Mina al-Fahal pipeline (6 of the field's 8
+# crude links then leave from port_sohar, outside the Strait; no
+# Shaybah-Abqaiq line in the data); the King Fahd causeway carries 0.11
+# Mt/week of crude. A leak at t=0, far above the A6 cap; 14 of the 20 border
+# road edges are unnamed, so no capacity override can close them (KI-44).
+# Tables: disrupt-sc-studies/hormuz/data/gulf_port/roads_border_t0.csv.
 cargo_mode_eligibility:
   airways: [container]
   pipelines: [crude]
