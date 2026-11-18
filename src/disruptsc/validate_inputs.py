@@ -147,11 +147,25 @@ def _check_mrio(path, config: dict, errors: list, warnings: list):
     except Exception as exc:
         errors.append(f"MRIO failed to load/parse (structure problem?): {exc}")
         return None
-    if not mrio.import_label and not mrio.external_selling_countries:
-        errors.append("MRIO: no import supply detected (neither an 'imports' row label "
-                      "nor sector-resolved external-region rows)")
-    if not mrio.export_label:
-        errors.append("MRIO: no export column label detected (level-1 matching 'export')")
+    no_imports = not mrio.import_label and not mrio.external_selling_countries
+    no_exports = not mrio.export_label
+    # A CLOSED table (no import rows AND no export column: every region is a
+    # firm/household region, the scope has no country agent) is a valid input:
+    # the loader and the run accept it (Gulf, GLORIA 15 regions; on v2 the
+    # undisturbed baseline is flat). Until 18 Nov 2026 the two checks below
+    # rejected it, so a valid closed scope could not pass (KI-61, Hormuz Q11).
+    # A HALF-open table (one side only) stays an error: it is usually a label
+    # the detection missed.
+    closed = no_imports and no_exports
+    if closed:
+        warnings.append("MRIO is closed (no import rows, no export column): the scope has no "
+                        "country agent; every trade flow is between modelled regions")
+    else:
+        if no_imports:
+            errors.append("MRIO: no import supply detected (neither an 'imports' row label "
+                          "nor sector-resolved external-region rows)")
+        if no_exports:
+            errors.append("MRIO: no export column label detected (level-1 matching 'export')")
     if not mrio.final_demand_label:
         errors.append("MRIO: no final-demand column label detected "
                       "(level-1 matching 'final_demand' or 'household')")
@@ -164,7 +178,15 @@ def _check_mrio(path, config: dict, errors: list, warnings: list):
         output = mrio.get_total_output()
         inp = mrio.get_total_input()
         unbalanced = int((inp > output + 1e-9).sum())
-        if unbalanced:
+        if unbalanced and closed:
+            # Mrio._adjust_output balances a region_sector by padding its export
+            # cells; a closed table has none, so the gap stays (input > output).
+            errors.append(
+                f"MRIO is closed and {unbalanced} region_sector(s) have input > output - "
+                f"there is no export column to pad them (Mrio._adjust_output); "
+                f"balance the table"
+            )
+        elif unbalanced:
             warnings.append(
                 f"MRIO: {unbalanced} region_sector(s) have input > output — "
                 f"the model will silently pad their exports to balance "

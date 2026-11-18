@@ -1,0 +1,287 @@
+# ============================================================================
+# Gulf scope - Strait of Hormuz (Hormuz 2026 paper, disrupt-sc-studies/hormuz)
+# Ported to the v2 engine on 18 Nov 2026 (paper pipeline, node A1) from the
+# gitignored April 2026 file (kept on the laptop, byte-identical, as
+# config/user_defined_Gulf.april2026.local.yaml, sha256
+# 4601c50463e78c319003f5bdbc77546edf35bf12f33cdfe7b26d8e73b859f76d).
+# Until this file existed the scope had no committed configuration (material
+# audit of 17 Nov 2026, D3; KI-62).
+#
+# MRIO: GLORIA 2023, 15 regions x 19 sectors, CLOSED (no rest-of-world import
+#   rows, no export column): ARE SAU IRQ IRN OMN BHR KWT QAT CHN IND PAK TUR
+#   AFR EAS RoW. Every region is a firm/household region, 0 country agents.
+#   The extraction is not reproducible (KI-05); the re-extraction is node A21.
+# Transport: roads, maritime, airways, pipelines + 113 unnamed multimodal
+#   connectors. Named: the "Strait of Hormuz" sea edge, 29 port_* sea lanes,
+#   6 border crossings (of 20 border road edges), the pipelines (Petroline,
+#   Habshan-Fujairah, Kirkuk-Ceyhan, ...). Two lanes have no land connector
+#   (port_salalah, port_khor_al_zubair: no cargo can use them).
+#   Which port lane lies on which side of the Strait edge:
+#   disrupt-sc-studies/hormuz/data/gulf_port/topology.csv.
+# Data used as it is (disrupt-sc-data/Gulf; transport.gpkg carries the
+#   uncommitted 24 Apr 2026 edit). sha256 on 18 Nov 2026:
+#   Transport/transport.gpkg   06b823451cf1e9ac01f184ddc78a577cfbab7c23b7bf8ae89516e86585e45128
+#   Transport/multimodal.gpkg  5d97797631dbbca152d7746aab55a03a2c66b7c43b2b03207cfaeb2d917fec4b
+#
+# Changes from the April file (each one moves results; material.md section 6):
+# - io_cutoff / cutoff_* -> flow_coverage 0.95 (keeps 72-92 % of every Gulf
+#   energy and fertiliser export flow vs 0-37 % under io_cutoff 0.8, D7);
+# - seed fixed (the April runs were unseeded, KI-34);
+# - capacity_constraint "gradual" (retired 21 Sep 2026, 2e03f3c) -> the on-off
+#   gate; default_transport_capacity -> cargo_mode_eligibility;
+#   logistics.initial_route_assignment "edge_lp" and logistics.chunk_size
+#   (retired with the capacity-aware assignment) and route_optimization_weight
+#   (inert in v2) deleted;
+# - cargo classes: crude (Oil), lng (Gas), Refining as liquid bulk (below);
+# - the April capacities are NOT active (see transport_capacity_overrides).
+# ============================================================================
+
+filepaths:
+  mrio: "Economic/mrio_full.csv"
+  sector_table: "Economic/sector_table_full.csv"
+  # firms.geojson: 35 oil and gas fields (Oil/Gas columns); the firms of every
+  # other region_sector sit at the centroid of their region's household points
+  firms_spatial: "Spatial/firms.geojson"
+  households_spatial: "Spatial/households.geojson"
+  countries_spatial: "Spatial/countries.geojson"
+  transport: "Transport/transport.gpkg"
+  multimodal: "Transport/multimodal.gpkg"
+
+transport_modes: [roads, maritime, airways, pipelines]
+with_transport: True
+
+monetary_units_in_model: mUSD
+monetary_units_in_data: kUSD   # GLORIA table in thousand USD
+firm_data_type: mrio
+time_resolution: week
+
+flow_coverage: 0.95
+seed: 0
+
+# Undisturbed by default: scenarios (the observed 2026 Strait record, the
+# stylized arms) are written by the paper's drivers in disrupt-sc-studies/hormuz.
+# The April scenario was one binary closure of the edge "Strait of Hormuz" from
+# week 1 (the archived April file says duration 10; the April brief used 11).
+# With no disruption and the early stop off, a disruption run is a stationarity
+# check over t_final weeks.
+simulation_type: disruption
+t_final: 104
+epsilon_stop_condition: 0   # always run the full t_final
+mc_repetitions: 0
+export_files: True
+# KI-33: the per-link and per-inventory step files are not needed by the
+# Gulf analyses (firm/household/country series, routing summary, t=0 flows).
+export_link_data: False
+export_inventory_data: False
+use_route_cache: True
+country_transport_share: 0.2
+firm_transport_share: 0.2
+
+# 34-gateway paired criticality sweep of April 2026 (reused: material.md section 4)
+criticality:
+  duration: 5
+  scenarios:
+    - ["port_jebel_ali"]
+    - ["Strait of Hormuz", "port_jebel_ali"]
+    - ["port_khalifa"]
+    - ["Strait of Hormuz", "port_khalifa"]
+    - ["port_fujairah"]
+    - ["Strait of Hormuz", "port_fujairah"]
+    - ["port_khor_fakkan"]
+    - ["Strait of Hormuz", "port_khor_fakkan"]
+    - ["port_hamad"]
+    - ["Strait of Hormuz", "port_hamad"]
+    - ["port_ras_laffan"]
+    - ["Strait of Hormuz", "port_ras_laffan"]
+    - ["port_shuwaikh"]
+    - ["Strait of Hormuz", "port_shuwaikh"]
+    - ["port_mina_al_ahmadi"]
+    - ["Strait of Hormuz", "port_mina_al_ahmadi"]
+    - ["port_khalifa_bin_salman"]
+    - ["Strait of Hormuz", "port_khalifa_bin_salman"]
+    - ["port_ras_tanura"]
+    - ["Strait of Hormuz", "port_ras_tanura"]
+    - ["port_sohar"]
+    - ["Strait of Hormuz", "port_sohar"]
+    - ["port_mina_al_fahal"]
+    - ["Strait of Hormuz", "port_mina_al_fahal"]
+    - ["port_qalhat"]
+    - ["Strait of Hormuz", "port_qalhat"]
+    - ["port_salalah"]
+    - ["Strait of Hormuz", "port_salalah"]
+    - ["port_duqm"]
+    - ["Strait of Hormuz", "port_duqm"]
+    - ["port_jeddah_islamic"]
+    - ["Strait of Hormuz", "port_jeddah_islamic"]
+    - ["port_yanbu"]
+    - ["Strait of Hormuz", "port_yanbu"]
+    - ["port_dammam"]
+    - ["Strait of Hormuz", "port_dammam"]
+    - ["port_king_abdullah"]
+    - ["Strait of Hormuz", "port_king_abdullah"]
+    - ["port_umm_qasr"]
+    - ["Strait of Hormuz", "port_umm_qasr"]
+    - ["port_khor_al_zubair"]
+    - ["Strait of Hormuz", "port_khor_al_zubair"]
+    - ["port_al_maqal"]
+    - ["Strait of Hormuz", "port_al_maqal"]
+    - ["port_imam_khomeini"]
+    - ["Strait of Hormuz", "port_imam_khomeini"]
+    - ["port_bushehr"]
+    - ["Strait of Hormuz", "port_bushehr"]
+    - ["port_bandar_abbas"]
+    - ["Strait of Hormuz", "port_bandar_abbas"]
+    - ["port_bandar_lengeh"]
+    - ["Strait of Hormuz", "port_bandar_lengeh"]
+    - ["port_kharg_island"]
+    - ["Strait of Hormuz", "port_kharg_island"]
+    - ["port_assaluyeh"]
+    - ["Strait of Hormuz", "port_assaluyeh"]
+    - ["border_crossing_al_batha_al_ghuwaifat"]
+    - ["Strait of Hormuz", "border_crossing_al_batha_al_ghuwaifat"]
+    - ["border_crossing_abu_samra_salwa"]
+    - ["Strait of Hormuz", "border_crossing_abu_samra_salwa"]
+    - ["border_crossing_nuwaiseeb_khafji"]
+    - ["Strait of Hormuz", "border_crossing_nuwaiseeb_khafji"]
+    - ["border_crossing_king_fahd_causeway"]
+    - ["Strait of Hormuz", "border_crossing_king_fahd_causeway"]
+    - ["border_crossing_al_ain_al_buraimi"]
+    - ["Strait of Hormuz", "border_crossing_al_ain_al_buraimi"]
+    - ["border_crossing_khatmat_malaha"]
+    - ["Strait of Hormuz", "border_crossing_khatmat_malaha"]
+
+# -- Agents (April values) --
+price_increase_threshold: 10
+nb_suppliers_per_input: 1
+weight_localization_firm: 1
+weight_localization_household: 4
+utilization_rate: 0.8
+rationing_mode: "equal"
+propagate_input_price_change: False
+explicit_service_firm: True
+
+# -- Inventories (April values; days) --
+# Keyed on the sector_table 'type' of the INPUT. Oil and Gas are typed
+# oil_and_gas there and take the default 30 days; Refining is typed
+# manufacturing (30 days). The April comment "mining: 60 - strategic oil
+# reserves are large" was wrong: mining is Coal and Mining only (material.md D8).
+# Country-specific stocks (strategic reserves) are model change MC1.
+enable_household_inventories: True
+inventory_duration_targets:
+  definition: per_input_type
+  values:
+    default: 30
+    agriculture: 14    # food stocks: ~2 weeks
+    manufacturing: 30
+    mining: 60
+    utility: 3
+    service: 90
+    trade: 30
+    transport: 5
+  unit: day
+inventory_restoration_time: 4
+
+# -- Which cargo may use which mode --
+# Pipelines carry crude only: the Strait bypass lines (Petroline,
+# Habshan-Fujairah) are crude lines, and refined products or gas let into the
+# layer would bypass the Strait on them. Airways: containers only. Maritime and
+# the multimodal connectors (not listed): every cargo.
+# Crude is NOT barred from roads, although the target (node A1) was "crude on
+# pipeline and sea only": with roads: [container, dry_bulk, liquid_bulk, lng]
+# 394 of the 9,479 routable links have no route and the build stops (trial of
+# 18 Nov 2026) - all of them crude, all routable again with crude on roads.
+# The buyers of crude sit on road nodes (firms other than the oil and gas
+# fields sit at their region's household centroid) and so does AFR's producer
+# (Nairobi); a road leg is their only access to a pipeline or a port. Crude on
+# roads at t=0 and across the border edges: disrupt-sc-studies/hormuz/data/
+# gulf_port/ (A1 tables); leakage by road under a closure is checked in A6.
+cargo_mode_eligibility:
+  airways: [container]
+  pipelines: [crude]
+
+# -- Capacities --
+# The capacity gate is on, but no edge has a capacity yet: the April
+# capacities were tuned for the retired cost penalty (several "raised" or
+# "boosted" by hand, 1,000 t/day placeholders) and 37 of their 102 edge-cargo
+# constraints sit above the t=0 load on v2, which rations the undisturbed
+# economy into collapse (material.md D2, D15; audit_20261117/v2_smoke). Design
+# capacities and throughput come from nodes A3a/A3b and the calibration A4a;
+# until then this scope runs uncapacitated. The April list, kept as the
+# inventory of edges to source (tons/day, values NOT to be reused):
+#   port_jebel_ali {container 80000, dry_bulk 37453, liquid_bulk 0}
+#   port_khalifa {48308, 33275, 74668}       port_fujairah {20000, 3000, 23971}
+#   port_khor_fakkan {31251, 3125, 23359}    port_hamad {41658, 29200, 0}
+#   port_ras_laffan {0, 0, 30802}            port_shuwaikh {39782, 10510, 0}
+#   port_mina_al_ahmadi {0, 0, 51813}        port_khalifa_bin_salman {15237, 8528, 8519}
+#   port_ras_tanura {0, 0, 900000}           port_sohar {11017, 27801, 80000}
+#   port_mina_al_fahal {1000, 1000, 1000}    port_qalhat {0, 0, 23774}
+#   port_salalah {1000, 1000, 1000}          port_duqm {7543, 10000, 553}
+#   port_jeddah_islamic {62882, 0, 0}        port_yanbu {0, 0, 120000}
+#   port_dammam {61118, 0, 0}                port_king_abdullah {42856, 22800, 0}
+#   port_umm_qasr {53438, 3399, 29781}       port_khor_al_zubair {1000, 1000, 1000}
+#   port_al_maqal {5938, 13770, 11053}       port_imam_khomeini {93750, 35561, 277}
+#   port_bushehr {1000, 1000, 1000}          port_bandar_abbas {50000, 1000, 1286}
+#   port_bandar_lengeh {1000, 1000, 1000}    port_kharg_island {0, 0, 50312}
+#   port_assaluyeh {0, 1000, 1000}           offshore_supply {66, 1885, 0}
+#   border_crossing_al_batha_al_ghuwaifat 35000, border_crossing_abu_samra_salwa 16800,
+#   border_crossing_nuwaiseeb_khafji 8400, border_crossing_king_fahd_causeway 9800,
+#   border_crossing_al_ain_al_buraimi 9800, border_crossing_khatmat_malaha 7000.
+# The April entry port_shahid_rajaee {1000, 1000, 1000} is dropped: no edge of
+# transport.gpkg carries that name (April ignored it silently; v2 raises).
+# Shahid Rajaee is the main terminal of the port of Bandar Abbas, which the
+# network has as the lane port_bandar_abbas; a capacity for the port belongs
+# there (one port, one lane) - not on a second, invented edge.
+# The cargo keys of a future entry are the cargo types below:
+# container, dry_bulk, liquid_bulk, crude, lng.
+capacity_constraint: True
+transport_capacity_overrides: {}
+
+# -- Logistics (April values, except the retired keys) --
+logistics:
+  # Cargo classes. Sector keys take precedence over the sector-type keys of
+  # default.yaml (agriculture, mining -> dry_bulk; oil_and_gas -> liquid_bulk;
+  # default -> container).
+  # - Oil -> crude: its own class, so that cargo_mode_eligibility can keep it
+  #   on pipelines and ships, and the Strait shock can cut tankers per cargo.
+  # - Gas -> lng: its own class (no engine change; plan section 4). LPG cannot
+  #   be separated at 19 sectors.
+  # - Refining -> liquid_bulk: sector_table_full.csv types Refining
+  #   'manufacturing', which shipped refined products as containers in April
+  #   (material.md D8); liquid_bulk is the oil_and_gas class. The data file is
+  #   used as it is, so the 'type' column still says manufacturing where it is
+  #   read for stocks: firm stocks of refined products 30 days either way here,
+  #   household stocks 14 days (manufacturing) instead of the 7-day default.
+  sector_to_cargo_type:
+    Oil: crude
+    Gas: lng
+    Refining: liquid_bulk
+  speeds:  # km/hour
+    roads: 60       # Gulf highways are high quality
+    maritime: 25    # average container vessel in Gulf waters
+    airways: 800
+  basic_cost:  # USD per ton*km
+    roads: 0.09
+    maritime: 0.003
+    airways: 1.5    # air freight premium
+    multimodal: 0.01
+  border_crossing_fees:  # USD/ton - GCC has relatively low barriers
+    roads: 30
+    maritime: 20
+    airways: 10
+  border_crossing_times:  # hours
+    roads: 2.0      # GCC borders are relatively smooth
+    maritime: 4
+    airways: 2
+    multimodal: 3
+  dwell_times:  # hours
+    roads-maritime: 18
+    roads-airways: 18
+    roads-maritime-fujairah: 18
+    roads-maritime-khor_fakkan: 18
+    roads-pipelines-fujairah: 18
+  loading_fees:  # USD/ton
+    roads-maritime: 2.5
+    roads-maritime-fujairah: 8
+    roads-pipelines-fujairah: 8
+    roads-maritime-khor_fakkan: 10
+    roads-airways: 5.0
