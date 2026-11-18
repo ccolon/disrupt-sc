@@ -32,6 +32,8 @@
 #   logistics.initial_route_assignment "edge_lp" and logistics.chunk_size
 #   (retired with the capacity-aware assignment) and route_optimization_weight
 #   (inert in v2) deleted;
+# - production: strict Leontief (April; the April code had no PBL) -> partially-
+#   binding Leontief with the IHS survey matrix (node A2, filepaths.input_criticality);
 # - cargo classes: crude (Oil), lng (Gas), Refining as liquid bulk (below);
 # - the April capacities are NOT active (see transport_capacity_overrides).
 # ============================================================================
@@ -46,6 +48,27 @@ filepaths:
   countries_spatial: "Spatial/countries.geojson"
   transport: "Transport/transport.gpkg"
   multimodal: "Transport/multimodal.gpkg"
+  # Production rule (node A2, 18 Nov 2026): partially-binding Leontief with the IHS
+  # Markit survey criticality (Pichler et al. 2022, Zenodo 10.5281/zenodo.5881855,
+  # CC BY 4.0), 54 WIOD industries mapped to the 19 GLORIA sectors by
+  # studies/hormuz2026/build_criticality_gulf.py (crosswalk committed next to it in
+  # additional_data/). The mapping is many-to-one; this default is the OUTPUT-WEIGHTED
+  # rule (mean rating of the WIOD sub-pairs, weights = WIOD 2014 world output,
+  # rounded to the nearest class): 18 % of the firms' input value critical, 58 %
+  # important, 24 % non-critical (seed 0-9 builds; link_shares_gulf.py). The MAX rule
+  # (one critical sub-pair makes the cell critical) makes 92 % critical - by value
+  # nearly strict Leontief - and is the conservative alternative. Other rules by
+  # overlay, DISRUPT_SC_EXTRA_CONFIG=studies/hormuz2026/rules/<rule>.yaml:
+  # pbl_max, strict, thr002 (2 % cost-share proxy, no matrix), pbl_outw_thr002 and
+  # pbl_max_thr002 (the matrix among inputs >= 2 % of the input bill). A2 runs:
+  # output/Gulf/A2_pbl_20261118 (+ _pit2): the Strait closure binds nothing on this
+  # uncapacitated network (0 loss under every rule); with price_increase_threshold 2
+  # the matrix alone cascades from immaterial blocked inputs (not settled), the 2 %
+  # floor does not - the floor is a pending decision for the main runs (A6).
+  # The file lives in disrupt-sc-data and is not a cache key. If it is missing the
+  # run falls back to strict Leontief WITHOUT a warning (run.py _configure_firms):
+  # check for the exp.log line "Loaded input criticality: ... (37/26/36%)".
+  input_criticality: "Economic/input_criticality_ihs_outw.csv"
 
 transport_modes: [roads, maritime, airways, pipelines]
 with_transport: True
@@ -164,6 +187,11 @@ utilization_rate: 0.8
 rationing_mode: "equal"
 propagate_input_price_change: False
 explicit_service_firm: True
+# Kept at 0 with the survey matrix (node A2): Firm.produce composes the two knobs - an
+# input below this share of the firm's input bill never binds, whatever its survey
+# class - so a value > 0 here would be a different rule (matrix among material inputs
+# only), not the matrix alone.
+critical_input_threshold: 0.0
 
 # -- Inventories (April values; days) --
 # Keyed on the sector_table 'type' of the INPUT. Oil and Gas are typed
