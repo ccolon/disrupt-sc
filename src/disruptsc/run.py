@@ -216,6 +216,7 @@ def execute(config: dict, *, cache: str | None = None,
             ap.inventory_restoration_time,
             sp.time_resolution,
             sector_table,
+            by_region=ap.inventory_duration_targets_by_region,
         )
 
     def _configure_firms(firms):
@@ -245,7 +246,7 @@ def execute(config: dict, *, cache: str | None = None,
         # the supply-chain build only exist after the agents stage, so the
         # targets are (re)computed here, on the final input mix.
         load_inventories(firms, ap.inventory_duration_targets, sp.time_resolution, sector_table,
-                         bundle_shares=bundle_shares)
+                         bundle_shares=bundle_shares, by_region=ap.inventory_duration_targets_by_region)
         # Pooling of the same product across regions (input_pooling.enabled + the
         # substitutability table); not a cache key, re-applied like the rules above.
         pooling = config.get("input_pooling") or {}

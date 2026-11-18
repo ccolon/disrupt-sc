@@ -370,14 +370,78 @@ def load_input_criticality(firms: dict[str, Firm], criticality: pd.DataFrame,
         f"{100*n_non/tot:.0f}%)")
 
 
+def _region_days(entry: dict, input_id: str, sector: str, sector_type_map: dict):
+    """(key, days) of a regional entry for one input: its full id (SAU_B06) first, then
+    its sector (B06), then its sector type (mining); None when the entry names none."""
+    for key in (input_id, sector, sector_type_map.get(sector)):
+        if key is not None and key in entry:
+            return key, entry[key]
+    return None
+
+
+def _apply_region_targets(agent, targets: dict, entry: dict, days_per_step: float,
+                          sector_type_map: dict, used: set, base_steps=None,
+                          bundle_shares: dict | None = None) -> int:
+    """Override *targets* ({input id: steps}) in place with a region's entry (days).
+
+    An import bundle (``{BLOC}_imports``) named by its id, ``imports`` or the type of
+    ``imports`` takes the entry's days whole; otherwise, when its MRIO composition is
+    known (firms, *bundle_shares*), the sectors the entry names take its days and the
+    others keep their base value (*base_steps*), weighted by the composition - so the
+    crude inside a bundle gets the region's crude cover. Returns the number of inputs
+    overridden; the keys used are added to *used*."""
+    n = 0
+    for input_id in list(targets):
+        sector = input_id.split("_", 1)[-1] if "_" in input_id else input_id
+        hit = _region_days(entry, input_id, sector, sector_type_map)
+        if hit is None and sector == "imports" and base_steps is not None:
+            comp = _bundle_composition(agent, input_id, bundle_shares)
+            if not comp:
+                continue
+            bloc = input_id[: -len("_imports")]
+            hits = {s: _region_days(entry, f"{bloc}_{s}", s, sector_type_map) for s in comp}
+            if all(h is None for h in hits.values()):
+                continue
+            targets[input_id] = sum(share * (hits[s][1] / days_per_step if hits[s] is not None else base_steps(s))
+                                    for s, share in comp.items())
+            used.update(h[0] for h in hits.values() if h is not None)
+            n += 1
+        elif hit is not None:
+            targets[input_id] = hit[1] / days_per_step
+            used.add(hit[0])
+            n += 1
+    return n
+
+
+def _log_region_targets(kind: str, by_region: dict, stats: dict, used: dict, agents_in: dict):
+    """One line per region (the adjusted targets are what a run's log must show, KI-36),
+    and a warning for a region or a key that matched nothing."""
+    for region, entry in by_region.items():
+        if not agents_in.get(region):
+            logging.warning(f"inventory_duration_targets_by_region: no {kind} located in region "
+                            f"'{region}' - its entry {entry} is a no-op for {kind}")
+            continue
+        n_agents, n_inputs = stats.get(region, (0, 0))
+        idle = sorted(set(entry) - used.get(region, set()))
+        logging.info(f"inventory_duration_targets_by_region [{kind}] {region}: {entry} days -> "
+                     f"{n_inputs} input target(s) of {n_agents}/{agents_in[region]} {kind}"
+                     + (f"; keys matching no input of them: {idle}" if idle else ""))
+
+
 def load_inventories(firms: dict[str, Firm], inventory_targets: dict,
                      time_resolution: str, sector_table: pd.DataFrame = None,
-                     bundle_shares: dict | None = None):
+                     bundle_shares: dict | None = None,
+                     by_region: dict | None = None):
     """Set inventory duration targets per input sector.
 
     Import bundles (``{BLOC}_imports``) get the share-weighted mean of their
     sectors' type durations when *bundle_shares* (import_bundle_shares) is
     given, else the ``imports`` value or the default.
+
+    *by_region* (``inventory_duration_targets_by_region``, {region: {input id |
+    sector | type: days}}) then overrides the targets of the firms located in
+    a listed region (``firm.region``), input by input (see _apply_region_targets);
+    None / {} leaves every target as computed above.
     """
     definition = inventory_targets.get("definition", "per_input_type")
     values = inventory_targets.get("values", {"default": 30})
@@ -386,11 +450,29 @@ def load_inventories(firms: dict[str, Firm], inventory_targets: dict,
     # Convert target to time_resolution units
     time_days = {"day": 1, "week": 7, "month": 30, "year": 365}
     factor = time_days.get(target_unit, 1) / time_days.get(time_resolution, 7)
+    days_per_step = time_days.get(time_resolution, 7)
 
     sector_type_map = {}
     if sector_table is not None:
         sector_type_map = (sector_table.drop_duplicates("sector")
                                        .set_index("sector")["type"].to_dict())
+
+    by_region = by_region or {}
+    region_stats: dict = {}
+    region_used: dict = {}
+    firms_in = {r: sum(1 for f in firms.values() if f.region == r) for r in by_region}
+
+    def _regional(firm, targets, base_steps):
+        if not by_region:
+            return                       # off: the targets above, untouched
+        entry = by_region.get(firm.region)
+        if not entry:
+            return
+        n = _apply_region_targets(firm, targets, entry, days_per_step, sector_type_map,
+                                  region_used.setdefault(firm.region, set()),
+                                  base_steps=base_steps, bundle_shares=bundle_shares)
+        a, i = region_stats.get(firm.region, (0, 0))
+        region_stats[firm.region] = (a + (1 if n else 0), i + n)
 
     if definition == "per_buying_sector":
         # Days of goods-input stock keyed on the BUYER's sector (balance-sheet
@@ -431,9 +513,12 @@ def load_inventories(firms: dict[str, Firm], inventory_targets: dict,
                 else:
                     duration = _days(firm.sector, input_sector)
                 targets[input_id] = duration * factor
+            _regional(firm, targets, lambda s, _b=firm.sector: _days(_b, s) * factor)
             firm.inventory_duration_target = targets
         logging.info(f"Inventory targets per buying sector: {len(values)} sectors, {len(overrides)} override blocks; "
                      f"{n_resolved}/{n_imports} import bundles resolved from their composition")
+        if by_region:
+            _log_region_targets("firms", by_region, region_stats, region_used, firms_in)
         return
 
     if definition == "per_input_type":
@@ -465,10 +550,14 @@ def load_inventories(firms: dict[str, Firm], inventory_targets: dict,
                     input_type = sector_type_map.get(input_sector, "default")
                     duration = values.get(input_type, values.get("default", 30))
                 targets[input_id] = duration * factor
+            _regional(firm, targets,
+                      lambda s: values.get(sector_type_map.get(s, "default"), values.get("default", 30)) * factor)
             firm.inventory_duration_target = targets
         if n_imports:
             logging.info(f"Inventory targets: {n_imports} import bundles set to "
                          f"{values.get('imports', values.get('default', 30))} {target_unit}s")
+        if by_region:
+            _log_region_targets("firms", by_region, region_stats, region_used, firms_in)
 
 
 def configure_household_inventories(households: dict[str, Household],
@@ -476,8 +565,15 @@ def configure_household_inventories(households: dict[str, Household],
                                     inventory_targets: dict,
                                     inventory_restoration_time: float,
                                     time_resolution: str,
-                                    sector_table: pd.DataFrame = None):
-    """Attach firm-style inventory parameters to households."""
+                                    sector_table: pd.DataFrame = None,
+                                    by_region: dict | None = None):
+    """Attach firm-style inventory parameters to households.
+
+    *by_region* (``inventory_duration_targets_by_region``) overrides the targets of
+    the households located in a listed region, as for firms (key: the consumed
+    product's id, sector or type; an import bundle by its id or ``imports``). It acts
+    only where households hold stocks (``enable_household_inventories``); the
+    national government / investment agents never do."""
     definition = inventory_targets.get("definition", "per_input_type")
     values = inventory_targets.get("values", {"default": 30})
     target_unit = inventory_targets.get("unit", "day")
@@ -489,6 +585,13 @@ def configure_household_inventories(households: dict[str, Household],
     if sector_table is not None:
         sector_type_map = (sector_table.drop_duplicates("sector")
                                        .set_index("sector")["type"].to_dict())
+
+    by_region = by_region or {}
+    region_stats: dict = {}
+    region_used: dict = {}
+    if by_region and not enabled:
+        logging.info("inventory_duration_targets_by_region: households hold no stocks "
+                     "(enable_household_inventories is false) - the regional targets act on firms only")
 
     for hh in households.values():
         # National government/investment agents hold no inventory (accounting-only,
@@ -513,8 +616,22 @@ def configure_household_inventories(households: dict[str, Household],
                 duration = values.get("default", 30)
             hh.inventory_duration_target[sector_id] = duration * factor
 
+        entry = by_region.get(hh.region) if (by_region and enabled) else None
+        if entry:
+            n = _apply_region_targets(hh, hh.inventory_duration_target, entry,
+                                      time_days.get(time_resolution, 7), sector_type_map,
+                                      region_used.setdefault(hh.region, set()))
+            a, i = region_stats.get(hh.region, (0, 0))
+            region_stats[hh.region] = (a + (1 if n else 0), i + n)
+
         if not enabled:
             hh.inventory = {}
+
+    if by_region and enabled:
+        holders_in = {r: sum(1 for h in households.values()
+                             if h.region == r and getattr(h, "agent_type", "household") == "household")
+                      for r in by_region}
+        _log_region_targets("households", by_region, region_stats, region_used, holders_in)
 
 
 _DAYS_PER_STEP = {"day": 1, "week": 7, "month": 30, "year": 365}

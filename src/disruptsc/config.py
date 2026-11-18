@@ -231,6 +231,32 @@ def _parse_cargo_mode_eligibility(raw) -> dict:
     return out
 
 
+def _parse_inventory_targets_by_region(raw) -> dict:
+    """``inventory_duration_targets_by_region`` as {region: {input id | sector | type: days}}.
+
+    Shape and values are checked here (a number >= 0 of DAYS per key); whether a region
+    or a key matches any agent is logged when the targets are applied (load_inventories),
+    since the agents do not exist yet. None / {} = off."""
+    if raw is None:
+        return {}
+    if not isinstance(raw, dict):
+        raise ValueError(f"inventory_duration_targets_by_region must be a mapping region -> "
+                         f"{{input or type: days}} (got {raw!r})")
+    out = {}
+    for region, entry in raw.items():
+        if not isinstance(entry, dict) or not entry:
+            raise ValueError(f"inventory_duration_targets_by_region['{region}'] must be a non-empty mapping "
+                             f"input id / sector / type -> days (got {entry!r})")
+        clean = {}
+        for key, days in entry.items():
+            if isinstance(days, bool) or not isinstance(days, (int, float)) or not days >= 0:
+                raise ValueError(f"inventory_duration_targets_by_region['{region}']['{key}'] must be a number "
+                                 f"of days >= 0 (got {days!r})")
+            clean[str(key)] = float(days)
+        out[str(region)] = clean
+    return out
+
+
 _DAYS_PER_TIMESTEP = {"day": 1, "week": 7, "month": 30, "year": 365}
 
 
@@ -370,6 +396,8 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
         utilization_rate=config.get("utilization_rate", 0.8),
         critical_input_threshold=config.get("critical_input_threshold", 0.0),
         inventory_duration_targets=config.get("inventory_duration_targets", {}),
+        inventory_duration_targets_by_region=_parse_inventory_targets_by_region(
+            config.get("inventory_duration_targets_by_region")),
         # Household buffers are a separate, retail/pantry-calibrated scheme (NOT the
         # firm map). Falls back to the storable/non-storable default in params.py
         # when the config omits it. (The legacy 'household_inventory_duration_target'

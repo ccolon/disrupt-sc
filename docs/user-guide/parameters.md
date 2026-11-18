@@ -115,6 +115,36 @@ adaptive_supplier_weight: false  # true -> orders shift toward suppliers that de
 capacity_constrained_orders: false  # true -> capacity-hit firms stop over-ordering inputs
 ```
 
+### Region-specific stock depths
+
+Stocks of some inputs differ by country, not by sector alone (strategic oil
+reserves: days of net imports by country). `inventory_duration_targets_by_region`
+(18 Nov 2026) overrides the targets above for the agents **located** in a region
+(`firm.region`, `household.region`); absent or `{}`, nothing changes. Values in
+days (the ones below are placeholders):
+
+```yaml
+inventory_duration_targets_by_region:
+  JPN: {B06: 60, C19: 45}        # keys: an input id (SAU_B06), an input sector (B06) or a type (mining)
+  KOR: {mining: 50}
+```
+
+- **Key precedence** for one input: its full id, then its sector, then its sector
+  type (`sector_table`). Inputs the entry does not name keep their target.
+- **Import bundles** (`{BLOC}_imports`): named by their id, by `imports` or by the
+  type of `imports`, they take the days whole; otherwise, when their MRIO
+  composition is known (firms), the sectors the entry names take its days and the
+  others keep their base value, weighted by the composition (the crude inside a
+  bundle gets the region's crude cover).
+- **Firms and households**: the same entry applies to the firms of the region and,
+  if `enable_household_inventories` is true, to its households (key: the consumed
+  product); households hold no stocks otherwise, and the national government /
+  investment agents never do. Country agents (outside the scope) hold none.
+- Applied with the firm targets on every cache load (not a cache key; recorded in
+  the run fingerprint). The log prints, per region, the entry and how many input
+  targets of how many agents it changed, and warns about a region or a key that
+  matched nothing.
+
 ## Transport Parameters
 
 ```yaml
@@ -204,6 +234,40 @@ A `transport_disruption` with `capacity_reduction` below 1 scales the capacity
 of a named capacitated edge (the gate then rations it); on an edge without a
 capacity only a full reduction, a closure, has an effect.
 
+`capacity_reduction` may also be **per cargo type** (18 Nov 2026), for a shock
+that does not hit every cargo alike (a strait where container transits fall
+further than tanker transits). The values below are placeholders:
+
+```yaml
+transport_capacity_overrides:
+  strait_x: {container: 100000, dry_bulk: 100000, liquid_bulk: 100000}   # per-cargo capacities, t/day
+disruptions:
+  - type: transport_disruption
+    attribute: name
+    values: [strait_x]
+    capacity_reduction: {container: 0.8, liquid_bulk: 0.4, default: 0.6}   # fraction lost, per cargo type
+    start_time: 1
+    duration: 4
+```
+
+Each cargo type takes its own fraction, a cargo type not listed takes
+`default`, and with no `default` it is not reduced; every value is in [0, 1] and
+a key that is not a cargo type of the scope (`logistics.sector_to_cargo_type`)
+raises. The fraction scales the edge's `capacity_<cargo>` (the gate then rations
+each cargo at its own reduced capacity), and every cargo recovers on the same
+`recovery_shape` curve. A per-cargo cut binds only through a capacity:
+
+- on an edge with **per-cargo capacities** each cargo is cut by its own fraction;
+- on an edge with **one shared capacity** the dict works only if the cargo types
+  that may use the edge get the same fraction (the shared capacity is then scaled
+  by it); different fractions raise, because one capacity for all cargo cannot cut
+  one cargo more than another - give the edge per-cargo capacities;
+- on an edge with **no capacity** for a cargo the cut cannot bind (a warning names
+  the edges), as for a partial scalar reduction; the edge is closed, for every
+  cargo, only when every cargo type that may use it loses 100 %.
+
+A number keeps the previous behaviour exactly.
+
 The former `capacity_constraint: gradual | binary` modes, the capacity-aware
 initial assignments (`logistics.initial_route_assignment`, `chunk_size`,
 `route_candidate_*`, `lp_*`, `capacity_routing_max_iterations`) and
@@ -225,7 +289,35 @@ disruptions:
 Types: `transport_disruption`, `transport_disruption_probability`,
 `transport_cost_shock`, `capital_destruction` (uniform via `filter:`, or
 absolute per canton x sector via `description_type: subregion_file` + `file:`),
-and `productivity_shock`.
+`productivity_shock`, and `stock_injection`.
+
+`stock_injection` (18 Nov 2026) is a dated, one-off addition to stocks, for a
+strategic release (the IEA collective action of March 2026) that larger initial
+stocks would move in time (placeholder values):
+
+```yaml
+  - type: stock_injection
+    region: JPN          # the agents located in this region
+    input: B06           # an input sector code, or a full input id (SAU_B06); import bundles by id or "imports"
+    days: 15             # days of the agents' usual use of that input
+    start_time: 3        # the time step (the week at weekly resolution) at whose start it is added, once
+```
+
+All four keys are required. At the start of step `start_time`, before orders
+and production, every agent of the region that uses the input gets
+`days / days_per_step x` its **equilibrium** use per step of it: the region
+receives `days` of its usual daily use, shared among its users in proportion to
+their usual use. Equilibrium, not current, use: a release is a fixed volume quoted
+in days of normal demand, while current use falls exactly where the shortage bites.
+Firms use the input when it is in their input mix; households only if they hold
+stocks (`enable_household_inventories`); government / investment and country
+agents receive nothing. The stock enters like a delivery (the next order covers
+less of the gap) and is not removed afterwards: stocks above target are never sold
+back, so an injection beyond the gap stays in stock. A sector-resolved import
+folded into a `{BLOC}_imports` bundle is reached only through the bundle (its id or
+`imports`), which then takes the whole bundle's use. The log reports the agents
+reached and the quantity; an injection that reaches no agent warns. A run with
+early stopping does not stop before the last `start_time`.
 
 `transport_cost_shock` keeps the edges open but multiplies their cost labels
 (`cost_multiplier`: a number or `{cargo_type: m, default: m}`) for `duration`
@@ -262,6 +354,10 @@ delivers `capacity_factor + substitution_share x (1 - capacity_factor)` of its
 planned quantity (closures: `substitution_share`), pays the tonnage-weighted
 cost of the two routes, and the shortfall is counted as blocked. Without it the
 substitutes are unlimited and a closure costs nothing but the detour price.
+`capacity_factor` may be per cargo type like `cost_multiplier`
+(`{dry_bulk: 0.22, default: 0.5}`, values in [0, 1], a cargo not listed takes
+`default`, else 1); each link uses the value of its own cargo type. Omitted, it is
+`1 / cost_multiplier` for a number and 1 for a per-cargo multiplier.
 Filters accept firm attributes and `subregion_*` keys, and log how many firms
 they matched. Firm-side recovery is threshold-only (`recovery_shape` is
 ignored with a warning); absolute capital destruction recovers only through

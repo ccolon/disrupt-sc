@@ -136,6 +136,12 @@ class AgentParams:
                    "trade": 30, "transport": 5},
         "unit": "day",
     })
+    # Region-specific stock depths (MC1, Hormuz 2026, 18 Nov 2026): {REGION: {key: days}}
+    # overrides the targets above (and the household targets) for the agents located in
+    # REGION; key = an input id (SAU_B06), an input sector (B06) or an input type (mining).
+    # Strategic stocks differ by country (IEA net-import cover), not by sector alone.
+    # {} = off (no agent touched). See init_pipeline.agents.load_inventories.
+    inventory_duration_targets_by_region: dict = field(default_factory=dict)
     # In TIME STEPS (the config supplies DAYS; build_params divides by
     # days_per_timestep). 4 steps ≈ the 30-day config default at weekly resolution.
     inventory_restoration_time: float = 4.0

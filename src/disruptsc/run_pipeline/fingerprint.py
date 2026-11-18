@@ -71,6 +71,9 @@ WATERMARKED_CONFIG_KEYS = (
     "critical_input_threshold",
     "capital_to_value_added_ratio",
     "inventory_duration_targets",
+    # region-specific stock depths (MC1, 18 Nov 2026); re-applied on every cache load like
+    # inventory_duration_targets, so run provenance only, not a stage cache key
+    "inventory_duration_targets_by_region",
     "inventory_restoration_time",
     "enable_household_inventories",
     "firm_data_type",
@@ -83,7 +86,16 @@ WATERMARKED_CONFIG_KEYS = (
     # which mode: it decides which edges carry a cost label)
     "cargo_mode_eligibility",
     "transport_capacity_overrides",
+    # The shock itself (18 Nov 2026, MC3): until then only parameters.yaml held it, so two
+    # runs differing by a per-cargo capacity_reduction had the same run fingerprint. Run
+    # provenance only - not a cache key (the caches are built before any disruption) and
+    # left out of the criticality payload, which builds its own closures (build_fingerprint).
+    "disruptions",
 )
+
+# Keys of WATERMARKED_CONFIG_KEYS that the criticality runs do not read: they stay out of
+# its fingerprint, which names the resumable result folders.
+_NOT_IN_CRITICALITY_FINGERPRINT = ("disruptions",)
 
 # Filepath keys to include in the fingerprint. Each is recorded as a
 # content signature (path + sha256 + size, see _file_signature), so an
@@ -340,11 +352,14 @@ def build_fingerprint(config: dict, *, criticality_duration: int | None = None) 
     leave it None.
     """
     filepaths = config.get("filepaths") or {}
+    keys = WATERMARKED_CONFIG_KEYS
+    if criticality_duration is not None:
+        keys = tuple(k for k in keys if k not in _NOT_IN_CRITICALITY_FINGERPRINT)
     payload = {
         "version": __version__,
         "git_sha": _git_sha(),
         "criticality_duration": criticality_duration,
-        "config": {k: config.get(k) for k in WATERMARKED_CONFIG_KEYS},
+        "config": {k: config.get(k) for k in keys},
         "filepaths": {k: _file_signature(filepaths.get(k))
                       for k in WATERMARKED_FILEPATH_KEYS},
     }

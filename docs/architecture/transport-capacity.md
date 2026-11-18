@@ -467,7 +467,12 @@ raise at parse with a message naming `legacy/v2-capacity-routing`.
 
 - `transport_disruption` with `capacity_reduction < 1` becomes meaningful on
   a capacitated edge: the gate rations at the reduced capacity within the
-  step. Closures (reduction 1) keep their current path.
+  step. Closures (reduction 1) keep their current path. Since 18 Nov 2026
+  (Hormuz 2026, MC3) the reduction may be per cargo type
+  (`{cargo: fraction, default: fraction}`): each `capacity_<cargo>` is scaled by
+  its own fraction; a shared `capacity` accepts only fractions equal across the
+  cargo types that may use the edge (different ones raise); the edge is closed
+  only when every such cargo type loses 100 % (`parameters.md`).
 - `transport_cost_shock` is unchanged.
 - The substitution ceiling stays for the Rhine rules; with real capacities on
   the substitutes it is redundant and `substitution_share: 1` should be used.

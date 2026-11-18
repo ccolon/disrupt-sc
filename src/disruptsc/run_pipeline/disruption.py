@@ -39,13 +39,51 @@ class Recovery:
 # Transport disruption
 # ------------------------------------------------------------------
 
+def _parse_per_cargo_fraction(value, label: str):
+    """A fraction that may be per cargo type: a number passes through unchanged (the
+    scalar path stays bit-identical); a dict ({cargo_type: x, "default": x}) is checked
+    here - every value a number in [0, 1] - and its cargo-type keys against the network
+    when the disruption is implemented (_check_cargo_keys)."""
+    if not isinstance(value, dict):
+        return value
+    if not value:
+        raise ValueError(f"{label}: an empty per-cargo dict; give a number or {{cargo_type: x, default: x}}")
+    out = {}
+    for key, val in value.items():
+        if isinstance(val, bool) or not isinstance(val, (int, float)) or not (0.0 <= float(val) <= 1.0):
+            raise ValueError(f"{label}['{key}'] must be a number in [0, 1] (got {val!r})")
+        out[str(key)] = float(val)
+    return out
+
+
+def _check_cargo_keys(value, transport_network, label: str):
+    """Raise when a per-cargo dict names a cargo type the network does not have."""
+    if not isinstance(value, dict):
+        return
+    known = set(transport_network.cargo_types or [])
+    unknown = sorted(k for k in value if k != "default" and k not in known)
+    if unknown:
+        raise ValueError(f"{label} names unknown cargo type(s) {unknown}; the cargo types of this scope are "
+                         f"{sorted(known)} (from logistics.sector_to_cargo_type)")
+
+
+def _fmt_fraction(value) -> str:
+    if isinstance(value, dict):
+        return "{" + ", ".join(f"{k}: {float(v):.0%}" for k, v in value.items()) + "}"
+    return f"{float(value):.0%}"
+
+
 @dataclass
 class TransportDisruption:
     """Disrupts transport edges by reducing capacity.
 
-    description: {edge_id: fraction_of_capacity_lost}  (0-1)
+    description: {edge_id: fraction_of_capacity_lost}  (0-1), the fraction a
+    number or a per-cargo dict ({cargo_type: fraction, "default": fraction};
+    a cargo type not listed takes "default", and is untouched without one).
+    A per-cargo cut binds through the edge's per-cargo capacities (the gate);
+    see TransportNetwork._apply_edge_capacity_factors_per_cargo.
     """
-    description: dict[int, float] = field(default_factory=dict)
+    description: dict[int, object] = field(default_factory=dict)
     recovery: Recovery | None = None
     start_time: int = 1
     # Share of a closed edge's traffic that the substitutes can absorb
@@ -57,11 +95,17 @@ class TransportDisruption:
         recovery_shape = self.recovery.shape if self.recovery else "threshold"
         recovery_rate = self.recovery.rate if self.recovery else 1.0
         started = False
+        unbound: dict = {}
         for edge in transport_network.edges:
             edata = transport_network[edge[0]][edge[1]]
             eid = edata["id"]
             if eid in self.description:
                 reduction = self.description[eid]
+                if isinstance(reduction, dict):
+                    _check_cargo_keys(reduction, transport_network, "transport_disruption capacity_reduction")
+                    factors = {k: 1.0 - v for k, v in reduction.items()}
+                    for ct in transport_network.unbound_cargo_reductions(edata, factors):
+                        unbound.setdefault(ct, []).append(eid)
                 transport_network.start_edge_disruption(
                     edata, reduction, duration,
                     recovery_shape=recovery_shape,
@@ -69,7 +113,14 @@ class TransportDisruption:
                 )
                 edata["closure_substitution_share"] = float(self.substitution_share)
                 started = True
-                logging.debug(f"Disrupted edge {eid}: {reduction:.0%} capacity loss for {duration} steps")
+                logging.debug(f"Disrupted edge {eid}: {_fmt_fraction(reduction)} capacity loss for {duration} steps")
+        for ct, eids in sorted(unbound.items()):
+            # the scalar analogue (a partial cut on an uncapacitated edge) is a documented no-op;
+            # a per-cargo cut that cannot bind is said out loud, it is usually a missing capacity
+            logging.warning(
+                f"transport_disruption: the {ct} cut cannot bind on {len(eids)} edge(s) without a capacity "
+                f"for {ct} (ids {eids[:10]}{'...' if len(eids) > 10 else ''}); only a closure of every cargo "
+                f"acts there. Name the edge in transport_capacity_overrides to make the cut bind.")
         if started:
             # KI-50: detours cached under the previous closure set are reused while open (KI-42) even when they
             # are no longer the cheapest - successive closures would reuse the first event's detours.
@@ -81,7 +132,7 @@ class TransportDisruption:
 
     @classmethod
     def from_edge_attributes(cls, edges: gpd.GeoDataFrame, attribute: str,
-                             values: list, reduction: float = 1.0):
+                             values: list, reduction=1.0):
         if attribute == "disruption":
             mask = pd.concat(
                 [edges[attribute].str.contains(v, na=False) for v in values], axis=1
@@ -115,12 +166,15 @@ class TransportCostShock:
     # behaviour): the shocked mode still carries capacity_factor of each
     # link's tonnage (at the surcharged cost) and the substitutes absorb at
     # most substitution_share of the displaced remainder; the rest is not
-    # delivered. capacity_factor None = 1/multiplier for a scalar multiplier.
-    capacity_factor: float | None = None
+    # delivered. capacity_factor None = 1/multiplier for a scalar multiplier
+    # (1.0 for a per-cargo multiplier). capacity_factor may itself be per cargo
+    # ({cargo_type: f, "default": f}, resolved with the link's cargo type).
+    capacity_factor: float | dict | None = None
     substitution_share: float = 1.0
 
     def implement(self, transport_network):
         n = 0
+        _check_cargo_keys(self.capacity_factor, transport_network, "transport_cost_shock capacity_factor")
         for edge in transport_network.edges:
             edata = transport_network[edge[0]][edge[1]]
             eid = edata["id"]
@@ -133,8 +187,12 @@ class TransportCostShock:
                     edata, mult, self.duration,
                     capacity_factor=cap, substitution_share=self.substitution_share)
                 n += 1
+        # (until 18 Nov 2026 this line formatted capacity_factor with :.2f, which raised a
+        # TypeError when substitution_share < 1 came without capacity_factor)
+        cap_txt = (_fmt_fraction(self.capacity_factor) if isinstance(self.capacity_factor, dict)
+                   else f"{self.capacity_factor:.2f}" if self.capacity_factor is not None else "1/multiplier")
         logging.info(f"Cost shock applied to {n} edge(s) for {self.duration} step(s)"
-                     + (f" (capacity {self.capacity_factor:.2f}, substitution {self.substitution_share:.2f})"
+                     + (f" (capacity {cap_txt}, substitution {self.substitution_share:.2f})"
                         if self.substitution_share < 1.0 else ""))
 
     def log_info(self):
@@ -574,6 +632,106 @@ class ProductivityShock:
 
 
 # ------------------------------------------------------------------
+# Stock injection (a dated strategic release)
+# ------------------------------------------------------------------
+
+def _input_matches(input_id: str, key: str) -> bool:
+    """An input id (``SAU_B06``, ``ROW_imports``) matches its full id or its sector part."""
+    return input_id == key or (input_id.split("_", 1)[-1] if "_" in input_id else input_id) == key
+
+
+@dataclass
+class StockInjection:
+    """A one-off addition to the input stocks of the agents of a region (MC1, Hormuz 2026).
+
+    The IEA collective release of March 2026 put oil from strategic reserves into the
+    market at a date; giving the importers larger stocks from t = 0 instead would move
+    its effect in time (decision Q17, 18 Nov 2026). At the start of step ``start_time``,
+    once, every agent located in ``region`` (``agent.region``) that uses ``input`` gets
+    ``days`` days of its usual use of that input added to its stock:
+
+        added = eq_use_per_step x days / days_per_step
+
+    i.e. the region receives ``days`` x its usual daily use, shared among its users in
+    proportion to their usual use. "Usual use" is the equilibrium use (``eq_needs``),
+    not the current one: a release is a fixed volume quoted in days of normal demand,
+    and the current use is depressed exactly where the shortage bites (a stopped
+    refinery would get nothing), which would also make the injected total depend on
+    the simulated state. Firms use an input when it is in their input mix (``input``
+    = its sector code, e.g. B06, or a full input id, e.g. SAU_B06; an import bundle by
+    its id or ``imports``); households receive it only if they hold stocks
+    (``enable_household_inventories``); the national government / investment agents
+    and the country agents hold no stocks and receive nothing. The stock enters the
+    buyers' inventories like a delivery, so the next order covers less of the gap; it
+    is not removed afterwards (stocks above target are not sold back).
+    """
+    region: str = ""
+    input: str = ""
+    days: float = 0.0
+    start_time: int = 1
+    days_per_step: float = 7.0
+    # diagnostics of the last implement (model monetary units)
+    injected: float = 0.0
+    n_agents: int = 0
+
+    def implement(self, firms: dict, households: dict | None = None):
+        steps = self.days / self.days_per_step
+        total, agents = 0.0, 0
+        for firm in firms.values():
+            if firm.region != self.region:
+                continue
+            got = False
+            for input_id, coef in firm.input_mix.items():
+                if coef <= 0 or not _input_matches(input_id, self.input):
+                    continue
+                q = firm.eq_needs.get(input_id, 0.0) * steps
+                if q <= 0:
+                    continue
+                firm.inventory[input_id] = firm.inventory.get(input_id, 0.0) + q
+                total += q
+                got = True
+            agents += got
+        for hh in (households or {}).values():
+            if (hh.region != self.region or not hh.use_inventories
+                    or getattr(hh, "agent_type", "household") != "household"):
+                continue
+            got = False
+            for sector_id, use in hh.eq_needs.items():
+                if use <= 0 or not _input_matches(sector_id, self.input):
+                    continue
+                q = use * steps
+                hh.inventory[sector_id] = hh.inventory.get(sector_id, 0.0) + q
+                total += q
+                got = True
+            agents += got
+        self.injected, self.n_agents = total, agents
+        if agents:
+            logging.info(f"StockInjection t={self.start_time}: {self.days:g} days of {self.input} to {agents} "
+                         f"agent(s) in {self.region}, {total:,.6g} model units added to their stocks")
+        else:
+            logging.warning(f"StockInjection t={self.start_time}: no agent in region '{self.region}' uses "
+                            f"input '{self.input}' (or holds stocks) - this injection is a no-op")
+
+    def log_info(self):
+        logging.info(f"StockInjection: {self.days:g} days of {self.input} in {self.region} at t={self.start_time}")
+
+
+def _parse_stock_injection(cfg: dict, time_resolution: str) -> StockInjection:
+    missing = [k for k in ("region", "input", "days", "start_time") if k not in cfg]
+    if missing:
+        raise ValueError(f"stock_injection needs {missing} (region, input sector, days of use, start_time step)")
+    days, start = cfg["days"], cfg["start_time"]
+    if isinstance(days, bool) or not isinstance(days, (int, float)) or not days >= 0:
+        raise ValueError(f"stock_injection days must be a number >= 0 (got {days!r})")
+    if isinstance(start, bool) or not isinstance(start, int) or start < 1:
+        raise ValueError(f"stock_injection start_time must be an integer step >= 1 (got {start!r}); "
+                         f"step 0 is the undisturbed baseline")
+    from disruptsc.config import days_per_timestep
+    return StockInjection(region=str(cfg["region"]), input=str(cfg["input"]), days=float(days),
+                          start_time=start, days_per_step=days_per_timestep(time_resolution))
+
+
+# ------------------------------------------------------------------
 # Disruption list: parse from YAML config
 # ------------------------------------------------------------------
 
@@ -595,7 +753,9 @@ def parse_disruptions(config_list: list | None,
         dtype = cfg.get("type", "")
 
         if dtype == "transport_disruption":
-            reduction = cfg.get("capacity_reduction", cfg.get("fraction_capacity_lost", 1.0))
+            reduction = _parse_per_cargo_fraction(
+                cfg.get("capacity_reduction", cfg.get("fraction_capacity_lost", 1.0)),
+                "transport_disruption capacity_reduction")
             d = TransportDisruption.from_edge_attributes(
                 transport_edges, cfg["attribute"], cfg["values"], reduction=reduction,
             )
@@ -618,12 +778,15 @@ def parse_disruptions(config_list: list | None,
                 duration=cfg.get("duration", 1),
             )
             d.start_time = cfg.get("start_time", 1)
-            d.capacity_factor = cfg.get("capacity_factor")
+            d.capacity_factor = _parse_per_cargo_fraction(cfg.get("capacity_factor"),
+                                                          "transport_cost_shock capacity_factor")
             d.substitution_share = float(cfg.get("substitution_share", 1.0))
             disruptions.append(d)
 
         elif dtype == "transport_disruption_probability":
-            reduction = cfg.get("capacity_reduction", cfg.get("fraction_capacity_lost", 1.0))
+            reduction = _parse_per_cargo_fraction(
+                cfg.get("capacity_reduction", cfg.get("fraction_capacity_lost", 1.0)),
+                "transport_disruption_probability capacity_reduction")
             base = TransportDisruption.from_edge_attributes(
                 transport_edges, cfg["attribute"], cfg["values"], reduction=reduction,
             )
@@ -735,6 +898,9 @@ def parse_disruptions(config_list: list | None,
                 )
             disruptions.append(d)
 
+        elif dtype == "stock_injection":
+            disruptions.append(_parse_stock_injection(cfg, time_resolution))
+
         else:
             raise ValueError(f"Unknown disruption type: {dtype}")
 
@@ -742,7 +908,7 @@ def parse_disruptions(config_list: list | None,
 
 
 def apply_disruptions(disruptions: list, time_step: int,
-                      transport_network, firms: dict):
+                      transport_network, firms: dict, households: dict | None = None):
     """Apply disruptions whose start_time matches *time_step*.
 
     Returns the available (undisrupted) transport network view.
@@ -754,6 +920,8 @@ def apply_disruptions(disruptions: list, time_step: int,
             d.implement(transport_network)
         elif isinstance(d, (CapitalDestruction, ProductivityShock)):
             d.implement(firms)
+        elif isinstance(d, StockInjection):
+            d.implement(firms, households)
 
     return transport_network.get_undisrupted_network()
 

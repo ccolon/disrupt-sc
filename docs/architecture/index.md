@@ -111,8 +111,8 @@ excluded from the headline loss.
 
 - **transport_disruption** — closes edges by id or attribute (reduction 1),
   or scales the capacity of a named capacitated edge (a partial reduction,
-  which the capacity gate then rations), with threshold/linear/exponential
-  recovery;
+  which the capacity gate then rations; a number or one fraction per cargo
+  type), with threshold/linear/exponential recovery;
 - **transport_disruption_probability** — probabilistic arrivals over a
   scenario horizon (drawn from the seeded RNG);
 - **capital_destruction** — fractional (via `filter:`) or absolute per
@@ -123,7 +123,10 @@ excluded from the headline loss.
   `reconstruction_locality`, partly public via
   `reconstruction_public_share`), and delivered output rebuilds capital
   over `reconstruction_target_time`;
-- **productivity_shock** — a temporary TFP-style capacity reduction.
+- **productivity_shock** — a temporary TFP-style capacity reduction;
+- **stock_injection** — a dated, one-off addition of `days` of equilibrium
+  use of an input to the stocks of the agents of a region (a strategic
+  release), at the start of its step.
 
 Firm-side timed recovery is threshold-only (full restoration when the
 duration elapses); transport-edge recovery supports shapes.

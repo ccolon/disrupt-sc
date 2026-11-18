@@ -254,6 +254,13 @@ inventory_duration_targets:
     transport: 5
   unit: day
 
+# Region-specific stock depths (off when absent): {REGION: {input id | sector | type: days}}
+# overrides the targets above, and the household targets below when households hold
+# stocks, for the agents located in REGION - e.g. strategic oil reserves by country.
+# See docs/user-guide/parameters.md ("Region-specific stock depths").
+# inventory_duration_targets_by_region:
+#   JPN: {B06: 60}
+
 # Number of DAYS over which firms close the gap to their inventory target each
 # step (extra order = inventory_gap / restoration_time_in_steps; converted from
 # days to time steps internally via time_resolution). A SMALLER value = more
