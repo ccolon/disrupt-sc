@@ -279,16 +279,19 @@ capacity_constraint: True
 transport_capacity_overrides: {}
 
 # -- Reporting (Hormuz node A26, decision Q28 item 12, 18 Nov 2026) --
-# Outputs only, no result moves: with the three on, every other output is
+# Outputs only, no result moves: with these switches on, every other output is
 # byte-identical on Testkistan (tests/test_reporting_outputs.py) and on a 6-week
 # Gulf run (seed 0, same PYTHONHASHSEED).
 # trade_by_region_sector.csv: per week, the cross-region deliveries by seller region,
 # seller sector and buyer region (quantity as in trade_data.csv, and tons) - the
 # scorer's exports and imports; link_data.csv stays off (KI-33).
 export_trade_by_region_sector: True
-# logistics_report.csv and the per-edge flow files at every week, not weeks 0 and 1
-# only (KI-73).
+# logistics_report.csv at every week, not weeks 0 and 1 only (KI-73): 0.02 MB a week.
 export_logistics_every_step: True
+# The per-edge flow GeoJSONs stay at weeks 0 and 1: each is the whole network, about
+# 1 MB a week, ~100 MB per 104-week run, and the scorer reads the report only (the
+# orchestrator, 18 Nov 2026: up to ~1,500 runs on a disk with 68 GB free).
+export_edge_flows_every_step: False
 # Every named edge of the network, watched without a capacity: the 94 distinct names
 # of disrupt-sc-studies/hormuz/data/capacity/network_named_edges.csv (114 rows,
 # sha256 dd80c8f879b95813), in its order: 6 border crossings, 62 sea edges (the

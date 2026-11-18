@@ -403,6 +403,7 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
         export_inventory_data=bool(config.get("export_inventory_data", True)),
         export_trade_by_region_sector=bool(config.get("export_trade_by_region_sector", False)),
         export_logistics_every_step=bool(config.get("export_logistics_every_step", False)),
+        export_edge_flows_every_step=bool(config.get("export_edge_flows_every_step", False)),
         monitored_edges=_parse_monitored_edges(config.get("monitored_edges")),
         seed=(int(config["seed"]) if config.get("seed") is not None else None),
     )

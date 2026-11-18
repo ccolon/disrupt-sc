@@ -45,7 +45,8 @@ which files a run writes from the state each step leaves.
 export_link_data: true                 # link_data.csv, one row per commercial link and step (GBs on large scopes, KI-33)
 export_inventory_data: true            # inventory_data.csv, one row per firm input and step
 export_trade_by_region_sector: false   # trade_by_region_sector.csv (below)
-export_logistics_every_step: false     # logistics report and per-edge flow files at every step (below)
+export_logistics_every_step: false     # logistics report at every step (below)
+export_edge_flows_every_step: false    # per-edge flow GeoJSON files at every step (below)
 monitored_edges: []                    # edge names the logistics report covers without a capacity (below)
 ```
 
@@ -77,13 +78,17 @@ is safest written with a YAML escape: `"Kirkuk\u2013Ceyhan"`.
 
 **`export_logistics_every_step`** (18 Nov 2026; KI-73): the logistics report of the
 monitored edges (`logistics_report.csv`, `logistics_summary.csv`,
-`logistics_top_utilized.csv`) and the per-edge flow files
-(`transport_edges_with_flows_<t>.geojson`) are written for every step of a
-disruption run instead of steps 0 and 1 only. The report needs monitored edges
-(a capacity override or `monitored_edges`); without them there is none, as
-before. Each flow file is the whole network with that step's flows, so the
-files grow with the network and the horizon (about 1 MB a step on the Gulf
-scope).
+`logistics_top_utilized.csv`) is written for every step of a disruption run
+instead of steps 0 and 1 only. The report needs monitored edges (a capacity
+override or `monitored_edges`); without them there is none, as before. It is
+small: 0.02 MB a week on the Gulf scope with its 114 monitored edges.
+
+**`export_edge_flows_every_step`** (18 Nov 2026): the per-edge flow files
+(`transport_edges_with_flows_<t>.geojson`) are written for every step with
+flow instead of steps 0 and 1 only. Each is the whole network with that step's
+flows, so the files grow with the network and the horizon: about 1 MB a week on
+the Gulf scope, ~100 MB for a 104-week run. Kept apart from the report so that
+large batches can have the weekly report without the maps.
 
 ## Data Parameters
 

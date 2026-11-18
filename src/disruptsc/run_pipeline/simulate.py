@@ -183,17 +183,20 @@ def continue_disruption_run(sc_network, transport_network, firms, households, co
                             observer=None):
     """Continue a disruption run from an existing simulation state.
 
-    ``sp.export_logistics_every_step`` (KI-73, Hormuz A26, 18 Nov 2026): the logistics
-    report of the monitored edges is computed at every step, not at steps 0 and 1 only,
-    and, when the run exports (*writers*), the per-edge flows of the steps after 1 are
-    kept for their files in ``all_data["transport_flow_later"]`` - apart from the
-    steps-0-1 list, so that the files of steps 0 and 1 come out exactly as without the
-    switch, and only the edges with flow (the files drop the others). Reporting only:
-    both read the shipments on the edges and change nothing.
+    Two reporting switches (KI-73, Hormuz A26, 18 Nov 2026), each off by default:
+    ``sp.export_logistics_every_step`` computes the logistics report of the monitored
+    edges at every step, not at steps 0 and 1 only; ``sp.export_edge_flows_every_step``
+    keeps, when the run exports (*writers*), the per-edge flows of the steps after 1 for
+    their files in ``all_data["transport_flow_later"]`` - apart from the steps-0-1 list,
+    so that the files of steps 0 and 1 come out exactly as without the switch, and only
+    the edges with flow (the files drop the others). Split on 18 Nov 2026: the report is
+    a few KB a step, the flow files the whole network each (about 1 MB a week on the Gulf
+    scope). Reporting only: both read the shipments on the edges and change nothing.
     """
-    every_step = sp.export_logistics_every_step
+    report_every_step = sp.export_logistics_every_step
+    flows_every_step = sp.export_edge_flows_every_step
     for t in range(t_start, t_final + 1):
-        mon = monitored_edges if (every_step or t in _report_timesteps()) else None
+        mon = monitored_edges if (report_every_step or t in _report_timesteps()) else None
         flow_data, lr, rs = _run_one_time_step(
             t, sc_network, transport_network, transport_network,
             firms, households, countries, tp, sp, disruptions=disruptions,
@@ -203,7 +206,7 @@ def continue_disruption_run(sc_network, transport_network, firms, households, co
         _accumulate_and_write(all_data, firms, households, countries, t,
                               flow_data, writers, collect_flows=(t <= 1),
                               sc_network=sc_network)
-        if every_step and writers is not None and t > 1 and flow_data:
+        if flows_every_step and writers is not None and t > 1 and flow_data:
             all_data.setdefault("transport_flow_later", []).extend(
                 r for r in flow_data if r["flow_total"] > 0)
         if lr is not None:

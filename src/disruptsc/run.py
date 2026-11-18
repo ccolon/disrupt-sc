@@ -494,7 +494,7 @@ def execute(config: dict, *, cache: str | None = None,
             )
             if export_folder:
                 export_transport_flows(all_data["transport_flow"], transport_edges, export_folder)
-                # steps after 1 (export_logistics_every_step), written from their own list
+                # steps after 1 (export_edge_flows_every_step), written from their own list
                 export_transport_flows(all_data.get("transport_flow_later"), transport_edges, export_folder)
                 export_summary(all_data["household"], all_data["country"],
                                household_table if not isinstance(household_table, type(None)) else None,

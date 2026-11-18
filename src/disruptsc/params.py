@@ -91,10 +91,13 @@ class SimParams:
     #   trade_data.csv, tons = delivery_in_tons) - the bilateral split that link_data.csv
     #   carries at GBs per run (KI-33).
     export_trade_by_region_sector: bool = False
-    # - logistics_report.csv (and logistics_summary / logistics_top_utilized) and the
-    #   per-edge flow files transport_edges_with_flows_<t>.geojson at EVERY step instead
-    #   of steps 0 and 1 only (KI-73).
+    # - logistics_report.csv (and logistics_summary / logistics_top_utilized) at EVERY
+    #   step instead of steps 0 and 1 only (KI-73).
     export_logistics_every_step: bool = False
+    # - the per-edge flow files transport_edges_with_flows_<t>.geojson at EVERY step
+    #   instead of steps 0 and 1 only. Kept apart from the report: each file is the whole
+    #   network (about 1 MB a week on the Gulf scope, ~100 MB per 104-week run).
+    export_edge_flows_every_step: bool = False
     # - edges the logistics report covers on top of those named in
     #   transport_capacity_overrides, by edge name; no capacity is set on them.
     monitored_edges: tuple = ()

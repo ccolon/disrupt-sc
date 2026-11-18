@@ -1,17 +1,19 @@
 """Reporting-only run outputs (Hormuz 2026 node A26, decision Q28; KI-73; 18 Nov 2026).
 
-Three switches, all off by default:
+Four switches, all off by default:
 - export_trade_by_region_sector: trade_by_region_sector.csv, the cross-region deliveries
   of trade_data.csv split by seller region, seller sector and buyer region;
 - monitored_edges: edges the logistics report covers without a capacity;
-- export_logistics_every_step: the logistics report and the per-edge flow files at every
-  step, not steps 0 and 1 only.
+- export_logistics_every_step: the logistics report at every step, not steps 0 and 1 only;
+- export_edge_flows_every_step: the per-edge flow GeoJSONs at every step, likewise (split
+  from the report on 18 Nov 2026: a file is the whole network, ~1 MB a week on Gulf).
 
 The pipeline test runs the bundled Testkistan scope (with transport, its transport
-disruption) twice through ``execute``, once with the three switches on, and checks that
-every output the plain run writes comes out byte-identical, that the new trade file sums
-to trade_data.csv per country and step, and that the monitored edges are in the report
-with the flows of the flow files.
+disruption) three times through ``execute``: switches off; all four on; and the Hormuz
+setting (all on but the flow GeoJSONs). It checks that every output the plain run writes
+comes out byte-identical in the other two, that the new trade file sums to trade_data.csv
+per country and step, that the monitored edges are in the report with the flows of the
+flow files, and that the flow files follow their own switch only.
 """
 
 from __future__ import annotations
@@ -45,6 +47,7 @@ def test_switches_default_off():
     sp = _params()
     assert sp.export_trade_by_region_sector is False
     assert sp.export_logistics_every_step is False
+    assert sp.export_edge_flows_every_step is False
     assert sp.monitored_edges == ()
 
 
@@ -95,7 +98,9 @@ def _sha(path):
 
 
 @pytest.fixture(scope="module")
-def two_runs(tmp_path_factory, monkeypatch_module):
+def runs(tmp_path_factory, monkeypatch_module):
+    """{"off": no switch, "on": all four, "report": all but the flow GeoJSONs (the Gulf
+    configs' setting)} -> export folder."""
     root = tmp_path_factory.mktemp("a26")
     cache_dir = root / "cache"
     cache_dir.mkdir()
@@ -106,14 +111,21 @@ def two_runs(tmp_path_factory, monkeypatch_module):
     base["seed"] = 0
     base["t_final"] = 6
     base["epsilon_stop_condition"] = 0     # the full horizon: steps beyond 1 to report
-    off = execute(copy.deepcopy(base), export_folder=root / "off")
+    out = {"off": execute(copy.deepcopy(base), export_folder=root / "off")}
 
-    on_cfg = copy.deepcopy(base)
-    on_cfg["export_trade_by_region_sector"] = True
-    on_cfg["export_logistics_every_step"] = True
-    on_cfg["monitored_edges"] = list(MONITORED)
-    on = execute(on_cfg, export_folder=root / "on")
-    return off, on
+    for name, edge_flows in (("on", True), ("report", False)):
+        cfg = copy.deepcopy(base)
+        cfg["export_trade_by_region_sector"] = True
+        cfg["export_logistics_every_step"] = True
+        cfg["export_edge_flows_every_step"] = edge_flows
+        cfg["monitored_edges"] = list(MONITORED)
+        out[name] = execute(cfg, export_folder=root / name)
+    return out
+
+
+@pytest.fixture(scope="module")
+def two_runs(runs):
+    return runs["off"], runs["on"]
 
 
 @pytest.fixture(scope="module")
@@ -130,8 +142,9 @@ _NEW_OR_EXTENDED = {"trade_by_region_sector.csv", "logistics_report.csv",
                     "logistics_summary.csv", "logistics_top_utilized.csv"}
 
 
-def test_existing_outputs_identical(two_runs):
-    off, on = two_runs
+@pytest.mark.parametrize("variant", ["on", "report"])
+def test_existing_outputs_identical(runs, variant):
+    off, on = runs["off"], runs[variant]
     off_files = {p.name for p in off.iterdir() if p.is_file()}
     on_files = {p.name for p in on.iterdir() if p.is_file()}
     assert off_files <= on_files, f"files missing with the switches on: {off_files - on_files}"
@@ -187,17 +200,30 @@ def test_monitored_edges_in_report_with_flows(two_runs):
     assert carried, "no monitored edge carried anything: the check would be empty"
 
 
-def test_flow_files_every_step(two_runs):
-    """A flow file for every step with flow on the network (logistics_summary.csv,
-    computed at every step with the switch); steps 0 and 1 only without it. In this
-    scenario the closure of Main Road North stops every shipment at steps 1 and 2."""
-    off, on = two_runs
+def _flow_file_steps(folder):
+    return sorted(int(p.stem.rsplit("_", 1)[1]) for p in folder.glob("transport_edges_with_flows_*.geojson"))
+
+
+def test_flow_files_follow_their_own_switch(runs):
+    """export_edge_flows_every_step: a flow file for every step with flow on the network
+    (logistics_summary.csv, computed at every step); without it steps 0 and 1 only, with
+    the report at every step or not. In this scenario the closure of Main Road North
+    stops every shipment at steps 1 and 2."""
+    on = runs["on"]
     summary = pd.read_csv(on / "logistics_summary.csv").dropna(subset=["total_tons"])
     steps = sorted(pd.read_csv(on / "firm_data.csv")["time_step"].unique())
     assert sorted(summary["time_step"].astype(int)) == steps
     with_flow = sorted(int(t) for t in summary.loc[summary["total_tons"] > 0, "time_step"])
     assert len([t for t in with_flow if t > 1]) >= 3
-    on_files = sorted(int(p.stem.rsplit("_", 1)[1]) for p in on.glob("transport_edges_with_flows_*.geojson"))
-    off_files = sorted(int(p.stem.rsplit("_", 1)[1]) for p in off.glob("transport_edges_with_flows_*.geojson"))
-    assert on_files == with_flow
-    assert off_files == [t for t in with_flow if t <= 1]
+    assert _flow_file_steps(on) == with_flow
+    assert _flow_file_steps(runs["off"]) == [t for t in with_flow if t <= 1]
+    assert _flow_file_steps(runs["report"]) == [t for t in with_flow if t <= 1]
+
+
+def test_report_independent_of_the_flow_files(runs):
+    """The weekly report (and the trade file) are the same with or without the flow GeoJSONs."""
+    for name in ("logistics_report.csv", "logistics_summary.csv", "trade_by_region_sector.csv"):
+        assert _sha(runs["report"] / name) == _sha(runs["on"] / name), name
+    lr = pd.read_csv(runs["report"] / "logistics_report.csv")
+    steps = sorted(pd.read_csv(runs["report"] / "firm_data.csv")["time_step"].unique())
+    assert sorted(lr["time_step"].unique()) == steps
