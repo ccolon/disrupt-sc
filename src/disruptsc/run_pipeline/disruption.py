@@ -574,6 +574,204 @@ class ProductivityShock:
 
 
 # ------------------------------------------------------------------
+# Export ban
+# ------------------------------------------------------------------
+# Port of the ``export_stop`` rule of J. Seidler's MSc thesis (jsei6020/
+# disrupt-sc_Gloria at d8e91438, branch gloria) with the corrections audited on
+# the local branch codex/export-controls-fixes (Oct 2026): the semantics are
+# ported, not the code (that branch runs on the pre-v2 engine). Thesis rule: a
+# controlled exporter delivers nothing to buyers outside its region; domestic
+# buyers keep their rationed share; the blocked goods stay in the exporter's
+# stock (no destruction, no re-allocation), so its next production target
+# (orders minus stock) falls by what it could not ship. Generalized here
+# (Hormuz 2026, decisions Q7/Q13, 18 Nov 2026) to a fraction per destination
+# region - the banned product's share of the sector's bilateral exports - and
+# to a window. Overlapping bans keep the later expiry (thesis fix 1eedfe6);
+# per-step evaluation from the windows makes that order-independent and
+# idempotent by construction, and leaves no countdown on the firms to reset.
+
+_EXPORT_BAN_KEYS = frozenset({
+    "type", "regions", "sectors", "fraction", "destinations", "product",
+    "start_time", "duration", "end_time",
+})
+
+
+def _as_str_list(value, key: str) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, (str, int)):
+        return [str(value)]
+    if isinstance(value, (list, tuple, set)):
+        return [str(v) for v in value]
+    raise ValueError(f"export_ban: '{key}' must be a code or a list of codes (got {value!r})")
+
+
+def _check_fraction(value, where: str) -> float:
+    try:
+        f = float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"export_ban: {where} must be a number in [0, 1] (got {value!r})")
+    if not (0.0 <= f <= 1.0):
+        raise ValueError(f"export_ban: {where} must be in [0, 1] (got {f})")
+    return f
+
+
+def _check_step(value, key: str) -> int:
+    if (isinstance(value, bool) or not isinstance(value, (int, float))
+            or not np.isfinite(value) or float(value) != int(value)):
+        raise ValueError(f"export_ban: '{key}' must be a whole number of time steps (got {value!r}); "
+                         f"omit 'duration' and 'end_time' for an open-ended ban")
+    return int(value)
+
+
+@dataclass
+class ExportBan:
+    """Withholds a fraction of the foreign deliveries of exporting firms.
+
+    The exporters are the firms of ``regions`` (x ``sectors``; all sectors if
+    none given). In every step of the window ``start_time``..``end_time``
+    (inclusive, time steps; ``end_time`` inf = open-ended) each exporter
+    withholds ``fractions[r]`` of what its rationing allotted to every buyer in
+    region ``r`` (firms, households and Country agents alike), and
+    ``default_fraction`` for the foreign regions not named. Deliveries to buyers
+    of the exporter's own region are never withheld. What is withheld stays in
+    the exporter's product stock (thesis rule, verification case V06).
+
+    ``product`` labels the good a fraction refers to. Bans with the same label
+    on the same exporter are one restriction: while they overlap the larger
+    fraction applies and the restriction lasts until the later expiry (thesis
+    fix 1eedfe6; no rescission - a relaxation is encoded by ending the earlier
+    window). Bans with different labels are different goods: their fractions
+    add, capped at 1. The default label "" covers the sector as a whole.
+    """
+    firm_pids: list = field(default_factory=list)
+    fractions: dict = field(default_factory=dict)   # destination region -> withheld fraction
+    default_fraction: float = 0.0                   # every other foreign destination
+    product: str = ""
+    start_time: int = 1
+    end_time: float = float("inf")                  # last banned step, inclusive
+    regions: list = field(default_factory=list)     # for the log only
+    sectors: list = field(default_factory=list)
+
+    def is_active(self, time_step: int) -> bool:
+        return self.start_time <= time_step <= self.end_time
+
+    def log_info(self):
+        window = (f"steps {self.start_time}-{self.end_time}" if self.end_time != float("inf")
+                  else f"from step {self.start_time}, open-ended")
+        dest = ", ".join(f"{r}: {f:g}" for r, f in sorted(self.fractions.items()))
+        dest = (dest + ", " if dest else "") + f"other foreign: {self.default_fraction:g}"
+        label = f" product {self.product!r}" if self.product else ""
+        logging.info(f"ExportBan: {len(self.firm_pids)} exporting firms of {self.regions} x "
+                     f"{self.sectors or 'all sectors'}{label}, {window}, withheld {{{dest}}}")
+
+    @classmethod
+    def from_config(cls, cfg: dict, firms: dict) -> "ExportBan":
+        unknown = sorted(set(cfg) - _EXPORT_BAN_KEYS)
+        if unknown:
+            raise ValueError(f"export_ban: unknown key(s) {unknown}; expected {sorted(_EXPORT_BAN_KEYS)}")
+        regions = _as_str_list(cfg.get("regions"), "regions")
+        if not regions:
+            raise ValueError("export_ban needs 'regions': the exporting region(s)")
+        sectors = _as_str_list(cfg.get("sectors"), "sectors")
+
+        if ("fraction" in cfg) == ("destinations" in cfg):
+            raise ValueError("export_ban needs exactly one of 'fraction' (every foreign destination) "
+                             "or 'destinations' ({region: fraction, default: fraction})")
+        if "fraction" in cfg:
+            fractions, default = {}, _check_fraction(cfg["fraction"], "'fraction'")
+        else:
+            dest = cfg["destinations"]
+            if not isinstance(dest, dict) or not dest:
+                raise ValueError(f"export_ban: 'destinations' must be a non-empty mapping (got {dest!r})")
+            fractions, default = {}, 0.0
+            for region, value in dest.items():
+                if str(region) == "default":
+                    default = _check_fraction(value, "destinations.default")
+                else:
+                    fractions[str(region)] = _check_fraction(value, f"destinations.{region}")
+
+        start = _check_step(cfg.get("start_time", 1), "start_time")
+        if start < 1:
+            raise ValueError(f"export_ban: 'start_time' must be >= 1 (t=0 is the undisturbed baseline; got {start})")
+        if "duration" in cfg and "end_time" in cfg:
+            raise ValueError("export_ban takes 'duration' or 'end_time', not both")
+        if "duration" in cfg:
+            duration = _check_step(cfg["duration"], "duration")
+            if duration < 1:
+                raise ValueError(f"export_ban: 'duration' must be >= 1 step (got {duration})")
+            end = start + duration - 1          # thesis convention: start s, duration d -> s..s+d-1
+        elif "end_time" in cfg:
+            end = _check_step(cfg["end_time"], "end_time")
+            if end < start:
+                raise ValueError(f"export_ban: 'end_time' {end} is before 'start_time' {start}")
+        else:
+            end = float("inf")
+
+        domestic = sorted(set(fractions) & set(regions))
+        if domestic:
+            logging.warning(f"export_ban: destination(s) {domestic} are exporting regions; deliveries "
+                            f"inside an exporter's own region are never withheld")
+
+        filters = {"region": regions}
+        if sectors:
+            filters["sector"] = sectors
+        pids = _match_firms_by_filters(filters, firms, "ExportBan")
+        return cls(firm_pids=pids, fractions=fractions, default_fraction=default,
+                   product=str(cfg.get("product", "")), start_time=start, end_time=end,
+                   regions=regions, sectors=sectors)
+
+
+def update_export_bans(disruptions: list, time_step: int, firms: dict) -> None:
+    """Set each exporter's withheld shares for *time_step* from the active bans.
+
+    Called every step (from :func:`apply_disruptions`). Every firm a ban names
+    is cleared first, so a ban stops exactly after its last step. Shares per
+    firm: ``{destination region: share, None: share for the other foreign
+    regions}``; same product label -> max, different labels -> sum capped at 1.
+    """
+    bans = [d for d in disruptions if isinstance(d, ExportBan)]
+    if not bans:
+        return
+    for d in bans:
+        for pid in d.firm_pids:
+            if pid in firms:
+                firms[pid].export_ban_shares = {}
+    active: dict = {}
+    for d in bans:
+        if d.is_active(time_step):
+            for pid in d.firm_pids:
+                if pid in firms:
+                    active.setdefault(pid, {}).setdefault(d.product, []).append(d)
+    for pid, by_product in active.items():
+        named = set()
+        for group in by_product.values():
+            for d in group:
+                named.update(d.fractions)
+
+        def combined(region):
+            total = sum(max((d.fractions.get(region, d.default_fraction) if region is not None
+                             else d.default_fraction) for d in group)
+                        for group in by_product.values())
+            return min(1.0, total)
+
+        shares = {region: combined(region) for region in named}
+        shares[None] = combined(None)
+        firms[pid].export_ban_shares = shares
+
+
+def export_ban_holds(disruptions: list, time_step: int) -> bool:
+    """True while an export ban is active at or after *time_step*.
+
+    The early stop must not end a run inside a ban window: buyers' input
+    stocks can hide a ban's losses for several steps (thesis audit V04, Oct
+    2026). Steps run before the check, so a ban whose last step is
+    *time_step* also holds the run for one more step.
+    """
+    return any(isinstance(d, ExportBan) and time_step <= d.end_time for d in disruptions or [])
+
+
+# ------------------------------------------------------------------
 # Disruption list: parse from YAML config
 # ------------------------------------------------------------------
 
@@ -735,6 +933,9 @@ def parse_disruptions(config_list: list | None,
                 )
             disruptions.append(d)
 
+        elif dtype == "export_ban":
+            disruptions.append(ExportBan.from_config(cfg, firms))
+
         else:
             raise ValueError(f"Unknown disruption type: {dtype}")
 
@@ -745,6 +946,9 @@ def apply_disruptions(disruptions: list, time_step: int,
                       transport_network, firms: dict):
     """Apply disruptions whose start_time matches *time_step*.
 
+    Export bans act over a window rather than at one step: their withheld
+    shares are re-evaluated every step (:func:`update_export_bans`).
+
     Returns the available (undisrupted) transport network view.
     """
     for d in disruptions:
@@ -754,6 +958,7 @@ def apply_disruptions(disruptions: list, time_step: int,
             d.implement(transport_network)
         elif isinstance(d, (CapitalDestruction, ProductivityShock)):
             d.implement(firms)
+    update_export_bans(disruptions, time_step, firms)
 
     return transport_network.get_undisrupted_network()
 

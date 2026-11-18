@@ -348,6 +348,14 @@ def build_fingerprint(config: dict, *, criticality_duration: int | None = None) 
         "filepaths": {k: _file_signature(filepaths.get(k))
                       for k in WATERMARKED_FILEPATH_KEYS},
     }
+    # Export bans (18 Nov 2026) are recorded in the run provenance - the only scenario record
+    # of a Monte-Carlo run, which writes no parameters.yaml. Added only when present, so
+    # every fingerprint without an export ban keeps its hash (criticality resume subfolders).
+    # Not a stage-cache key: a ban acts at run time and changes no build.
+    export_bans = [d for d in (config.get("disruptions") or [])
+                   if isinstance(d, dict) and d.get("type") == "export_ban"]
+    if export_bans:
+        payload["export_bans"] = export_bans
     return payload
 
 

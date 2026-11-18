@@ -123,7 +123,13 @@ excluded from the headline loss.
   `reconstruction_locality`, partly public via
   `reconstruction_public_share`), and delivered output rebuilds capital
   over `reconstruction_target_time`;
-- **productivity_shock** — a temporary TFP-style capacity reduction.
+- **productivity_shock** — a temporary TFP-style capacity reduction;
+- **export_ban** — the firms of an exporting region (x sector) withhold a
+  fraction of what their rationing allotted to buyers in other regions, per
+  destination, over a window of steps; the withheld goods stay in their stock.
+  The shares are re-evaluated every step from the windows
+  (`update_export_bans`, called by `apply_disruptions`), so overlapping bans
+  keep the later expiry in any order, and `set_initial_conditions` clears them.
 
 Firm-side timed recovery is threshold-only (full restoration when the
 duration elapses); transport-edge recovery supports shapes.

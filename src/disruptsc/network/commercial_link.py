@@ -76,6 +76,9 @@ class CommercialLink:
     # gate (TransportParams.bulk_relief, 6 Oct 2026); counted in the alternative
     # delivery as well, reported apart in the routing summary.
     relief_delivery: float = 0.0
+    # The part of this step's rationed delivery an export ban withheld (ExportBan,
+    # 18 Nov 2026); it stays in the supplier's stock. Diagnostic for observers.
+    export_withheld: float = 0.0
     # --- Pipelined flows (22 Sep 2026) ---
     # Share of the link's flow that reaches the buyer by pipeline (config
     # `pipelined_flows`: 1 for a pipelined product, the products' composition
@@ -123,6 +126,7 @@ class CommercialLink:
         self.capacity_blocked = 0.0
         self.relief_delivery = 0.0
         self.pipelined_delivery = 0.0
+        self.export_withheld = 0.0
 
     def determine_cargo_type(self, sector_to_cargo_type: dict):
         # Sector-level keys take precedence over sector-type keys, so a
@@ -360,6 +364,7 @@ class CommercialLink:
         # so the caches stay what they were before the rule existed
         "pipelined_share",
         "pipelined_delivery",
+        "export_withheld",
     })
 
     def __getstate__(self) -> dict:
@@ -384,5 +389,6 @@ class CommercialLink:
         self.delivery_offered = 0.0
         self.capacity_blocked = 0.0
         self.relief_delivery = 0.0
+        self.export_withheld = 0.0
         self.status = "ok"
         self.current_route = "main"

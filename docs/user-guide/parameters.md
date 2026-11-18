@@ -225,7 +225,49 @@ disruptions:
 Types: `transport_disruption`, `transport_disruption_probability`,
 `transport_cost_shock`, `capital_destruction` (uniform via `filter:`, or
 absolute per canton x sector via `description_type: subregion_file` + `file:`),
-and `productivity_shock`.
+`productivity_shock`, and `export_ban`.
+
+`export_ban` withholds a fraction of the foreign deliveries of the firms of an
+exporting region (and sector), per destination region, over a window. It is the
+`export_stop` rule of J. Seidler's MSc thesis (export controls, 2026) with the
+corrections audited on `codex/export-controls-fixes`, shared by the Hormuz 2026
+paper and `studies/export_controls`:
+
+```yaml
+  - type: export_ban               # illustrative codes and values
+    regions: [AAA]                 # exporting region(s); required
+    sectors: [CHE]                 # exporting sector(s); omit for every sector of the regions
+    destinations: {BBB: 0.3, CCC: 0.2, default: 0.1}   # withheld fraction per destination region;
+                                   # `default` = the other foreign regions (0 if absent)
+    # fraction: 0.1                # or one fraction for every foreign destination (not both)
+    product: acid                  # optional label of the banned good (see overlaps)
+    start_time: 5                  # first banned step (>= 1)
+    duration: 10                   # steps; or end_time: 14 (last banned step); neither = open-ended
+```
+
+- Times are in **time steps** (weeks at weekly resolution), like every disruption
+  type; start `s` and duration `d` ban steps `s .. s+d-1` and reopen at `s+d`.
+- The fraction applies to what the exporter's rationing allotted to each buyer in
+  the destination region (firms, households and Country agents alike), so a 5 %
+  ban withholds exactly 5 % of those deliveries. Buyers in the exporter's own
+  region are never withheld from, and keep their rationed share.
+- What is withheld stays in the exporter's product stock: its next production
+  target (orders minus stock) falls by what it could not ship. The buyer's
+  `served_order` is unchanged, so its fill rate (and `adaptive_supplier_weight`)
+  and the routing summary's `blocked_usd` see the ban; `link.export_withheld`
+  holds the withheld quantity of the step for observers.
+- Overlaps: bans with the same `product` label on the same exporter are one
+  restriction - while they overlap the larger fraction applies, and it lasts
+  until the later expiry, whatever their order in the file. A relaxation is
+  encoded by ending the earlier window (no rescission). Bans with different
+  labels are different goods of the sector: their fractions add, capped at 1.
+  No label = the sector as a whole.
+- No early stop (`epsilon_stop`) while a ban is active: buyers' input stocks can
+  hide its losses for several steps.
+- Exporters are firms: Country agents (rest-of-world suppliers) are not covered.
+  Unknown keys and fractions outside [0, 1] raise; a selection matching no firm
+  logs a warning and is a no-op. Export bans are recorded in
+  `run_fingerprint.json` (`export_bans`, only when present) and are not a cache key.
 
 `transport_cost_shock` keeps the edges open but multiplies their cost labels
 (`cost_multiplier`: a number or `{cargo_type: m, default: m}`) for `duration`

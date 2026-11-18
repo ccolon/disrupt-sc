@@ -116,6 +116,10 @@ class Firm:
     input_consumed: float = 0.0              # inputs actually drawn from inventory this step (true intermediate use)
     capital_demanded: float = 0.0            # own capital the firm wants rebuilt (privately) this step
     public_capital_demanded: float = 0.0     # own capital rebuilt publicly (directly) this step
+    # Export ban (run_pipeline/disruption.py ExportBan): share of the rationed delivery withheld
+    # from buyers in another region, {destination region: share, None: other foreign regions}.
+    # Empty = no ban. Set every step by update_export_bans, cleared by set_initial_conditions.
+    export_ban_shares: dict = field(default_factory=dict)
 
     # --- Supplier / client maps (set during init_pipeline) ---
     suppliers: dict = field(default_factory=dict)
@@ -374,9 +378,13 @@ class Firm:
             self.product_stock = max(0.0, self.product_stock - link.realized_delivery)
 
         self._evaluate_quantities_to_deliver(sc_network, tp.rationing_mode)
+        # getattr: firms unpickled from a cache written before the field existed
+        ban_shares = getattr(self, "export_ban_shares", None)
         for _, client, data in sc_network.out_edges(self, data=True):
             link: CommercialLink = data["object"]
             link.reset_transport_tracking()
+            if ban_shares and link.delivery > 0.0:
+                self._withhold_export(link, client, ban_shares)
             # KI-53: every positive quantity is delivered. A threshold of EPSILON model units (1 USD a day in
             # mUSD at daily resolution) left small orders unserved for ever while the buyer kept using the
             # input, until its stock ran out and strict Leontief stopped it.
@@ -786,6 +794,26 @@ class Firm:
                 raise ValueError(
                     f"Unknown rationing_mode {rationing_mode!r}; expected 'equal' or 'household_first'"
                 )
+
+    def _withhold_export(self, link: CommercialLink, client, shares: dict):
+        """Export ban: withhold a share of the delivery the rationing allotted to a foreign buyer.
+
+        Applied after rationing, on the quantity this step would otherwise ship, so a share f
+        withholds exactly f of it; the domestic buyers keep their rationed share and the withheld
+        goods stay in product_stock (only realized_delivery leaves it), as in the thesis rule.
+        served_order is left at the order, so the buyer's fill rate (and adaptive supplier weight)
+        and the routing summary's blocked value see the ban.
+        """
+        region = getattr(client, "region", None)
+        if region is None or region == self.region:
+            return
+        share = shares.get(region, shares.get(None, 0.0))
+        if share <= 0.0:
+            return
+        planned = link.delivery
+        link.delivery = planned * (1.0 - share)
+        link.delivery_in_tons *= (1.0 - share)
+        link.export_withheld = planned - link.delivery
 
     def _receive_shipment(self, link: CommercialLink, transport_network: TransportNetwork) -> float:
         """Receive a shipment from the transport network. Returns quantity received."""

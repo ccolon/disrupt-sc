@@ -15,7 +15,7 @@ from disruptsc.params import TransportParams, SimParams
 from disruptsc.run_pipeline.capacity_gate import run_capacity_gate
 from disruptsc.run_pipeline.disruption import (
     parse_disruptions, apply_disruptions,
-    TransportDisruption, CapitalDestruction, Recovery,
+    TransportDisruption, CapitalDestruction, Recovery, export_ban_holds,
     place_reconstruction_demand, rebuild_from_reconstruction, rebuild_public_capital,
     DEFAULT_CAPITAL_INPUT_MIX,
 )
@@ -195,7 +195,10 @@ def continue_disruption_run(sc_network, transport_network, firms, households, co
             logistics_reports.append(lr)
         all_routing_summaries.extend(rs)
 
-        if disruptions and sp.epsilon_stop and t > max(d.start_time for d in disruptions):
+        # No early stop inside an export-ban window: buyers' input stocks can hide the ban's
+        # losses for several steps (thesis audit V04). Without export bans the rule is unchanged.
+        if (disruptions and sp.epsilon_stop and t > max(d.start_time for d in disruptions)
+                and not export_ban_holds(disruptions, t)):
             if _is_back_to_equilibrium(households, countries, sp.epsilon_stop):
                 logging.info(f"Back to equilibrium at t={t}, stopping")
                 break
@@ -272,6 +275,9 @@ def set_initial_conditions(sc_network, firms, households, countries,
         firm.reconstruction_sales = 0.0
         firm.price = firm.eq_price
         firm.delta_price_input = 0.0
+        # An export ban active when the previous run ended must not carry into the
+        # next run's t=0 (thesis audit V07, Oct 2026); bans re-set it every step.
+        firm.export_ban_shares = {}
 
     for hh in households.values():
         hh.set_equilibrium_purchase_plan()
