@@ -210,26 +210,94 @@ class TransportNetwork(nx.Graph):
             edge[key] = float(edge[f"base_{key}"])
         edge["closed"] = False
 
-    def apply_edge_capacity_factor(self, edge: dict, factor: float):
+    def apply_edge_capacity_factor(self, edge: dict, factor):
         """Scale the edge's dynamic capacities by *factor* relative to base state.
 
         An edge without a capacity key is closed (factor 0) or open; a partial
         factor on it has nothing to scale and is a no-op apart from the
-        ``closed`` flag, which only a full reduction sets."""
+        ``closed`` flag, which only a full reduction sets. *factor* may be a
+        per-cargo dict ({cargo_type: f, "default": f}, see
+        _apply_edge_capacity_factors_per_cargo)."""
         self.ensure_base_capacity_state(edge)
+        if isinstance(factor, dict):
+            self._apply_edge_capacity_factors_per_cargo(edge, factor)
+            return
         factor = max(0.0, min(1.0, float(factor)))
         for key in self._capacity_keys(edge):
             edge[key] = float(edge[f"base_{key}"]) * factor
         edge["closed"] = factor <= 1e-12
 
-    def start_edge_disruption(self, edge: dict, reduction: float, duration: float,
+    def cargo_capacity_factors(self, factors: dict) -> dict[str, float]:
+        """{cargo type: factor in [0, 1]} for every cargo type of the network, from a
+        per-cargo dict ({cargo_type: f, "default": f}); a cargo type not listed takes
+        "default", and 1.0 (untouched) when there is no "default"."""
+        default = factors.get("default", 1.0)
+        return {ct: max(0.0, min(1.0, float(factors.get(ct, default))))
+                for ct in (self.cargo_types or [])}
+
+    def _apply_edge_capacity_factors_per_cargo(self, edge: dict, factors: dict):
+        """Per-cargo scaling (MC3, Hormuz 2026, 18 Nov 2026): a Strait shock is not the
+        same for every cargo - container and tanker transits fell by different shares -
+        so each ``capacity_<cargo>`` key is scaled by its own factor. The shared
+        ``capacity`` key binds all cargo together; it is scaled by the largest factor
+        (the least-reduced cargo), and a cargo type that relies on it (no own key) with
+        a smaller factor cannot be cut through it: that raises, the edge needs per-cargo
+        capacities (transport_capacity_overrides: {name: {cargo: t/day}}). A cargo type
+        with no capacity at all on the edge is not gated, so its reduction cannot bind
+        (as for a partial scalar reduction on an uncapacitated edge); the edge is closed,
+        for every cargo, only when every cargo type that may use it (the ones with a
+        cost label there) has factor 0. The shared-capacity test and the closure look at
+        those cargo types only: a cargo barred from the edge (cargo_mode_eligibility, an
+        explicit 0 capacity) is irrelevant to it."""
+        f = self.cargo_capacity_factors(factors)
+        if not f:   # no cargo types known: the dict can only mean its default
+            f = {"default": max(0.0, min(1.0, float(factors.get("default", 1.0))))}
+        own = set()
+        for ct, val in f.items():
+            key = f"capacity_{ct}"
+            if key in edge:
+                edge[key] = float(edge[f"base_{key}"]) * val
+                own.add(ct)
+        users = {ct: val for ct, val in f.items() if f"cost_per_ton_{ct}" in edge} or f
+        if "capacity" in edge:
+            shared = max(users.values())
+            weaker = sorted(ct for ct, val in users.items() if ct not in own and val < shared)
+            if weaker:
+                raise ValueError(
+                    f"Edge {edge.get('id')} ({edge.get('name', '')}) has one capacity for all cargo types; "
+                    f"a per-cargo capacity_reduction ({factors}) cannot cut {weaker} more than "
+                    f"{sorted(ct for ct, val in users.items() if val == shared)} through it. Give the edge "
+                    f"per-cargo capacities (transport_capacity_overrides: {{name: {{cargo: t/day}}}})."
+                )
+            edge["capacity"] = float(edge["base_capacity"]) * shared
+        edge["closed"] = max(users.values()) <= 1e-12
+
+    def unbound_cargo_reductions(self, edge: dict, factors: dict) -> list[str]:
+        """Cargo types that may use *edge* and whose per-cargo factor (< 1) cannot bind
+        there because the edge has no capacity for them (no ``capacity_<cargo>`` and no
+        shared ``capacity``) - empty when the factors close the edge altogether."""
+        f = self.cargo_capacity_factors(factors)
+        users = {ct: val for ct, val in f.items() if f"cost_per_ton_{ct}" in edge} or f
+        if not users or max(users.values()) <= 1e-12 or "capacity" in edge:
+            return []
+        return sorted(ct for ct, val in users.items() if val < 1.0 and f"capacity_{ct}" not in edge)
+
+    def start_edge_disruption(self, edge: dict, reduction, duration: float,
                               recovery_shape: str = "threshold",
                               recovery_rate: float = 1.0):
-        """Attach disruption metadata and update dynamic capacities immediately."""
+        """Attach disruption metadata and update dynamic capacities immediately.
+
+        *reduction* is the fraction of capacity lost, a number or a per-cargo
+        dict ({cargo_type: r, "default": r}); each cargo recovers on the same
+        curve."""
         edge["disruption_duration"] = duration
         edge["disruption_total_duration"] = duration
         edge["disruption_elapsed"] = 0
-        edge["disruption_initial_reduction"] = max(0.0, min(1.0, float(reduction)))
+        if isinstance(reduction, dict):
+            edge["disruption_initial_reduction"] = {str(k): max(0.0, min(1.0, float(r)))
+                                                    for k, r in reduction.items()}
+        else:
+            edge["disruption_initial_reduction"] = max(0.0, min(1.0, float(reduction)))
         edge["disruption_recovery_shape"] = recovery_shape
         edge["disruption_recovery_rate"] = float(recovery_rate)
         self._refresh_edge_disruption_state(edge)
@@ -265,17 +333,20 @@ class TransportNetwork(nx.Graph):
             } or {ct: {} for ct in (self.cargo_types or [])}
 
     def start_edge_cost_shock(self, edge: dict, multiplier, duration: float,
-                              capacity_factor: float = 1.0, substitution_share: float = 1.0):
+                              capacity_factor=1.0, substitution_share: float = 1.0):
         """Multiply the edge's cost labels for *duration* steps.
 
         *multiplier* is a number or a per-cargo dict ({cargo_type: m,
         "default": m}). Base labels are captured the first time an edge is
         shocked so that repeated or overlapping shocks never compound.
         *capacity_factor* (share of each link's tonnage the shocked mode still
-        carries) and *substitution_share* (share of the displaced remainder the
-        substitutes absorb) define the substitution ceiling; 1.0/1.0 = legacy.
+        carries; a number or a per-cargo dict like *multiplier*, resolved with
+        the link's cargo type in Route.shock_ceiling) and *substitution_share*
+        (share of the displaced remainder the substitutes absorb) define the
+        substitution ceiling; 1.0/1.0 = legacy.
         """
-        edge["cost_shock_capacity_factor"] = float(capacity_factor)
+        edge["cost_shock_capacity_factor"] = ({str(k): float(v) for k, v in capacity_factor.items()}
+                                              if isinstance(capacity_factor, dict) else float(capacity_factor))
         edge["cost_shock_substitution_share"] = float(substitution_share)
         for ct in (self.cargo_types or []):
             key = f"cost_per_ton_{ct}"
@@ -304,13 +375,18 @@ class TransportNetwork(nx.Graph):
 
     def _refresh_edge_disruption_state(self, edge: dict):
         """Recompute dynamic capacities from the edge's stored disruption metadata."""
-        reduction = float(edge.get("disruption_initial_reduction", 0.0))
+        reduction = edge.get("disruption_initial_reduction", 0.0)
         recovered_fraction = _recovery_factor(
             edge.get("disruption_elapsed", 0),
             edge.get("disruption_total_duration", 0),
             edge.get("disruption_recovery_shape", "threshold"),
             edge.get("disruption_recovery_rate", 1.0),
         )
+        if isinstance(reduction, dict):     # per-cargo reduction, one recovery curve
+            self.apply_edge_capacity_factor(
+                edge, {k: 1.0 - float(r) * (1.0 - recovered_fraction) for k, r in reduction.items()})
+            return
+        reduction = float(reduction)
         active_factor = 1.0 - reduction * (1.0 - recovered_fraction)
         self.apply_edge_capacity_factor(edge, active_factor)
 

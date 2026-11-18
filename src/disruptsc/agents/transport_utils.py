@@ -386,7 +386,7 @@ def _send_routed(agent_pid, od_point: int, transport_share: float, link: Commerc
                                                              transport_network)
                        if alt_route is not None else 0.0)
         alt_cost_with_switch = alt_cost + switch_frac * link.route_cost_per_ton
-        cap, sub = main_route.shock_ceiling(transport_network)
+        cap, sub = main_route.shock_ceiling(transport_network, link.cargo_type)
         if sub >= 1.0:
             # Cost approach (default): all-or-nothing on the cheaper option. The
             # capacity factor only matters under a substitution ceiling; with

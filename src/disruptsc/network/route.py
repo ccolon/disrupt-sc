@@ -75,15 +75,21 @@ class Route(list):
                 return True
         return False
 
-    def shock_ceiling(self, transport_network: TransportNetwork) -> tuple[float, float]:
+    def shock_ceiling(self, transport_network: TransportNetwork,
+                      cargo_type: str | None = None) -> tuple[float, float]:
         """(capacity_factor, substitution_share) of the route under active cost
-        shocks: the minimum over its shocked edges (1.0, 1.0 when none)."""
+        shocks: the minimum over its shocked edges (1.0, 1.0 when none). A
+        per-cargo capacity_factor ({cargo_type: f, "default": f}) is resolved
+        for *cargo_type* (a cargo not listed takes "default", else 1.0)."""
         cap, sub = 1.0, 1.0
         adj = transport_network._adj
         for u, v in self.transport_edges:
             e = adj[u][v]
             if e.get("cost_shock_duration", 0) > 0:
-                cap = min(cap, float(e.get("cost_shock_capacity_factor", 1.0)))
+                f = e.get("cost_shock_capacity_factor", 1.0)
+                if isinstance(f, dict):
+                    f = f.get(cargo_type, f.get("default", 1.0))
+                cap = min(cap, float(f))
                 sub = min(sub, float(e.get("cost_shock_substitution_share", 1.0)))
         return cap, sub
 

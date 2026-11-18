@@ -204,6 +204,40 @@ A `transport_disruption` with `capacity_reduction` below 1 scales the capacity
 of a named capacitated edge (the gate then rations it); on an edge without a
 capacity only a full reduction, a closure, has an effect.
 
+`capacity_reduction` may also be **per cargo type** (18 Nov 2026), for a shock
+that does not hit every cargo alike (a strait where container transits fall
+further than tanker transits). The values below are placeholders:
+
+```yaml
+transport_capacity_overrides:
+  strait_x: {container: 100000, dry_bulk: 100000, liquid_bulk: 100000}   # per-cargo capacities, t/day
+disruptions:
+  - type: transport_disruption
+    attribute: name
+    values: [strait_x]
+    capacity_reduction: {container: 0.8, liquid_bulk: 0.4, default: 0.6}   # fraction lost, per cargo type
+    start_time: 1
+    duration: 4
+```
+
+Each cargo type takes its own fraction, a cargo type not listed takes
+`default`, and with no `default` it is not reduced; every value is in [0, 1] and
+a key that is not a cargo type of the scope (`logistics.sector_to_cargo_type`)
+raises. The fraction scales the edge's `capacity_<cargo>` (the gate then rations
+each cargo at its own reduced capacity), and every cargo recovers on the same
+`recovery_shape` curve. A per-cargo cut binds only through a capacity:
+
+- on an edge with **per-cargo capacities** each cargo is cut by its own fraction;
+- on an edge with **one shared capacity** the dict works only if the cargo types
+  that may use the edge get the same fraction (the shared capacity is then scaled
+  by it); different fractions raise, because one capacity for all cargo cannot cut
+  one cargo more than another - give the edge per-cargo capacities;
+- on an edge with **no capacity** for a cargo the cut cannot bind (a warning names
+  the edges), as for a partial scalar reduction; the edge is closed, for every
+  cargo, only when every cargo type that may use it loses 100 %.
+
+A number keeps the previous behaviour exactly.
+
 The former `capacity_constraint: gradual | binary` modes, the capacity-aware
 initial assignments (`logistics.initial_route_assignment`, `chunk_size`,
 `route_candidate_*`, `lp_*`, `capacity_routing_max_iterations`) and
@@ -262,6 +296,10 @@ delivers `capacity_factor + substitution_share x (1 - capacity_factor)` of its
 planned quantity (closures: `substitution_share`), pays the tonnage-weighted
 cost of the two routes, and the shortfall is counted as blocked. Without it the
 substitutes are unlimited and a closure costs nothing but the detour price.
+`capacity_factor` may be per cargo type like `cost_multiplier`
+(`{dry_bulk: 0.22, default: 0.5}`, values in [0, 1], a cargo not listed takes
+`default`, else 1); each link uses the value of its own cargo type. Omitted, it is
+`1 / cost_multiplier` for a number and 1 for a per-cargo multiplier.
 Filters accept firm attributes and `subregion_*` keys, and log how many firms
 they matched. Firm-side recovery is threshold-only (`recovery_shape` is
 ignored with a warning); absolute capital destruction recovers only through
