@@ -64,7 +64,8 @@ filepaths:
   # output/Gulf/A2_pbl_20261118 (+ _pit2): the Strait closure binds nothing on this
   # uncapacitated network (0 loss under every rule); with price_increase_threshold 2
   # the matrix alone cascades from immaterial blocked inputs (not settled), the 2 %
-  # floor does not - the floor is a pending decision for the main runs (A6).
+  # floor does not. Decided 18 Nov 2026 (Hormuz Q30, the user): output-weighted matrix
+  # plus the 2 % floor (critical_input_threshold below), the rule of the Rhine paper.
   # The file lives in disrupt-sc-data and is not a cache key. If it is missing the
   # run falls back to strict Leontief WITHOUT a warning (run.py _configure_firms):
   # check for the exp.log line "Loaded input criticality: ... (37/26/36%)".
@@ -178,8 +179,11 @@ criticality:
     - ["border_crossing_khatmat_malaha"]
     - ["Strait of Hormuz", "border_crossing_khatmat_malaha"]
 
-# -- Agents (April values) --
-price_increase_threshold: 10
+# -- Agents (April values, except the two set by Hormuz decisions Q30 and Q31) --
+# Give-up rule: a buyer drops a delivery whose freight bill rises more than this factor.
+# Q31 (the user, 18 Nov 2026): 5 in the baseline (April value was 10, model default 2);
+# 2, 10 and no cutoff (null) are sensitivities of the uncertainty runs (A22).
+price_increase_threshold: 5
 nb_suppliers_per_input: 1
 weight_localization_firm: 1
 weight_localization_household: 4
@@ -187,11 +191,10 @@ utilization_rate: 0.8
 rationing_mode: "equal"
 propagate_input_price_change: False
 explicit_service_firm: True
-# Kept at 0 with the survey matrix (node A2): Firm.produce composes the two knobs - an
-# input below this share of the firm's input bill never binds, whatever its survey
-# class - so a value > 0 here would be a different rule (matrix among material inputs
-# only), not the matrix alone.
-critical_input_threshold: 0.0
+# The 2 % materiality floor (Q30, the user, 18 Nov 2026): Firm.produce composes it with
+# the survey matrix - an input below this share of the firm's input bill never binds,
+# whatever its survey class - as in the EU scope and the Rhine paper's Methods.
+critical_input_threshold: 0.02
 
 # -- Inventories (April values; days) --
 # Keyed on the sector_table 'type' of the INPUT. Oil and Gas are typed

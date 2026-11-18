@@ -41,6 +41,8 @@ filepaths:
   countries_spatial: "Spatial/countries.geojson"
   transport: "Transport/transport.gpkg"
   multimodal: "Transport/multimodal.gpkg"
+  # Partially-binding Leontief (Hormuz A2, Q30): the same 19 x 19 sector matrix as Gulf
+  input_criticality: "Economic/input_criticality_ihs_outw.csv"
 
 transport_modes: [roads, maritime, airways, pipelines]
 with_transport: True
@@ -151,7 +153,8 @@ criticality:
     - ["Strait of Hormuz", "border_crossing_khatmat_malaha"]
 
 # -- Agents (April values) --
-price_increase_threshold: 10
+# Q31 (the user, 18 Nov 2026): 5 in the baseline; 2, 10 and no cutoff (null) in A22
+price_increase_threshold: 5
 nb_suppliers_per_input: 1
 weight_localization_firm: 1
 weight_localization_household: 4
@@ -159,6 +162,8 @@ utilization_rate: 0.8
 rationing_mode: "equal"
 propagate_input_price_change: False
 explicit_service_firm: True
+# Q30 (the user, 18 Nov 2026): the 2 % materiality floor, composed with the survey matrix
+critical_input_threshold: 0.02
 
 # -- Inventories (April values; days) --
 # Keyed on the sector_table 'type' of the INPUT. Oil and Gas are typed
