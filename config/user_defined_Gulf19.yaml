@@ -244,14 +244,14 @@ cargo_mode_eligibility:
   pipelines: [crude]
 
 # -- Capacities --
-# The capacity gate is on, but no edge has a capacity yet: the April
-# capacities were tuned for the retired cost penalty (several "raised" or
-# "boosted" by hand, 1,000 t/day placeholders) and 37 of their 102 edge-cargo
-# constraints sit above the t=0 load on v2, which rations the undisturbed
-# economy into collapse (material.md D2, D15; audit_20261117/v2_smoke). Design
-# capacities and throughput come from nodes A3a/A3b and the calibration A4a;
-# until then this scope runs uncapacitated. The April list, kept as the
-# inventory of edges to source (tons/day, values NOT to be reused):
+# Since node A4a (18 Nov 2026) the gateways carry the capacities of decision
+# Q27 (block at the end of transport_capacity_overrides below). Until then the
+# gate was on with no capacity: the April capacities were tuned for the
+# retired cost penalty (several "raised" or "boosted" by hand, 1,000 t/day
+# placeholders) and 37 of their 102 edge-cargo constraints sit above the t=0
+# load on v2, which rations the undisturbed economy into collapse (material.md
+# D2, D15; audit_20261117/v2_smoke). The April list, kept as the inventory of
+# edges to source (tons/day, values NOT to be reused):
 #   port_jebel_ali {container 80000, dry_bulk 37453, liquid_bulk 0}
 #   port_khalifa {48308, 33275, 74668}       port_fujairah {20000, 3000, 23971}
 #   port_khor_fakkan {31251, 3125, 23359}    port_hamad {41658, 29200, 0}
@@ -314,6 +314,76 @@ transport_capacity_overrides:
   border_road_IRQ_IRN_1: {crude: 0}
   border_road_IRQ_IRN_2: {crude: 0}
   border_road_IRQ_KWT_1: {crude: 0}
+  # ---- Gateway capacities (Hormuz node A4a, decision Q27, 18 Nov 2026), surge 1.0 ----
+  # Tonnes per DAY (x7 per weekly step). Source: disrupt-sc-studies/hormuz/calibration/
+  # capacity_table.csv and capacity_overrides_draft.yaml (every row has its V-id in
+  # hormuz/data/capacity/gateways_capacity.csv). A number = one capacity shared by all
+  # cargo; a dict = per cargo; a cargo not listed is uncapped. Rule (Q27): lanes inside the
+  # Strait take their maximum 2023-25 throughput (official statistic, else PortWatch AIS
+  # estimate, MODELLED); lanes outside take the terminal or operator design statement where
+  # one exists, else the same proxy. Gaps left uncapped (no PortWatch port or < 50 calls a
+  # year): port_al_maqal, port_khalifa_bin_salman, port_bandar_lengeh, port_khor_al_zubair,
+  # port_mina_al_fahal; feeder pipelines and border crossings uncapacitated (Q27).
+  # Container design capacities in TEU (Khor Fakkan V071 5.0 M, Sohar V070 2.0 M, Fujairah
+  # V012 0.72 M, Salalah V022 6.0 M TEU/yr) converted at 8.07 t of goods per TEU handled:
+  # Eurostat main ports, EU27 2022-2024 mean (9.90 t per laden TEU, 18.6 % empty), gross
+  # weight of goods without container tare - the weight the model's tonnes stand for
+  # (hormuz/scripts/a4a_teu_factor.py, calibration/teu_factor.csv; range 6.93-10.11 for A22).
+  # Crude nameplates of the bypass system (Q23: "pipeline costs and nameplates stay
+  # calibration levers for A4a"): Yanbu loading terminals V046 and Petroline V047 5.0 mb/d,
+  # Habshan-Fujairah V016 1.8 mb/d (EIA; ADNOC nameplate 1.5), Kirkuk-Ceyhan V093 0.75 mb/d,
+  # at 7.33 bbl/t.
+  port_assaluyeh: 348096          # all cargo; V219 PortWatch (modelled), 2025: 127 Mt, an anomalous jump from 17.8 Mt
+  port_bandar_abbas: 64084        # all cargo; V202,V205 PortWatch (modelled)
+  port_bushehr: 4972              # all cargo; V208 PortWatch (modelled)
+  port_dammam: 142192             # all cargo; V031 official statistic (GASTAT 51.9 Mt, 2024)
+  port_das_island: 16245          # all cargo; V221 PortWatch (modelled)
+  port_duqm: 14682                # all cargo; V162 PortWatch (modelled)
+  port_fujairah:
+    container: 15911              # V012 design 720,000 TEU/yr x 8.07 t/TEU
+    dry_bulk: 35689               # V153 PortWatch dry bulk + general cargo + ro-ro (modelled)
+    liquid_bulk: 214432           # V151 PortWatch tanker pool (modelled)
+    lng: 214432                   # V151 idem (one tanker pool applied to each)
+  port_hamad: 17620               # all cargo; V195 PortWatch (modelled)
+  port_imam_khomeini: 55387       # all cargo; V212 PortWatch (modelled)
+  port_jebel_ali: 639071          # all cargo; V144 PortWatch (modelled)
+  port_jeddah_islamic: 148219     # all cargo; V026 official statistic (GASTAT 54.1 Mt, 2025)
+  port_khalifa: 101913            # all cargo; V147 PortWatch (modelled)
+  port_kharg_island: 22602        # all cargo; V214 PortWatch (modelled)
+  port_khor_fakkan:
+    container: 110495             # V071 design 5,000,000 TEU/yr x 8.07 (Q27 value; V072: 3.5 M before the 2026 upgrade)
+    crude: 4766                   # V148 PortWatch tanker pool (modelled)
+    dry_bulk: 2089                # V150 PortWatch dry bulk + general cargo + ro-ro (modelled)
+    liquid_bulk: 4766             # V148
+    lng: 4766                     # V148
+  port_king_abdullah: 20548       # all cargo; V037 official statistic (GASTAT 7.5 Mt, 2025)
+  port_mina_al_ahmadi: 61318      # all cargo; V186 PortWatch (modelled)
+  port_qalhat: 13462              # all cargo; V223 PortWatch (modelled)
+  port_ras_laffan: 182618         # all cargo; V196 PortWatch (modelled)
+  port_ras_tanura: 174362         # all cargo; V178 PortWatch (modelled)
+  port_salalah:
+    container: 132594             # V022 design 6,000,000 TEU/yr x 8.07
+    crude: 10670                  # V157 PortWatch tanker pool (modelled)
+    dry_bulk: 61918               # V023 official 'general cargo / dry bulk' 22.6 Mt (2024)
+    liquid_bulk: 10670            # V157
+    lng: 10670                    # V157
+  port_shuwaikh: 11297            # all cargo; V181 PortWatch (modelled)
+  port_sohar:
+    container: 44198              # V070 design 2,000,000 TEU/yr (Hutchison Ports Sohar terminal) x 8.07
+    crude: 55926                  # V154 PortWatch tanker pool (modelled)
+    dry_bulk: 111261              # V154 PortWatch dry bulk + general cargo + ro-ro (modelled)
+    liquid_bulk: 55926            # V154
+    lng: 55926                    # V154
+  port_umm_qasr: 106775           # all cargo; V188 PortWatch (modelled)
+  port_yanbu:
+    container: 20274              # V044 official pool 'general cargo, containers, dry bulk' 7.4 Mt (2025)
+    crude: 682128                 # V046 design 5.0 mb/d (Yanbu crude loading terminals)
+    dry_bulk: 20274               # V044 idem (the pool applied to each)
+    liquid_bulk: 364658           # V040 official liquid bulk 133.1 Mt (2024)
+    lng: 206439                   # V173,V176 PortWatch tanker pool (modelled)
+  "East-West Crude Oil Pipeline (Petroline)": {crude: 682128}   # V047 EIA 5.0 mb/d (V048 7.0 = 2019 temporary peak)
+  "Habshan\u2013Fujairah oil pipeline": {crude: 245566}          # V016 EIA 1.8 mb/d (V015 ADNOC nameplate 1.5)
+  "Kirkuk\u2013Ceyhan": {crude: 102319}                         # V093 Rudaw 0.75 mb/d (V050 1.6 a snippet, not verified)
 
 # -- Reporting (Hormuz node A26, decision Q28 item 12, 18 Nov 2026) --
 # Outputs only, no result moves: with these switches on, every other output is
