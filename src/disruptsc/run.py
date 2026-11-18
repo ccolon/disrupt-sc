@@ -77,7 +77,7 @@ from disruptsc.run_pipeline.export import (
     export_initial_state, export_static_tables, export_mrio_summary,
     MCWriter, CsvWriter, summarize_criticality_losses,
     create_criticality_results_writer, criticality_result_to_row,
-    export_criticality_geojson, CRITICALITY_RESULT_COLUMNS,
+    export_criticality_geojson, CRITICALITY_RESULT_COLUMNS, monitored_edge_names,
 )
 
 
@@ -462,9 +462,10 @@ def execute(config: dict, *, cache: str | None = None,
     # ------------------------------------------------------------------
     sim_type = sp.simulation_type
 
-    # Extract monitored edge names from capacity overrides (if any)
+    # Monitored edges of the logistics report: the edges named in the capacity
+    # overrides, then those of monitored_edges (reporting only, no capacity set).
     capacity_overrides = config.get("transport_capacity_overrides", {})
-    monitored_edges = list(capacity_overrides.keys()) if capacity_overrides else None
+    monitored_edges = monitored_edge_names(capacity_overrides, sp.monitored_edges, transport_network)
 
     if sim_type == "initial_state":
         logging.info("Running initial state simulation")
@@ -493,6 +494,8 @@ def execute(config: dict, *, cache: str | None = None,
             )
             if export_folder:
                 export_transport_flows(all_data["transport_flow"], transport_edges, export_folder)
+                # steps after 1 (export_logistics_every_step), written from their own list
+                export_transport_flows(all_data.get("transport_flow_later"), transport_edges, export_folder)
                 export_summary(all_data["household"], all_data["country"],
                                household_table if not isinstance(household_table, type(None)) else None,
                                tp.monetary_units, export_folder)

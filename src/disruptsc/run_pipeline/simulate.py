@@ -49,7 +49,8 @@ def run_initial_state(sc_network, transport_network, firms, households, countrie
     if export_folder:
         with AgentWriters(export_folder, _days_per_timestep(sp.time_resolution),
                           export_link_data=sp.export_link_data,
-                          export_inventory_data=sp.export_inventory_data) as writers:
+                          export_inventory_data=sp.export_inventory_data,
+                          export_trade_by_region_sector=sp.export_trade_by_region_sector) as writers:
             writers.write_step(firms, households, countries, 0)
             writers.write_links(sc_network, 0)
             writers.write_trade(sc_network, 0)
@@ -77,7 +78,8 @@ def run_disruption(sc_network, transport_network, firms, households, countries,
     """Full disruption simulation.  Returns lists of per-timestep data."""
     writers = (AgentWriters(export_folder, _days_per_timestep(sp.time_resolution),
                             export_link_data=sp.export_link_data,
-                            export_inventory_data=sp.export_inventory_data)
+                            export_inventory_data=sp.export_inventory_data,
+                            export_trade_by_region_sector=sp.export_trade_by_region_sector)
                if export_folder else None)
 
     try:
@@ -179,9 +181,19 @@ def continue_disruption_run(sc_network, transport_network, firms, households, co
                             writers: AgentWriters | None = None,
                             monitored_edges: list[str] | None = None,
                             observer=None):
-    """Continue a disruption run from an existing simulation state."""
+    """Continue a disruption run from an existing simulation state.
+
+    ``sp.export_logistics_every_step`` (KI-73, Hormuz A26, 18 Nov 2026): the logistics
+    report of the monitored edges is computed at every step, not at steps 0 and 1 only,
+    and, when the run exports (*writers*), the per-edge flows of the steps after 1 are
+    kept for their files in ``all_data["transport_flow_later"]`` - apart from the
+    steps-0-1 list, so that the files of steps 0 and 1 come out exactly as without the
+    switch, and only the edges with flow (the files drop the others). Reporting only:
+    both read the shipments on the edges and change nothing.
+    """
+    every_step = sp.export_logistics_every_step
     for t in range(t_start, t_final + 1):
-        mon = monitored_edges if t in _report_timesteps() else None
+        mon = monitored_edges if (every_step or t in _report_timesteps()) else None
         flow_data, lr, rs = _run_one_time_step(
             t, sc_network, transport_network, transport_network,
             firms, households, countries, tp, sp, disruptions=disruptions,
@@ -191,6 +203,9 @@ def continue_disruption_run(sc_network, transport_network, firms, households, co
         _accumulate_and_write(all_data, firms, households, countries, t,
                               flow_data, writers, collect_flows=(t <= 1),
                               sc_network=sc_network)
+        if every_step and writers is not None and t > 1 and flow_data:
+            all_data.setdefault("transport_flow_later", []).extend(
+                r for r in flow_data if r["flow_total"] > 0)
         if lr is not None:
             logistics_reports.append(lr)
         all_routing_summaries.extend(rs)
@@ -626,6 +641,8 @@ def _active_reconstruction(disruptions, time_step):
 
 
 def _report_timesteps() -> set[int]:
+    """Steps whose logistics report is computed by default; sp.export_logistics_every_step
+    adds every other step (continue_disruption_run)."""
     return {0, 1}
 
 

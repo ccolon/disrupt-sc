@@ -257,6 +257,27 @@ def _parse_inventory_targets_by_region(raw) -> dict:
     return out
 
 
+def _parse_monitored_edges(raw) -> tuple:
+    """``monitored_edges`` as a tuple of edge names (reporting only, Hormuz A26, 18 Nov 2026).
+
+    A list of names of the 'name' column of the GeoPackage layers; the logistics report
+    covers them on top of the edges named in transport_capacity_overrides, without giving
+    them a capacity. A bare string raises (it would be read as one name per character, the
+    sectors_to_exclude trap); whether each name matches an edge is checked when the
+    network exists (run.py) and in validate-inputs. None / [] = none."""
+    if raw is None:
+        return ()
+    if isinstance(raw, str) or not isinstance(raw, (list, tuple)):
+        raise ValueError(f"monitored_edges must be a list of edge names (got {raw!r})")
+    out = []
+    for name in raw:
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError(f"monitored_edges: every entry must be a non-empty edge name (got {name!r})")
+        if name not in out:
+            out.append(name)
+    return tuple(out)
+
+
 _DAYS_PER_TIMESTEP = {"day": 1, "week": 7, "month": 30, "year": 365}
 
 
@@ -380,6 +401,9 @@ def build_params(config: dict) -> tuple[TransportParams, SimParams, AgentParams,
         sensitivity=config.get("sensitivity") or {},
         export_link_data=bool(config.get("export_link_data", True)),
         export_inventory_data=bool(config.get("export_inventory_data", True)),
+        export_trade_by_region_sector=bool(config.get("export_trade_by_region_sector", False)),
+        export_logistics_every_step=bool(config.get("export_logistics_every_step", False)),
+        monitored_edges=_parse_monitored_edges(config.get("monitored_edges")),
         seed=(int(config["seed"]) if config.get("seed") is not None else None),
     )
 

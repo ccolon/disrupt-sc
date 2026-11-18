@@ -73,6 +73,7 @@ def validate_scope(scope: str) -> tuple[bool, list[str], list[str]]:
     if config.get("with_transport", True):
         _check_transport(filepaths, config, errors, warnings)
         _check_capacity_overrides(filepaths, config, errors, warnings)
+        _check_monitored_edges(filepaths, config, errors)
     _check_input_criticality(filepaths.get("input_criticality"), sector_table,
                              errors, warnings)
     _check_disruptions(config, errors, warnings)
@@ -355,6 +356,24 @@ def _check_capacity_overrides(filepaths: dict, config: dict, errors: list, warni
                     errors.append(f"transport_capacity_overrides['{name}']: negative capacity {v!r}")
             except (TypeError, ValueError):
                 errors.append(f"transport_capacity_overrides['{name}']: non-numeric capacity {v!r}")
+
+
+def _check_monitored_edges(filepaths: dict, config: dict, errors: list) -> None:
+    """monitored_edges (reporting only): every name must be an edge name of the
+    GeoPackage (the run raises otherwise, run_pipeline/export.monitored_edge_names).
+    The shape (a list of names) is checked by build_params in _check_config."""
+    monitored = config.get("monitored_edges") or []
+    if not isinstance(monitored, (list, tuple)) or not monitored:
+        return
+    names = _edge_names(filepaths)
+    if names is None:
+        return
+    unknown = sorted({str(n) for n in monitored if str(n) not in names})
+    if unknown:
+        errors.append(
+            f"monitored_edges: {len(unknown)} name(s) match no edge of the transport "
+            f"GeoPackage: {unknown[:8]}{'…' if len(unknown) > 8 else ''}"
+        )
 
 
 def _check_input_criticality(path, sector_table, errors: list, warnings: list) -> None:
