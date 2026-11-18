@@ -91,17 +91,21 @@ run/time-step walkthrough, `docs/user-guide/parameters.md` for every knob,
   converted to time steps via `time_resolution`. Monetary units are set by
   `monetary_units_in_data` / `_in_model`.
 
-## Studies (`studies/`)
+## Studies (separate repository)
+
+Study files (paper pipelines, scenarios, job lists, evidence) are not in this
+repository. Since 18 Nov 2026 they live in a separate private repository,
+`disrupt-sc-studies`, placed next to this one; its `STUDIES_REPO_GUIDE.md`
+says how to work across the two. Path rule: what was `studies/<name>/<path>`
+here is `../disrupt-sc-studies/<name>/<path>`; a configuration names such a
+file as `studies:<name>/<path>` (environment variable `DISRUPT_SC_STUDIES`,
+else the sibling folder). Never commit a `studies/` folder here (it is
+git-ignored).
 
 Paper pipelines drive the model programmatically: build once via
 `disruptsc.build`, run many `run_disruption` calls, trace per-step state via
 the `observer` callback every simulate runner accepts (never monkeypatch
-`_run_one_time_step`). The active earthquake paper lives in
-`studies/earthquake/paper/` (SLURM launchers + runners + analyze/plot);
-its scope config is the committed `config/user_defined_EcuadorEQ.yaml`.
-The heterogeneity draw list under `studies/earthquake/additional_data/`
-is **committed experimental design**: `run_hetero.py` derives the destroyed
-total from it and refuses a mismatching `--total`.
+`_run_one_time_step`).
 
 ## Onboarding a new scope (`onboarding/`)
 

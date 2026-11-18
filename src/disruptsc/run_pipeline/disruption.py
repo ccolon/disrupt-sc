@@ -1010,7 +1010,7 @@ def parse_disruptions(config_list: list | None,
                     cfg["destroyed_capital"], cfg["filter"], firms,
                 )
             elif desc_type in ("subregion_file", "file"):
-                # "repo:<relpath>" resolves against the code-repo root, so a
+                # "repo:<relpath>" / "studies:<relpath>" resolve against the code or studies repo, so a
                 # tracked scope config can reference a shock file committed
                 # under studies/ without machine-specific absolute paths.
                 from disruptsc.config import resolve_repo_prefix

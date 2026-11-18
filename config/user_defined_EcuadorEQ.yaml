@@ -38,7 +38,7 @@ filepaths:
   # Ecuador sectors (built by studies/earthquake/build_criticality.py).
   # Committed in the code repo so it travels with git. Enables the
   # adapted-Leontief production function (critical/important/non-critical).
-  input_criticality:  "repo:studies/earthquake/additional_data/input_criticality.csv"
+  input_criticality:  "studies:earthquake/additional_data/input_criticality.csv"
 
 # -- Economic / time --
 firm_data_type: "mrio"
@@ -124,7 +124,7 @@ rationing_mode: "equal"
 disruptions:
   - type: capital_destruction
     description_type: subregion_file
-    file: "repo:studies/earthquake/additional_data/earthquake_shock_modelready.csv"
+    file: "studies:earthquake/additional_data/earthquake_shock_modelready.csv"
     unit: mUSD
     # Re-place damage that exceeds a (canton, sector) cell's modelled capital onto other
     # firms in the SAME canton. With discard, 21.6% of the shock never landed and 96% of

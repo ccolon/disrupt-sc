@@ -102,9 +102,11 @@ The current v2 runtime supports MRIO mode. Transaction-based firm creation is
 not implemented.
 
 File paths are relative to the scope folder in the resolved data root. A
-`repo:<relpath>` value resolves against the **code repository** instead — use
-it for inputs committed with the code (e.g. an input-criticality matrix under
-`studies/`). Absolute paths pass through unchanged.
+`repo:<relpath>` value resolves against the **code repository** instead, and a
+`studies:<relpath>` value against the **studies repository** (the environment
+variable `DISRUPT_SC_STUDIES`, else a folder `disrupt-sc-studies` next to the
+code repository) — use it for inputs kept with a study (e.g. its
+input-criticality matrix). Absolute paths pass through unchanged.
 
 ```yaml
 filepaths:
@@ -116,7 +118,7 @@ filepaths:
   countries_spatial: "Spatial/countries.geojson"
   firms_spatial: "Spatial/firms.geojson"
   # Optional: adapted-Leontief criticality matrix (see production function)
-  input_criticality: "repo:studies/earthquake/additional_data/input_criticality.csv"
+  input_criticality: "studies:earthquake/additional_data/input_criticality.csv"
 ```
 
 ## Agent And Supply Chain Parameters

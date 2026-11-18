@@ -20,10 +20,10 @@ filepaths:
   # (1) or important (0.5). The 2 % cost-share floor (critical_input_threshold below) composes with
   # this file: an input under 2 % of costs never binds, whatever its survey rating (as the Rhine
   # paper's Methods say; comment corrected 18 Nov 2026, KI-76).
-  input_criticality: "repo:studies/rhine2026/additional_data/input_criticality.csv"
+  input_criticality: "studies:rhine2026/additional_data/input_criticality.csv"
   # v14 (9 Sep 2026, user decision): which products pool across regions (commodity-like, Rauch
   # homogeneous / reference-priced) - see input_pooling below
-  product_substitutability: "repo:studies/rhine2026/additional_data/product_substitutability.csv"
+  product_substitutability: "studies:rhine2026/additional_data/product_substitutability.csv"
   # firm-level file from firm-extractor (EU/firm_extractor_config.yaml);
   # Spatial/firms_population.geojson = NUTS2 population fallback for A/B tests
   firms_spatial: "Spatial/firms.geojson"

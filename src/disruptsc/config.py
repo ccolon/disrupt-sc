@@ -78,8 +78,9 @@ def load_config(scope: str, parameter_folder: Path = None) -> dict:
 
     # Resolve filepaths to absolute. Plain relative values resolve against the
     # scope's data folder; a "repo:" prefix resolves against the code-repo root
-    # instead (for inputs committed with the code, e.g. the input-criticality
-    # matrix under studies/); absolute values pass through unchanged.
+    # instead (for inputs committed with the code) and a "studies:" prefix
+    # against the studies repository (e.g. the input-criticality matrix of a
+    # study); absolute values pass through unchanged.
     for key, val in config.get("filepaths", {}).items():
         if val and val != "None":
             resolved = resolve_repo_prefix(val)
@@ -94,15 +95,27 @@ def load_config(scope: str, parameter_folder: Path = None) -> dict:
 
 
 def resolve_repo_prefix(value):
-    """Resolve a ``repo:<relpath>`` string against the code-repo root.
+    """Resolve a ``repo:<relpath>`` or ``studies:<relpath>`` string.
 
+    ``repo:`` resolves against the code-repo root, ``studies:`` against the
+    studies repository (``DISRUPT_SC_STUDIES``, else the folder
+    ``disrupt-sc-studies`` next to the code repo) — e.g.
+    ``studies:earthquake/additional_data/earthquake_shock_modelready.csv``.
     Any other value is returned unchanged (identity preserved, so callers can
-    detect whether resolution happened). Used for config paths that point at
-    files committed with the code rather than the data repo — e.g.
-    ``repo:studies/earthquake/additional_data/earthquake_shock_modelready.csv``.
+    detect whether resolution happened).
+
+    Study files were under ``studies/`` of the code repo until 18 Nov 2026: a
+    ``repo:studies/<relpath>`` value whose file is not in the code repo is
+    read as ``studies:<relpath>``, so older configuration files keep working.
     """
+    if isinstance(value, str) and value.startswith("studies:"):
+        return str(paths.get_studies_root() / value[len("studies:"):])
     if isinstance(value, str) and value.startswith("repo:"):
-        return str(paths.ROOT_FOLDER / value[len("repo:"):])
+        rel = value[len("repo:"):]
+        in_repo = paths.ROOT_FOLDER / rel
+        if rel.startswith("studies/") and not in_repo.exists():
+            return str(paths.get_studies_root() / rel[len("studies/"):])
+        return str(in_repo)
     return value
 
 

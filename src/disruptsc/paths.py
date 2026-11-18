@@ -11,6 +11,10 @@ TMP_FOLDER = ROOT_FOLDER / "tmp"
 DATA_ENV_VAR = "DISRUPT_SC_DATA_PATH"
 SIBLING_DATA_FOLDER = ROOT_FOLDER.parent / "disrupt-sc-data"
 EXAMPLE_DATA_FOLDER = ROOT_FOLDER / "examples" / "data"
+# Study files (scenarios, criticality matrices, shock files of a paper) live in a separate repository placed
+# next to this one; a "studies:<relpath>" value of a configuration resolves against it (config.py).
+STUDIES_ENV_VAR = "DISRUPT_SC_STUDIES"
+SIBLING_STUDIES_FOLDER = ROOT_FOLDER.parent / "disrupt-sc-studies"
 BUNDLED_EXAMPLE_SCOPES = {"Testkistan"}
 
 
@@ -34,6 +38,14 @@ def resolve_input_folder() -> pathlib.Path:
         return SIBLING_DATA_FOLDER.resolve()
 
     return EXAMPLE_DATA_FOLDER.resolve()
+
+
+def get_studies_root() -> pathlib.Path:
+    """Return the root of the studies repository: ``DISRUPT_SC_STUDIES``, else the sibling folder."""
+    studies_path = os.environ.get(STUDIES_ENV_VAR)
+    if studies_path:
+        return _normalize_data_path(studies_path)
+    return SIBLING_STUDIES_FOLDER
 
 
 def get_data_root() -> pathlib.Path:

@@ -12,7 +12,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "studies" / "hormuz2026"))
+# the builder is a study script: it lives in the studies repository (18 Nov 2026), and the test is skipped without it
+from disruptsc import paths  # noqa: E402
+
+_STUDY = paths.get_studies_root() / "hormuz2026"
+if not (_STUDY / "build_criticality_gulf.py").is_file():
+    pytest.skip("studies repository not found (DISRUPT_SC_STUDIES or ../disrupt-sc-studies)", allow_module_level=True)
+sys.path.insert(0, str(_STUDY))
 
 from build_criticality_gulf import GLORIA_19, aggregate, gloria_to_wiod, round_class  # noqa: E402
 
