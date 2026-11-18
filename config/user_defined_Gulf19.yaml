@@ -30,10 +30,11 @@
 #   edges by name. When the Gulf network data change (node A1b), re-run the
 #   build script.
 # Node A1b (decision Q23, 18 Nov 2026): Gulf19/{Spatial,Transport} rebuilt by
-#   that script from the edited Gulf files (disrupt-sc-data b3cfecd; Gulf/
-#   Transport/EDITS.md: Shaybah-Abqaiq line connected, border road edges named,
-#   port_salalah and port_khor_al_zubair connected, Ras Laffan pass-through
-#   connector deleted), and the same config changes as user_defined_Gulf.yaml:
+#   that script from the edited Gulf files (disrupt-sc-data 903df63, Gulf19 at
+#   56e6426; Gulf/Transport/EDITS.md: Shaybah-Abqaiq line connected, border
+#   road edges named, port_salalah and port_khor_al_zubair connected, the Ras
+#   Laffan and Assaluyeh pass-through connectors deleted), and the same config
+#   changes as user_defined_Gulf.yaml:
 #   crude barred from 19 border road edges (transport_capacity_overrides), the
 #   15 new names added to monitored_edges, the comments on them.
 # ============================================================================

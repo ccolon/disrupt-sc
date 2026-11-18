@@ -11,7 +11,7 @@
 #   rows, no export column): ARE SAU IRQ IRN OMN BHR KWT QAT CHN IND PAK TUR
 #   AFR EAS RoW. Every region is a firm/household region, 0 country agents.
 #   The extraction is not reproducible (KI-05); the re-extraction is node A21.
-# Transport: roads, maritime, airways, pipelines + 115 unnamed multimodal
+# Transport: roads, maritime, airways, pipelines + 113 unnamed multimodal
 #   connectors. Named: the "Strait of Hormuz" sea edge, 29 port_* sea lanes,
 #   the 20 border road edges (6 border_crossing_* + 14 border_road_*), the
 #   pipelines (Petroline, Habshan-Fujairah, Kirkuk-Ceyhan, Shaybah-Abqaiq, ...).
@@ -23,9 +23,10 @@
 #   Shaybah-Abqaiq line named and connected to the field; d2eba5e the 14
 #   unnamed border road edges named; 1945e58 land connectors for port_salalah
 #   and port_khor_al_zubair (unusable before); b3cfecd the Ras Laffan
-#   pass-through connector #568 deleted (KI-67). sha256:
+#   pass-through connector #568 deleted (KI-67); 903df63 the two Assaluyeh
+#   pass-through connectors deleted (KI-67, same pattern). sha256:
 #   Transport/transport.gpkg   3a7fd090d6c6cec184b0c65c8f71bc91264b5f2acf1debeab58b1eb0d3b7b1eb
-#   Transport/multimodal.gpkg  03061e68c148821124cf5c9bb15a4ce8a9208db1fbb0963862a0cbf70eb48515
+#   Transport/multimodal.gpkg  741186de5c409e06616f2eb3dd17fe5e1e9d5a8d3e8b40a6a540bcdbe7aaa7df
 #   (node A1 ran on 06b82345... / 5d977976...).
 #
 # Changes from the April file (each one moves results; material.md section 6):
