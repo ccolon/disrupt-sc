@@ -73,7 +73,7 @@ gate never acts there. A name that matches no edge raises, at build time and in
 `validate-inputs`. Several edges may carry one name (a pipeline in segments, a
 lane with two legs): each gets its own row (`edge_id`). The config files are
 read in the locale's encoding, so a name with a non-ASCII character (an en dash)
-is safest written with a YAML escape: `"Kirkuk–Ceyhan"`.
+is safest written with a YAML escape: `"Kirkuk\u2013Ceyhan"`.
 
 **`export_logistics_every_step`** (18 Nov 2026; KI-73): the logistics report of the
 monitored edges (`logistics_report.csv`, `logistics_summary.csv`,

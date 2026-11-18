@@ -72,7 +72,7 @@ def test_monitored_edge_names_merge_and_check():
     assert monitored_edge_names({"x": 10}, None, net) == ["x"]       # the former rule
     assert monitored_edge_names({"x": 10}, ("y", "x"), net) == ["x", "y"]
     with pytest.raises(ValueError, match="match no edge"):
-        monitored_edge_names({}, ("y", "Kirkukâ€“Ceyhan"), net)
+        monitored_edge_names({}, ("y", "Kirkuk\u00e2\u20ac\u201cCeyhan"), net)
 
 
 def test_validate_inputs_lists_unknown_monitored_edges(monkeypatch):
