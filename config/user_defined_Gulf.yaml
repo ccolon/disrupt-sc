@@ -11,17 +11,22 @@
 #   rows, no export column): ARE SAU IRQ IRN OMN BHR KWT QAT CHN IND PAK TUR
 #   AFR EAS RoW. Every region is a firm/household region, 0 country agents.
 #   The extraction is not reproducible (KI-05); the re-extraction is node A21.
-# Transport: roads, maritime, airways, pipelines + 113 unnamed multimodal
+# Transport: roads, maritime, airways, pipelines + 115 unnamed multimodal
 #   connectors. Named: the "Strait of Hormuz" sea edge, 29 port_* sea lanes,
-#   6 border crossings (of 20 border road edges), the pipelines (Petroline,
-#   Habshan-Fujairah, Kirkuk-Ceyhan, ...). Two lanes have no land connector
-#   (port_salalah, port_khor_al_zubair: no cargo can use them).
+#   the 20 border road edges (6 border_crossing_* + 14 border_road_*), the
+#   pipelines (Petroline, Habshan-Fujairah, Kirkuk-Ceyhan, Shaybah-Abqaiq, ...).
 #   Which port lane lies on which side of the Strait edge:
 #   disrupt-sc-studies/hormuz/data/gulf_port/topology.csv.
-# Data used as it is (disrupt-sc-data/Gulf; transport.gpkg carries the
-#   uncommitted 24 Apr 2026 edit). sha256 on 18 Nov 2026:
-#   Transport/transport.gpkg   06b823451cf1e9ac01f184ddc78a577cfbab7c23b7bf8ae89516e86585e45128
-#   Transport/multimodal.gpkg  5d97797631dbbca152d7746aab55a03a2c66b7c43b2b03207cfaeb2d917fec4b
+# Data: disrupt-sc-data/Gulf at the node A1b commits (decision Q23, 18 Nov
+#   2026; Gulf/Transport/EDITS.md): 225adc1 the 24 Apr 2026 file committed as
+#   it is (header bytes only: same content as 8f5f275, KI-62); ec89c8d the
+#   Shaybah-Abqaiq line named and connected to the field; d2eba5e the 14
+#   unnamed border road edges named; 1945e58 land connectors for port_salalah
+#   and port_khor_al_zubair (unusable before); b3cfecd the Ras Laffan
+#   pass-through connector #568 deleted (KI-67). sha256:
+#   Transport/transport.gpkg   3a7fd090d6c6cec184b0c65c8f71bc91264b5f2acf1debeab58b1eb0d3b7b1eb
+#   Transport/multimodal.gpkg  03061e68c148821124cf5c9bb15a4ce8a9208db1fbb0963862a0cbf70eb48515
+#   (node A1 ran on 06b82345... / 5d977976...).
 #
 # Changes from the April file (each one moves results; material.md section 6):
 # - io_cutoff / cutoff_* -> flow_coverage 0.95 (keeps 72-92 % of every Gulf
@@ -229,14 +234,13 @@ inventory_restoration_time: 4
 # The buyers of crude sit on road nodes (firms other than the oil and gas
 # fields sit at their region's household centroid) and so does AFR's producer
 # (Nairobi); a road leg is their only access to a pipeline or a port.
-# Consequence, undisturbed run of 18 Nov 2026 (output/Gulf/20261118_100420,
-# t=0): 3.32 Mt/week of crude from the Shaybah field cross the unnamed SAU-OMN
-# border road edge into the Yibal-Mina al-Fahal pipeline (6 of the field's 8
-# crude links then leave from port_sohar, outside the Strait; no
-# Shaybah-Abqaiq line in the data); the King Fahd causeway carries 0.11
-# Mt/week of crude. A leak at t=0, far above the A6 cap; 14 of the 20 border
-# road edges are unnamed, so no capacity override can close them (KI-44).
-# Tables: disrupt-sc-studies/hormuz/data/gulf_port/roads_border_t0.csv.
+# Consequence on the A1 data (undisturbed run output/Gulf/20261118_100420,
+# t=0): 3.32 Mt/week of crude from the Shaybah field crossed the then unnamed
+# SAU-OMN border road edge into the Yibal-Mina al-Fahal pipeline and left from
+# port_sohar (the Shaybah-Abqaiq line was in the data but dead-ended); the King
+# Fahd causeway carried 0.11 Mt/week of crude (KI-68; tables
+# disrupt-sc-studies/hormuz/data/gulf_port/roads_border_t0.csv). Fixed by the
+# A1b data edits and the crude caps of the border roads below (Q23).
 cargo_mode_eligibility:
   airways: [container]
   pipelines: [crude]
@@ -275,8 +279,43 @@ cargo_mode_eligibility:
 # there (one port, one lane) - not on a second, invented edge.
 # The cargo keys of a future entry are the cargo types below:
 # container, dry_bulk, liquid_bulk, crude, lng.
+#
+# The entries below are not capacities: a 0 bars crude from an edge at build
+# (no cost label, so no crude route uses it and the gate has nothing to cut
+# there); the other cargoes keep the edge uncapacitated. Crude is barred
+# from the border road edges (Hormuz decision Q23, node A1b, 18 Nov 2026), so
+# that no crude leaves the Gulf by road outside the Strait accounting: the A6
+# leakage limit is < 50 kb/d cross-border by road or rail in all, ~47.7 kt per
+# weekly step at 7.33 bbl/t. Tried first: crude 0 on all 20 border road edges
+# -> 131 crude links without a route, every one with AFR's Nairobi node at an
+# end (border_road_AFR_AFR_1, Mombasa-Nairobi, is AFR's only road between its
+# agents and its sea edge). That edge is AFR's internal access road (both ends
+# in Kenya, tagged border in the data), not a crossing between two economies:
+# it keeps no crude cap - any cap under its t=0 crude load would ration AFR's
+# crude trade in the undisturbed run - and is outside the cross-border total.
+# The 19 others are closed to crude; every crude link stays routable.
+# Edge names: disrupt-sc-data/Gulf/Transport/EDITS.md (step 3).
 capacity_constraint: True
-transport_capacity_overrides: {}
+transport_capacity_overrides:
+  border_crossing_al_ain_al_buraimi: {crude: 0}
+  border_crossing_al_batha_al_ghuwaifat: {crude: 0}
+  border_crossing_abu_samra_salwa: {crude: 0}
+  border_crossing_nuwaiseeb_khafji: {crude: 0}
+  border_crossing_king_fahd_causeway: {crude: 0}
+  border_crossing_khatmat_malaha: {crude: 0}
+  border_road_SAU_ARE_1: {crude: 0}
+  border_road_SAU_ARE_2: {crude: 0}
+  border_road_SAU_ARE_3: {crude: 0}
+  border_road_SAU_QAT_1: {crude: 0}
+  border_road_SAU_QAT_2: {crude: 0}
+  border_road_SAU_KWT_1: {crude: 0}
+  border_road_SAU_KWT_2: {crude: 0}
+  border_road_SAU_KWT_3: {crude: 0}
+  border_road_ARE_OMN_1: {crude: 0}
+  border_road_SAU_OMN_1: {crude: 0}
+  border_road_IRQ_IRN_1: {crude: 0}
+  border_road_IRQ_IRN_2: {crude: 0}
+  border_road_IRQ_KWT_1: {crude: 0}
 
 # -- Reporting (Hormuz node A26, decision Q28 item 12, 18 Nov 2026) --
 # Outputs only, no result moves: with these switches on, every other output is
@@ -300,7 +339,9 @@ export_edge_flows_every_step: False
 # edges carry (a pipeline in segments, a lane in legs) gives one report row per edge
 # (edge_id). The en dash of the pipeline names is written \u2013: the config is read
 # in the locale encoding (cp1252 on Windows), where a UTF-8 dash would not match the
-# edge name.
+# edge name. Node A1b (18 Nov 2026) added the 15 names it gave to the data (the 14
+# border_road_* edges, for the A6 cross-border check, and the Shaybah-Abqaiq line) at
+# the end of the list; they are not in network_named_edges.csv.
 monitored_edges:
   - "border_crossing_al_ain_al_buraimi"
   - "border_crossing_al_batha_al_ghuwaifat"
@@ -396,6 +437,21 @@ monitored_edges:
   - "Kirkuk\u2013Ceyhan"
   - "South Pars\u2013Assaluyeh"
   - "East-West Crude Oil Pipeline (Petroline)"
+  - "border_road_SAU_ARE_1"
+  - "border_road_SAU_ARE_2"
+  - "border_road_SAU_ARE_3"
+  - "border_road_SAU_QAT_1"
+  - "border_road_SAU_QAT_2"
+  - "border_road_SAU_KWT_1"
+  - "border_road_SAU_KWT_2"
+  - "border_road_SAU_KWT_3"
+  - "border_road_ARE_OMN_1"
+  - "border_road_SAU_OMN_1"
+  - "border_road_IRQ_IRN_1"
+  - "border_road_IRQ_IRN_2"
+  - "border_road_IRQ_KWT_1"
+  - "border_road_AFR_AFR_1"
+  - "Shaybah-Abqaiq oil pipeline"
 
 # -- Logistics (April values, except the retired keys) --
 logistics:
