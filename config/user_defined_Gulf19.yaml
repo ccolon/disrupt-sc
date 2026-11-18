@@ -361,13 +361,14 @@ transport_capacity_overrides:
   port_khalifa: 101913            # all cargo; V147 PortWatch (modelled)
   port_kharg_island: 183532       # FALLBACK 988,250 t/week x 1.3 / 7 (proxy V214 PortWatch 22,602)
   port_khor_fakkan:
-    container: 110495             # V071 design 5,000,000 TEU/yr x 8.07 (Q27 value; V072: 3.5 M before the 2026 upgrade)
+    container: 77384              # V072 3,500,000 TEU/yr before the 2026 upgrade x 8.07 (Q38: the capacity at the shock; V071 5.0 M in A22)
     crude: 4766                   # V148 PortWatch tanker pool (modelled)
     dry_bulk: 2089                # V150 PortWatch dry bulk + general cargo + ro-ro (modelled)
     liquid_bulk: 4766             # V148
     lng: 4766                     # V148
   port_king_abdullah: 20548       # all cargo; V037 official statistic (GASTAT 7.5 Mt, 2025)
   port_mina_al_ahmadi: 271873     # FALLBACK 1,463,933 t/week x 1.3 / 7 (proxy V186 PortWatch 61,318)
+  port_mina_al_fahal: 240451      # FALLBACK 1,294,738 t/week x 1.3 / 7 (no design or PortWatch figure; outside the Strait, Q38)
   port_qalhat: 13462              # all cargo; V223 PortWatch (modelled)
   port_ras_laffan: 182618         # all cargo; V196 PortWatch (modelled)
   port_ras_tanura: 863546         # FALLBACK 4,649,864 t/week x 1.3 / 7 (proxy V178 PortWatch 174,362)
@@ -391,7 +392,7 @@ transport_capacity_overrides:
     dry_bulk: 20274               # V044 idem (the pool applied to each)
     liquid_bulk: 364658           # V040 official liquid bulk 133.1 Mt (2024)
     lng: 206439                   # V173,V176 PortWatch tanker pool (modelled)
-  "East-West Crude Oil Pipeline (Petroline)": {crude: 682128}   # V047 EIA 5.0 mb/d (V048 7.0 = 2019 temporary peak)
+  "East-West Crude Oil Pipeline (Petroline)": {crude: 954980}   # V048 7.0 mb/d (Q38: the minister reported 5.8 mb/d of pipeline flow in the war, above V047 5.0)
   "Habshan\u2013Fujairah oil pipeline": {crude: 245566}          # V016 EIA 1.8 mb/d (V015 ADNOC nameplate 1.5)
   "Kirkuk\u2013Ceyhan": {crude: 102319}                         # V093 Rudaw 0.75 mb/d (V050 1.6 a snippet, not verified)
 
