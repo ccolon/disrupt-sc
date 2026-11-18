@@ -17,8 +17,9 @@ filepaths:
   # Rhine 2026 (4 Sep, user decision): the IHS Markit survey criticality (Pichler et al. 2022,
   # 55 WIOD industries mapped to the 50 ICIO sectors by studies/rhine2026/build_criticality_eu.py)
   # IS the baseline production rule: an input binds output only if the survey rates it critical
-  # (1) or important (0.5). The 2 % cost-share proxy (critical_input_threshold) is ignored when
-  # this file is set; it made tiny service shortfalls bind on every buyer.
+  # (1) or important (0.5). The 2 % cost-share floor (critical_input_threshold below) composes with
+  # this file: an input under 2 % of costs never binds, whatever its survey rating (as the Rhine
+  # paper's Methods say; comment corrected 18 Nov 2026, KI-76).
   input_criticality: "repo:studies/rhine2026/additional_data/input_criticality.csv"
   # v14 (9 Sep 2026, user decision): which products pool across regions (commodity-like, Rauch
   # homogeneous / reference-priced) - see input_pooling below

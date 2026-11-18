@@ -53,7 +53,8 @@ class Firm:
     # Partially-Binding Leontief: inputs whose share of the firm's total intermediate
     # cost is below this threshold are non-critical and do NOT constrain production
     # (they are still consumed if available). 0.0 = strict Leontief (all inputs bind).
-    # Ignored when input_criticality is populated (the survey matrix takes over).
+    # Composes with input_criticality: an input below the threshold is non-critical whatever its
+    # survey weight (a materiality floor, see produce()); comment corrected 18 Nov 2026 (KI-76).
     critical_input_threshold: float = 0.0
     # Per-input criticality weight (Pichler et al. 2022 adapted Leontief), keyed by
     # input_id: 1.0 = critical (hard Leontief bind), 0.5 = important (soft floor at
