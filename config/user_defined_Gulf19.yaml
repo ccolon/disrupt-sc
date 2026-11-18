@@ -333,6 +333,16 @@ transport_capacity_overrides:
   # calibration levers for A4a"): Yanbu loading terminals V046 and Petroline V047 5.0 mb/d,
   # Habshan-Fujairah V016 1.8 mb/d (EIA; ADNOC nameplate 1.5), Kirkuk-Ceyhan V093 0.75 mb/d,
   # at 7.33 bbl/t.
+  # FALLBACK (A4a round 3, 19 Nov 2026; the A4b rule, Q27 option 2, the Rhine method): six
+  # lanes inside the Strait take the modelled baseline x headroom 1.3 instead of their
+  # PortWatch proxy - Shuwaikh, Kharg, Hamad, Imam Khomeini, Ras Tanura, Mina al Ahmadi
+  # (marked FALLBACK below; baseline = round-2 routed tonnes per week before the gate, / 7).
+  # No reallocation between an economy's lanes could clear them: summed over the economy,
+  # the lanes' baseline is 4.3 x their PortWatch capacities in Kuwait, 1.17 x in Qatar,
+  # 2.5 x on the Saudi east coast (Petroline-Yanbu already at its 2024-25 statistic), and
+  # Iran's crude has no terminal but Kharg (6.2 x) outside the uncapped gap lanes
+  # (hormuz/calibration/rounds/, a4a_feasibility.py). The proxies are AIS undercounts of
+  # oil terminals and commercial ports (Kharg 8.2 Mt against Iran's crude exports).
   port_assaluyeh: 348096          # all cargo; V219 PortWatch (modelled), 2025: 127 Mt, an anomalous jump from 17.8 Mt
   port_bandar_abbas: 64084        # all cargo; V202,V205 PortWatch (modelled)
   port_bushehr: 4972              # all cargo; V208 PortWatch (modelled)
@@ -344,12 +354,12 @@ transport_capacity_overrides:
     dry_bulk: 35689               # V153 PortWatch dry bulk + general cargo + ro-ro (modelled)
     liquid_bulk: 214432           # V151 PortWatch tanker pool (modelled)
     lng: 214432                   # V151 idem (one tanker pool applied to each)
-  port_hamad: 17620               # all cargo; V195 PortWatch (modelled)
-  port_imam_khomeini: 55387       # all cargo; V212 PortWatch (modelled)
+  port_hamad: 119677              # FALLBACK 644,413 t/week x 1.3 / 7 (proxy V195 PortWatch 17,620)
+  port_imam_khomeini: 365157      # FALLBACK 1,966,228 t/week x 1.3 / 7 (proxy V212 PortWatch 55,387)
   port_jebel_ali: 639071          # all cargo; V144 PortWatch (modelled)
   port_jeddah_islamic: 148219     # all cargo; V026 official statistic (GASTAT 54.1 Mt, 2025)
   port_khalifa: 101913            # all cargo; V147 PortWatch (modelled)
-  port_kharg_island: 22602        # all cargo; V214 PortWatch (modelled)
+  port_kharg_island: 183532       # FALLBACK 988,250 t/week x 1.3 / 7 (proxy V214 PortWatch 22,602)
   port_khor_fakkan:
     container: 110495             # V071 design 5,000,000 TEU/yr x 8.07 (Q27 value; V072: 3.5 M before the 2026 upgrade)
     crude: 4766                   # V148 PortWatch tanker pool (modelled)
@@ -357,17 +367,17 @@ transport_capacity_overrides:
     liquid_bulk: 4766             # V148
     lng: 4766                     # V148
   port_king_abdullah: 20548       # all cargo; V037 official statistic (GASTAT 7.5 Mt, 2025)
-  port_mina_al_ahmadi: 61318      # all cargo; V186 PortWatch (modelled)
+  port_mina_al_ahmadi: 271873     # FALLBACK 1,463,933 t/week x 1.3 / 7 (proxy V186 PortWatch 61,318)
   port_qalhat: 13462              # all cargo; V223 PortWatch (modelled)
   port_ras_laffan: 182618         # all cargo; V196 PortWatch (modelled)
-  port_ras_tanura: 174362         # all cargo; V178 PortWatch (modelled)
+  port_ras_tanura: 863546         # FALLBACK 4,649,864 t/week x 1.3 / 7 (proxy V178 PortWatch 174,362)
   port_salalah:
     container: 132594             # V022 design 6,000,000 TEU/yr x 8.07
     crude: 10670                  # V157 PortWatch tanker pool (modelled)
     dry_bulk: 61918               # V023 official 'general cargo / dry bulk' 22.6 Mt (2024)
     liquid_bulk: 10670            # V157
     lng: 10670                    # V157
-  port_shuwaikh: 11297            # all cargo; V181 PortWatch (modelled)
+  port_shuwaikh: 133161           # FALLBACK 717,022 t/week x 1.3 / 7 (proxy V181 PortWatch 11,297)
   port_sohar:
     container: 44198              # V070 design 2,000,000 TEU/yr (Hutchison Ports Sohar terminal) x 8.07
     crude: 55926                  # V154 PortWatch tanker pool (modelled)
@@ -570,3 +580,31 @@ logistics:
     roads-pipelines-fujairah: 8
     roads-maritime-khor_fakkan: 10
     roads-airways: 5.0
+  # -- Calibration levers (Hormuz node A4a, rounds 1-3, 19 Nov 2026; frozen before any
+  # shocked run: disrupt-sc-studies/hormuz/calibration/levers_frozen.yaml) --
+  # Per-port fees, USD per ton on every cargo crossing the named lane (name-specific is
+  # added to the lane's cost label), each just above the switch fee measured on the
+  # round-0 routes (hormuz/scripts/a4a_switch_cost.py), against misallocated flows:
+  # Kuwait's crude left from the commercial port (Shuwaikh; switch 13.98) instead of Mina
+  # al Ahmadi; Oman's crude from Sohar through the 237 km pipeline extension (switch 1.88)
+  # instead of Mina al Fahal at the end of the Yibal line; Qatar's crude for India from the
+  # container port (Hamad; switch 3.84) instead of Ras Laffan; Duqm above its proxy (163
+  # vs 103 kt/week; switch 2.63, its users go to Mina al Fahal); Khalifa above its proxy
+  # and 1.44 x its statistic (1.0 moves the groups switching at 0.20; 1.29 would move
+  # 634 kt/week at once and leave Khalifa at 0.24 x).
+  name-specific:
+    port_shuwaikh: 15
+    port_sohar: 3
+    port_hamad: 5
+    port_duqm: 3
+    port_khalifa: 1.0
+  # Value of time, USD per ton-hour (0.49 everywhere before A4a): dry bulk at sea 0.25, so
+  # that Khalifa's dry bulk prefers Jebel Ali's longer sea leg (149 km more sea, 20 km less
+  # road; switch below 0.27) - Khalifa from 1.44 to 0.73 x its statistic; at 0.22 and below
+  # Saudi coal for Europe leaves Jeddah for Dammam around Arabia (Dammam 1.21 x its
+  # capacity, round 2). The window [0.23, 0.27) is narrow: a sensitivity, not a measured
+  # value. The EU scope's structure (bulk 0.08, containers 0.15 at sea) was tried (round 1)
+  # and sends Saudi west-coast trade around Arabia (Jeddah 0.15 x, Dammam 1.8 x).
+  cost_of_time:
+    dry_bulk: {default: 0.49, maritime: 0.25}
+    default: 0.49
