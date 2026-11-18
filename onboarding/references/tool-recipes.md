@@ -21,6 +21,14 @@ layout for locations and clone URLs).
 | EMERGING-E | `extract_mrio_emerging_e.py` | `../EMERGING-E/EMERGING_E_2018.mat` (970 MB HDF5, streamed) | 2018 |
 | GLORIA | `extract_mrio_gloria.py` | `../GLORIA/mrio_va_fd.pkl` (3.4 GB pickle) | single unlabelled vintage |
 
+GLORIA, closed tables (every region internal, as the Gulf scopes): prefer the table-driven
+`onboarding/scripts/gloria_extract.py <spec.yaml> --out-dir <dir>` (18 Nov 2026, KI-05). The spec points to a
+region membership table and a sector concordance table (examples: `onboarding/mrio_specs/gulf/`); the script
+writes the MRIO, the sector table, a balance table and a provenance JSON with the sha256 of the pickle, tables,
+script and outputs. Same arithmetic as `extract_mrio_gloria.py` (it reproduces the April Gulf table byte for
+byte). The pickle is in kUSD (GLORIA's unit), not mUSD as the extractor's docstring says; year 2023 per its
+prep scripts (thesis-gloria `jakobs_scripts/prep`).
+
 Selection constants (same semantics in every extractor; precedence EXTERNAL > INTERNAL > RoW):
 - `INTERNAL_REGIONS`: `"all"` or list of codes — kept as full (region × sector) blocks.
 - `EXTERNAL_REGIONS`: dict `bloc_label -> [source codes]` — each bloc becomes ONE aggregated

@@ -1,0 +1,43 @@
+{
+  "scope": "Gulf19",
+  "created": "2026-11-18 12:32:15",
+  "script": "onboarding/scripts/gloria_extract.py",
+  "script_sha256": "df9adfc0f17ae346f5c648fb81b56fdb7e16f7723fe506ff3c545bdbe0731fcd",
+  "git_head": "faf2cfa374bb64215572ee2b4773040ff0f37047",
+  "script_dirty": true,
+  "spec": "onboarding/mrio_specs/gulf/gulf19.yaml",
+  "spec_sha256": "5895cd4740c313dcd326f02a8e0f702ea377a18c4c31a85aa9984126f3dfb96c",
+  "source": "GLORIA/mrio_va_fd.pkl",
+  "source_sha256": "addb3ef379f25274a640ebbde564148858143ff0d1268429e978c086d191ebb5",
+  "source_bytes": 3416137934,
+  "source_lineage": "GLORIA multi-regional use table, year 2023, basic prices (Markup001), kUSD: product rows x industry columns of 164 regions x 120 sectors, value-added rows below, final-demand columns to the right, built by thesis-gloria/jakobs_scripts (01_load_split, 02_process_va_fd, 03_compilation). The pickle carries no label; the prep scripts name release 059 (Dec 2025 versions) and 060 (Sep 2026 versions) of the 2023 table, and the ReadMe kept beside the pickle is 059a.",
+  "tables": {
+    "gloria_regions_gulf.csv": "1e21b3eacaf04f091c33c46330f146c37de74dcd3fc883e06424bf3548145aad",
+    "gloria_sectors_120_to_19.csv": "d9b838ee8e1a1daf8392983f06dd7f20ef242e61b9ea24f4fff0b72d7b62a728",
+    "model_sectors_19.csv": "84e8482ba86bb91810dfc5cdaa6d32bd09337495fec90ca198f61139495720da"
+  },
+  "outputs": {
+    "mrio_full.csv": "c550881ad4c24527a6cf314d2a6699656af0b8784adfb441c0ee7591ccd350f9",
+    "sector_table_full.csv": "0664f1eb32c498d5eafad62a1403a66ca2f9b5130bd1909e2f1e9686a3a57e85",
+    "mrio_full.balance.csv": "56242885b854d23fa8bff8a77dbd182598e2d7ca71a65bef66037bac5f7f3be4"
+  },
+  "units": "kUSD (GLORIA), rounded to 2 decimals",
+  "balance": {
+    "region_sectors": 361,
+    "world_output_sales_kUSD": 215025931556.84,
+    "world_output_costs_kUSD": 214991263674.55,
+    "world_rel_diff": 0.0001612525164859172,
+    "max_abs_rel_diff": 0.14888560736478468,
+    "region_sector_max_abs_rel_diff": "KWT_Coal",
+    "n_abs_rel_diff_gt_1e-6": 321,
+    "n_abs_rel_diff_gt_1pct": 18,
+    "n_inputs_gt_sales": 0,
+    "n_zero_output": 0,
+    "negative_cells": 0
+  },
+  "versions": {
+    "python": "3.13.0",
+    "pandas": "2.2.3",
+    "numpy": "2.1.2"
+  }
+}

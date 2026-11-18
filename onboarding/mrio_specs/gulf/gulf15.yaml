@@ -1,0 +1,38 @@
+# GLORIA extraction spec, read by onboarding/scripts/gloria_extract.py.
+# Gulf (15 regions x 19 sectors, closed): the selection of the April 2026 Gulf
+# table (disrupt-sc-data/Gulf/Economic/mrio_full.csv, 18 Apr 2026), recovered
+# on 18 Nov 2026 (Hormuz paper, node A21, KI-05) from the constants REGIONS
+# and SECTOR_AGGREGATION of MRIO/mrio-extractor/extract_mrio_gloria.py
+# (mrio-extractor commit 3fe6757; the file is dated 3 Apr 2026, before the
+# table). This spec reproduces that table from the same pickle; the check is
+# recorded in gulf15.provenance.json (comparison block).
+# Tables (one row per GLORIA region / sector; nothing implicit):
+#   gloria_regions_gulf.csv       column gulf15 = model region of each code
+#   gloria_sectors_120_to_19.csv  GLORIA 120 -> 19 sectors (+ ISIC Rev. 4 sections)
+#   model_sectors_19.csv          type and usd_per_ton per model sector (as in
+#                                 the April sector_table_full.csv)
+scope: Gulf
+source: GLORIA/mrio_va_fd.pkl          # relative to the MRIO root (<parent of disrupt-sc>/MRIO)
+source_lineage: >-
+  GLORIA multi-regional use table, year 2023, basic prices (Markup001), kUSD: product rows x industry
+  columns of 164 regions x 120 sectors, value-added rows below, final-demand columns to the right, built by
+  thesis-gloria/jakobs_scripts (01_load_split, 02_process_va_fd, 03_compilation). The pickle carries no
+  label; the prep scripts name release 059 (Dec 2025 versions) and 060 (Sep 2026 versions) of the 2023
+  table, and the ReadMe kept beside the pickle is 059a.
+regions:
+  table: gloria_regions_gulf.csv
+  column: gulf15
+  order: [ARE, SAU, IRQ, IRN, OMN, BHR, KWT, QAT, CHN, IND, PAK, TUR, AFR, EAS, RoW]
+sectors:
+  table: gloria_sectors_120_to_19.csv
+  column: model_sector
+  meta: model_sectors_19.csv
+  order: [Agriculture, Forestry, Fishing, Coal, Oil, Gas, Mining, Food manufacturing, Other manufacturing,
+          Refining, Fertilizer, Electricity, Other utility, Water, Construction, Trade, Transport, Services,
+          Public administration]
+value_added_row: ["", "value added"]   # the label of the April table
+final_demand_label: Final demand
+decimals: 2
+outputs:
+  mrio: mrio_full.csv
+  sector_table: sector_table_full.csv

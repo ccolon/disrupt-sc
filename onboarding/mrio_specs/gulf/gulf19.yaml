@@ -1,0 +1,37 @@
+# GLORIA extraction spec, read by onboarding/scripts/gloria_extract.py.
+# Gulf19 (19 regions x 19 sectors, closed): the Gulf selection (gulf15.yaml)
+# with Japan and Korea taken out of EAS, and Bangladesh and Europe (EU27 +
+# GBR + NOR + CHE + ISL, 31 GLORIA regions) taken out of RoW (Hormuz paper,
+# decision Q15, node A21, 18 Nov 2026). Same source, sectors and arithmetic.
+# GLORIA has each of the 31 European countries as its own region, so EUR is
+# exactly that list; GLORIA's XEU ("Rest of Europe", members not given in the
+# ReadMe) is none of them and stays in RoW. Haiti stays in AFR as in the April
+# selection (a quirk of that selection, kept so that the two tables differ
+# only by the split).
+# Tables: gloria_regions_gulf.csv (column gulf19), gloria_sectors_120_to_19.csv,
+# model_sectors_19.csv, model_regions_gulf.csv (members of every model region).
+scope: Gulf19
+source: GLORIA/mrio_va_fd.pkl          # relative to the MRIO root (<parent of disrupt-sc>/MRIO)
+source_lineage: >-
+  GLORIA multi-regional use table, year 2023, basic prices (Markup001), kUSD: product rows x industry
+  columns of 164 regions x 120 sectors, value-added rows below, final-demand columns to the right, built by
+  thesis-gloria/jakobs_scripts (01_load_split, 02_process_va_fd, 03_compilation). The pickle carries no
+  label; the prep scripts name release 059 (Dec 2025 versions) and 060 (Sep 2026 versions) of the 2023
+  table, and the ReadMe kept beside the pickle is 059a.
+regions:
+  table: gloria_regions_gulf.csv
+  column: gulf19
+  order: [ARE, SAU, IRQ, IRN, OMN, BHR, KWT, QAT, CHN, IND, PAK, TUR, JPN, KOR, BGD, EUR, AFR, EAS, RoW]
+sectors:
+  table: gloria_sectors_120_to_19.csv
+  column: model_sector
+  meta: model_sectors_19.csv
+  order: [Agriculture, Forestry, Fishing, Coal, Oil, Gas, Mining, Food manufacturing, Other manufacturing,
+          Refining, Fertilizer, Electricity, Other utility, Water, Construction, Trade, Transport, Services,
+          Public administration]
+value_added_row: ["", "value added"]
+final_demand_label: Final demand
+decimals: 2
+outputs:
+  mrio: mrio_full.csv
+  sector_table: sector_table_full.csv
