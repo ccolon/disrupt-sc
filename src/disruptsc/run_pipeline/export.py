@@ -126,12 +126,23 @@ TRADE_COLUMNS = [
     "exports", "exports_value", "imports", "imports_value",
 ]
 
+# Cross-region deliveries by seller region, seller sector and buyer region, per step
+# (export_trade_by_region_sector; Hormuz 2026 node A26, 18 Nov 2026): the same links and
+# quantity as trade_data.csv (seller and buyer in different regions, realized_delivery > 0),
+# split by the seller's sector ("imports" for a Country seller, as in link_data.csv) and the
+# buyer's region; tons = delivery_in_tons. Summed over seller_sector and buyer_region it
+# gives trade_data's exports, over seller_region and seller_sector its imports.
+TRADE_BY_REGION_SECTOR_COLUMNS = [
+    "time_step", "seller_region", "seller_sector", "buyer_region", "quantity", "tons",
+]
+
 
 class AgentWriters:
     """Manage the set of CSV writers for agent time-series data."""
 
     def __init__(self, export_folder: Path, days_per_timestep: float = 7.0,
-                 export_link_data: bool = True, export_inventory_data: bool = True):
+                 export_link_data: bool = True, export_inventory_data: bool = True,
+                 export_trade_by_region_sector: bool = False):
         self.firm = CsvWriter(export_folder / "firm_data.csv", FIRM_COLUMNS)
         self.household = CsvWriter(export_folder / "household_data.csv", HOUSEHOLD_COLUMNS)
         self.household_by_sector = CsvWriter(
@@ -143,6 +154,9 @@ class AgentWriters:
                           if export_inventory_data else None)
         self.link = CsvWriter(export_folder / "link_data.csv", LINK_COLUMNS) if export_link_data else None
         self.trade = CsvWriter(export_folder / "trade_data.csv", TRADE_COLUMNS)
+        self.trade_by_region_sector = (
+            CsvWriter(export_folder / "trade_by_region_sector.csv", TRADE_BY_REGION_SECTOR_COLUMNS)
+            if export_trade_by_region_sector else None)
         self._days_per_timestep = days_per_timestep
 
     def write_step(self, firms: dict, households: dict, countries: dict, time_step: int):
@@ -235,10 +249,15 @@ class AgentWriters:
         code; the virtual ROW country's region is ``ROW``). The seller's
         country books an export, the buyer's an import. Quantity is realized
         delivery; value uses the current link price.
+
+        With ``export_trade_by_region_sector`` the same links are also summed by
+        (seller region, seller sector, buyer region) into
+        trade_by_region_sector.csv (quantity and tons; rows with a delivery only).
         """
         from collections import defaultdict
         exp_q = defaultdict(float); exp_v = defaultdict(float)
         imp_q = defaultdict(float); imp_v = defaultdict(float)
+        by_rs = defaultdict(lambda: [0.0, 0.0]) if self.trade_by_region_sector is not None else None
         for u, v, data in sc_network.edges(data=True):
             sr = getattr(u, "region", None)
             br = getattr(v, "region", None)
@@ -251,6 +270,18 @@ class AgentWriters:
             val = qty * link.price
             exp_q[sr] += qty; exp_v[sr] += val
             imp_q[br] += qty; imp_v[br] += val
+            if by_rs is not None:
+                # seller sector as in link_data.csv: "imports" for a Country seller
+                ss = "imports" if type(u).__name__ == "Country" else getattr(u, "sector", "")
+                acc = by_rs[(sr, ss, br)]
+                acc[0] += qty
+                acc[1] += link.delivery_in_tons
+        if by_rs is not None:
+            self.trade_by_region_sector.write_rows([
+                {"time_step": time_step, "seller_region": sr, "seller_sector": ss,
+                 "buyer_region": br, "quantity": q, "tons": t}
+                for (sr, ss, br), (q, t) in sorted(by_rs.items(), key=lambda kv: tuple(map(str, kv[0])))
+            ])
         for country in sorted(set(exp_q) | set(imp_q)):
             self.trade.write_row({
                 "time_step": time_step,
@@ -271,6 +302,8 @@ class AgentWriters:
         if self.link is not None:
             self.link.close()
         self.trade.close()
+        if self.trade_by_region_sector is not None:
+            self.trade_by_region_sector.close()
 
     def __enter__(self):
         return self
@@ -342,6 +375,33 @@ def collect_country_data(countries: dict, time_step: int) -> list[dict]:
 # ------------------------------------------------------------------
 # Logistics report
 # ------------------------------------------------------------------
+
+def monitored_edge_names(capacity_overrides: dict | None, monitored: tuple | list | None,
+                         transport_network=None) -> list[str] | None:
+    """Edge names the logistics report covers: those of transport_capacity_overrides,
+    then those of the ``monitored_edges`` config key not already listed (Hormuz A26,
+    18 Nov 2026: a gateway can be watched without giving it a capacity). None when
+    there are none (no report, as before the key existed).
+
+    A monitored name that matches no edge of *transport_network* raises, as a
+    capacity override does: a misspelt name (or one read in the wrong encoding)
+    would otherwise drop out of the report without a word."""
+    names = list(capacity_overrides.keys()) if capacity_overrides else []
+    extra = [n for n in (monitored or ()) if n not in names]
+    if extra and transport_network is not None:
+        present = {d.get("name", "") for _, _, d in transport_network.edges(data=True)}
+        unknown = [n for n in extra if n not in present]
+        if unknown:
+            raise ValueError(
+                f"monitored_edges: {len(unknown)} name(s) match no edge of the transport network "
+                f"(edge names are the 'name' column of the GeoPackage layers): {unknown[:8]}"
+                f"{' ...' if len(unknown) > 8 else ''}")
+    names += extra
+    if extra:
+        logging.info(f"Logistics report: {len(extra)} monitored edge name(s) without capacity "
+                     f"(monitored_edges), {len(names)} in all")
+    return names or None
+
 
 def export_logistics_report(reports: list[dict], export_folder: Path,
                             monetary_units: str = "mUSD"):

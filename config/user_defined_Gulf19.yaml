@@ -247,6 +247,125 @@ cargo_mode_eligibility:
 capacity_constraint: True
 transport_capacity_overrides: {}
 
+# -- Reporting (Hormuz node A26, decision Q28 item 12, 18 Nov 2026) --
+# Outputs only, no result moves: with these switches on, every other output is
+# byte-identical on Testkistan (tests/test_reporting_outputs.py) and on a 6-week
+# Gulf run (seed 0, same PYTHONHASHSEED).
+# trade_by_region_sector.csv: per week, the cross-region deliveries by seller region,
+# seller sector and buyer region (quantity as in trade_data.csv, and tons) - the
+# scorer's exports and imports; link_data.csv stays off (KI-33).
+export_trade_by_region_sector: True
+# logistics_report.csv at every week, not weeks 0 and 1 only (KI-73): 0.02 MB a week.
+export_logistics_every_step: True
+# The per-edge flow GeoJSONs stay at weeks 0 and 1: each is the whole network, about
+# 1 MB a week, ~100 MB per 104-week run, and the scorer reads the report only (the
+# orchestrator, 18 Nov 2026: up to ~1,500 runs on a disk with 68 GB free).
+export_edge_flows_every_step: False
+# Every named edge of the network, watched without a capacity: the 94 distinct names
+# of disrupt-sc-studies/hormuz/data/capacity/network_named_edges.csv (114 rows,
+# sha256 dd80c8f879b95813), in its order: 6 border crossings, 62 sea edges (the
+# Strait, the port_* lanes, the named lanes), 19 airports and 7 pipelines; every name
+# matched an edge of Gulf and Gulf19 transport.gpkg on 18 Nov 2026. A name several
+# edges carry (a pipeline in segments, a lane in legs) gives one report row per edge
+# (edge_id). The en dash of the pipeline names is written \u2013: the config is read
+# in the locale encoding (cp1252 on Windows), where a UTF-8 dash would not match the
+# edge name.
+monitored_edges:
+  - "border_crossing_al_ain_al_buraimi"
+  - "border_crossing_al_batha_al_ghuwaifat"
+  - "border_crossing_abu_samra_salwa"
+  - "border_crossing_nuwaiseeb_khafji"
+  - "border_crossing_king_fahd_causeway"
+  - "border_crossing_khatmat_malaha"
+  - "Suez south - Hurghada / Red Sea mouth; (32.2, 31.0) - Suez south; (32.2, 31.0) - (32.2, 31.0)"
+  - "(71.0, 20.0) - Mumbai approach; Arabian Sea central - (71.0, 20.0); Arabian Sea central - Makran coast"
+  - "(45.6, 1.5) - (40.3, -4.2); (39.6, -4.0) - (40.3, -4.2)"
+  - "(45.6, 1.5) - (45.6, 1.5); (45.6, 1.5) - Somali Basin"
+  - "Red Sea central - Red Sea north"
+  - "Hurghada / Red Sea mouth - Red Sea north"
+  - "UAE central - Khalifa Port approach"
+  - "Khalifa Port approach - Dubai hub"
+  - "Salalah approach - Gulf of Aden W"
+  - "Gulf of Aden E - Gulf of Aden W"
+  - "Abu Dhabi approach - Qatar approach"
+  - "Qatar approach - Qatar-Bahrain hub"
+  - "Kuwait approach - Dammam approach"
+  - "Dammam approach - Bahrain approach"
+  - "Bahrain east - Bahrain approach"
+  - "Kuwait approach - Umm Qasr approach"
+  - "NW Gulf - Umm Qasr approach"
+  - "Indian Ocean NW - (90.0, -1.5)"
+  - "Socotra - Indian Ocean NW"
+  - "Arabian Sea NW - Indian Ocean NW"
+  - "Somali Basin - Socotra"
+  - "Arabian Sea NW - Socotra"
+  - "Gulf of Aden E - Socotra"
+  - "Strait of Hormuz"
+  - "Arabian Sea NW - Salalah approach"
+  - "Gulf of Oman - Arabian Sea NW"
+  - "port_assaluyeh"
+  - "port_bandar_abbas"
+  - "port_king_abdullah"
+  - "port_bushehr"
+  - "port_shuwaikh"
+  - "port_dammam"
+  - "port_fujairah"
+  - "port_jeddah_islamic"
+  - "(67.0, 24.8) - Makran coast"
+  - "port_khor_fakkan"
+  - "port_jebel_ali"
+  - "port_salalah"
+  - "(72.9, 18.9) - Mumbai approach"
+  - "port_duqm"
+  - "port_sohar"
+  - "port_khor_al_zubair"
+  - "Gulf of Aden E - Mumbai approach"
+  - "port_al_maqal"
+  - "port_khalifa"
+  - "port_imam_khomeini"
+  - "port_hamad"
+  - "port_khalifa_bin_salman"
+  - "port_ras_laffan"
+  - "port_ras_tanura"
+  - "Hormuz north - Qatar-Bahrain hub"
+  - "port_bandar_lengeh"
+  - "port_kharg_island"
+  - "(52.5, 27.6) - Qatar-Bahrain hub"
+  - "Red Sea S-central - Red Sea central"
+  - "port_das_island"
+  - "port_mina_al_ahmadi"
+  - "port_mina_al_fahal"
+  - "port_qalhat"
+  - "port_yanbu"
+  - "offshore_supply"
+  - "port_umm_qasr"
+  - "DXB Dubai International"
+  - "AUH Abu Dhabi International"
+  - "DWC Al Maktoum International"
+  - "JED King Abdulaziz International"
+  - "RUH King Khalid International"
+  - "DMM King Fahd International"
+  - "DOH Hamad International"
+  - "KWI Kuwait International"
+  - "BAH Bahrain International"
+  - "MCT Muscat International"
+  - "BGW Baghdad International"
+  - "BSR Basra International"
+  - "BOM Chhatrapati Shivaji International"
+  - "KHI Jinnah International"
+  - "PVG Shanghai Pudong International"
+  - "IST Istanbul Airport"
+  - "SIN Singapore Changi"
+  - "FRA Frankfurt Airport"
+  - "NBO Jomo Kenyatta International"
+  - "Habshan\u2013Fujairah oil pipeline"
+  - "Dukhan\u2013Mesaieed"
+  - "Yibal\u2013Mina al-Fahal"
+  - "Ahvaz\u2013Kharg Island"
+  - "Kirkuk\u2013Ceyhan"
+  - "South Pars\u2013Assaluyeh"
+  - "East-West Crude Oil Pipeline (Petroline)"
+
 # -- Logistics (April values, except the retired keys) --
 logistics:
   # Cargo classes. Sector keys take precedence over the sector-type keys of

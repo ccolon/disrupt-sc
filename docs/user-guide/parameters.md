@@ -36,6 +36,60 @@ Supported `simulation_type` values in the current v2 runtime:
 | `disruption` | Run configured transport, capital, or productivity disruptions. |
 | `criticality` | Run infrastructure criticality scenarios. |
 
+## Output Switches
+
+Read only when `export_files: true`. None of them changes a result: they choose
+which files a run writes from the state each step leaves.
+
+```yaml
+export_link_data: true                 # link_data.csv, one row per commercial link and step (GBs on large scopes, KI-33)
+export_inventory_data: true            # inventory_data.csv, one row per firm input and step
+export_trade_by_region_sector: false   # trade_by_region_sector.csv (below)
+export_logistics_every_step: false     # logistics report at every step (below)
+export_edge_flows_every_step: false    # per-edge flow GeoJSON files at every step (below)
+monitored_edges: []                    # edge names the logistics report covers without a capacity (below)
+```
+
+**`export_trade_by_region_sector`** (18 Nov 2026) writes `trade_by_region_sector.csv`
+next to `trade_data.csv`: per step, the deliveries between regions summed by
+seller region, seller sector and buyer region, with the columns `time_step,
+seller_region, seller_sector, buyer_region, quantity, tons`. It covers the links
+`trade_data.csv` sums (seller and buyer in different regions, a delivery this
+step): `quantity` is `realized_delivery` (model monetary units, as in
+`trade_data.csv`) and `tons` is `delivery_in_tons` (the tonnage placed on the
+network; a pipelined part has none). The seller sector is the firm's sector, or
+`imports` for a country seller, as in `link_data.csv`. Only rows with a delivery
+are written. Summed over `seller_sector` and `buyer_region` it gives the
+`exports` of `trade_data.csv`, over `seller_region` and `seller_sector` its
+`imports` (to rounding). It is the bilateral, by-sector split that otherwise
+needs `link_data.csv`.
+
+**`monitored_edges`** (18 Nov 2026): a list of edge names (the `name` column of
+the GeoPackage layers, spelt exactly). `logistics_report.csv` covers the edges
+named in `transport_capacity_overrides` and, on top, these edges - one row per
+edge carrying the name and per reported step, with its tons and value in total
+(`flow_tons`, `flow_usd`) and per cargo type (`tons_<cargo>`, `usd_<cargo>`).
+No capacity is set on them: their `capacity_<cargo>` columns stay empty and the
+gate never acts there. A name that matches no edge raises, at build time and in
+`validate-inputs`. Several edges may carry one name (a pipeline in segments, a
+lane with two legs): each gets its own row (`edge_id`). The config files are
+read in the locale's encoding, so a name with a non-ASCII character (an en dash)
+is safest written with a YAML escape: `"Kirkuk\u2013Ceyhan"`.
+
+**`export_logistics_every_step`** (18 Nov 2026; KI-73): the logistics report of the
+monitored edges (`logistics_report.csv`, `logistics_summary.csv`,
+`logistics_top_utilized.csv`) is written for every step of a disruption run
+instead of steps 0 and 1 only. The report needs monitored edges (a capacity
+override or `monitored_edges`); without them there is none, as before. It is
+small: 0.02 MB a week on the Gulf scope with its 114 monitored edges.
+
+**`export_edge_flows_every_step`** (18 Nov 2026): the per-edge flow files
+(`transport_edges_with_flows_<t>.geojson`) are written for every step with
+flow instead of steps 0 and 1 only. Each is the whole network with that step's
+flows, so the files grow with the network and the horizon: about 1 MB a week on
+the Gulf scope, ~100 MB for a 104-week run. Kept apart from the report so that
+large batches can have the weekly report without the maps.
+
 ## Data Parameters
 
 ```yaml
@@ -228,7 +282,9 @@ capacitated edges. What finds no acceptable route stays in the supplier's stock
 and is reported as `capacity_blocked` on the link (`capacity_blocked_usd` in
 `routing_summary.csv`, `offered_tons` / `withheld_tons` per monitored edge in
 `logistics_report.csv`). On-off: no cost depends on load, and the outcome does
-not depend on the order in which agents deliver.
+not depend on the order in which agents deliver. The report covers the edges
+named here; `monitored_edges` adds edges without a capacity, and
+`export_logistics_every_step` writes it at every step (see Output Switches).
 
 A `transport_disruption` with `capacity_reduction` below 1 scales the capacity
 of a named capacitated edge (the gate then rations it); on an edge without a

@@ -27,6 +27,19 @@ export_files: False
 # summary and the flows are needed.
 export_link_data: True
 export_inventory_data: True
+# Reporting-only outputs (Hormuz 2026 node A26, 18 Nov 2026); none changes a result.
+# trade_by_region_sector.csv: per step, cross-region deliveries by seller region, seller
+# sector and buyer region (quantity as in trade_data.csv, and tons).
+export_trade_by_region_sector: False
+# logistics_report.csv (with logistics_summary / logistics_top_utilized) at every step
+# (default: steps 0 and 1).
+export_logistics_every_step: False
+# The per-edge flow files transport_edges_with_flows_<t>.geojson at every step (default:
+# steps 0 and 1). Each is the whole network: about 1 MB a week on the Gulf scope.
+export_edge_flows_every_step: False
+# Edge names the logistics report covers on top of those of transport_capacity_overrides,
+# without giving them a capacity.
+monitored_edges: []
 
 
 # Logistic parameters
