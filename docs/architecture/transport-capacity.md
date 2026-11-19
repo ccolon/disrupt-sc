@@ -322,16 +322,20 @@ again (round priority: the shippers whose normal route uses the edge share
 the first cut pro rata, diverted traffic takes what is left). A shipment
 crossing several over-capacity edges takes the smallest of their factors,
 which leaves the less binding edge below capacity and open for the next
-round. Every edge cut in a round is saturated (accepted = capacity) and is
-EXCLUDED from all searches for the rest of the step. The cut share of a
-shipment is removed from every edge of its route and from the destination
-node.
+round. Every constraint cut in a round is saturated (accepted = capacity)
+and its edge is EXCLUDED, for the rest of the step, from the searches of the
+cargo the constraint applies to: every cargo for a shared `capacity`, one
+cargo type for a per-cargo `capacity_<cargo>` (KI-84, 20 Nov 2026: until
+then a full per-cargo constraint closed the edge to every cargo, including
+cargo types without a capacity there, and the outcome depended on which cargo
+filled first). The cut share of a shipment is removed from every edge of its
+route and from the destination node.
 
 **Reroute.** Each cut shipment is offered a route on the available network
-minus the saturated edges (`discover_route` with an excluded-edge set in the
-subgraph filter of `provide_shortest_route`; own modes and free, switching
-penalty, line-haul rule; the alternative library keyed by the saturated set
-plus the closures); the give-up rules apply to the cut share (its cost
+minus the edges closed to its cargo (`discover_route` with an excluded-edge
+set in the subgraph filter of `provide_shortest_route`, one batched search per
+distinct excluded set; own modes and free, switching penalty, line-haul rule;
+the alternative library keyed by the excluded set plus the closures); the give-up rules apply to the cut share (its cost
 relative to the normal bill, plus the switching penalty). A shipper that
 accepts places the cut share on the alternative (accumulated at the
 destination under the link pid, as the substitution-ceiling split does
@@ -339,10 +343,12 @@ today) and pays the tonnage-weighted price of its parts. A shipper that
 declines or finds no route keeps the goods.
 
 **Convergence.** Repeat gate and reroute. Because accepted loads are frozen
-and saturated edges are excluded, the saturated set only grows and each
-cutting round saturates at least one new edge (the edge with the smallest
-factor is filled exactly): the loop ends after at most |C| + 1 rounds, |C|
-the number of capacitated edges, in practice two or three. The bound is the
+and saturated constraints are closed to their cargo, the set of saturated
+constraints only grows and each cutting round saturates at least one new
+constraint (the one with the smallest factor is filled exactly): the loop
+ends after at most |K| + 1 rounds, |K| the number of capacity constraints
+(|C| + 1, |C| the capacitated edges, when each edge has one), in practice two
+or three. The bound is the
 loop's cap (no knob; a log line if it is ever reached). Only the tonnage
 still undelivered then returns to the supplier's `product_stock` (firms) or
 is removed from `qty_sold` (countries), so the conservation ledgers of
