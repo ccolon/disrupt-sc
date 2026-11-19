@@ -7,16 +7,26 @@ Where the load exceeds it, the shipments placed in the CURRENT round are cut
 proportionally so that the edge is exactly full; shipments accepted in earlier
 rounds are never cut again (round priority: the shippers whose normal route
 uses the edge share the first cut pro rata, diverted traffic takes what is
-left). A saturated edge is then excluded from every search of the rest of the
-step, and each cut share looks for a route on the network minus the saturated
-edges through the existing penalty-aware alternative search, with the
+left). A constraint that fills is then closed for the rest of the step: its
+edge is excluded from the searches of the cargo it applies to - every cargo for
+a shared ``capacity``, one cargo type for a per-cargo ``capacity_<cargo>`` - and
+each cut share looks for a route on the network minus the edges closed to its
+cargo through the existing penalty-aware alternative search, with the
 switching penalty and the give-up rules applied to that share. Rounds repeat
-until no gate cuts. Because accepted loads are frozen and saturated edges
-excluded, the saturated set only grows and each cutting round fills at least
-one new edge exactly (the one with the smallest factor), so the loop ends
-after at most |C| + 1 rounds, |C| the number of capacitated edges. What still
-finds no acceptable route returns to the supplier's stock and is counted as
-``capacity_blocked`` on the link.
+until no gate cuts. Because accepted loads are frozen and full constraints
+closed to their cargo, the set of full constraints only grows and each cutting
+round fills at least one new constraint exactly (the one with the smallest
+factor), so the loop ends after at most |K| + 1 rounds, |K| the number of
+capacity constraints (|C| + 1, |C| the capacitated edges, when every edge has
+one). What still finds no acceptable route returns to the supplier's stock and
+is counted as ``capacity_blocked`` on the link.
+
+Per-constraint closing (KI-84, 20 Nov 2026): until then a full per-cargo
+constraint closed its edge to EVERY cargo, including cargo types without a
+capacity there (documented as unlimited), and the outcome depended on which
+cargo filled first (Hormuz: a port lane full for containers was closed to the
+crude of a bypass pipeline). With shared capacities only, nothing changes: the
+exclusion set, its cache tag and the order of the searches are the same.
 
 On-off: no cost multiplier anywhere. The allocation depends on what is
 offered in a round, not on the order in which agents delivered, so the
@@ -60,8 +70,9 @@ def run_capacity_gate(transport_network, available_transport_network, firms: dic
     stats = {tn[u][v].get("id"): {"offered_tons": 0.0, "accepted_tons": 0.0,
                                   "withheld_tons": 0.0, "rounds": 0, "saturated": False}
              for u, v in cap_edges}
-    saturated: set[tuple] = set()
-    max_rounds = len(cap_edges) + 1
+    # edge key -> labels of its full constraints: a cargo type, or SHARED for the edge's ``capacity``
+    saturated: dict[tuple, set] = {}
+    max_rounds = sum(max(1, len(_constraints(tn[u][v], cargo_types))) for u, v in cap_edges) + 1
     cut_tons_total = resent_total = 0.0
     blocked_parts: list[tuple] = []      # the cut shares that found no acceptable route (for the relief pass)
     rnd = 0
@@ -70,9 +81,8 @@ def run_capacity_gate(transport_network, available_transport_network, firms: dic
         cuts: dict[int, list] = {}       # id(record) -> [record, factor]
         over: list[tuple] = []
         for u, v in cap_edges:
-            key = (min(u, v), max(u, v))
-            if key in saturated:
-                continue                  # frozen at capacity, closed to new flow
+            # no skip of a saturated edge: no record of a cargo it is closed to can arrive (the
+            # searches exclude it), and records of its other cargo types must still be gated (KI-84)
             edge = tn[u][v]
             records = [r for r in edge["shipments"].values() if r["tons"] > TON_TOL]
             if not records:
@@ -106,24 +116,21 @@ def run_capacity_gate(transport_network, available_transport_network, firms: dic
             cut_parts.append((rec, cut_tons, cut_qty))
             cut_tons_total += cut_tons
 
-        # 2. saturate: an over edge whose accepted load now reaches a capacity is
-        #    closed to further flow; one that keeps slack (its shipments were cut
-        #    harder by another gate) stays open for the next round
+        # 2. saturate: each constraint of an over edge whose accepted load now reaches
+        #    its capacity is closed to its cargo; a constraint that keeps slack (its
+        #    shipments were cut harder by another gate) stays open for the next round
         for u, v in over:
             edge = tn[u][v]
-            if _is_saturated(edge, cargo_types):
-                saturated.add((min(u, v), max(u, v)))
+            full = _full_constraints(edge, cargo_types)
+            if full:
+                saturated.setdefault((min(u, v), max(u, v)), set()).update(full)
                 stats[edge.get("id")]["saturated"] = True
 
-        # 3. re-send the cut shares on the network minus the saturated edges: one
-        #    batched search per origin and search filter, then the usual choice
-        tag = _exclusion_tag(saturated)
-        excluded = frozenset(saturated)
-        requests = [(rec["origin"] if rec.get("origin") is not None else rec["link"].origin_node, rec["link"])
-                    for rec, _, _ in cut_parts]
-        alternatives = discover_routes_batched(requests, tn, available_transport_network, tp.use_route_cache,
-                                               switching_costs=tp.switching_costs,
-                                               excluded_edges=excluded, exclusion_tag=tag)
+        # 3. re-send the cut shares on the network minus the edges closed to their
+        #    cargo: one batched search per exclusion set (per origin and search filter
+        #    inside it), then the usual choice
+        alternatives = _search_excluding(cut_parts, saturated, tn, available_transport_network, tp,
+                                         tp.switching_costs, "")
         for (rec, cut_tons, cut_qty), alt in zip(cut_parts, alternatives):
             sent = _resend(rec, cut_tons, cut_qty, rnd + 1, alt, tn, tp, firms, countries,
                            routing_event_collector)
@@ -132,7 +139,7 @@ def run_capacity_gate(transport_network, available_transport_network, firms: dic
                 blocked_parts.append((rec, cut_tons, cut_qty))
     else:
         logging.warning(f"Capacity gate t={time_step}: {max_rounds} rounds without convergence "
-                        f"(the bound is |C| + 1 = {max_rounds}); the remaining cuts are blocked")
+                        f"(the bound is |K| + 1 = {max_rounds}); the remaining cuts are blocked")
 
     # bounded substitution (6 Oct 2026, review OR2): the blocked shares of the classes whose
     # modal switch is prohibitive may complete a switch to the relief modes, up to the ceiling
@@ -180,7 +187,7 @@ def _relief_route_ok(link, alt, transport_network, costs: dict, modes: set) -> b
     return True
 
 
-def _relief_pass(blocked_parts: list, saturated: set, next_round: int, transport_network,
+def _relief_pass(blocked_parts: list, saturated: dict, next_round: int, transport_network,
                  available_transport_network, tp, firms: dict, countries: dict,
                  routing_event_collector=None) -> tuple[float, float]:
     """Bounded substitution (TransportParams.bulk_relief): the blocked shares of the relief cargo
@@ -202,12 +209,8 @@ def _relief_pass(blocked_parts: list, saturated: set, next_round: int, transport
     if not parts:
         return 0.0, 0.0
     tn = transport_network
-    requests = [(rec["origin"] if rec.get("origin") is not None else rec["link"].origin_node, rec["link"])
-                for rec, _, _ in parts]
-    alts = discover_routes_batched(requests, tn, available_transport_network, tp.use_route_cache,
-                                   switching_costs=costs, excluded_edges=frozenset(saturated),
-                                   exclusion_tag=_exclusion_tag(saturated) + ":relief")
-    cand = [(rec, ct, cq, alt) for (rec, ct, cq), alt in zip(parts, alts)
+    alts = _search_excluding(parts, saturated, tn, available_transport_network, tp, costs, ":relief")
+    cand =[(rec, ct, cq, alt) for (rec, ct, cq), alt in zip(parts, alts)
             if alt is not None and _relief_route_ok(rec["link"], alt, tn, costs, modes)]
     offered = math.fsum(ct for _, ct, _, _ in cand)
     if offered <= TON_TOL:
@@ -224,16 +227,56 @@ def _relief_pass(blocked_parts: list, saturated: set, next_round: int, transport
 # Gate arithmetic
 # ------------------------------------------------------------------
 
-def _constraints(edge: dict, cargo_types: list) -> list[tuple[float, object]]:
-    """(capacity, member test) for every capacity the edge carries: one per cargo
-    type with a ``capacity_<cargo>`` key, one for all cargo together with ``capacity``."""
+SHARED = "*"   # label of an edge's shared ``capacity`` (all cargo together)
+
+
+def _constraints(edge: dict, cargo_types: list) -> list[tuple[float, object, str]]:
+    """(capacity, member test, label) for every capacity the edge carries: one per cargo
+    type with a ``capacity_<cargo>`` key (label: the cargo type), one for all cargo
+    together with ``capacity`` (label: SHARED)."""
     out = []
     for ct in cargo_types:
         key = f"capacity_{ct}"
         if key in edge:
-            out.append((float(edge[key]), (lambda r, _ct=ct: r["cargo_type"] == _ct)))
+            out.append((float(edge[key]), (lambda r, _ct=ct: r["cargo_type"] == _ct), ct))
     if "capacity" in edge:
-        out.append((float(edge["capacity"]), (lambda r: True)))
+        out.append((float(edge["capacity"]), (lambda r: True), SHARED))
+    return out
+
+
+def _full_constraints(edge: dict, cargo_types: list) -> set:
+    """Labels of the edge's constraints whose accepted load reaches the capacity."""
+    records = [r for r in edge["shipments"].values() if r["tons"] > TON_TOL]
+    full = set()
+    for cap, member, label in _constraints(edge, cargo_types):
+        total = math.fsum(r["tons"] for r in records if member(r))
+        if total >= cap - max(TON_TOL, 1e-9 * cap):
+            full.add(label)
+    return full
+
+
+def _closed_to(saturated: dict, cargo_type) -> frozenset:
+    """The edges a share of *cargo_type* must avoid: a full shared capacity, or its own full capacity."""
+    return frozenset(k for k, labels in saturated.items() if SHARED in labels or cargo_type in labels)
+
+
+def _search_excluding(parts: list, saturated: dict, tn, available_transport_network, tp, switching_costs,
+                      tag_suffix: str) -> list:
+    """Alternative routes for the shares *parts* ([(record, tons, qty), ...]), each on the network minus
+    the edges closed to its cargo: one batched search per distinct exclusion set, in the order the sets
+    first appear (with shared capacities only there is one set - the old single search, same tag)."""
+    groups: dict[frozenset, list[int]] = {}
+    for i, (rec, _, _) in enumerate(parts):
+        groups.setdefault(_closed_to(saturated, rec.get("cargo_type")), []).append(i)
+    out = [None] * len(parts)
+    for excluded, idx in groups.items():
+        requests = [(parts[i][0]["origin"] if parts[i][0].get("origin") is not None
+                     else parts[i][0]["link"].origin_node, parts[i][0]["link"]) for i in idx]
+        alts = discover_routes_batched(requests, tn, available_transport_network, tp.use_route_cache,
+                                       switching_costs=switching_costs, excluded_edges=excluded,
+                                       exclusion_tag=_exclusion_tag(excluded) + tag_suffix)
+        for i, alt in zip(idx, alts):
+            out[i] = alt
     return out
 
 
@@ -245,7 +288,7 @@ def _gate_factors(edge: dict, records: list, cargo_types: list, rnd: int) -> tup
     """
     factors: dict[int, float] = {}
     offered_now = math.fsum(r["tons"] for r in records if r["round"] == rnd)
-    for cap, member in _constraints(edge, cargo_types):
+    for cap, member, _ in _constraints(edge, cargo_types):
         current = [r for r in records if r["round"] == rnd and member(r)]
         if not current:
             continue
@@ -259,15 +302,6 @@ def _gate_factors(edge: dict, records: list, cargo_types: list, rnd: int) -> tup
             for r in current:
                 factors[id(r)] = min(factors.get(id(r), 1.0), f)
     return factors, offered_now
-
-
-def _is_saturated(edge: dict, cargo_types: list) -> bool:
-    records = [r for r in edge["shipments"].values() if r["tons"] > TON_TOL]
-    for cap, member in _constraints(edge, cargo_types):
-        total = math.fsum(r["tons"] for r in records if member(r))
-        if total >= cap - max(TON_TOL, 1e-9 * cap):
-            return True
-    return False
 
 
 def _exclusion_tag(saturated: set) -> str:

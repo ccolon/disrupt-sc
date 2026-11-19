@@ -198,6 +198,49 @@ def test_per_cargo_capacity_gates_only_that_cargo():
     assert _loads(tn)["A"] == pytest.approx(600.0)                # 100 t of bulk + 500 t of containers
 
 
+def test_a_full_per_cargo_capacity_closes_the_edge_to_that_cargo_only():
+    # KI-84 (20 Nov 2026). A carries a dry-bulk capacity, B a container capacity, nothing else.
+    # Two bulk shippers send 80 t each from node 1 over A (cut to 50 t each: A full for bulk); a
+    # container shipper sends 160 t from node 2 over B (cut to 100 t: B full for containers).
+    # The bulk shares (30 t each) come back 1-2-4 over B (freight 11 vs 10), which stays open to
+    # bulk; the container share (60 t) comes back 2-1-4 over A (15 vs 6: 2.5 < 3), open to
+    # containers. Before the fix a full constraint closed its edge to every cargo: the bulk faced
+    # the cost-60 detour (6 > 3), the containers the cost-65 one (10.8 > 3), and 120 t were blocked.
+    tp = TransportParams(price_increase_threshold=3.0)
+    tn = _network({"A": {CT: 100.0}, "B": {"container": 100.0}}, cargo_types=(CT, "container"))
+    firms = {"F1": _Firm("F1", 80.0), "F2": _Firm("F2", 80.0), "F4": _Firm("F4", 160.0)}
+    bulk = [_link(tn, "s1", "F1", [1, 4], 80), _link(tn, "s2", "F2", [1, 4], 80)]
+    box = _link(tn, "s4", "F4", [2, 4], 160, cargo="container")
+    for link in bulk + [box]:
+        _ship(tn, tp, link, firms)
+    result = run_capacity_gate(tn, tn, firms, {}, tp, 0)
+    for link in bulk:
+        assert link.main_route_realized_delivery == pytest.approx(50.0)
+        assert link.alternative_route_realized_delivery == pytest.approx(30.0) and link.capacity_blocked == 0.0
+    assert box.main_route_realized_delivery == pytest.approx(100.0)
+    assert box.alternative_route_realized_delivery == pytest.approx(60.0) and box.capacity_blocked == 0.0
+    loads = _loads(tn)
+    assert loads["A"] == pytest.approx(160.0) and loads["B"] == pytest.approx(160.0)   # 100 own cargo + 60 other
+    assert loads["e12"] == pytest.approx(120.0) and loads["e13"] == 0.0 and loads["e34"] == 0.0
+    assert result["blocked_tons"] == pytest.approx(0.0) and result["n_saturated"] == 2 and result["rounds"] == 2
+    assert tn.capacity_gate_stats[1]["saturated"] and tn.capacity_gate_stats[3]["saturated"]
+
+
+def test_a_full_per_cargo_capacity_still_closes_the_edge_to_its_own_cargo():
+    # The same bulk on A, plus a bulk shipper at node 2 over B (open to bulk, no bulk capacity) and a
+    # third bulk shipper at node 1: A full for bulk; the cut bulk shares avoid A and take 1-2-4.
+    tp = TransportParams(price_increase_threshold=3.0)
+    tn = _network({"A": {CT: 100.0}}, cargo_types=(CT, "container"))
+    firms = {"F1": _Firm("F1", 80.0), "F2": _Firm("F2", 80.0)}
+    bulk = [_link(tn, "s1", "F1", [1, 4], 80), _link(tn, "s2", "F2", [1, 4], 80)]
+    for link in bulk:
+        _ship(tn, tp, link, firms)
+    run_capacity_gate(tn, tn, firms, {}, tp, 0)
+    loads = _loads(tn)
+    assert loads["A"] == pytest.approx(100.0) and loads["B"] == pytest.approx(60.0)
+    assert all(l.alternative_route_realized_delivery == pytest.approx(30.0) for l in bulk)
+
+
 def test_country_bookkeeping_follows_the_cut_and_the_resend():
     tp = TransportParams(price_increase_threshold=2.0)
     tn = _network({"A": 100.0, "B": 1000.0})
