@@ -314,6 +314,13 @@ transport_capacity_overrides:
   border_road_IRQ_IRN_1: {crude: 0}
   border_road_IRQ_IRN_2: {crude: 0}
   border_road_IRQ_KWT_1: {crude: 0}
+  # Hormuz decision Q39 (20 Nov 2026): crude reaches port_fujairah only by the Habshan-Fujairah pipeline and its
+  # pipelines-maritime connector. The capacity pilot (A11) found about 2 Mt/week of crude trucked to Fujairah inside
+  # the UAE. Both road connectors at the Fujairah pipeline end are barred (roads-maritime to the port, and the
+  # roads-pipelines connector to the pipeline end: crude could cross the pipeline node without a pipeline edge,
+  # the KI-67 pattern). Names: disrupt-sc-data Gulf/Transport/EDITS.md, step 7.
+  connector_roads_maritime_fujairah: {crude: 0}
+  connector_roads_pipelines_fujairah: {crude: 0}
   # ---- Gateway capacities (Hormuz node A4a, decision Q27, 18 Nov 2026), surge 1.0 ----
   # Tonnes per DAY (x7 per weekly step). Source: disrupt-sc-studies/hormuz/calibration/
   # capacity_table.csv and capacity_overrides_draft.yaml (every row has its V-id in
@@ -530,6 +537,8 @@ monitored_edges:
   - "border_road_IRQ_IRN_2"
   - "border_road_IRQ_KWT_1"
   - "border_road_AFR_AFR_1"
+  - "connector_roads_maritime_fujairah"
+  - "connector_roads_pipelines_fujairah"
   - "Shaybah-Abqaiq oil pipeline"
 
 # -- Logistics (April values, except the retired keys) --
