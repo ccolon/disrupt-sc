@@ -202,7 +202,9 @@ inventory_duration_targets:
     trade: 30
     transport: 5
   unit: day
-inventory_restoration_time: 4
+# Hormuz decision Q46 (the user, 20 Nov 2026): in DAYS since disrupt-sc e86b5567 (6 Jul 2026; KI-86). The April
+# value 4 meant 4 weekly steps; read as 4 days it was floored to one step (the whole stock gap reordered every week).
+inventory_restoration_time: 28
 
 # -- Country stock depths (Hormuz node A12, model change MC1, 18 Nov 2026) --
 # Days of use per input SECTOR (Gulf19 sector names), for the firms and the
