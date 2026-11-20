@@ -51,6 +51,8 @@ filepaths:
   multimodal: "Transport/multimodal.gpkg"
   # Partially-binding Leontief (Hormuz A2, Q30): the same 19 x 19 sector matrix as Gulf
   input_criticality: "Economic/input_criticality_ihs_outw.csv"
+  # Pooling of the same product across regions (Hormuz Q43, the user, 20 Nov 2026: "as the Rhine study")
+  product_substitutability: "studies:hormuz/data/mrio/product_substitutability_gulf19.csv"
 
 transport_modes: [roads, maritime, airways, pipelines]
 with_transport: True
@@ -172,6 +174,14 @@ propagate_input_price_change: False
 explicit_service_firm: True
 # Q30 (the user, 18 Nov 2026): the 2 % materiality floor, composed with the survey matrix
 critical_input_threshold: 0.02
+# Hormuz Q43 (the user, 20 Nov 2026, "Yes, as Rhine"): the same product from several regions is ONE input
+# for the commodity-like sectors of data/mrio/product_substitutability_gulf19.csv (Agriculture, Forestry, Fishing,
+# Coal, Oil, Gas, Mining, Food manufacturing, Refining, Fertilizer, Electricity): their stocks and coefficients pool
+# in the Leontief constraint, as the Rhine study (v14, 9 Sep 2026). Found by the pilot v2 probe: the Habshan oil
+# firms were bound by GLORIA's 2.6 % Iranian-crude input while their UAE crude input was plentiful.
+# adaptive_supplier_weight stays off (default; Q43 named pooling only, and KI-83).
+input_pooling:
+  enabled: True
 
 # -- Inventories (April values; days) --
 # Keyed on the sector_table 'type' of the INPUT. Oil and Gas are typed
