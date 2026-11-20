@@ -404,9 +404,6 @@ transport_capacity_overrides:
   port_qalhat: 13462              # all cargo; V223 PortWatch (modelled)
   port_ras_laffan: 182618         # all cargo; V196 PortWatch (modelled)
   port_ras_tanura: 863546         # FALLBACK 4,649,864 t/week x 1.3 / 7 (proxy V178 PortWatch 174,362)
-  # Hormuz decision Q44 (20 Nov 2026, "Add Ruwais anyway"): the Jebel Dhanna / Ruwais crude terminal, added after
-  # the freeze (disrupt-sc-data Gulf/Transport/EDITS.md step 9; reached by the Bab-Jebel Dhanna main oil lines only).
-  port_ruwais: 154004             # all cargo; V229 PortWatch 'Jabal Az Zannah-Ruways' (modelled), 2024: 56.2 Mt
   port_salalah:
     container: 132594             # V022 design 6,000,000 TEU/yr x 8.07
     crude: 10670                  # V157 PortWatch tanker pool (modelled)
@@ -519,9 +516,6 @@ monitored_edges:
   - "(52.5, 27.6) - Qatar-Bahrain hub"
   - "Red Sea S-central - Red Sea central"
   - "port_das_island"
-  - "port_ruwais"
-  - "Bab-Jebel Dhanna main oil lines"
-  - "connector_pipelines_maritime_ruwais"
   - "port_mina_al_ahmadi"
   - "port_mina_al_fahal"
   - "port_qalhat"
