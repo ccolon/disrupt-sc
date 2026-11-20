@@ -331,6 +331,21 @@ transport_capacity_overrides:
   # the KI-67 pattern). Names: disrupt-sc-data Gulf/Transport/EDITS.md, step 7.
   connector_roads_maritime_fujairah: {crude: 0}
   connector_roads_pipelines_fujairah: {crude: 0}
+  # Hormuz decision Q42 (20 Nov 2026, "Yes, all such ports"): outside the Strait, crude reaches the sea only where a
+  # crude terminal exists - Fujairah (pipeline only, Q39), Mina al Fahal, Yanbu, Duqm (Ras Markaz). The six lanes
+  # outside the Strait without one have crude barred on every land connector: under the Strait shock the pilot sent
+  # trucked crude to Khor Fakkan (its crude capacity, full) and King Abdullah (its shared capacity, full), and Omani
+  # crude left from the Qalhat LNG terminal at t=0 by its pipelines-maritime connector. Operator sources:
+  # disrupt-sc-studies/hormuz/data/capacity/q42_port_sources.md; names: disrupt-sc-data Gulf/Transport/EDITS.md,
+  # step 8. Ports inside the Strait are left as they are (they stand in for the crude terminals the network lacks).
+  connector_roads_maritime_khor_fakkan: {crude: 0}
+  connector_roads_maritime_king_abdullah: {crude: 0}
+  connector_roads_maritime_qalhat: {crude: 0}
+  connector_pipelines_maritime_qalhat: {crude: 0}
+  connector_roads_maritime_sohar: {crude: 0}
+  connector_pipelines_maritime_sohar: {crude: 0}
+  connector_roads_maritime_salalah: {crude: 0}
+  connector_roads_maritime_jeddah_islamic: {crude: 0}
   # ---- Gateway capacities (Hormuz node A4a, decision Q27, 18 Nov 2026), surge 1.0 ----
   # Tonnes per DAY (x7 per weekly step). Source: disrupt-sc-studies/hormuz/calibration/
   # capacity_table.csv and capacity_overrides_draft.yaml (every row has its V-id in
@@ -549,6 +564,14 @@ monitored_edges:
   - "border_road_AFR_AFR_1"
   - "connector_roads_maritime_fujairah"
   - "connector_roads_pipelines_fujairah"
+  - "connector_roads_maritime_khor_fakkan"
+  - "connector_roads_maritime_king_abdullah"
+  - "connector_roads_maritime_qalhat"
+  - "connector_pipelines_maritime_qalhat"
+  - "connector_roads_maritime_sohar"
+  - "connector_pipelines_maritime_sohar"
+  - "connector_roads_maritime_salalah"
+  - "connector_roads_maritime_jeddah_islamic"
   - "Shaybah-Abqaiq oil pipeline"
 
 # -- Logistics (April values, except the retired keys) --
