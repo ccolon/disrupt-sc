@@ -635,6 +635,15 @@ class Firm:
         as one: the pool's need plus the restoration of the POOLED stock towards the
         pooled target, split across all the pool's suppliers by baseline share and, with
         adaptive_weight, by their fill-rate signal. A single-input pool is the legacy rule.
+
+        The stock target of an input is its need times its duration target in steps, clamped
+        to at least one step - the clamp of ``initialize_inventory``, which starts every input
+        at one step at least (KI-87, 20 Nov 2026). Without it, an input whose duration is under
+        one step (utilities 3 days, transport 5 days at weekly steps) has a target below the
+        stock it starts with; after a shock the firm refilled it only to that sub-step target,
+        never back to its starting stock, and the economy drifted instead of recovering
+        (Hormuz A6: world household consumption 0.905 of the undisturbed run at week 104 and
+        still falling, against never below 0.999 with the clamp). At rest nothing changes.
         """
         self.purchase_plan = {}
         self.purchase_plan_per_input = {}
@@ -645,7 +654,7 @@ class Firm:
             need = desired = current = 0.0
             for input_id in members:
                 pool_of[input_id] = pool
-                duration = self.inventory_duration_target.get(input_id, 1)
+                duration = max(self.inventory_duration_target.get(input_id, 1), 1.0)   # as initialize_inventory (KI-87)
                 n = self.input_needs.get(input_id, 0.0)
                 need += n
                 current += self.inventory.get(input_id, 0.0)
