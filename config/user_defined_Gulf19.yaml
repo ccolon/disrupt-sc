@@ -307,12 +307,12 @@ cargo_mode_eligibility:
 # Edge names: disrupt-sc-data/Gulf/Transport/EDITS.md (step 3).
 capacity_constraint: True
 transport_capacity_overrides:
-  border_crossing_al_ain_al_buraimi: {crude: 0}
+  border_crossing_al_ain_al_buraimi: {crude: 0, lng: 0}
   border_crossing_al_batha_al_ghuwaifat: {crude: 0}
   border_crossing_abu_samra_salwa: {crude: 0}
   border_crossing_nuwaiseeb_khafji: {crude: 0}
   border_crossing_king_fahd_causeway: {crude: 0}
-  border_crossing_khatmat_malaha: {crude: 0}
+  border_crossing_khatmat_malaha: {crude: 0, lng: 0}
   border_road_SAU_ARE_1: {crude: 0}
   border_road_SAU_ARE_2: {crude: 0}
   border_road_SAU_ARE_3: {crude: 0}
@@ -321,8 +321,8 @@ transport_capacity_overrides:
   border_road_SAU_KWT_1: {crude: 0}
   border_road_SAU_KWT_2: {crude: 0}
   border_road_SAU_KWT_3: {crude: 0}
-  border_road_ARE_OMN_1: {crude: 0}
-  border_road_SAU_OMN_1: {crude: 0}
+  border_road_ARE_OMN_1: {crude: 0, lng: 0}
+  border_road_SAU_OMN_1: {crude: 0, lng: 0}
   border_road_IRQ_IRN_1: {crude: 0}
   border_road_IRQ_IRN_2: {crude: 0}
   border_road_IRQ_KWT_1: {crude: 0}
@@ -331,7 +331,7 @@ transport_capacity_overrides:
   # the UAE. Both road connectors at the Fujairah pipeline end are barred (roads-maritime to the port, and the
   # roads-pipelines connector to the pipeline end: crude could cross the pipeline node without a pipeline edge,
   # the KI-67 pattern). Names: disrupt-sc-data Gulf/Transport/EDITS.md, step 7.
-  connector_roads_maritime_fujairah: {crude: 0}
+  connector_roads_maritime_fujairah: {crude: 0, lng: 0}
   connector_roads_pipelines_fujairah: {crude: 0}
   # Hormuz decision Q42 (20 Nov 2026, "Yes, all such ports"): outside the Strait, crude reaches the sea only where a
   # crude terminal exists - Fujairah (pipeline only, Q39), Mina al Fahal, Yanbu, Duqm (Ras Markaz). The six lanes
@@ -340,14 +340,33 @@ transport_capacity_overrides:
   # crude left from the Qalhat LNG terminal at t=0 by its pipelines-maritime connector. Operator sources:
   # disrupt-sc-studies/hormuz/data/capacity/q42_port_sources.md; names: disrupt-sc-data Gulf/Transport/EDITS.md,
   # step 8. Ports inside the Strait are left as they are (they stand in for the crude terminals the network lacks).
-  connector_roads_maritime_khor_fakkan: {crude: 0}
-  connector_roads_maritime_king_abdullah: {crude: 0}
+  connector_roads_maritime_khor_fakkan: {crude: 0, lng: 0}
+  connector_roads_maritime_king_abdullah: {crude: 0, lng: 0}
   connector_roads_maritime_qalhat: {crude: 0}
   connector_pipelines_maritime_qalhat: {crude: 0}
-  connector_roads_maritime_sohar: {crude: 0}
-  connector_pipelines_maritime_sohar: {crude: 0}
-  connector_roads_maritime_salalah: {crude: 0}
-  connector_roads_maritime_jeddah_islamic: {crude: 0}
+  connector_roads_maritime_sohar: {crude: 0, lng: 0}
+  connector_pipelines_maritime_sohar: {crude: 0, lng: 0}
+  connector_roads_maritime_salalah: {crude: 0, lng: 0}
+  connector_roads_maritime_jeddah_islamic: {crude: 0, lng: 0}
+  # Hormuz decision Q49 (22 Nov 2026, "Yes, bar LNG, rerun"): in the A6 runs Qatari LNG left the Gulf by sea to
+  # Jebel Ali, by road to Fujairah and out from there (257-343 kt/week; disrupt-sc KI-88). As Q42 for crude, LNG is
+  # barred on every land connector of the nine lanes outside the Strait without an LNG export terminal (all but
+  # Qalhat, Oman LNG): the seven above carry lng: 0 next to crude: 0, and the six below were named for it.
+  # Sources: disrupt-sc-studies/hormuz/data/capacity/q49_lng_sources.md; names: disrupt-sc-data
+  # Gulf/Transport/EDITS.md, step 11. Lanes inside the Strait are left as they are. LNG is also barred on the four
+  # road crossings into Oman (border_crossing_khatmat_malaha, border_crossing_al_ain_al_buraimi, border_road_ARE_OMN_1,
+  # border_road_SAU_OMN_1; crude: 0, lng: 0 above), so that Qalhat (Oman LNG) loads Omani gas only: without them
+  # the pilot sent Qatari LNG by road from Jebel Ali to Qalhat, and with the Red Sea lanes open, by sea to Dammam and
+  # by road to Yanbu and King Abdullah. With all of them (pilot, seed 0, 20 weeks) Qatar's gas exports fall to
+  # 0.07-0.16 of t=0 (the Strait carries 5-14 % of its LNG). Side effect at t=0: Jeddah Islamic's 87 kt/week of
+  # Gas-sector trade (the class also holds LPG) moves to port_dammam, 2.4 % above its capacity; the gate re-sends
+  # 23 kt/week to Ras Tanura, nothing is blocked (disrupt-sc-studies/hormuz/calibration/q49_checks).
+  connector_pipelines_maritime_fujairah: {lng: 0}
+  connector_roads_maritime_duqm: {lng: 0}
+  connector_roads_maritime_mina_al_fahal: {lng: 0}
+  connector_pipelines_maritime_mina_al_fahal: {lng: 0}
+  connector_roads_maritime_yanbu: {lng: 0}
+  connector_pipelines_maritime_yanbu: {lng: 0}
   # ---- Gateway capacities (Hormuz node A4a, decision Q27, 18 Nov 2026), surge 1.0 ----
   # Tonnes per DAY (x7 per weekly step). Source: disrupt-sc-studies/hormuz/calibration/
   # capacity_table.csv and capacity_overrides_draft.yaml (every row has its V-id in
@@ -574,6 +593,12 @@ monitored_edges:
   - "connector_pipelines_maritime_sohar"
   - "connector_roads_maritime_salalah"
   - "connector_roads_maritime_jeddah_islamic"
+  - "connector_pipelines_maritime_fujairah"
+  - "connector_roads_maritime_duqm"
+  - "connector_roads_maritime_mina_al_fahal"
+  - "connector_pipelines_maritime_mina_al_fahal"
+  - "connector_roads_maritime_yanbu"
+  - "connector_pipelines_maritime_yanbu"
   - "Shaybah-Abqaiq oil pipeline"
 
 # -- Logistics (April values, except the retired keys) --
