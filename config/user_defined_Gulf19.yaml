@@ -180,8 +180,12 @@ critical_input_threshold: 0.02
 # in the Leontief constraint, as the Rhine study (v14, 9 Sep 2026). Found by the pilot v2 probe: the Habshan oil
 # firms were bound by GLORIA's 2.6 % Iranian-crude input while their UAE crude input was plentiful.
 # adaptive_supplier_weight stays off (default; Q43 named pooling only, and KI-83).
+# Hormuz Q50 (the user, 22 Nov 2026, "Widen pools (model fix)"; disrupt-sc KI-89): origins: region - each firm
+# spreads its coefficient of a pooled product over the origin shares of that product in its whole region, so a
+# firm whose pruned mix held one origin (Korean electricity's gas from Qatar only) can draw on the others.
 input_pooling:
   enabled: True
+  origins: region
 
 # -- Inventories (April values; days) --
 # Keyed on the sector_table 'type' of the INPUT. Oil and Gas are typed
