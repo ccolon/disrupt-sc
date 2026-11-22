@@ -51,6 +51,16 @@ def test_partial_stock_caps_the_other_inputs_at_the_output_it_allows():
     assert math.isclose(f.input_needs["parts"], 0.05 * 40.0)
 
 
+def test_two_short_inputs_are_both_ordered_for_the_target():
+    f = _firm()
+    f.inventory["gas"] = 12.0                           # 40 units of output: binds
+    f.inventory["parts"] = 3.0                          # 60 units: short too, but does not bind this step
+    f._evaluate_input_needs(input_constrained=True)
+    assert math.isclose(f.input_needs["gas"], 30.0)
+    assert math.isclose(f.input_needs["parts"], 5.0)    # short: still ordered for the target (Q58: no ratchet)
+    assert math.isclose(f.input_needs["services"], 0.10 * 40.0)   # ample: capped at the feasible output
+
+
 def test_no_binding_input_leaves_needs_unchanged():
     f = _firm()                                         # two steps of every input in stock
     f._evaluate_input_needs(input_constrained=True)

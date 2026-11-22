@@ -627,9 +627,10 @@ class Firm:
 
         With ``input_constrained`` (KI-90, Hormuz Q57, 22 Nov 2026) the same holds for a
         firm held back by its inputs: when the stock of a binding input allows less than
-        the planned output, the firm keeps ordering the binding input(s) for the planned
-        output (so it can recover) but orders every other input only for the output its
-        inputs allow (the smallest limit of ``_input_limits``). Without it, an
+        the planned output, the firm keeps ordering every short input (one whose stock
+        allows less than the planned output) for the planned output, so it can recover,
+        but orders the inputs in ample supply and the non-critical ones only for the output
+        its inputs allow (the smallest limit of ``_input_limits``). Without it, an
         input-limited firm keeps buying its other inputs for output it cannot make; they
         pile up in stock (never drawn down above target, KI-72) and their suppliers —
         services above all — produce more than without the shock."""
@@ -642,9 +643,14 @@ class Firm:
             if limits:
                 feasible = max(0.0, min(limits.values()))
                 if feasible < planned * (1.0 - 1e-9):
-                    binding = {p for p, v in limits.items() if v <= feasible * (1.0 + 1e-9) + EPSILON}
+                    # every SHORT pool (its stock allows less than the planned output) is still
+                    # ordered for the plan, not only the one that binds this step: capping a
+                    # second short input made the binding input alternate and output ratchet
+                    # down (Hormuz Q58 pilot, 23 Nov 2026). Only inputs in ample supply, and
+                    # non-critical ones, are capped at the feasible output.
+                    short = {p for p, v in limits.items() if v < planned * (1.0 - 1e-9)}
                     for pool, members in self._pooled_inputs().items():
-                        if pool not in binding:
+                        if pool not in short:
                             for input_id in members:
                                 capped[input_id] = feasible
         self.input_needs = {
