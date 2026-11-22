@@ -219,6 +219,11 @@ def build_stage_fingerprint(config: dict, stage: str) -> dict:
         fp_keys += list(_STAGE_FILEPATH_KEYS[s])
     filepaths = config.get("filepaths") or {}
     cfg = {k: _without_subkeys(k, config.get(k)) for k in cfg_keys}
+    # input_pooling.origins: region rewrites the firms' input mixes before the agents are cached and the
+    # supply chain is drawn (KI-89, 22 Nov 2026): a key from the agents stage on, and only when it is set,
+    # so that the caches of every other run keep their hash
+    if idx >= _STAGE_ORDER.index("agents") and (config.get("input_pooling") or {}).get("origins") == "region":
+        sub_cfg["input_pooling.origins"] = "region"
     payload = {
         "stage": stage,
         "build_version": _STAGE_BUILD_VERSION.get(stage, 1),

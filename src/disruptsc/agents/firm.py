@@ -71,6 +71,9 @@ class Firm:
     # products of the substitutability table; differentiated products and import bundles stay
     # region-keyed.
     input_pools: dict[str, str] = field(default_factory=dict)
+    # "region" once init_pipeline.agents.widen_pools_to_region_origins has spread the firm's pooled
+    # products over its region's origins (input_pooling.origins: region; KI-89, 22 Nov 2026)
+    pool_origins: str = "firm"
     production: float = 0.0
     production_target: float = 0.0
     product_stock: float = 0.0

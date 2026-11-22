@@ -276,6 +276,75 @@ def _bundle_composition(firm, input_id: str, bundle_shares: dict | None) -> dict
     return (bundle_shares.get((firm.region, firm.sector)) or {}).get(bloc)
 
 
+def widen_pools_to_region_origins(firms: dict[str, Firm], poolable_products: set[str],
+                                  rs_weight: dict[str, float]) -> int:
+    """Origins of a pooled product taken at the level of the buyer's region (input_pooling.origins: region).
+
+    With the default pools (origins: firm) a firm's pool holds the origins of its own input mix, what
+    flow_coverage pruning left of its MRIO column; a firm whose product comes from one region then has a
+    one-member pool and cannot turn to another origin, however much the product other regions have to spare
+    (KI-89, Hormuz Q50, 22 Nov 2026). Here, for every region r and poolable product p, the origin shares of p
+    over all the firms of r are computed - sum over the firms of coefficient x the weight of their
+    region_sector (MRIO output / number of firms) - and each firm of r keeps its total coefficient of p but
+    spreads it over those origins. Per origin and buyer region the total demand of the firms is unchanged, so
+    the sellers' totals are too, except that a firm alone in its region_sector cannot supply itself: its own
+    region_sector is left out of its origins and the others rescaled. Import bundles ({BLOC}_imports) are
+    untouched. Applied once per firm (``pool_origins`` marks it), so re-applying it on cached firms is a no-op.
+    Returns the number of inputs added to the firms' mixes.
+    """
+    from collections import Counter, defaultdict
+    rs_counts = Counter(f.region_sector for f in firms.values())
+
+    def product_of(input_id: str):
+        if input_id.endswith("_imports") or "_" not in input_id:
+            return None
+        sector = input_id.split("_", 1)[-1]
+        return sector if sector in poolable_products else None
+
+    # region x product -> origin input id -> demand (coefficient x weight), over all the firms of the region
+    demand: dict = defaultdict(lambda: defaultdict(float))
+    for f in firms.values():
+        if getattr(f, "pool_origins", "firm") == "region":
+            continue
+        w = rs_weight.get(f.region_sector, 0.0)
+        for input_id, coef in f.input_mix.items():
+            p = product_of(input_id)
+            if p is not None and coef > 0:
+                demand[(f.region, p)][input_id] += coef * w
+    added = 0
+    for f in firms.values():
+        if getattr(f, "pool_origins", "firm") == "region":
+            continue
+        totals: dict = defaultdict(float)
+        for input_id, coef in f.input_mix.items():
+            p = product_of(input_id)
+            if p is not None and coef > 0:
+                totals[p] += coef
+        if not totals:
+            f.pool_origins = "region"
+            continue
+        mix = {i: c for i, c in f.input_mix.items() if product_of(i) is None}
+        for p, total in totals.items():
+            origins = dict(demand.get((f.region, p), {}))
+            if rs_counts[f.region_sector] < 2:
+                origins.pop(f.region_sector, None)          # a firm alone in its region_sector cannot supply itself
+            s = sum(origins.values())
+            if s <= 0:                                       # nothing to widen to: keep the firm's own origins
+                for i, c in f.input_mix.items():
+                    if product_of(i) == p:
+                        mix[i] = c
+                continue
+            for input_id, d in origins.items():
+                if input_id not in f.input_mix:
+                    added += 1
+                mix[input_id] = total * d / s
+        f.input_mix = dict(sorted(mix.items()))   # deterministic key order (KI-34)
+        f.pool_origins = "region"
+    logging.info(f"input_pooling origins=region: {added} inputs added to the firms' mixes "
+                 f"({len(demand)} region x product pools)")
+    return added
+
+
 def load_input_pooling(firms: dict[str, Firm], poolable_products: set[str]) -> tuple[int, int]:
     """Pool the same product across regions for the commodity-like products.
 

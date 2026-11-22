@@ -47,6 +47,7 @@ from disruptsc.init_pipeline.transport import build_transport_network
 from disruptsc.init_pipeline.agents import (
     attachment_nodes,
     create_firm_table, create_firms, load_tech_coefs, load_input_criticality, load_input_pooling, import_bundle_shares,
+    widen_pools_to_region_origins,
     load_inventories, configure_household_inventories, report_inventory_to_gdp,
     create_household_table, create_households, create_countries,
     load_transit_matrix,
@@ -233,6 +234,27 @@ def execute(config: dict, *, cache: str | None = None,
             # the refill time of a stock gap (config inventory_restoration_time, days -> steps) acts in
             # plan_purchase only, so a sensitivity on it re-uses the caches (6 Oct 2026, review OR4)
             firm.inventory_restoration_time = ap.inventory_restoration_time
+        # Pooled products (input_pooling.enabled + the substitutability table). With
+        # input_pooling.origins: region (KI-89, 22 Nov 2026) the firms' input mixes are first
+        # spread over their region's origins of each pooled product - before the criticality
+        # weights and inventory targets (keyed by input) and before the supply chain is drawn;
+        # the option is part of the agents and later cache fingerprints.
+        pooling = config.get("input_pooling") or {}
+        pool_path = filepaths.get("product_substitutability")
+        poolable = None
+        if pooling.get("enabled") and pool_path and Path(pool_path).exists():
+            table = pd.read_csv(pool_path)
+            poolable = set(table.loc[table["poolable"].astype(int) == 1, "sector"].astype(str))
+            if pooling.get("origins", "firm") == "region":
+                from collections import Counter
+                n_firms_rs = Counter(f.region_sector for f in firms.values())
+                output = mrio.get_total_output()
+                rs_weight = {}
+                for key, value in output.items():
+                    rs = f"{key[0]}_{key[1]}" if isinstance(key, tuple) else str(key)
+                    if n_firms_rs.get(rs):
+                        rs_weight[rs] = float(value) / n_firms_rs[rs]
+                widen_pools_to_region_origins(firms, poolable, rs_weight)
         # Import bundles ("{BLOC}_imports") lose their sector when the supply
         # chain folds them; the MRIO still knows the composition.
         bundle_shares = import_bundle_shares(mrio)
@@ -249,11 +271,7 @@ def execute(config: dict, *, cache: str | None = None,
                          bundle_shares=bundle_shares, by_region=ap.inventory_duration_targets_by_region)
         # Pooling of the same product across regions (input_pooling.enabled + the
         # substitutability table); not a cache key, re-applied like the rules above.
-        pooling = config.get("input_pooling") or {}
-        pool_path = filepaths.get("product_substitutability")
-        if pooling.get("enabled") and pool_path and Path(pool_path).exists():
-            table = pd.read_csv(pool_path)
-            poolable = set(table.loc[table["poolable"].astype(int) == 1, "sector"].astype(str))
+        if poolable is not None:
             load_input_pooling(firms, poolable)
         else:
             for firm in firms.values():
