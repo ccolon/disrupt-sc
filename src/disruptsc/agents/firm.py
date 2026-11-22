@@ -249,9 +249,9 @@ class Firm:
             self._calculate_price(sc_network)
 
     def plan_purchase(self, adaptive_inventories: bool, adaptive_weight: bool,
-                      capacity_constrained: bool = False):
+                      capacity_constrained: bool = False, input_constrained: bool = False):
         """Decide purchase plan per supplier based on inventory needs."""
-        self._evaluate_input_needs(capacity_constrained)
+        self._evaluate_input_needs(capacity_constrained, input_constrained)
         self._decide_purchase_plan(adaptive_inventories, adaptive_weight)
 
     def send_purchase_orders(self, sc_network: ScNetwork):
@@ -313,29 +313,9 @@ class Firm:
             return
 
         max_production = self.current_production_capacity
-        use_matrix = bool(self.input_criticality)
-        thr = self.critical_input_threshold
-        need_share = thr > 0.0
-        total_coef = (sum(c for c in self.input_mix.values() if c > EPSILON)
-                      if need_share else 0.0)
+        for limit in self._input_limits().values():
+            max_production = min(max_production, limit)
         pools = self._pooled_inputs()
-        for pool, members in pools.items():
-            coef = sum(self.input_mix.get(i, 0.0) for i in members)
-            if coef <= EPSILON:
-                continue
-            if need_share and (coef / total_coef if total_coef > 0 else 1.0) < thr:
-                weight = 0.0                                   # immaterial ⇒ non-critical
-            elif use_matrix:
-                weight = max(self.input_criticality.get(i, 1.0) for i in members)
-            else:
-                weight = 1.0                                   # material (or strict): binds
-            available = sum(self.inventory.get(i, 0.0) for i in members)
-            if weight >= 1.0:                                  # critical: hard bind
-                max_production = min(max_production, available / coef)
-            elif weight >= 0.5:                                # important: soft floor
-                soft = 0.5 * (available / coef) + 0.5 * self.eq_production
-                max_production = min(max_production, soft)
-            # else non-critical: no production constraint
 
         self.production = max(0.0, min(self.production_target, max_production))
 
@@ -607,18 +587,68 @@ class Firm:
     # Private helpers
     # ------------------------------------------------------------------
 
-    def _evaluate_input_needs(self, capacity_constrained: bool = False):
+    def _input_limits(self) -> dict[str, float]:
+        """{pool id: the output its current stock allows} for the pools that can bind
+        output under the partially-binding Leontief rule of ``produce`` (critical: stock /
+        coef; important: 0.5 x stock / coef + 0.5 x equilibrium output); non-critical and
+        immaterial pools are left out (they never constrain output)."""
+        limits: dict[str, float] = {}
+        use_matrix = bool(self.input_criticality)
+        thr = self.critical_input_threshold
+        need_share = thr > 0.0
+        total_coef = (sum(c for c in self.input_mix.values() if c > EPSILON)
+                      if need_share else 0.0)
+        for pool, members in self._pooled_inputs().items():
+            coef = sum(self.input_mix.get(i, 0.0) for i in members)
+            if coef <= EPSILON:
+                continue
+            if need_share and (coef / total_coef if total_coef > 0 else 1.0) < thr:
+                weight = 0.0                                   # immaterial ⇒ non-critical
+            elif use_matrix:
+                weight = max(self.input_criticality.get(i, 1.0) for i in members)
+            else:
+                weight = 1.0                                   # material (or strict): binds
+            available = sum(self.inventory.get(i, 0.0) for i in members)
+            if weight >= 1.0:                                  # critical: hard bind
+                limits[pool] = available / coef
+            elif weight >= 0.5:                                # important: soft floor
+                limits[pool] = 0.5 * (available / coef) + 0.5 * self.eq_production
+            # else non-critical: no production constraint
+        return limits
+
+    def _evaluate_input_needs(self, capacity_constrained: bool = False,
+                              input_constrained: bool = False):
         """Calculate how much of each input is needed. By default needs track the
         production *target* (demand). With ``capacity_constrained`` they are capped at
         the firm's current production capacity, so a capacity-limited firm (e.g. one
         whose capital was destroyed) orders inputs only for the output it can actually
         make — instead of over-ordering inputs it cannot process (which otherwise pile
-        into inventory and inflate the value-added loss)."""
+        into inventory and inflate the value-added loss).
+
+        With ``input_constrained`` (KI-90, Hormuz Q57, 22 Nov 2026) the same holds for a
+        firm held back by its inputs: when the stock of a binding input allows less than
+        the planned output, the firm keeps ordering the binding input(s) for the planned
+        output (so it can recover) but orders every other input only for the output its
+        inputs allow (the smallest limit of ``_input_limits``). Without it, an
+        input-limited firm keeps buying its other inputs for output it cannot make; they
+        pile up in stock (never drawn down above target, KI-72) and their suppliers —
+        services above all — produce more than without the shock."""
         planned = self.production_target
         if capacity_constrained:
             planned = min(planned, self.current_production_capacity)
+        capped: dict[str, float] = {}
+        if input_constrained and planned > EPSILON:
+            limits = self._input_limits()
+            if limits:
+                feasible = max(0.0, min(limits.values()))
+                if feasible < planned * (1.0 - 1e-9):
+                    binding = {p for p, v in limits.items() if v <= feasible * (1.0 + 1e-9) + EPSILON}
+                    for pool, members in self._pooled_inputs().items():
+                        if pool not in binding:
+                            for input_id in members:
+                                capped[input_id] = feasible
         self.input_needs = {
-            input_id: coef * planned
+            input_id: coef * capped.get(input_id, planned)
             for input_id, coef in self.input_mix.items()
         }
 

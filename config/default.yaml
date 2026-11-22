@@ -318,6 +318,9 @@ adaptive_supplier_weight: False
 # otherwise pile into inventory unused and inflate the value-added loss). False keeps the
 # legacy demand-driven ordering.
 capacity_constrained_orders: False
+# A firm held back by a binding input orders its other inputs only for the output its
+# inputs allow, and still orders the binding inputs for its target (KI-90, 22 Nov 2026).
+input_constrained_orders: False
 
 # Determines the initial utilization rate of firms
 # It is used to determine, based on the production of the input-output equilibrium, the production capacity of the firms

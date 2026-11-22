@@ -74,6 +74,9 @@ class SimParams:
     # When True, firms cap input orders at current production capacity (a
     # capacity-destroyed firm stops over-ordering inputs it cannot process).
     capacity_constrained_orders: bool = False
+    # When True, a firm held back by a binding input orders its other inputs only for the
+    # output its inputs allow (KI-90); the binding inputs are still ordered for the target.
+    input_constrained_orders: bool = False
     # Characteristic time (DAYS) to mobilize idle capital into active capacity.
     # Per step at most min(1, days_per_step/tau) of idle can be activated (or
     # active mothballed), so a firm reaches full mobilization in ~tau.

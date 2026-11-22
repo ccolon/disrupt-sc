@@ -501,7 +501,8 @@ def _run_one_time_step(time_step, sc_network, transport_network,
     # 3. Purchase planning
     for firm in firms.values():
         firm.plan_purchase(sp.adaptive_inventories, sp.adaptive_supplier_weight,
-                           sp.capacity_constrained_orders)
+                           sp.capacity_constrained_orders,
+                           sp.input_constrained_orders)
 
     # 4. All agents send purchase orders
     for hh in households.values():
