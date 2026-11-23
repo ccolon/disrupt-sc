@@ -3,8 +3,9 @@
 #   Data folder disrupt-sc-data/Gulf38E: Economic/ from onboarding/scripts/emerging_extract.py (spec
 #   onboarding/mrio_specs/gulf/gulf38_emerging.yaml, written in kUSD like GLORIA), everything else copied byte for
 #   byte from Gulf38 (scope_build.json). EMERGING has no wholesale and retail sector: 18 sectors, no Trade.
-#   Every key below is that of user_defined_Gulf38.yaml, whose header follows. NOT YET USABLE FOR SHOCK RUNS: the
-#   gateway capacities were set on GLORIA's flows (six at the GLORIA baseline x 1.3, decision Q27 FALLBACK); on
+#   Every key below is that of user_defined_Gulf38.yaml, whose header follows. Capacities re-set on its own baseline (Q60, "Yes, re-set them";
+#   hormuz/scripts/q60_capacities.py, calibration/q60_checks): before that, the capacities
+#   set on GLORIA's flows (six at the GLORIA baseline x 1.3, decision Q27 FALLBACK); on
 #   EMERGING's flows the undisturbed run rations port_khalifa (x1.95), port_imam_khomeini (x1.93),
 #   port_jeddah_islamic (x1.74) and port_dammam (x1.04) from t=0 and blocks 0.2-0.3 Mt a week (test of 23 Nov 2026).
 # Gulf38 scope - Gulf19 (config/user_defined_Gulf19.yaml) on a 38-region MRIO
@@ -403,7 +404,7 @@ transport_capacity_overrides:
   port_assaluyeh: 348096          # all cargo; V219 PortWatch (modelled), 2025: 127 Mt, an anomalous jump from 17.8 Mt
   port_bandar_abbas: 64084        # all cargo; V202,V205 PortWatch (modelled)
   port_bushehr: 4972              # all cargo; V208 PortWatch (modelled)
-  port_dammam: 142192             # all cargo; V031 official statistic (GASTAT 51.9 Mt, 2024)
+  port_dammam: 191428  # Gulf38E (Q60): 1,030,767 t/week x 1.3 / 7 on the EMERGING baseline; GLORIA value 142192 (all cargo; V031 official statistic (GASTAT 51.9 Mt, 2024))
   port_das_island: 16245          # all cargo; V221 PortWatch (modelled)
   port_duqm: 14682                # all cargo; V162 PortWatch (modelled)
   port_fujairah:
@@ -411,11 +412,11 @@ transport_capacity_overrides:
     dry_bulk: 35689               # V153 PortWatch dry bulk + general cargo + ro-ro (modelled)
     liquid_bulk: 214432           # V151 PortWatch tanker pool (modelled)
     lng: 214432                   # V151 idem (one tanker pool applied to each)
-  port_hamad: 119677              # FALLBACK 644,413 t/week x 1.3 / 7 (proxy V195 PortWatch 17,620)
-  port_imam_khomeini: 365157      # FALLBACK 1,966,228 t/week x 1.3 / 7 (proxy V212 PortWatch 55,387)
+  port_hamad: 98226  # Gulf38E (Q60): 528,912 t/week x 1.3 / 7 on the EMERGING baseline; GLORIA value 119677 (FALLBACK 644,413 t/week x 1.3 / 7 (proxy V195 PortWatch 17,620))
+  port_imam_khomeini: 915520  # Gulf38E (Q60): 4,929,724 t/week x 1.3 / 7 on the EMERGING baseline; GLORIA value 365157 (FALLBACK 1,966,228 t/week x 1.3 / 7 (proxy V212 PortWatch 55,387))
   port_jebel_ali: 639071          # all cargo; V144 PortWatch (modelled)
-  port_jeddah_islamic: 148219     # all cargo; V026 official statistic (GASTAT 54.1 Mt, 2025)
-  port_khalifa: 101913            # all cargo; V147 PortWatch (modelled)
+  port_jeddah_islamic: 334683  # Gulf38E (Q60): 1,802,141 t/week x 1.3 / 7 on the EMERGING baseline; GLORIA value 148219 (all cargo; V026 official statistic (GASTAT 54.1 Mt, 2025))
+  port_khalifa: 258901  # Gulf38E (Q60): 1,394,081 t/week x 1.3 / 7 on the EMERGING baseline; GLORIA value 101913 (all cargo; V147 PortWatch (modelled))
   port_kharg_island: 183532       # FALLBACK 988,250 t/week x 1.3 / 7 (proxy V214 PortWatch 22,602)
   port_khor_fakkan:
     container: 77384              # V072 3,500,000 TEU/yr before the 2026 upgrade x 8.07 (Q38: the capacity at the shock; V071 5.0 M in A22)
@@ -424,18 +425,18 @@ transport_capacity_overrides:
     liquid_bulk: 4766             # V148
     lng: 4766                     # V148
   port_king_abdullah: 20548       # all cargo; V037 official statistic (GASTAT 7.5 Mt, 2025)
-  port_mina_al_ahmadi: 271873     # FALLBACK 1,463,933 t/week x 1.3 / 7 (proxy V186 PortWatch 61,318)
-  port_mina_al_fahal: 240451      # FALLBACK 1,294,738 t/week x 1.3 / 7 (no design or PortWatch figure; outside the Strait, Q38)
+  port_mina_al_ahmadi: 230579  # Gulf38E (Q60): 1,241,578 t/week x 1.3 / 7 on the EMERGING baseline; GLORIA value 271873 (FALLBACK 1,463,933 t/week x 1.3 / 7 (proxy V186 PortWatch 61,318))
+  port_mina_al_fahal: 254748  # Gulf38E (Q60): 1,371,723 t/week x 1.3 / 7 on the EMERGING baseline; GLORIA value 240451 (FALLBACK 1,294,738 t/week x 1.3 / 7 (no design or PortWatch figure; outside the Strait, Q38))
   port_qalhat: 13462              # all cargo; V223 PortWatch (modelled)
   port_ras_laffan: 182618         # all cargo; V196 PortWatch (modelled)
-  port_ras_tanura: 863546         # FALLBACK 4,649,864 t/week x 1.3 / 7 (proxy V178 PortWatch 174,362)
+  port_ras_tanura: 939481  # Gulf38E (Q60): 5,058,742 t/week x 1.3 / 7 on the EMERGING baseline; GLORIA value 863546 (FALLBACK 4,649,864 t/week x 1.3 / 7 (proxy V178 PortWatch 174,362))
   port_salalah:
     container: 132594             # V022 design 6,000,000 TEU/yr x 8.07
     crude: 10670                  # V157 PortWatch tanker pool (modelled)
     dry_bulk: 61918               # V023 official 'general cargo / dry bulk' 22.6 Mt (2024)
     liquid_bulk: 10670            # V157
     lng: 10670                    # V157
-  port_shuwaikh: 133161           # FALLBACK 717,022 t/week x 1.3 / 7 (proxy V181 PortWatch 11,297)
+  port_shuwaikh: 153793  # Gulf38E (Q60): 828,115 t/week x 1.3 / 7 on the EMERGING baseline; GLORIA value 133161 (FALLBACK 717,022 t/week x 1.3 / 7 (proxy V181 PortWatch 11,297))
   port_sohar:
     container: 44198              # V070 design 2,000,000 TEU/yr (Hutchison Ports Sohar terminal) x 8.07
     crude: 55926                  # V154 PortWatch tanker pool (modelled)
