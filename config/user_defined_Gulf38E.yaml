@@ -1,0 +1,684 @@
+# ============================================================================
+# Gulf38E scope - Gulf38 on EMERGING V2 2023 (Hormuz Q60, node A27) instead of GLORIA: the alternative-MRIO run.
+#   Data folder disrupt-sc-data/Gulf38E: Economic/ from onboarding/scripts/emerging_extract.py (spec
+#   onboarding/mrio_specs/gulf/gulf38_emerging.yaml, written in kUSD like GLORIA), everything else copied byte for
+#   byte from Gulf38 (scope_build.json). EMERGING has no wholesale and retail sector: 18 sectors, no Trade.
+#   Every key below is that of user_defined_Gulf38.yaml, whose header follows. NOT YET USABLE FOR SHOCK RUNS: the
+#   gateway capacities were set on GLORIA's flows (six at the GLORIA baseline x 1.3, decision Q27 FALLBACK); on
+#   EMERGING's flows the undisturbed run rations port_khalifa (x1.95), port_imam_khomeini (x1.93),
+#   port_jeddah_islamic (x1.74) and port_dammam (x1.04) from t=0 and blocks 0.2-0.3 Mt a week (test of 23 Nov 2026).
+# Gulf38 scope - Gulf19 (config/user_defined_Gulf19.yaml) on a 38-region MRIO
+# (Hormuz 2026 paper, decision Q59, the user 23 Nov 2026: "Yes, both" to the
+# 38-region option). Every key and value below is that of
+# user_defined_Gulf19.yaml at 95a064a5 except the stock depths by region
+# (USA split out of RoW, RoW recomputed); the comments quoting counts and t=0
+# tonnes were measured on Gulf or Gulf19. The data folder is disrupt-sc-data/Gulf38:
+#
+# MRIO: GLORIA 2023, 38 regions x 19 sectors, CLOSED: the 19 regions of Gulf19
+#   with USA, BRA, RUS out of RoW; VNM, THA, SGP, MYS, IDN out of EAS; EGY, NGA,
+#   ZAF, DZA, MAR, ETH, KEN, AGO, GHA, CIV, TZA out of AFR (AFR, EAS, RoW keep
+#   the remainders). Same sectors, year and units (kUSD). Extraction:
+#   onboarding/scripts/gloria_extract.py with onboarding/mrio_specs/gulf/gulf38.yaml
+#   (disrupt-sc); sha256 in Gulf38/Economic/mrio_full.provenance.json. Summed
+#   back to the 19 regions it equals the Gulf19 table to 0.2 kUSD a cell.
+# Spatial and transport: built from disrupt-sc-data/Gulf19 (read only) by
+#   onboarding/scripts/gulf38_build_scope.py (sha256 in Gulf38/scope_build.json):
+#   KEN takes AFR's pieces (Nairobi, the Mombasa road border_road_AFR_AFR_1, NBO)
+#   and SGP takes EAS's (Singapore, its Malacca sea edge, Changi), region tag
+#   only; the 19 other regions (AFR now at Maputo, EAS at Kaohsiung) get a
+#   household point, a road stub to their port, one or two border sea edges from
+#   junctions of the network, an airport and an air route. Ethiopia's port is
+#   Djibouti (road through Dire Dawa), outside Bab el-Mandeb. Asia - Americas
+#   trade has no Pacific route (no edge crosses the antimeridian): it goes west.
+#   The roads layer gains 19 edges at its end: model edge ids from the maritime
+#   layer on are shifted against Gulf19 (compare edges by name).
+# ============================================================================
+
+filepaths:
+  mrio: "Economic/mrio_full.csv"
+  sector_table: "Economic/sector_table_full.csv"
+  # firms.geojson: 35 oil and gas fields (Oil/Gas columns); the firms of every
+  # other region_sector sit at the centroid of their region's household points
+  firms_spatial: "Spatial/firms.geojson"
+  households_spatial: "Spatial/households.geojson"
+  countries_spatial: "Spatial/countries.geojson"
+  transport: "Transport/transport.gpkg"
+  multimodal: "Transport/multimodal.gpkg"
+  # Partially-binding Leontief (Hormuz A2, Q30): the same 19 x 19 sector matrix as Gulf
+  input_criticality: "Economic/input_criticality_ihs_outw.csv"
+  # Pooling of the same product across regions (Hormuz Q43, the user, 20 Nov 2026: "as the Rhine study")
+  product_substitutability: "studies:hormuz/data/mrio/product_substitutability_gulf19.csv"
+
+transport_modes: [roads, maritime, airways, pipelines]
+with_transport: True
+
+monetary_units_in_model: mUSD
+monetary_units_in_data: kUSD   # GLORIA table in thousand USD
+firm_data_type: mrio
+time_resolution: week
+
+flow_coverage: 0.95
+seed: 0
+
+# Undisturbed by default: scenarios (the observed 2026 Strait record, the
+# stylized arms) are written by the paper's drivers in disrupt-sc-studies/hormuz.
+# The April scenario was one binary closure of the edge "Strait of Hormuz" from
+# week 1 (the archived April file says duration 10; the April brief used 11).
+# With no disruption and the early stop off, a disruption run is a stationarity
+# check over t_final weeks.
+simulation_type: disruption
+t_final: 104
+# Early stop OFF (read as SimParams.epsilon_stop): every Hormuz run uses the
+# fixed horizon. With a value > 0, continue_disruption_run stops once t is past
+# the last disruption START and losses are at or below it, whatever the
+# disruption's duration - a run whose stocks still buffer an active Strait
+# closure could stop early; and an undisturbed run would run one step only.
+epsilon_stop_condition: 0
+mc_repetitions: 0
+export_files: True
+# KI-33: the per-link and per-inventory step files are not needed by the
+# Gulf analyses (firm/household/country series, routing summary, t=0 flows).
+export_link_data: False
+export_inventory_data: False
+use_route_cache: True
+country_transport_share: 0.2
+firm_transport_share: 0.2
+
+# 34-gateway paired criticality sweep of April 2026 (reused: material.md section 4)
+criticality:
+  duration: 5
+  scenarios:
+    - ["port_jebel_ali"]
+    - ["Strait of Hormuz", "port_jebel_ali"]
+    - ["port_khalifa"]
+    - ["Strait of Hormuz", "port_khalifa"]
+    - ["port_fujairah"]
+    - ["Strait of Hormuz", "port_fujairah"]
+    - ["port_khor_fakkan"]
+    - ["Strait of Hormuz", "port_khor_fakkan"]
+    - ["port_hamad"]
+    - ["Strait of Hormuz", "port_hamad"]
+    - ["port_ras_laffan"]
+    - ["Strait of Hormuz", "port_ras_laffan"]
+    - ["port_shuwaikh"]
+    - ["Strait of Hormuz", "port_shuwaikh"]
+    - ["port_mina_al_ahmadi"]
+    - ["Strait of Hormuz", "port_mina_al_ahmadi"]
+    - ["port_khalifa_bin_salman"]
+    - ["Strait of Hormuz", "port_khalifa_bin_salman"]
+    - ["port_ras_tanura"]
+    - ["Strait of Hormuz", "port_ras_tanura"]
+    - ["port_sohar"]
+    - ["Strait of Hormuz", "port_sohar"]
+    - ["port_mina_al_fahal"]
+    - ["Strait of Hormuz", "port_mina_al_fahal"]
+    - ["port_qalhat"]
+    - ["Strait of Hormuz", "port_qalhat"]
+    - ["port_salalah"]
+    - ["Strait of Hormuz", "port_salalah"]
+    - ["port_duqm"]
+    - ["Strait of Hormuz", "port_duqm"]
+    - ["port_jeddah_islamic"]
+    - ["Strait of Hormuz", "port_jeddah_islamic"]
+    - ["port_yanbu"]
+    - ["Strait of Hormuz", "port_yanbu"]
+    - ["port_dammam"]
+    - ["Strait of Hormuz", "port_dammam"]
+    - ["port_king_abdullah"]
+    - ["Strait of Hormuz", "port_king_abdullah"]
+    - ["port_umm_qasr"]
+    - ["Strait of Hormuz", "port_umm_qasr"]
+    - ["port_khor_al_zubair"]
+    - ["Strait of Hormuz", "port_khor_al_zubair"]
+    - ["port_al_maqal"]
+    - ["Strait of Hormuz", "port_al_maqal"]
+    - ["port_imam_khomeini"]
+    - ["Strait of Hormuz", "port_imam_khomeini"]
+    - ["port_bushehr"]
+    - ["Strait of Hormuz", "port_bushehr"]
+    - ["port_bandar_abbas"]
+    - ["Strait of Hormuz", "port_bandar_abbas"]
+    - ["port_bandar_lengeh"]
+    - ["Strait of Hormuz", "port_bandar_lengeh"]
+    - ["port_kharg_island"]
+    - ["Strait of Hormuz", "port_kharg_island"]
+    - ["port_assaluyeh"]
+    - ["Strait of Hormuz", "port_assaluyeh"]
+    - ["border_crossing_al_batha_al_ghuwaifat"]
+    - ["Strait of Hormuz", "border_crossing_al_batha_al_ghuwaifat"]
+    - ["border_crossing_abu_samra_salwa"]
+    - ["Strait of Hormuz", "border_crossing_abu_samra_salwa"]
+    - ["border_crossing_nuwaiseeb_khafji"]
+    - ["Strait of Hormuz", "border_crossing_nuwaiseeb_khafji"]
+    - ["border_crossing_king_fahd_causeway"]
+    - ["Strait of Hormuz", "border_crossing_king_fahd_causeway"]
+    - ["border_crossing_al_ain_al_buraimi"]
+    - ["Strait of Hormuz", "border_crossing_al_ain_al_buraimi"]
+    - ["border_crossing_khatmat_malaha"]
+    - ["Strait of Hormuz", "border_crossing_khatmat_malaha"]
+
+# -- Agents (April values) --
+# Q31 (the user, 18 Nov 2026): 5 in the baseline; 2, 10 and no cutoff (null) in A22
+price_increase_threshold: 5
+nb_suppliers_per_input: 1
+weight_localization_firm: 1
+weight_localization_household: 4
+utilization_rate: 0.8
+rationing_mode: "equal"
+propagate_input_price_change: False
+explicit_service_firm: True
+# Q30 (the user, 18 Nov 2026): the 2 % materiality floor, composed with the survey matrix
+critical_input_threshold: 0.02
+# Hormuz Q43 (the user, 20 Nov 2026, "Yes, as Rhine"): the same product from several regions is ONE input
+# for the commodity-like sectors of data/mrio/product_substitutability_gulf19.csv (Agriculture, Forestry, Fishing,
+# Coal, Oil, Gas, Mining, Food manufacturing, Refining, Fertilizer, Electricity): their stocks and coefficients pool
+# in the Leontief constraint, as the Rhine study (v14, 9 Sep 2026). Found by the pilot v2 probe: the Habshan oil
+# firms were bound by GLORIA's 2.6 % Iranian-crude input while their UAE crude input was plentiful.
+# adaptive_supplier_weight stays off (default; Q43 named pooling only, and KI-83).
+# Hormuz Q50 (the user, 22 Nov 2026, "Widen pools (model fix)"; disrupt-sc KI-89): origins: region - each firm
+# spreads its coefficient of a pooled product over the origin shares of that product in its whole region, so a
+# firm whose pruned mix held one origin (Korean electricity's gas from Qatar only) can draw on the others.
+input_pooling:
+  enabled: True
+  origins: region
+
+# -- Inventories (April values; days) --
+# Keyed on the sector_table 'type' of the INPUT. Oil and Gas are typed
+# oil_and_gas there and take the default 30 days; Refining is typed
+# manufacturing (30 days). The April comment "mining: 60 - strategic oil
+# reserves are large" was wrong: mining is Coal and Mining only (material.md D8).
+# Country-specific stocks (strategic reserves) are model change MC1.
+enable_household_inventories: True
+inventory_duration_targets:
+  definition: per_input_type
+  values:
+    default: 30
+    agriculture: 14    # food stocks: ~2 weeks
+    manufacturing: 30
+    mining: 60
+    utility: 3
+    service: 90
+    trade: 30
+    transport: 5
+  unit: day
+# Hormuz decision Q46 (the user, 20 Nov 2026): in DAYS since disrupt-sc e86b5567 (6 Jul 2026; KI-86). The April
+# value 4 meant 4 weekly steps; read as 4 days it was floored to one step (the whole stock gap reordered every week).
+inventory_restoration_time: 28
+
+# -- Country stock depths (Hormuz node A12, model change MC1, 18 Nov 2026) --
+# Days of use per input SECTOR (Gulf19 sector names), for the firms and the
+# households located in the region; they replace the per-type days above for
+# those inputs only. Block copied from disrupt-sc-studies/hormuz/calibration/
+# stocks_by_region_draft.yaml; every value is a row of
+# hormuz/data/stocks/stock_cover.csv or stock_cover_bloc_means.csv (evidence
+# node D7): IEA Oil Market Report 12 Aug 2026, Table 5, end Dec 2025 (pre-war).
+# IEA days = total stocks on land (industry + government, crude + products) in
+# days of FORWARD DEMAND, not days of net imports; the same figure is given to
+# Oil (crude) and Refining (products). The IEA collective release of 11 Mar
+# 2026 is NOT here: a policy reaction, for the ex-post run (Q24, node A13).
+# Regions left to the generic days above: ARE SAU IRQ IRN OMN BHR KWT QAT (net
+# exporters, no import cover found), CHN and IND (no days figure), AFR and EAS
+# (no member in the IEA table), and Gas everywhere (no days of cover found).
+# MC1 caveats: stocks above target are never drawn down; household stocks only
+# with enable_household_inventories (on here); the adjusted targets per region
+# are logged at build ("inventory_duration_targets_by_region [...]", KI-36).
+# Gulf38 (Q59): USA takes its own row (IEA OMR Table 5, end Dec 2025: 1,700.6 mb, 82 days; stock_cover_members.csv
+# table_cell); RoW without USA, BRA, RUS is the net-import-weighted mean of its members with a cover, AUS 37, CHL 27,
+# NZL 32 days = 34.05 (44 % of the remainder's 2023 net imports; CAN and MEX have covers but no net imports). The 18
+# other new regions have no IEA row (left to the generic days, as AFR and EAS).
+inventory_duration_targets_by_region:
+  JPN: {Oil: 156, Refining: 156}   # stock_cover.csv JPN/oil: total stocks on land, 156 days of forward demand, end Dec 2025
+  KOR: {Oil: 75, Refining: 75}     # KOR/oil 75 days, end Dec 2025
+  TUR: {Oil: 94, Refining: 94}     # TUR/oil 94 days, end Dec 2025
+  EUR: {Oil: 111, Refining: 111}   # bloc mean 111.14 (net-import-weighted, 25 of 31 members, 96 % of bloc net imports)
+  USA: {Oil: 82, Refining: 82}     # USA/oil 82 days, end Dec 2025 (Gulf38)
+  RoW: {Oil: 34, Refining: 34}     # Gulf38 remainder: mean 34.05 (AUS CHL NZL, 44 % of its net imports) - the weakest value
+  PAK: {Refining: 28}              # PAK/oil petrol and diesel cover 28 days each, OGRA, 2 Mar 2026 (product cover)
+  BGD: {Refining: 15}              # derived 15.3: BPC 4 Mar 2026 diesel 201,610 t/14 d, petrol 21,705 t/17 d, octane 34,133 t/31 d
+
+# -- Which cargo may use which mode --
+# Pipelines carry crude only: the Strait bypass lines (Petroline,
+# Habshan-Fujairah) are crude lines, and refined products or gas let into the
+# layer would bypass the Strait on them. Airways: containers only. Maritime and
+# the multimodal connectors (not listed): every cargo.
+# Crude is NOT barred from roads, although the target (node A1) was "crude on
+# pipeline and sea only": with roads: [container, dry_bulk, liquid_bulk, lng]
+# 394 of the 9,479 routable links have no route and the build stops (trial of
+# 18 Nov 2026) - all of them crude, all routable again with crude on roads.
+# The buyers of crude sit on road nodes (firms other than the oil and gas
+# fields sit at their region's household centroid) and so does AFR's producer
+# (Nairobi); a road leg is their only access to a pipeline or a port.
+# Consequence on the A1 data (undisturbed run output/Gulf/20261118_100420,
+# t=0): 3.32 Mt/week of crude from the Shaybah field crossed the then unnamed
+# SAU-OMN border road edge into the Yibal-Mina al-Fahal pipeline and left from
+# port_sohar (the Shaybah-Abqaiq line was in the data but dead-ended); the King
+# Fahd causeway carried 0.11 Mt/week of crude (KI-68; tables
+# disrupt-sc-studies/hormuz/data/gulf_port/roads_border_t0.csv). Fixed by the
+# A1b data edits and the crude caps of the border roads below (Q23).
+cargo_mode_eligibility:
+  airways: [container]
+  pipelines: [crude]
+
+# -- Capacities --
+# Since node A4a (18 Nov 2026) the gateways carry the capacities of decision
+# Q27 (block at the end of transport_capacity_overrides below). Until then the
+# gate was on with no capacity: the April capacities were tuned for the
+# retired cost penalty (several "raised" or "boosted" by hand, 1,000 t/day
+# placeholders) and 37 of their 102 edge-cargo constraints sit above the t=0
+# load on v2, which rations the undisturbed economy into collapse (material.md
+# D2, D15; audit_20261117/v2_smoke). The April list, kept as the inventory of
+# edges to source (tons/day, values NOT to be reused):
+#   port_jebel_ali {container 80000, dry_bulk 37453, liquid_bulk 0}
+#   port_khalifa {48308, 33275, 74668}       port_fujairah {20000, 3000, 23971}
+#   port_khor_fakkan {31251, 3125, 23359}    port_hamad {41658, 29200, 0}
+#   port_ras_laffan {0, 0, 30802}            port_shuwaikh {39782, 10510, 0}
+#   port_mina_al_ahmadi {0, 0, 51813}        port_khalifa_bin_salman {15237, 8528, 8519}
+#   port_ras_tanura {0, 0, 900000}           port_sohar {11017, 27801, 80000}
+#   port_mina_al_fahal {1000, 1000, 1000}    port_qalhat {0, 0, 23774}
+#   port_salalah {1000, 1000, 1000}          port_duqm {7543, 10000, 553}
+#   port_jeddah_islamic {62882, 0, 0}        port_yanbu {0, 0, 120000}
+#   port_dammam {61118, 0, 0}                port_king_abdullah {42856, 22800, 0}
+#   port_umm_qasr {53438, 3399, 29781}       port_khor_al_zubair {1000, 1000, 1000}
+#   port_al_maqal {5938, 13770, 11053}       port_imam_khomeini {93750, 35561, 277}
+#   port_bushehr {1000, 1000, 1000}          port_bandar_abbas {50000, 1000, 1286}
+#   port_bandar_lengeh {1000, 1000, 1000}    port_kharg_island {0, 0, 50312}
+#   port_assaluyeh {0, 1000, 1000}           offshore_supply {66, 1885, 0}
+#   border_crossing_al_batha_al_ghuwaifat 35000, border_crossing_abu_samra_salwa 16800,
+#   border_crossing_nuwaiseeb_khafji 8400, border_crossing_king_fahd_causeway 9800,
+#   border_crossing_al_ain_al_buraimi 9800, border_crossing_khatmat_malaha 7000.
+# The April entry port_shahid_rajaee {1000, 1000, 1000} is dropped: no edge of
+# transport.gpkg carries that name (April ignored it silently; v2 raises).
+# Shahid Rajaee is the main terminal of the port of Bandar Abbas, which the
+# network has as the lane port_bandar_abbas; a capacity for the port belongs
+# there (one port, one lane) - not on a second, invented edge.
+# The cargo keys of a future entry are the cargo types below:
+# container, dry_bulk, liquid_bulk, crude, lng.
+#
+# The entries below are not capacities: a 0 bars crude from an edge at build
+# (no cost label, so no crude route uses it and the gate has nothing to cut
+# there); the other cargoes keep the edge uncapacitated. Crude is barred
+# from the border road edges (Hormuz decision Q23, node A1b, 18 Nov 2026), so
+# that no crude leaves the Gulf by road outside the Strait accounting: the A6
+# leakage limit is < 50 kb/d cross-border by road or rail in all, ~47.7 kt per
+# weekly step at 7.33 bbl/t. Tried first (Gulf): crude 0 on all 20 border road
+# edges -> 131 crude links without a route, every one with AFR's Nairobi node at
+# an end (border_road_AFR_AFR_1, Mombasa-Nairobi, is AFR's only road between its
+# agents and its sea edge). That edge is AFR's internal access road (both ends
+# in Kenya, tagged border in the data), not a crossing between two economies:
+# it keeps no crude cap - any cap under its t=0 crude load would ration AFR's
+# crude trade in the undisturbed run - and is outside the cross-border total.
+# The 19 others are closed to crude; every crude link stays routable.
+# Edge names: disrupt-sc-data/Gulf/Transport/EDITS.md (step 3).
+capacity_constraint: True
+transport_capacity_overrides:
+  border_crossing_al_ain_al_buraimi: {crude: 0, lng: 0}
+  border_crossing_al_batha_al_ghuwaifat: {crude: 0}
+  border_crossing_abu_samra_salwa: {crude: 0}
+  border_crossing_nuwaiseeb_khafji: {crude: 0}
+  border_crossing_king_fahd_causeway: {crude: 0}
+  border_crossing_khatmat_malaha: {crude: 0, lng: 0}
+  border_road_SAU_ARE_1: {crude: 0}
+  border_road_SAU_ARE_2: {crude: 0}
+  border_road_SAU_ARE_3: {crude: 0}
+  border_road_SAU_QAT_1: {crude: 0}
+  border_road_SAU_QAT_2: {crude: 0}
+  border_road_SAU_KWT_1: {crude: 0}
+  border_road_SAU_KWT_2: {crude: 0}
+  border_road_SAU_KWT_3: {crude: 0}
+  border_road_ARE_OMN_1: {crude: 0, lng: 0}
+  border_road_SAU_OMN_1: {crude: 0, lng: 0}
+  border_road_IRQ_IRN_1: {crude: 0}
+  border_road_IRQ_IRN_2: {crude: 0}
+  border_road_IRQ_KWT_1: {crude: 0}
+  # Hormuz decision Q39 (20 Nov 2026): crude reaches port_fujairah only by the Habshan-Fujairah pipeline and its
+  # pipelines-maritime connector. The capacity pilot (A11) found about 2 Mt/week of crude trucked to Fujairah inside
+  # the UAE. Both road connectors at the Fujairah pipeline end are barred (roads-maritime to the port, and the
+  # roads-pipelines connector to the pipeline end: crude could cross the pipeline node without a pipeline edge,
+  # the KI-67 pattern). Names: disrupt-sc-data Gulf/Transport/EDITS.md, step 7.
+  connector_roads_maritime_fujairah: {crude: 0, lng: 0}
+  connector_roads_pipelines_fujairah: {crude: 0}
+  # Hormuz decision Q42 (20 Nov 2026, "Yes, all such ports"): outside the Strait, crude reaches the sea only where a
+  # crude terminal exists - Fujairah (pipeline only, Q39), Mina al Fahal, Yanbu, Duqm (Ras Markaz). The six lanes
+  # outside the Strait without one have crude barred on every land connector: under the Strait shock the pilot sent
+  # trucked crude to Khor Fakkan (its crude capacity, full) and King Abdullah (its shared capacity, full), and Omani
+  # crude left from the Qalhat LNG terminal at t=0 by its pipelines-maritime connector. Operator sources:
+  # disrupt-sc-studies/hormuz/data/capacity/q42_port_sources.md; names: disrupt-sc-data Gulf/Transport/EDITS.md,
+  # step 8. Ports inside the Strait are left as they are (they stand in for the crude terminals the network lacks).
+  connector_roads_maritime_khor_fakkan: {crude: 0, lng: 0}
+  connector_roads_maritime_king_abdullah: {crude: 0, lng: 0}
+  connector_roads_maritime_qalhat: {crude: 0}
+  connector_pipelines_maritime_qalhat: {crude: 0}
+  connector_roads_maritime_sohar: {crude: 0, lng: 0}
+  connector_pipelines_maritime_sohar: {crude: 0, lng: 0}
+  connector_roads_maritime_salalah: {crude: 0, lng: 0}
+  connector_roads_maritime_jeddah_islamic: {crude: 0, lng: 0}
+  # Hormuz decision Q49 (22 Nov 2026, "Yes, bar LNG, rerun"): in the A6 runs Qatari LNG left the Gulf by sea to
+  # Jebel Ali, by road to Fujairah and out from there (257-343 kt/week; disrupt-sc KI-88). As Q42 for crude, LNG is
+  # barred on every land connector of the nine lanes outside the Strait without an LNG export terminal (all but
+  # Qalhat, Oman LNG): the seven above carry lng: 0 next to crude: 0, and the six below were named for it.
+  # Sources: disrupt-sc-studies/hormuz/data/capacity/q49_lng_sources.md; names: disrupt-sc-data
+  # Gulf/Transport/EDITS.md, step 11. Lanes inside the Strait are left as they are. LNG is also barred on the four
+  # road crossings into Oman (border_crossing_khatmat_malaha, border_crossing_al_ain_al_buraimi, border_road_ARE_OMN_1,
+  # border_road_SAU_OMN_1; crude: 0, lng: 0 above), so that Qalhat (Oman LNG) loads Omani gas only: without them
+  # the pilot sent Qatari LNG by road from Jebel Ali to Qalhat, and with the Red Sea lanes open, by sea to Dammam and
+  # by road to Yanbu and King Abdullah. With all of them (pilot, seed 0, 20 weeks) Qatar's gas exports fall to
+  # 0.07-0.16 of t=0 (the Strait carries 5-14 % of its LNG). Side effect at t=0: Jeddah Islamic's 87 kt/week of
+  # Gas-sector trade (the class also holds LPG) moves to port_dammam, 2.4 % above its capacity; the gate re-sends
+  # 23 kt/week to Ras Tanura, nothing is blocked (disrupt-sc-studies/hormuz/calibration/q49_checks).
+  connector_pipelines_maritime_fujairah: {lng: 0}
+  connector_roads_maritime_duqm: {lng: 0}
+  connector_roads_maritime_mina_al_fahal: {lng: 0}
+  connector_pipelines_maritime_mina_al_fahal: {lng: 0}
+  connector_roads_maritime_yanbu: {lng: 0}
+  connector_pipelines_maritime_yanbu: {lng: 0}
+  # ---- Gateway capacities (Hormuz node A4a, decision Q27, 18 Nov 2026), surge 1.0 ----
+  # Tonnes per DAY (x7 per weekly step). Source: disrupt-sc-studies/hormuz/calibration/
+  # capacity_table.csv and capacity_overrides_draft.yaml (every row has its V-id in
+  # hormuz/data/capacity/gateways_capacity.csv). A number = one capacity shared by all
+  # cargo; a dict = per cargo; a cargo not listed is uncapped. Rule (Q27): lanes inside the
+  # Strait take their maximum 2023-25 throughput (official statistic, else PortWatch AIS
+  # estimate, MODELLED); lanes outside take the terminal or operator design statement where
+  # one exists, else the same proxy. Gaps left uncapped (no PortWatch port or < 50 calls a
+  # year): port_al_maqal, port_khalifa_bin_salman, port_bandar_lengeh, port_khor_al_zubair,
+  # port_mina_al_fahal; feeder pipelines and border crossings uncapacitated (Q27).
+  # Container design capacities in TEU (Khor Fakkan V071 5.0 M, Sohar V070 2.0 M, Fujairah
+  # V012 0.72 M, Salalah V022 6.0 M TEU/yr) converted at 8.07 t of goods per TEU handled:
+  # Eurostat main ports, EU27 2022-2024 mean (9.90 t per laden TEU, 18.6 % empty), gross
+  # weight of goods without container tare - the weight the model's tonnes stand for
+  # (hormuz/scripts/a4a_teu_factor.py, calibration/teu_factor.csv; range 6.93-10.11 for A22).
+  # Crude nameplates of the bypass system (Q23: "pipeline costs and nameplates stay
+  # calibration levers for A4a"): Yanbu loading terminals V046 and Petroline V047 5.0 mb/d,
+  # Habshan-Fujairah V016 1.8 mb/d (EIA; ADNOC nameplate 1.5), Kirkuk-Ceyhan V093 0.75 mb/d,
+  # at 7.33 bbl/t.
+  # FALLBACK (A4a round 3, 19 Nov 2026; the A4b rule, Q27 option 2, the Rhine method): six
+  # lanes inside the Strait take the modelled baseline x headroom 1.3 instead of their
+  # PortWatch proxy - Shuwaikh, Kharg, Hamad, Imam Khomeini, Ras Tanura, Mina al Ahmadi
+  # (marked FALLBACK below; baseline = round-2 routed tonnes per week before the gate, / 7).
+  # No reallocation between an economy's lanes could clear them: summed over the economy,
+  # the lanes' baseline is 4.3 x their PortWatch capacities in Kuwait, 1.17 x in Qatar,
+  # 2.5 x on the Saudi east coast (Petroline-Yanbu already at its 2024-25 statistic), and
+  # Iran's crude has no terminal but Kharg (6.2 x) outside the uncapped gap lanes
+  # (hormuz/calibration/rounds/, a4a_feasibility.py). The proxies are AIS undercounts of
+  # oil terminals and commercial ports (Kharg 8.2 Mt against Iran's crude exports).
+  port_assaluyeh: 348096          # all cargo; V219 PortWatch (modelled), 2025: 127 Mt, an anomalous jump from 17.8 Mt
+  port_bandar_abbas: 64084        # all cargo; V202,V205 PortWatch (modelled)
+  port_bushehr: 4972              # all cargo; V208 PortWatch (modelled)
+  port_dammam: 142192             # all cargo; V031 official statistic (GASTAT 51.9 Mt, 2024)
+  port_das_island: 16245          # all cargo; V221 PortWatch (modelled)
+  port_duqm: 14682                # all cargo; V162 PortWatch (modelled)
+  port_fujairah:
+    container: 15911              # V012 design 720,000 TEU/yr x 8.07 t/TEU
+    dry_bulk: 35689               # V153 PortWatch dry bulk + general cargo + ro-ro (modelled)
+    liquid_bulk: 214432           # V151 PortWatch tanker pool (modelled)
+    lng: 214432                   # V151 idem (one tanker pool applied to each)
+  port_hamad: 119677              # FALLBACK 644,413 t/week x 1.3 / 7 (proxy V195 PortWatch 17,620)
+  port_imam_khomeini: 365157      # FALLBACK 1,966,228 t/week x 1.3 / 7 (proxy V212 PortWatch 55,387)
+  port_jebel_ali: 639071          # all cargo; V144 PortWatch (modelled)
+  port_jeddah_islamic: 148219     # all cargo; V026 official statistic (GASTAT 54.1 Mt, 2025)
+  port_khalifa: 101913            # all cargo; V147 PortWatch (modelled)
+  port_kharg_island: 183532       # FALLBACK 988,250 t/week x 1.3 / 7 (proxy V214 PortWatch 22,602)
+  port_khor_fakkan:
+    container: 77384              # V072 3,500,000 TEU/yr before the 2026 upgrade x 8.07 (Q38: the capacity at the shock; V071 5.0 M in A22)
+    crude: 4766                   # V148 PortWatch tanker pool (modelled)
+    dry_bulk: 2089                # V150 PortWatch dry bulk + general cargo + ro-ro (modelled)
+    liquid_bulk: 4766             # V148
+    lng: 4766                     # V148
+  port_king_abdullah: 20548       # all cargo; V037 official statistic (GASTAT 7.5 Mt, 2025)
+  port_mina_al_ahmadi: 271873     # FALLBACK 1,463,933 t/week x 1.3 / 7 (proxy V186 PortWatch 61,318)
+  port_mina_al_fahal: 240451      # FALLBACK 1,294,738 t/week x 1.3 / 7 (no design or PortWatch figure; outside the Strait, Q38)
+  port_qalhat: 13462              # all cargo; V223 PortWatch (modelled)
+  port_ras_laffan: 182618         # all cargo; V196 PortWatch (modelled)
+  port_ras_tanura: 863546         # FALLBACK 4,649,864 t/week x 1.3 / 7 (proxy V178 PortWatch 174,362)
+  port_salalah:
+    container: 132594             # V022 design 6,000,000 TEU/yr x 8.07
+    crude: 10670                  # V157 PortWatch tanker pool (modelled)
+    dry_bulk: 61918               # V023 official 'general cargo / dry bulk' 22.6 Mt (2024)
+    liquid_bulk: 10670            # V157
+    lng: 10670                    # V157
+  port_shuwaikh: 133161           # FALLBACK 717,022 t/week x 1.3 / 7 (proxy V181 PortWatch 11,297)
+  port_sohar:
+    container: 44198              # V070 design 2,000,000 TEU/yr (Hutchison Ports Sohar terminal) x 8.07
+    crude: 55926                  # V154 PortWatch tanker pool (modelled)
+    dry_bulk: 111261              # V154 PortWatch dry bulk + general cargo + ro-ro (modelled)
+    liquid_bulk: 55926            # V154
+    lng: 55926                    # V154
+  port_umm_qasr: 106775           # all cargo; V188 PortWatch (modelled)
+  port_yanbu:
+    container: 20274              # V044 official pool 'general cargo, containers, dry bulk' 7.4 Mt (2025)
+    crude: 682128                 # V046 design 5.0 mb/d (Yanbu crude loading terminals)
+    dry_bulk: 20274               # V044 idem (the pool applied to each)
+    liquid_bulk: 364658           # V040 official liquid bulk 133.1 Mt (2024)
+    lng: 206439                   # V173,V176 PortWatch tanker pool (modelled)
+  "East-West Crude Oil Pipeline (Petroline)": {crude: 954980}   # V048 7.0 mb/d (Q38: the minister reported 5.8 mb/d of pipeline flow in the war, above V047 5.0)
+  "Habshan\u2013Fujairah oil pipeline": {crude: 245566}          # V016 EIA 1.8 mb/d (V015 ADNOC nameplate 1.5)
+  "Kirkuk\u2013Ceyhan": {crude: 102319}                         # V093 Rudaw 0.75 mb/d (V050 1.6 a snippet, not verified)
+
+# -- Reporting (Hormuz node A26, decision Q28 item 12, 18 Nov 2026) --
+# Outputs only, no result moves: with these switches on, every other output is
+# byte-identical on Testkistan (tests/test_reporting_outputs.py) and on a 6-week
+# Gulf run (seed 0, same PYTHONHASHSEED).
+# trade_by_region_sector.csv: per week, the cross-region deliveries by seller region,
+# seller sector and buyer region (quantity as in trade_data.csv, and tons) - the
+# scorer's exports and imports; link_data.csv stays off (KI-33).
+export_trade_by_region_sector: True
+# logistics_report.csv at every week, not weeks 0 and 1 only (KI-73): 0.02 MB a week.
+export_logistics_every_step: True
+# The per-edge flow GeoJSONs stay at weeks 0 and 1: each is the whole network, about
+# 1 MB a week, ~100 MB per 104-week run, and the scorer reads the report only (the
+# orchestrator, 18 Nov 2026: up to ~1,500 runs on a disk with 68 GB free).
+export_edge_flows_every_step: False
+# Every named edge of the network, watched without a capacity: the 94 distinct names
+# of disrupt-sc-studies/hormuz/data/capacity/network_named_edges.csv (114 rows,
+# sha256 dd80c8f879b95813), in its order: 6 border crossings, 62 sea edges (the
+# Strait, the port_* lanes, the named lanes), 19 airports and 7 pipelines; every name
+# matched an edge of Gulf and Gulf19 transport.gpkg on 18 Nov 2026. A name several
+# edges carry (a pipeline in segments, a lane in legs) gives one report row per edge
+# (edge_id). The en dash of the pipeline names is written \u2013: the config is read
+# in the locale encoding (cp1252 on Windows), where a UTF-8 dash would not match the
+# edge name. Node A1b (18 Nov 2026) added the 15 names it gave to the data (the 14
+# border_road_* edges, for the A6 cross-border check, and the Shaybah-Abqaiq line) at
+# the end of the list; they are not in network_named_edges.csv.
+monitored_edges:
+  - "border_crossing_al_ain_al_buraimi"
+  - "border_crossing_al_batha_al_ghuwaifat"
+  - "border_crossing_abu_samra_salwa"
+  - "border_crossing_nuwaiseeb_khafji"
+  - "border_crossing_king_fahd_causeway"
+  - "border_crossing_khatmat_malaha"
+  - "Suez south - Hurghada / Red Sea mouth; (32.2, 31.0) - Suez south; (32.2, 31.0) - (32.2, 31.0)"
+  - "(71.0, 20.0) - Mumbai approach; Arabian Sea central - (71.0, 20.0); Arabian Sea central - Makran coast"
+  - "(45.6, 1.5) - (40.3, -4.2); (39.6, -4.0) - (40.3, -4.2)"
+  - "(45.6, 1.5) - (45.6, 1.5); (45.6, 1.5) - Somali Basin"
+  - "Red Sea central - Red Sea north"
+  - "Hurghada / Red Sea mouth - Red Sea north"
+  - "UAE central - Khalifa Port approach"
+  - "Khalifa Port approach - Dubai hub"
+  - "Salalah approach - Gulf of Aden W"
+  - "Gulf of Aden E - Gulf of Aden W"
+  - "Abu Dhabi approach - Qatar approach"
+  - "Qatar approach - Qatar-Bahrain hub"
+  - "Kuwait approach - Dammam approach"
+  - "Dammam approach - Bahrain approach"
+  - "Bahrain east - Bahrain approach"
+  - "Kuwait approach - Umm Qasr approach"
+  - "NW Gulf - Umm Qasr approach"
+  - "Indian Ocean NW - (90.0, -1.5)"
+  - "Socotra - Indian Ocean NW"
+  - "Arabian Sea NW - Indian Ocean NW"
+  - "Somali Basin - Socotra"
+  - "Arabian Sea NW - Socotra"
+  - "Gulf of Aden E - Socotra"
+  - "Strait of Hormuz"
+  - "Arabian Sea NW - Salalah approach"
+  - "Gulf of Oman - Arabian Sea NW"
+  - "port_assaluyeh"
+  - "port_bandar_abbas"
+  - "port_king_abdullah"
+  - "port_bushehr"
+  - "port_shuwaikh"
+  - "port_dammam"
+  - "port_fujairah"
+  - "port_jeddah_islamic"
+  - "(67.0, 24.8) - Makran coast"
+  - "port_khor_fakkan"
+  - "port_jebel_ali"
+  - "port_salalah"
+  - "(72.9, 18.9) - Mumbai approach"
+  - "port_duqm"
+  - "port_sohar"
+  - "port_khor_al_zubair"
+  - "Gulf of Aden E - Mumbai approach"
+  - "port_al_maqal"
+  - "port_khalifa"
+  - "port_imam_khomeini"
+  - "port_hamad"
+  - "port_khalifa_bin_salman"
+  - "port_ras_laffan"
+  - "port_ras_tanura"
+  - "Hormuz north - Qatar-Bahrain hub"
+  - "port_bandar_lengeh"
+  - "port_kharg_island"
+  - "(52.5, 27.6) - Qatar-Bahrain hub"
+  - "Red Sea S-central - Red Sea central"
+  - "port_das_island"
+  - "port_mina_al_ahmadi"
+  - "port_mina_al_fahal"
+  - "port_qalhat"
+  - "port_yanbu"
+  - "offshore_supply"
+  - "port_umm_qasr"
+  - "DXB Dubai International"
+  - "AUH Abu Dhabi International"
+  - "DWC Al Maktoum International"
+  - "JED King Abdulaziz International"
+  - "RUH King Khalid International"
+  - "DMM King Fahd International"
+  - "DOH Hamad International"
+  - "KWI Kuwait International"
+  - "BAH Bahrain International"
+  - "MCT Muscat International"
+  - "BGW Baghdad International"
+  - "BSR Basra International"
+  - "BOM Chhatrapati Shivaji International"
+  - "KHI Jinnah International"
+  - "PVG Shanghai Pudong International"
+  - "IST Istanbul Airport"
+  - "SIN Singapore Changi"
+  - "FRA Frankfurt Airport"
+  - "NBO Jomo Kenyatta International"
+  - "Habshan\u2013Fujairah oil pipeline"
+  - "Dukhan\u2013Mesaieed"
+  - "Yibal\u2013Mina al-Fahal"
+  - "Ahvaz\u2013Kharg Island"
+  - "Kirkuk\u2013Ceyhan"
+  - "South Pars\u2013Assaluyeh"
+  - "East-West Crude Oil Pipeline (Petroline)"
+  - "border_road_SAU_ARE_1"
+  - "border_road_SAU_ARE_2"
+  - "border_road_SAU_ARE_3"
+  - "border_road_SAU_QAT_1"
+  - "border_road_SAU_QAT_2"
+  - "border_road_SAU_KWT_1"
+  - "border_road_SAU_KWT_2"
+  - "border_road_SAU_KWT_3"
+  - "border_road_ARE_OMN_1"
+  - "border_road_SAU_OMN_1"
+  - "border_road_IRQ_IRN_1"
+  - "border_road_IRQ_IRN_2"
+  - "border_road_IRQ_KWT_1"
+  - "border_road_AFR_AFR_1"
+  - "connector_roads_maritime_fujairah"
+  - "connector_roads_pipelines_fujairah"
+  - "connector_roads_maritime_khor_fakkan"
+  - "connector_roads_maritime_king_abdullah"
+  - "connector_roads_maritime_qalhat"
+  - "connector_pipelines_maritime_qalhat"
+  - "connector_roads_maritime_sohar"
+  - "connector_pipelines_maritime_sohar"
+  - "connector_roads_maritime_salalah"
+  - "connector_roads_maritime_jeddah_islamic"
+  - "connector_pipelines_maritime_fujairah"
+  - "connector_roads_maritime_duqm"
+  - "connector_roads_maritime_mina_al_fahal"
+  - "connector_pipelines_maritime_mina_al_fahal"
+  - "connector_roads_maritime_yanbu"
+  - "connector_pipelines_maritime_yanbu"
+  - "Shaybah-Abqaiq oil pipeline"
+
+# -- Logistics (April values, except the retired keys) --
+logistics:
+  # Cargo classes. Sector keys take precedence over the sector-type keys of
+  # default.yaml (agriculture, mining -> dry_bulk; oil_and_gas -> liquid_bulk;
+  # default -> container).
+  # - Oil -> crude: its own class, so that cargo_mode_eligibility can keep it
+  #   on pipelines and ships, and the Strait shock can cut tankers per cargo.
+  # - Gas -> lng: its own class (no engine change; plan section 4). LPG cannot
+  #   be separated at 19 sectors.
+  # - Refining -> liquid_bulk: sector_table_full.csv types Refining
+  #   'manufacturing', which shipped refined products as containers in April
+  #   (material.md D8); liquid_bulk is the oil_and_gas class. The data file is
+  #   used as it is, so the 'type' column still says manufacturing where it is
+  #   read for stocks: firm stocks of refined products 30 days either way here,
+  #   household stocks 14 days (manufacturing) instead of the 7-day default.
+  sector_to_cargo_type:
+    Oil: crude
+    Gas: lng
+    Refining: liquid_bulk
+  speeds:  # km/hour
+    roads: 60       # Gulf highways are high quality
+    maritime: 25    # average container vessel in Gulf waters
+    airways: 800
+  basic_cost:  # USD per ton*km
+    roads: 0.09
+    maritime: 0.003
+    airways: 1.5    # air freight premium
+    multimodal: 0.01
+  border_crossing_fees:  # USD/ton - GCC has relatively low barriers
+    roads: 30
+    maritime: 20
+    airways: 10
+  border_crossing_times:  # hours
+    roads: 2.0      # GCC borders are relatively smooth
+    maritime: 4
+    airways: 2
+    multimodal: 3
+  dwell_times:  # hours
+    roads-maritime: 18
+    roads-airways: 18
+    roads-maritime-fujairah: 18
+    roads-maritime-khor_fakkan: 18
+    roads-pipelines-fujairah: 18
+  loading_fees:  # USD/ton
+    roads-maritime: 2.5
+    roads-maritime-fujairah: 8
+    roads-pipelines-fujairah: 8
+    roads-maritime-khor_fakkan: 10
+    roads-airways: 5.0
+  # -- Calibration levers (Hormuz node A4a, rounds 1-3, 19 Nov 2026; frozen before any
+  # shocked run: disrupt-sc-studies/hormuz/calibration/levers_frozen.yaml) --
+  # Per-port fees, USD per ton on every cargo crossing the named lane (name-specific is
+  # added to the lane's cost label), each just above the switch fee measured on the
+  # round-0 routes (hormuz/scripts/a4a_switch_cost.py), against misallocated flows:
+  # Kuwait's crude left from the commercial port (Shuwaikh; switch 13.98) instead of Mina
+  # al Ahmadi; Oman's crude from Sohar through the 237 km pipeline extension (switch 1.88)
+  # instead of Mina al Fahal at the end of the Yibal line; Qatar's crude for India from the
+  # container port (Hamad; switch 3.84) instead of Ras Laffan; Duqm above its proxy (163
+  # vs 103 kt/week; switch 2.63, its users go to Mina al Fahal); Khalifa above its proxy
+  # and 1.44 x its statistic (1.0 moves the groups switching at 0.20; 1.29 would move
+  # 634 kt/week at once and leave Khalifa at 0.24 x).
+  name-specific:
+    port_shuwaikh: 15
+    port_sohar: 3
+    port_hamad: 5
+    port_duqm: 3
+    port_khalifa: 1.0
+  # Value of time, USD per ton-hour (0.49 everywhere before A4a): dry bulk at sea 0.25, so
+  # that Khalifa's dry bulk prefers Jebel Ali's longer sea leg (149 km more sea, 20 km less
+  # road; switch below 0.27) - Khalifa from 1.44 to 0.73 x its statistic; at 0.22 and below
+  # Saudi coal for Europe leaves Jeddah for Dammam around Arabia (Dammam 1.21 x its
+  # capacity, round 2). The window [0.23, 0.27) is narrow: a sensitivity, not a measured
+  # value. The EU scope's structure (bulk 0.08, containers 0.15 at sea) was tried (round 1)
+  # and sends Saudi west-coast trade around Arabia (Jeddah 0.15 x, Dammam 1.8 x).
+  cost_of_time:
+    dry_bulk: {default: 0.49, maritime: 0.25}
+    default: 0.49
