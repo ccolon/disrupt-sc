@@ -1,0 +1,82 @@
+# Transport Network Processing Configuration
+# This file demonstrates the configuration options available for transport processing
+
+# Simplification parameters
+simplification:
+  tolerance: 0.0001                    # Geometric tolerance for operations
+  intersection_buffer: 0.0045          # ~500m buffer for intersections
+  
+  # Iteration limits for algorithms
+  degree2_max_iterations: 10          # Max iterations for degree-2 node removal
+  gridiron_max_iterations: 20         # Max iterations for gridiron simplification
+  clustering_max_iterations: 20       # Max iterations for clustering
+  deadend_max_iterations: 3           # Max iterations for dead-end removal
+  
+  # Algorithm thresholds
+  gridiron_length_km: 1.0             # Gridiron pattern detection threshold
+  clustering_radius_m: 50             # Node clustering radius
+  
+  # Feature toggles
+  enable_gridiron: true               # Enable gridiron pattern detection
+  enable_clustering: true             # Enable node clustering
+  enable_deadend_removal: true        # Enable dead-end removal
+
+# Processing performance settings
+processing:
+  enable_streaming: true              # Use streaming for memory efficiency
+  enable_caching: true                # Enable intelligent result caching
+  enable_monitoring: true             # Generate performance insights
+  max_workers: null                   # Auto-detect number of workers
+  
+  # Memory management
+  memory_warning_mb: 8192             # Memory warning threshold (8GB)
+  chunk_batch_size: 5                 # Number of chunks to process in parallel
+  
+  # Caching settings
+  cache_ttl_hours: 24                 # Cache time-to-live
+  auto_cleanup_cache: true            # Automatically clean expired cache
+  
+  # Chunking strategy
+  target_chunk_area_km2: 5000         # Target area per chunk (~70x70km)
+  chunk_buffer_km: 10                 # Buffer size for chunk overlap
+
+# Output configuration
+output:
+  save_performance_report: true       # Save detailed performance analysis
+  save_intermediate_results: false    # Save intermediate processing steps
+  output_format: "geojson"           # Output format (geojson, shapefile, parquet)
+  
+  # Compression
+  compress_output: false              # Compress output files
+  compression_level: 6                # Compression level (1-9)
+  
+  # Validation
+  validate_topology: true             # Validate network topology
+  validate_geometry: true             # Validate geometric integrity
+
+# Transport mode configuration
+modes:
+  modes: ['roads', 'railways', 'waterways', 'maritime']  # Modes to process
+  
+  # Mode-specific overrides (example for roads only)
+  mode_overrides:
+    roads:
+      simplification:
+        enable_gridiron: true         # Enable gridiron for roads
+        gridiron_length_km: 0.5       # Shorter gridiron threshold for urban areas
+    railways:
+      simplification:
+        enable_clustering: false      # Disable clustering for railways
+        clustering_radius_m: 100      # Larger clustering radius if enabled
+  
+  # Multimodal connections
+  build_multimodal: true              # Create connections between transport modes
+  multimodal_buffer_m: 1000           # Buffer for multimodal connections
+
+# Directory settings
+cache_dir: "./cache"                  # Cache directory for downloads
+output_dir: "./output"                # Output directory for results
+
+# Logging configuration
+log_level: "INFO"                     # Logging level (DEBUG, INFO, WARNING, ERROR)
+log_file: null                        # Log file path (null = console only)
